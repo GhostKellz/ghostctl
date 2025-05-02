@@ -9,7 +9,7 @@
 
 ---
 
-## ✨ What is ghostctl?
+## 👻 ✨ What is ghostctl?
 
 `ghostctl` is a modern, opinionated command-line interface written in Go (using Cobra) that simplifies management of Tailscale and Headscale environments. Whether you’re setting up subnet routes, managing user devices, or configuring ACLs, `ghostctl` wraps common workflows in clean, scriptable commands.
 
