@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
-// Add a config command to show and edit config
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Show and edit ghostctl configuration",

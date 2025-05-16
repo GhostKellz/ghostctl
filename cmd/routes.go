@@ -4,8 +4,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"github.com/GhostKellz/ghostctl/utils"
+	"github.com/spf13/cobra"
 )
 
 var routesCmd = &cobra.Command{
