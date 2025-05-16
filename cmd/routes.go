@@ -5,13 +5,20 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/your_project/utils"
 )
 
 var routesCmd = &cobra.Command{
 	Use:   "routes",
 	Short: "Advertise or remove Tailscale routes",
+	Long:  `Advertise or remove Tailscale routes using tailscale CLI`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Routes tool placeholder — todo: advertise/remove routes")
+		out, err := utils.RunCommandOutput("tailscale", "status", "--json")
+		if err != nil {
+			fmt.Println("Error running tailscale:", err)
+			return
+		}
+		fmt.Println(out)
 	},
 }
 
