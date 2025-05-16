@@ -1,7 +1,4 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
-*/
+// cmd/routes.go
 package cmd
 
 import (
@@ -10,18 +7,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// routesCmd represents the routes command
 var routesCmd = &cobra.Command{
 	Use:   "routes",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Advertise or remove Tailscale routes",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("routes called")
+		fmt.Println("Routes tool placeholder — todo: advertise/remove routes")
 	},
 }
 
