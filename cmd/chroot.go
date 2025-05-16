@@ -2,8 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"myproject/utils"
-
+	"github.com/GhostKellz/ghostctl/utils"
 	"github.com/spf13/cobra"
 )
 

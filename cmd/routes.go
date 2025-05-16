@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/your_project/utils"
+	"github.com/GhostKellz/ghostctl/utils"
 )
 
 var routesCmd = &cobra.Command{

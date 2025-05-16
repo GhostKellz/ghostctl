@@ -1,9 +1,8 @@
-package main
+package cmd
 
 import (
 	"fmt"
-	"utils"
-
+	"github.com/GhostKellz/ghostctl/utils"
 	"github.com/spf13/cobra"
 )
 

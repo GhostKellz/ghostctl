@@ -4,7 +4,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"ghostctl/utils"
+	"github.com/GhostKellz/ghostctl/utils"
 )
 
 var devicesCmd = &cobra.Command{

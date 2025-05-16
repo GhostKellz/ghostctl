@@ -3,8 +3,7 @@ package cmd
 
 import (
 	"fmt"
-	"ghostctl/utils"
-
+	"github.com/GhostKellz/ghostctl/utils"
 	"github.com/spf13/cobra"
 )
 
