@@ -310,6 +310,51 @@ WantedBy=timers.target
 		},
 	})
 
+	// Nvidia DKMS/Open troubleshooting and fix command
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "nvidia-dkms-fix",
+		Short: "Diagnose and fix common NVIDIA DKMS/Open issues (choose nvidia, nvidia-open, or nvidia-open-beta)",
+		Run: func(cmd *cobra.Command, args []string) {
+			scanner := bufio.NewScanner(os.Stdin)
+			cmd.Println("NVIDIA DKMS/Open Troubleshooter:")
+			cmd.Println("1) nvidia (proprietary)")
+			cmd.Println("2) nvidia-open (open kernel module)")
+			cmd.Println("3) nvidia-open-beta (AUR)")
+			cmd.Print("Select driver to fix/install: ")
+			scanner.Scan()
+			choice := strings.TrimSpace(scanner.Text())
+			cmd.Println("Checking for kernel headers...")
+			runAndPrint(cmd, "pacman", "-S", "--needed", "linux-headers", "--noconfirm")
+			cmd.Println("Checking DKMS status...")
+			runAndPrint(cmd, "dkms", "status")
+			cmd.Println("Removing Nouveau if present...")
+			runAndPrint(cmd, "bash", "-c", "pacman -Rns --noconfirm xf86-video-nouveau || true")
+			cmd.Println("Blacklisting Nouveau...")
+			os.WriteFile("/etc/modprobe.d/blacklist-nouveau.conf", []byte("blacklist nouveau\noptions nouveau modeset=0\n"), 0644)
+			cmd.Println("Installing selected NVIDIA driver...")
+			switch choice {
+			case "1":
+				runAndPrint(cmd, "pacman", "-S", "--needed", "nvidia-dkms", "--noconfirm")
+			case "2":
+				runAndPrint(cmd, "pacman", "-S", "--needed", "nvidia-open-dkms", "--noconfirm")
+			case "3":
+				cmd.Println("Installing yay if needed...")
+				runAndPrint(cmd, "bash", "-c", "command -v yay || sudo pacman -S --noconfirm yay")
+				runAndPrint(cmd, "yay", "-S", "--needed", "nvidia-open-beta-dkms", "--noconfirm")
+			default:
+				cmd.Println("Invalid option.")
+				return
+			}
+			cmd.Println("Rebuilding DKMS modules...")
+			runAndPrint(cmd, "dkms", "autoinstall")
+			cmd.Println("Regenerating initramfs...")
+			runAndPrint(cmd, "mkinitcpio", "-P")
+			cmd.Println("Checking for NVIDIA errors in dmesg...")
+			runAndPrint(cmd, "dmesg", "|", "grep", "-i", "nvidia")
+			cmd.Println("NVIDIA DKMS/Open fix complete. Please reboot if you updated drivers or kernel modules.")
+		},
+	})
+
 	// Interactive main menu
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "menu",
