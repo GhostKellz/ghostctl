@@ -32,11 +32,14 @@ import (
 
 var cfgFile string
 
-// Helper to run a command and print output/errors
+// Helper to run a command and print output/errors, capturing output for verbose mode
 func runAndPrint(cmd *cobra.Command, name string, args ...string) error {
 	c := exec.Command(name, args...)
 	c.Stderr = os.Stderr
 	c.Stdout = os.Stdout
+	if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
+		cmd.Printf("Running: %s %s\n", name, strings.Join(args, " "))
+	}
 	return c.Run()
 }
 
@@ -60,6 +63,7 @@ func init() {
 
 	// Persistent flag for config file
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ghostctl.yaml)")
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose output")
 
 	// Version command
 	rootCmd.AddCommand(&cobra.Command{
@@ -229,6 +233,83 @@ func init() {
 		},
 	})
 
+	// Backup menu
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "backup-menu",
+		Short: "Interactive backup menu (Restic, Snapper, more in future)",
+		Run: func(cmd *cobra.Command, args []string) {
+			for {
+				cmd.Println("\nBackup Menu:")
+				cmd.Println("1) Setup Restic backup (systemd + .env)")
+				cmd.Println("2) Setup Snapper configs (home/root)")
+				cmd.Println("3) Exit")
+				cmd.Print("Select option: ")
+				scanner := bufio.NewScanner(os.Stdin)
+				scanner.Scan()
+				choice := strings.TrimSpace(scanner.Text())
+				switch choice {
+				case "1":
+					cmd.Println("Installing restic if needed...")
+					runAndPrint(cmd, "bash", "-c", "command -v restic || sudo pacman -S --noconfirm restic")
+					cmd.Println("Prompting for backup source directory:")
+					cmd.Print("Enter source directory to backup (default: /home): ")
+					scanner.Scan()
+					source := scanner.Text()
+					if source == "" {
+						source = "/home"
+					}
+					cmd.Print("Enter backup destination (e.g. s3:s3.amazonaws.com/bucket, /mnt/backup, etc): ")
+					scanner.Scan()
+					dest := scanner.Text()
+					cmd.Print("Enter schedule (e.g. daily, weekly): ")
+					scanner.Scan()
+					sched := scanner.Text()
+					cmd.Println("Writing restic-backup.service and restic-backup.timer...")
+					// Write systemd unit
+					os.WriteFile("/etc/systemd/system/restic-backup.service", []byte(`[Unit]
+Description=Restic Backup
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/restic.env
+ExecStart=/usr/bin/restic backup `+source+` --repo `+dest+`
+ExecStartPost=/usr/bin/restic forget --prune --keep-last 7 --repo `+dest+`
+`), 0644)
+					os.WriteFile("/etc/systemd/system/restic-backup.timer", []byte(`[Unit]
+Description=Restic Backup Timer
+
+[Timer]
+OnCalendar=`+sched+`
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+`), 0644)
+					cmd.Println("Writing /etc/restic.env (edit this file for credentials)")
+					os.WriteFile("/etc/restic.env", []byte(`# RESTIC_PASSWORD=yourpassword
+# AWS_ACCESS_KEY_ID=yourkey
+# AWS_SECRET_ACCESS_KEY=yoursecret
+# RESTIC_REPOSITORY=s3:s3.amazonaws.com/bucket
+`), 0644)
+					cmd.Println("Enabling and starting restic-backup.timer...")
+					runAndPrint(cmd, "systemctl", "daemon-reload")
+					runAndPrint(cmd, "systemctl", "enable", "--now", "restic-backup.timer")
+					cmd.Println("Restic backup setup complete! Edit /etc/restic.env as needed.")
+				case "2":
+					cmd.Println("Configuring Snapper for home and root...")
+					runAndPrint(cmd, "snapper", "-c", "root", "create-config", "/")
+					runAndPrint(cmd, "snapper", "-c", "home", "create-config", "/home")
+					cmd.Println("Snapper configs created. You may want to edit /etc/snapper/configs/root and /etc/snapper/configs/home.")
+				case "3":
+					cmd.Println("Exiting backup menu.")
+					return
+				default:
+					cmd.Println("Invalid option.")
+				}
+			}
+		},
+	})
+
 	// Interactive main menu
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "menu",
@@ -241,7 +322,8 @@ func init() {
 				cmd.Println("3) Makepkg/Dev Fixes")
 				cmd.Println("4) Tailscale/Headscale Tools")
 				cmd.Println("5) Systemd Service Management")
-				cmd.Println("6) Exit")
+				cmd.Println("6) Backup Menu")
+				cmd.Println("7) Exit")
 				cmd.Print("Select option: ")
 				scanner := bufio.NewScanner(os.Stdin)
 				scanner.Scan()
@@ -263,6 +345,9 @@ func init() {
 					rootCmd.SetArgs([]string{"systemd-service"})
 					rootCmd.Execute()
 				case "6":
+					rootCmd.SetArgs([]string{"backup-menu"})
+					rootCmd.Execute()
+				case "7":
 					cmd.Println("Exiting GhostCTL menu.")
 					return
 				default:
@@ -275,6 +360,20 @@ func init() {
 
 func initConfig() {
 	if cfgFile != "" {
-		// TODO: Add config file loading logic here
+		// Example: Load YAML config and print loaded config if verbose
+		if _, err := os.Stat(cfgFile); err == nil {
+			f, err := os.Open(cfgFile)
+			if err == nil {
+				scanner := bufio.NewScanner(f)
+				for scanner.Scan() {
+					if strings.TrimSpace(scanner.Text()) != "" {
+						if verbose, _ := rootCmd.Flags().GetBool("verbose"); verbose {
+							rootCmd.Printf("Config: %s\n", scanner.Text())
+						}
+					}
+				}
+				f.Close()
+			}
+		}
 	}
 }
