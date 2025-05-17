@@ -1,6 +1,6 @@
 module github.com/GhostKellz/ghostctl
 
-go 1.24.2
+go 1.21
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
