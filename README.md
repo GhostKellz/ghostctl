@@ -12,7 +12,7 @@
 
 ## 👻 ✨ What is ghostctl?
 
-`ghostctl` is a modern, extensible CLI utility written in Go using Cobra. Designed for Arch Linux power users and homelab administrators, it streamlines common operations like Btrfs recovery, system snapshot management, Headscale subnet routing, and NVIDIA driver fixes.
+`ghostctl` is a modern, extensible CLI utility written in Go using Cobra. Designed for Arch Linux power users and homelab administrators, it streamlines common operations like Btrfs recovery, system snapshot management, Headscale subnet routing, NVIDIA driver fixes, and more.
 
 It's your all-in-one tool for:
 
@@ -21,17 +21,60 @@ It's your all-in-one tool for:
 * ⚡ Managing Tailscale/Headscale routes
 * 🎮 Maintaining NVIDIA open drivers (DKMS fixes, rebuilds)
 * 💻 Simplifying common server maintenance across Arch, Debian, and Fedora
+* 🛡️ Automated backups with Restic and Snapper
 
 ---
 
 ## 🔧 Features
 
-* 🧵 **Btrfs Snapshot Recovery** – recover broken systems with `ghostctl btrfs recover`, built to replace manual chroot procedures.
-* 🧠 **Arch Linux System Fixes** – kernel cleanup, rebuild initramfs, resolve bootloader failures.
-* 🎮 **NVIDIA Driver Automation** – DKMS rebuilds, patching, and sanity checks for TKG/CachyOS users.
-* 📦 **Tailscale/Headscale CLI** – manage ACLs, advertise routes, automate subnet mapping.
-* 🧪 **PhantomBoot Integration** – generate bootable recovery ISO with your configs baked in.
-* 🛠️ **LXC Tools** – configure and deploy Arch or Debian containers with one command.
+* 🧵 **Btrfs Snapshot Recovery** – recover broken systems with `ghostctl restore-snapshot` or the interactive recovery menu.
+* 🧠 **Arch Linux System Fixes** – kernel cleanup, rebuild initramfs, resolve bootloader failures, and more with `ghostctl arch-fix`.
+* 🎮 **NVIDIA Driver Automation** – DKMS rebuilds, patching, and sanity checks for proprietary, open, and beta drivers with `ghostctl nvidia-dkms-fix`.
+* 📦 **Tailscale/Headscale CLI** – manage ACLs, advertise routes, automate subnet mapping, debug with `ghostctl tailscale ...`.
+* 💾 **Automated Backups** – setup Restic (systemd, .env) and Snapper configs interactively with `ghostctl backup-menu`.
+* 🛠️ **Systemd Service Management** – enable, disable, start, stop, and check status of services.
+* 🧪 **Interactive Main Menu** – access all features from a single menu: `ghostctl menu`.
+* 📝 **Verbose & Config Support** – use `--verbose` for detailed output and `--config` for custom config files.
+
+---
+
+## 🚀 Commands & Usage
+
+### Main Menu
+```bash
+ghostctl menu
+```
+
+### Btrfs/Snapper
+```bash
+ghostctl restore-snapshot [snapshot] [mountpoint]   # Restore a Btrfs/Snapper snapshot
+ghostctl recovery-menu                              # Interactive recovery menu
+ghostctl backup-menu                                # Setup Restic/Snapper backups
+```
+
+### Arch System Maintenance
+```bash
+ghostctl arch-fix                                   # Run system maintenance (update, mkinitcpio, hooks)
+ghostctl fix-makepkg                                # Fix makepkg/dev environment issues
+```
+
+### NVIDIA DKMS/Open
+```bash
+ghostctl nvidia-dkms-fix                            # Diagnose/fix NVIDIA DKMS, open, or beta drivers
+```
+
+### Tailscale/Headscale
+```bash
+ghostctl tailscale status                           # Show Tailscale status
+ghostctl tailscale up                               # Re-advertise routes
+ghostctl tailscale routes                           # Show/debug routes
+ghostctl tailscale debug                            # Show debug info
+```
+
+### Systemd Service Management
+```bash
+ghostctl systemd-service                            # Interactive systemd service management
+```
 
 ---
 
@@ -50,29 +93,6 @@ go build -o ghostctl
 
 ---
 
-## 🧭 Planned Subcommands (WIP)
-
-```bash
-ghostctl btrfs recover         # Restore snapshot to root
-ghostctl nvidia fix            # Patch & rebuild modules
-ghostctl net advertise         # Configure subnet advertisements
-ghostctl net routes            # Show or add subnet routes
-ghostctl boot iso              # Create PhantomBoot live ISO
-```
-
----
-
-## 🧪 PhantomBoot (optional)
-
-Use `ghostctl boot iso` to generate a live recovery environment for Btrfs systems with:
-
-* Automated root subvolume switching
-* Snapper/timeshift integration
-* Kernel/NVIDIA troubleshooting tools
-* A minimal KDE/CLI interface
-
----
-
 ## 🤝 Contributing
 
 Open PRs, submit issues, or suggest features. Looking for collaborators familiar with:
@@ -84,5 +104,5 @@ Open PRs, submit issues, or suggest features. Looking for collaborators familiar
 
 ---
 
-**License**: MIT
+**License**: MIT  
 **Author**: GhostKellz
