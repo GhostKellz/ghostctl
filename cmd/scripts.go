@@ -1,7 +1,11 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/GhostKellz/ghostctl/utils"
 	"github.com/spf13/cobra"
@@ -212,6 +216,53 @@ var archFsckCmd = &cobra.Command{
 	},
 }
 
+var scriptsMenuCmd = &cobra.Command{
+	Use:   "menu",
+	Short: "Interactive menu for helper scripts",
+	Run: func(cmd *cobra.Command, args []string) {
+		scripts := []string{"fix-nvidia-dkms", "mkinitcpio-fix", "bootloader", "systemd-service", "pull", "arch-update", "arch-clean", "arch-mirrorlist", "arch-fix-chroot", "arch-keyring", "arch-timesync", "arch-locale", "arch-pacman-conf", "arch-pacman-log", "arch-fsck"}
+		desc := []string{
+			"Fix common NVIDIA DKMS issues on Arch",
+			"Regenerate initramfs and fix mkinitcpio issues",
+			"Manage bootloader entries",
+			"Setup or fix systemd services",
+			"Pull and display a script from the repository",
+			"Update all packages on Arch Linux",
+			"Clean package cache on Arch Linux",
+			"Update Arch Linux mirrorlist",
+			"Fix common chroot issues in Arch Linux",
+			"Refresh Arch Linux keyring",
+			"Sync system time with NTP",
+			"Regenerate Arch Linux locales",
+			"Show pacman configuration",
+			"Show recent pacman log entries",
+			"Run fsck on a device",
+		}
+		for {
+			fmt.Println("\nScripts Menu:")
+			for i, s := range scripts {
+				fmt.Printf("%d) %s - %s\n", i+1, s, desc[i])
+			}
+			fmt.Println("0) Back")
+			fmt.Print("Select a script to run: ")
+			r := bufio.NewReader(os.Stdin)
+			input, _ := r.ReadString('\n')
+			input = strings.TrimSpace(input)
+			choice, _ := strconv.Atoi(input)
+			if choice == 0 {
+				return
+			}
+			if choice > 0 && choice <= len(scripts) {
+				fmt.Printf("Running: %s\n", scripts[choice-1])
+				cmd.Root().SetArgs([]string{"scripts", scripts[choice-1]})
+				cmd.Root().Execute()
+			} else {
+				fmt.Println("Invalid option.")
+			}
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(scriptsCmd)
 	scriptsCmd.AddCommand(fixNvidiaCmd)
@@ -229,4 +280,5 @@ func init() {
 	scriptsCmd.AddCommand(archPacmanConfCmd)
 	scriptsCmd.AddCommand(archPacmanLogCmd)
 	scriptsCmd.AddCommand(archFsckCmd)
+	scriptsCmd.AddCommand(scriptsMenuCmd)
 }
