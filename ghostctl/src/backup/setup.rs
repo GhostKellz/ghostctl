@@ -6,4 +6,12 @@ pub fn generate() {
     // future: write to ~/.config/ghostctl/restic.env
     // and ~/.config/systemd/user/restic-backup.{service,timer}
 }
-	
+
+pub fn setup() {
+    println!("ghostctl :: Setup Backup (stub)");
+}
+
+pub fn restic_restore() {
+    println!("ghostctl :: Restic Restore (stub)");
+}
+

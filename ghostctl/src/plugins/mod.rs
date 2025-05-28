@@ -1,15 +1,7 @@
-pub mod runner;
-pub mod manager;
 pub mod core;
+pub mod manager;
+pub mod runner;
 
-pub fn list() {
-    manager::list_plugins();
-}
-
-pub fn run(name: &str) {
-    runner::execute(name);
-}
-
-pub fn install_from_url(url: &str) {
-    manager::install_from_url(url);
-}
+pub use core::run_core_script;
+pub use manager::{list_plugins, install_from_url};
+pub use runner::run_lua_plugin;

@@ -1,31 +1,26 @@
 use std::fs;
 
 pub fn list_plugins() {
-    let plugin_dir = dirs::config_dir()
-        .unwrap()
-        .join("ghostctl/plugins");
-
+    let plugin_dir = dirs::config_dir().unwrap().join("ghostctl/plugins");
     println!("ghostctl :: Available Plugins");
     if let Ok(entries) = fs::read_dir(&plugin_dir) {
         for entry in entries.flatten() {
-            println!("- {}", entry.file_name().to_string_lossy());
+            let path = entry.path();
+            if let Some(ext) = path.extension() {
+                if ext == "lua" {
+                    if let Some(name) = path.file_stem() {
+                        println!("- {}", name.to_string_lossy());
+                    }
+                }
+            }
         }
     } else {
-        println!("No plugins found.");
+        println!("No plugins directory found at {:?}", plugin_dir);
     }
 }
 
 pub fn install_from_url(url: &str) {
-    println!("Installing plugin from: {}", url);
-    let filename = url.split('/').last().unwrap_or("plugin.sh");
-    let path = dirs::config_dir().unwrap().join("ghostctl/plugins").join(filename);
-
-    if let Ok(content) = reqwest::blocking::get(url).and_then(|r| r.text()) {
-        fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::write(&path, content).unwrap();
-        println!("Saved to: {}", path.display());
-    } else {
-        println!("Failed to download plugin");
-    }
+    println!("Installing plugin from URL: {}", url);
+    // TODO: Download and save to ~/.config/ghostctl/plugins/
 }
 
