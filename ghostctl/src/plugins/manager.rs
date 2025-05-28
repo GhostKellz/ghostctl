@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::fs;
 
 pub fn list_plugins() {
     let plugin_dir = dirs::config_dir()
