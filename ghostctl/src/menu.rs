@@ -25,7 +25,7 @@ pub fn show() {
     {
         0 => {
             let arch_opts = [
-                "Fix Pacman", "Fix PKGBUILD/Packages", "Optimize System", "Back"
+                "Fix Pacman/Keyring", "Clean Orphans", "Performance Tuning", "Back"
             ];
             match Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Arch Maintenance")
@@ -33,8 +33,8 @@ pub fn show() {
                 .default(0)
                 .interact()
                 .unwrap() {
-                0 => arch::archfix::fix_pacman(),
-                1 => arch::pkgfix::fix_pkgbuild(),
+                0 => arch::archfix::fix(),
+                1 => arch::archfix::orphans(),
                 2 => arch::perf::tune(),
                 _ => (),
             }
