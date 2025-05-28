@@ -59,10 +59,17 @@
 - `ghostctl proxmox` — Proxmox helper scripts menu
 
 ## NVIDIA
-- `ghostctl nvidia clean` — Clean DKMS/modules
-- `ghostctl nvidia fix` — Rebuild DKMS/initramfs
-- `ghostctl nvidia diagnostics` — NVIDIA/Wayland diagnostics
-- `ghostctl nvidia wayland` — Wayland config helpers
+- `ghostctl nv clean` — Clean NVIDIA DKMS/modules
+- `ghostctl nv fix` — Rebuild DKMS/initramfs
+- `ghostctl nv diagnostics` — NVIDIA/Wayland diagnostics
+- `ghostctl nv install` — Install NVIDIA proprietary driver
+- `ghostctl nv open` — Install NVIDIA open driver
+- `ghostctl nv open-beta` — Install NVIDIA open beta from AUR
+- `ghostctl nv wayland-check` — Check Wayland compatibility
+- `ghostctl nv wayland-config` — Show Wayland config tips
+- `ghostctl nv perf-mode` — Enable NVIDIA performance mode
+- `ghostctl nv troubleshoot` — Troubleshooting tips
+- `ghostctl nv optimize` — Run NVIDIA optimization (performance mode)
 
 ## Arch/Perf
 - `ghostctl archfix` — Fix Arch makepkg
