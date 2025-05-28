@@ -12,6 +12,7 @@ mod backup;
 mod restore;
 mod network;
 mod plugins;
+mod restic;
 
 // ghostctl - Arch sysadmin CLI & TUI toolkit
 use clap::{Parser, Subcommand};
