@@ -1,5 +1,4 @@
 pub mod chroot;
-pub mod restic;
 pub mod btrfs;
 
 pub fn run() {
