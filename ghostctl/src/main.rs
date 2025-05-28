@@ -1,7 +1,20 @@
 mod menu;
 mod commands;
 mod scripts;
+mod arch;
+mod btrfs;
+mod nvim;
+mod nvidia;
+mod shell;
+mod systemd;
+mod dev;
+mod backup;
+mod restore;
+mod network;
+mod plugins;
+mod restic;
 
+// ghostctl - Arch sysadmin CLI & TUI toolkit
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
