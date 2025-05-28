@@ -60,15 +60,15 @@ fn main() {
     let cli = Cli::parse();
     match cli.command {
         Some(Command::Menu) => menu::show(),
-        Some(Command::Fix { target }) => commands::arch::fix(target),
-        Some(Command::Stage { project }) => commands::dev::stage(project),
-        Some(Command::Btrfs) => commands::btrfs::run(),
-        Some(Command::Nvidia) => commands::nvidia::optimize(),
-        Some(Command::Nvim) => commands::nvim::install(),
-        Some(Command::Shell) => commands::shell::setup(),
+        Some(Command::Fix { target }) => arch::fix(target),
+        Some(Command::Stage { project }) => dev::stage(project),
+        Some(Command::Btrfs) => btrfs::run(),
+        Some(Command::Nvidia) => nvidia::optimize(),
+        Some(Command::Nvim) => nvim::install(),
+        Some(Command::Shell) => shell::setup(),
         Some(Command::Script { url }) => scripts::run_from_url(&url),
-        Some(Command::Restic) => commands::restic::setup(),
-        Some(Command::Systemd { action }) => commands::systemd::handle(action),
+        Some(Command::Restic) => restic::setup(),
+        Some(Command::Systemd { action }) => systemd::handle(action),
         None => {
             println!(
                 r#"

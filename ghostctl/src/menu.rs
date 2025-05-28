@@ -1,3 +1,4 @@
+use crate::{arch, dev, btrfs, nvidia, nvim, shell, systemd, restic, scripts};
 use dialoguer::{theme::ColorfulTheme, Select};
 
 pub fn show() {
@@ -20,17 +21,17 @@ pub fn show() {
         .interact()
         .unwrap()
     {
-        0 => crate::commands::arch::fix("pacman".into()),
-        1 => crate::commands::dev::stage("rust".into()),
-        2 => crate::commands::btrfs::run(),
-        3 => crate::commands::nvidia::optimize(),
-        4 => crate::commands::nvim::install(),
-        5 => crate::commands::shell::setup(),
+        0 => arch::fix("pacman".into()),
+        1 => dev::stage("rust".into()),
+        2 => btrfs::run(),
+        3 => nvidia::optimize(),
+        4 => nvim::install(),
+        5 => shell::setup(),
         6 => {
-            crate::commands::systemd::handle("status".into());
-            crate::commands::restic::setup();
+            systemd::handle("status".into());
+            restic::setup();
         }
-        7 => crate::scripts::run_from_url("https://raw.githubusercontent.com/..."),
+        7 => scripts::run_from_url("https://raw.githubusercontent.com/..."),
         _ => println!("Goodbye."),
     }
 }
