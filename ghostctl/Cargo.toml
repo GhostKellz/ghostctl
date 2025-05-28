@@ -9,18 +9,17 @@ description = "Modular CLI toolkit for Linux sysadmins, homelabbers, and power u
 clap = { version = "4.5", features = ["derive"] }
 log = "0.4"
 env_logger = "0.10"
-clap = { version = "4.5", features = ["derive"] }
-log = "0.4"
-duct = "0.13"             
-which = "5.0"               
+duct = "0.13"
+which = "5.0"
 dirs = "5.0"
-walkdir = "2.4"    
+walkdir = "2.4"
 anyhow = "1.0"
 thiserror = "1.0"
 sysinfo = "0.30"
 nix = "0.28"
-libloading = "0.8"   
-serde = { version = "1.0", features = ["derive"] }  
+libloading = "0.8"
+serde = { version = "1.0", features = ["derive"] }
 toml = "0.8"
 mlua = { version = "0.9", features = ["lua54"] }
-
+dialoguer = "0.11"
+colored = "2.0"
