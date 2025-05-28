@@ -8,3 +8,15 @@ pub fn optimize() {
     wayland::configure();
 }
 
+pub fn clean() {
+    println!("ghostctl :: NVIDIA Clean DKMS/Modules");
+    println!("- Removing old DKMS modules");
+    println!("- Cleaning up NVIDIA driver artifacts");
+}
+
+pub fn fix() {
+    println!("ghostctl :: NVIDIA Fix/Rebuild DKMS/Initramfs");
+    println!("- Rebuilding DKMS modules");
+    println!("- Regenerating initramfs");
+}
+
