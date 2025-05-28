@@ -10,5 +10,5 @@ pub fn run() {
     println!("3. Enter Recovery Chroot");
 
     // Later: Use dialoguer or args
-    restic::start(); // placeholder
+    crate::restic::setup(); // call the root-level restic module
 }
