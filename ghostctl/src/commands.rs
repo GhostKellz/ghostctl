@@ -1,11 +1,2 @@
-pub mod arch;
-pub mod btrfs;
-pub mod nvim;
-pub mod nvidia;
-pub mod shell;
-pub mod systemd;
-pub mod dev;
-pub mod backup;
-pub mod restore;
-pub mod network;
-pub mod plugins;
+// src/commands.rs
+// No glue logic needed anymore.
