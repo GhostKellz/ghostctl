@@ -2,10 +2,12 @@ pub mod dns;
 pub mod mesh;
 pub mod netcat;
 
+#[allow(dead_code)]
 pub fn ghostcat(host: &str, port: u16) {
     netcat::check_port(host, port);
 }
 
+#[allow(dead_code)]
 pub fn dns_lookup(domain: &str) {
     use std::process::Command;
     let output = Command::new("dig").arg("+short").arg(domain).output();
@@ -15,6 +17,7 @@ pub fn dns_lookup(domain: &str) {
     }
 }
 
+#[allow(dead_code)]
 pub fn dnssec_check(domain: &str) {
     use std::process::Command;
     let output = Command::new("dig").arg("+dnssec").arg(domain).output();
@@ -24,6 +27,7 @@ pub fn dnssec_check(domain: &str) {
     }
 }
 
+#[allow(dead_code)]
 pub fn netcat(host: &str, port: u16) {
     use std::net::TcpStream;
     match TcpStream::connect((host, port)) {
@@ -32,6 +36,7 @@ pub fn netcat(host: &str, port: u16) {
     }
 }
 
+#[allow(dead_code)]
 pub fn route() {
     use std::process::Command;
     let output = Command::new("ip").arg("route").output();
@@ -41,14 +46,17 @@ pub fn route() {
     }
 }
 
+#[allow(dead_code)]
 pub fn dns(domain: &str) {
     dns_lookup(domain);
 }
 
+#[allow(dead_code)]
 pub fn dnssec(domain: &str) {
     dnssec_check(domain);
 }
 
+#[allow(dead_code)]
 pub fn gc(host: &str, port: u16) {
     println!("Ghostcat (branded netcat):");
     netcat(host, port);

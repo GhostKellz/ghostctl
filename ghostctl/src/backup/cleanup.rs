@@ -9,7 +9,3 @@ pub fn run() {
         _ => println!("Cleanup failed."),
     }
 }
-
-pub fn cleanup() {
-    println!("ghostctl :: Cleanup Old Backups (stub)");
-}

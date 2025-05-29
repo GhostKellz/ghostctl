@@ -21,6 +21,7 @@ pub enum SnapshotAction {
     SnapperSetup,
 }
 
+#[allow(dead_code)]
 pub fn handle(action: SnapshotAction) {
     match action {
         SnapshotAction::List => snapshot::list_snapshots(),

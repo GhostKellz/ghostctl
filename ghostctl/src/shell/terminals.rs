@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub fn setup_wezterm() {
     println!("Installing/configuring WezTerm...");
     println!("mkdir -p ~/.config/wezterm");
@@ -6,6 +7,7 @@ pub fn setup_wezterm() {
     // Later: detect + install from GitHub releases or pacman
 }
 
+#[allow(dead_code)]
 pub fn setup_ghostty() {
     println!("Setting up Ghostty (WIP)");
     println!("https://github.com/mitchellh/ghostty");

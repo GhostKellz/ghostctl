@@ -8,6 +8,7 @@ pub fn setup() {
     crate::shell::zsh::install_zsh();
 }
 
+#[allow(dead_code)]
 pub fn install_zsh() {
     println!("Installing ZSH...");
     let is_installed = Command::new("which")
@@ -31,6 +32,7 @@ pub fn install_zsh() {
     }
 }
 
+#[allow(dead_code)]
 pub fn install_ohmyzsh() {
     println!("Installing Oh My Zsh...");
     let home = dirs::home_dir().unwrap();
@@ -51,6 +53,7 @@ pub fn install_ohmyzsh() {
     }
 }
 
+#[allow(dead_code)]
 pub fn install_powerlevel10k() {
     println!("Installing Powerlevel10k...");
     let home = dirs::home_dir().unwrap();

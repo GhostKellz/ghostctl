@@ -71,6 +71,7 @@ pub fn install_open_beta() {
     }
 }
 
+#[allow(dead_code)]
 pub fn wayland_check() {
     println!("ghostctl :: NVIDIA Wayland Compatibility Check");
     // Check for nvidia-drm.modeset=1 in kernel params
@@ -100,6 +101,7 @@ pub fn wayland_check() {
     }
 }
 
+#[allow(dead_code)]
 pub fn wayland_config() {
     println!("ghostctl :: NVIDIA Wayland Config Helper");
     println!(
@@ -109,6 +111,7 @@ pub fn wayland_config() {
     println!("- Use GBM backend for best compatibility");
 }
 
+#[allow(dead_code)]
 pub fn perf_mode() {
     println!("ghostctl :: NVIDIA Performance Mode");
     let status = std::process::Command::new("nvidia-smi")
@@ -120,6 +123,7 @@ pub fn perf_mode() {
     }
 }
 
+#[allow(dead_code)]
 pub fn troubleshoot() {
     println!("ghostctl :: NVIDIA Troubleshooting");
     println!("- Check dmesg, journalctl, and /var/log/Xorg.0.log for errors");
@@ -197,6 +201,7 @@ pub fn optimize() {
     optimize::optimize();
 }
 
+#[allow(dead_code)]
 pub fn write_nvidia_conf() {
     use std::io::Write;
     let conf_path = "/etc/modprobe.d/nvidia.conf";

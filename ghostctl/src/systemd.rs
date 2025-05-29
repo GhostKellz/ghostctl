@@ -8,6 +8,7 @@ pub fn handle(action: String) {
     }
 }
 
+#[allow(dead_code)]
 fn list_services() {
     println!("Listing systemd services and timers...");
     let _ = std::process::Command::new("systemctl")

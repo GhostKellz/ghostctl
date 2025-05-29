@@ -1,6 +1,4 @@
-use crate::{
-    arch, btrfs, dev, network, nvidia, nvim, plugins, scripts, shell, systemd, terminal,
-};
+use crate::{arch, btrfs, dev, network, nvidia, nvim, plugins, scripts, shell, systemd, terminal};
 use dialoguer::{Select, theme::ColorfulTheme};
 
 pub fn show() {

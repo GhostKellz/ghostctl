@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub fn generate() {
     println!("- Creating ~/.config/ghostctl/restic.env");
     println!("- Creating systemd services: restic-backup.service / .timer");
@@ -7,6 +8,7 @@ pub fn generate() {
     // and ~/.config/systemd/user/restic-backup.{service,timer}
 }
 
+#[allow(dead_code)]
 pub fn setup() {
     println!("ghostctl :: Setup Backup (stub)");
 }

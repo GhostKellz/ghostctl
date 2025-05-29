@@ -1,4 +1,4 @@
-use dialoguer::{Select};
+use dialoguer::Select;
 use dialoguer::theme::ColorfulTheme;
 
 #[allow(dead_code)]

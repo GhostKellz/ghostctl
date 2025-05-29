@@ -3,6 +3,7 @@ pub mod restorebtrfs;
 
 use dialoguer::{Input, Select, theme::ColorfulTheme};
 
+#[allow(dead_code)]
 pub fn run() {
     println!("ghostctl :: Restore Utility");
 
@@ -15,6 +16,7 @@ pub fn run() {
     crate::restic::setup(); // call the root-level restic module
 }
 
+#[allow(dead_code)]
 pub fn menu() {
     let opts = ["Rollback Btrfs Snapshot", "Enter Recovery Chroot", "Back"];
     match Select::with_theme(&ColorfulTheme::default())

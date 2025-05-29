@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub fn enter(mountpoint: &str) {
     use dialoguer::Confirm;
     use std::process::Command;

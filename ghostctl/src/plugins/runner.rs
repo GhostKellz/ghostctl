@@ -1,8 +1,8 @@
-use dialoguer::{Select};
-use mlua::{Lua};
+use mlua::Lua;
 use std::fs;
 use std::process::Command;
 
+#[allow(dead_code)]
 pub fn execute(name: &str) {
     let plugin_path = dirs::config_dir()
         .unwrap()
@@ -20,6 +20,7 @@ pub fn execute(name: &str) {
     }
 }
 
+#[allow(dead_code)]
 pub fn run_lua_plugin(name: &str) {
     let plugin_dir = dirs::config_dir().unwrap().join("ghostctl/plugins");
     let plugin_path = plugin_dir.join(format!("{}.lua", name));

@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub fn run_core_script(name: &str) {
     match name {
         "cleanup-logs" => {

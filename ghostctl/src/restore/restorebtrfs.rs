@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub fn rollback(snapshot: &str, mountpoint: &str) {
     use dialoguer::Confirm;
     println!(

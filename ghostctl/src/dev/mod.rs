@@ -34,6 +34,7 @@ pub fn install_python() {
     }
 }
 
+#[allow(dead_code)]
 pub fn setup_python_venv(venv_name: &str) {
     println!("Setting up Python venv: {}", venv_name);
     let status = std::process::Command::new("python")
