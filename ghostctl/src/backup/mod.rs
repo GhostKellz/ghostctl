@@ -2,32 +2,14 @@ pub mod setup;
 pub mod schedule;
 pub mod verify;
 pub mod cleanup;
+pub mod restore;
 pub mod chroot;
 
 use crate::btrfs;
 use dialoguer::{theme::ColorfulTheme, Select};
 
 pub fn menu() {
-    println!("ghostctl :: Backup Manager");
-    let opts = [
-        "Setup Backup",
-        "Verify Backups",
-        "Schedule Backups",
-        "Cleanup Old Backups",
-        "Back",
-    ];
-    match Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Backup Menu")
-        .items(&opts)
-        .default(0)
-        .interact()
-        .unwrap() {
-        0 => setup::setup(),
-        1 => verify::verify(),
-        2 => schedule::schedule(),
-        3 => cleanup::cleanup(),
-        _ => (),
-    }
+    println!("Backup menu (stub, implement TUI integration)");
 }
 
 pub fn restore_menu() {

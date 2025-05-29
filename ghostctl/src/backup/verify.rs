@@ -4,5 +4,13 @@ pub fn run() {
 }
 
 pub fn verify() {
-    println!("ghostctl :: Verify Backups (stub)");
+    println!("Verifying restic backup...");
+    let status = std::process::Command::new("sh")
+        .arg("-c")
+        .arg("restic check")
+        .status();
+    match status {
+        Ok(s) if s.success() => println!("Backup verified successfully."),
+        _ => println!("Backup verification failed."),
+    }
 }

@@ -62,6 +62,12 @@ enum Command {
 
     /// Manage systemd services and timers
     Systemd { action: String },
+
+    /// Manage Restic backups and restores
+    Backup {
+        #[command(subcommand)]
+        action: Option<BackupAction>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -86,6 +92,15 @@ enum NvidiaAction {
     Info,
     Status,
     Optimize,
+}
+
+#[derive(Subcommand)]
+enum BackupAction {
+    Run,
+    Schedule,
+    Verify,
+    Cleanup,
+    Restore,
 }
 
 fn main() {
@@ -121,6 +136,14 @@ fn main() {
         Some(Command::Script { url }) => scripts::run_from_url(&url),
         Some(Command::Restic) => restic::setup(),
         Some(Command::Systemd { action }) => systemd::handle(action),
+        Some(Command::Backup { action }) => match action {
+            Some(BackupAction::Run) => backup::schedule::run(),
+            Some(BackupAction::Schedule) => backup::schedule::schedule(),
+            Some(BackupAction::Verify) => backup::verify::verify(),
+            Some(BackupAction::Cleanup) => backup::cleanup::run(),
+            Some(BackupAction::Restore) => backup::restore::run(),
+            None => backup::menu(),
+        },
         None => {
             println!(
                 r#"
@@ -137,6 +160,7 @@ Available Commands:
   ghostctl script <url>           Run remote script
   ghostctl restic                 Setup Restic backups
   ghostctl systemd <action>       Manage systemd services or timers
+  ghostctl backup <subcommand>    Manage Restic backups (run, schedule, verify, cleanup, restore)
 
 Tip: Use `ghostctl menu` for a guided interactive setup.
 "#
