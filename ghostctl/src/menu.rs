@@ -1,5 +1,5 @@
 use crate::{
-    arch, btrfs, dev, network, nvidia, nvim, plugins, restic, scripts, shell, systemd, terminal,
+    arch, btrfs, dev, network, nvidia, nvim, plugins, scripts, shell, systemd, terminal,
 };
 use dialoguer::{Select, theme::ColorfulTheme};
 

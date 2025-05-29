@@ -1,7 +1,6 @@
-use dialoguer::{Select, theme::ColorfulTheme};
-use mlua::{Lua, Result};
+use dialoguer::{theme::ColorfulTheme};
+use mlua::{Lua};
 use std::fs;
-use std::path::PathBuf;
 use std::process::Command;
 
 pub fn execute(name: &str) {
@@ -65,7 +64,7 @@ pub fn run_lua_plugin(name: &str) {
 }
 
 pub fn run_user_script_menu() {
-    use dialoguer::{Input, Select, theme::ColorfulTheme};
+    use dialoguer::{Select, theme::ColorfulTheme};
     use std::fs;
     let scripts_dir = dirs::config_dir().unwrap().join("ghostctl/scripts");
     if let Ok(entries) = fs::read_dir(&scripts_dir) {

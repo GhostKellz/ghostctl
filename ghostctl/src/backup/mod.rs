@@ -14,6 +14,7 @@ pub fn menu() {
     );
 }
 
+#[allow(dead_code)]
 pub fn restore_menu() {
     println!("ghostctl :: Restore Utility");
     let opts = [

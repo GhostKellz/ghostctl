@@ -1,5 +1,6 @@
 use dialoguer::{Select, theme::ColorfulTheme};
 
+#[allow(dead_code)]
 pub fn fix_pacman() {
     println!("ghostctl :: Arch Pacman Fix");
 
@@ -80,6 +81,7 @@ pub fn pkgfix() {
     }
 }
 
+#[allow(dead_code)]
 pub fn keyring() {
     println!("ghostctl :: Arch Keyring Refresh");
     let status = std::process::Command::new("sh")
@@ -114,6 +116,7 @@ pub fn optimize() {
     }
 }
 
+#[allow(dead_code)]
 pub fn full() {
     println!("ghostctl :: Full Arch Maintenance");
     fix();
@@ -123,6 +126,7 @@ pub fn full() {
     optimize();
 }
 
+#[allow(dead_code)]
 pub fn tui_menu() {
     let opts = [
         "System Fix (Upgrade, Keyring, Mirrors)",

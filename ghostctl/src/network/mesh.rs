@@ -1,5 +1,3 @@
-use std::process::Command;
-
 pub fn up() {
     println!("ghostctl :: Tailscale Up (custom config)");
     let status = std::process::Command::new("sudo")
@@ -62,6 +60,7 @@ pub fn down() {
     }
 }
 
+#[allow(dead_code)]
 pub fn headscale_join(namespace: &str) {
     println!("Joining Headscale namespace: {}", namespace);
     // Wrap shell command to pull key or run pre-auth etc.
