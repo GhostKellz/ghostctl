@@ -52,6 +52,20 @@ ghostctl is a modular, extensible CLI toolkit for Linux power users, sysadmins, 
 
 ---
 
+## Btrfs and Snapper
+
+- `ghostctl btrfs list` — List all Btrfs snapshots
+- `ghostctl btrfs create <name>` — Create a snapshot
+- `ghostctl btrfs delete <name>` — Delete a snapshot
+- `ghostctl btrfs restore <name> <target>` — Restore a snapshot to a target
+- `ghostctl btrfs snapper_setup` — Deploy Snapper base configs for root and home
+- `ghostctl btrfs snapper_edit <config>` — Edit Snapper config in $EDITOR
+- `ghostctl btrfs snapper_list` — List available Snapper configs
+
+All destructive actions prompt for confirmation. Snapper integration is ready for both CLI and TUI.
+
+---
+
 ## Contributing
 - Fork, branch, and PR as usual
 - See `commands.md` for command reference

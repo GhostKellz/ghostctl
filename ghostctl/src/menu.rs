@@ -42,7 +42,7 @@ pub fn show() {
         1 => dev::stage("rust".into()),
         2 => {
             let btrfs_opts = [
-                "List Snapshots", "Create Snapshot", "Restore Snapshot", "Snapper Setup", "Back"
+                "List Snapshots", "Create Snapshot", "Delete Snapshot", "Restore Snapshot", "Deploy Snapper Base Configs", "Edit Snapper Config", "List Snapper Configs", "Back"
             ];
             match Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Btrfs Snapshot Manager")
@@ -50,10 +50,31 @@ pub fn show() {
                 .default(0)
                 .interact()
                 .unwrap() {
-                0 => btrfs::run(),
-                1 => println!("(stub) Create Btrfs snapshot"),
-                2 => println!("(stub) Restore Btrfs snapshot"),
-                3 => btrfs::setup_snapper(),
+                0 => btrfs::snapshot::list_snapshots(),
+                1 => {
+                    use dialoguer::Input;
+                    let name: String = Input::new().with_prompt("Snapshot name").interact_text().unwrap();
+                    let subvol: String = Input::new().with_prompt("Subvolume (e.g. /)").default("/".into()).interact_text().unwrap();
+                    btrfs::snapshot::create_snapshot(&subvol, &name)
+                },
+                2 => {
+                    use dialoguer::Input;
+                    let name: String = Input::new().with_prompt("Snapshot name to delete").interact_text().unwrap();
+                    btrfs::snapshot::delete_snapshot(&name)
+                },
+                3 => {
+                    use dialoguer::Input;
+                    let name: String = Input::new().with_prompt("Snapshot name to restore").interact_text().unwrap();
+                    let target: String = Input::new().with_prompt("Restore target (mountpoint or subvolume)").interact_text().unwrap();
+                    btrfs::snapshot::restore_snapshot(&name, &target)
+                },
+                4 => btrfs::snapshot::snapper_setup(),
+                5 => {
+                    use dialoguer::Input;
+                    let config: String = Input::new().with_prompt("Snapper config to edit").default("root".into()).interact_text().unwrap();
+                    btrfs::snapshot::snapper_edit(&config)
+                },
+                6 => btrfs::snapshot::snapper_list(),
                 _ => (),
             }
         },

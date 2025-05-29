@@ -8,6 +8,13 @@
 
 ## Btrfs
 - `ghostctl btrfs` — Btrfs snapshot menu
+- `ghostctl btrfs list` — List Btrfs snapshots
+- `ghostctl btrfs create <name>` — Create a Btrfs snapshot
+- `ghostctl btrfs delete <name>` — Delete a Btrfs snapshot
+- `ghostctl btrfs restore <name> <target>` — Restore a Btrfs snapshot
+- `ghostctl btrfs snapper_setup` — Deploy Snapper base configs
+- `ghostctl btrfs snapper_edit <config>` — Edit Snapper config
+- `ghostctl btrfs snapper_list` — List Snapper configs
 - `ghostctl restore <snapshot> <mountpoint>` — Restore a Btrfs/Snapper snapshot
 
 ## Backup
