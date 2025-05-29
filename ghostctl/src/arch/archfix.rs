@@ -1,3 +1,5 @@
+use dialoguer::{theme::ColorfulTheme, Select};
+
 pub fn fix_pacman() {
     println!("ghostctl :: Arch Pacman Fix");
 
@@ -42,6 +44,18 @@ pub fn fix() {
     }
 }
 
+pub fn mirrors() {
+    println!("ghostctl :: Arch Mirror Optimization");
+    let status = std::process::Command::new("sh")
+        .arg("-c")
+        .arg("command -v reflector && sudo reflector --latest 20 --sort rate --save /etc/pacman.d/mirrorlist || echo 'reflector not installed'")
+        .status();
+    match status {
+        Ok(s) if s.success() => println!("Mirrorlist refreshed (if reflector installed)."),
+        _ => println!("Could not refresh mirrorlist (reflector missing?)."),
+    }
+}
+
 pub fn orphans() {
     println!("ghostctl :: Arch Orphan Cleanup");
     let status = std::process::Command::new("sh")
@@ -51,6 +65,30 @@ pub fn orphans() {
     match status {
         Ok(s) if s.success() => println!("Orphaned packages removed."),
         _ => println!("No orphaned packages to remove or failed to clean up."),
+    }
+}
+
+pub fn pkgfix() {
+    println!("ghostctl :: Arch PKGBUILD/Build Environment Fix");
+    let status = std::process::Command::new("sh")
+        .arg("-c")
+        .arg("sudo rm -rf /tmp/yaourt-tmp-* /tmp/pamac-build-* /tmp/makepkg-* && echo 'Build environment cleaned.'")
+        .status();
+    match status {
+        Ok(s) if s.success() => println!("Build environment cleaned."),
+        _ => println!("Failed to clean build environment."),
+    }
+}
+
+pub fn keyring() {
+    println!("ghostctl :: Arch Keyring Refresh");
+    let status = std::process::Command::new("sh")
+        .arg("-c")
+        .arg("sudo pacman -S --noconfirm archlinux-keyring")
+        .status();
+    match status {
+        Ok(s) if s.success() => println!("Keyring refreshed."),
+        _ => println!("Failed to refresh keyring."),
     }
 }
 
@@ -73,5 +111,42 @@ pub fn optimize() {
     match status {
         Ok(s) if s.success() => println!("zswap enabled (if supported)."),
         _ => println!("Failed to enable zswap (may not be supported)."),
+    }
+}
+
+pub fn full() {
+    println!("ghostctl :: Full Arch Maintenance");
+    fix();
+    keyring();
+    mirrors();
+    orphans();
+    optimize();
+}
+
+pub fn tui_menu() {
+    let opts = [
+        "System Fix (Upgrade, Keyring, Mirrors)",
+        "Keyring Refresh",
+        "Mirror Optimization",
+        "Orphan Cleanup",
+        "PKGBUILD/Build Env Fix",
+        "Performance Optimize (zram/zswap)",
+        "Full Maintenance",
+        "Back",
+    ];
+    match Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Arch Maintenance")
+        .items(&opts)
+        .default(0)
+        .interact()
+        .unwrap() {
+        0 => fix(),
+        1 => keyring(),
+        2 => mirrors(),
+        3 => orphans(),
+        4 => pkgfix(),
+        5 => optimize(),
+        6 => full(),
+        _ => (),
     }
 }

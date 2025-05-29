@@ -49,10 +49,6 @@ pub fn route() {
     }
 }
 
-pub fn start_mesh() {
-    mesh::tailscale_up();
-}
-
 pub fn dns(domain: &str) {
     dns_lookup(domain);
 }

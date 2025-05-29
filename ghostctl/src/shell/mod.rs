@@ -4,7 +4,8 @@ pub mod zsh;
 pub mod terminals;
 
 pub fn setup() {
-    println!("ghostctl :: Shell Setup");
+    println!("ghostctl :: Shell setup (ZSH, Oh My Zsh, Powerlevel10k, plugins)");
+    crate::shell::zsh::install_zsh();
 }
 
 pub fn install_zsh() {

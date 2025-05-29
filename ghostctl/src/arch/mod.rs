@@ -4,10 +4,12 @@ pub mod pkgfix;
 
 pub fn fix(target: String) {
     match target.as_str() {
-        "pacman" => archfix::fix_pacman(),
-        "pkgbuild" => pkgfix::fix_pkgbuild(),
-        "optimize" => perf::tune(),
-        _ => println!("Unknown arch fix target"),
+        "pacman" | "keyring" => archfix::fix(),
+        "orphans" => archfix::orphans(),
+        "mirrors" => archfix::mirrors(),
+        "pkgfix" => archfix::pkgfix(),
+        "optimize" => archfix::optimize(),
+        _ => println!("Unknown fix target. Use pacman, keyring, orphans, mirrors, pkgfix, optimize."),
     }
 }
 

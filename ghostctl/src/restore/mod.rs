@@ -1,5 +1,5 @@
 pub mod chroot;
-pub mod btrfs;
+pub mod restorebtrfs;
 
 use dialoguer::{theme::ColorfulTheme, Select, Input};
 
@@ -30,7 +30,7 @@ pub fn menu() {
         0 => {
             let name: String = Input::new().with_prompt("Snapshot name to rollback").interact_text().unwrap();
             let mountpoint: String = Input::new().with_prompt("Mountpoint to restore to").default("/".into()).interact_text().unwrap();
-            btrfs::rollback(&name, &mountpoint)
+            restorebtrfs::rollback(&name, &mountpoint)
         },
         1 => {
             let mountpoint: String = Input::new().with_prompt("Chroot mountpoint (e.g. /mnt)").default("/mnt".into()).interact_text().unwrap();

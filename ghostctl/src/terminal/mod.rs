@@ -2,10 +2,6 @@ use std::process::Command;
 use std::fs;
 use dirs;
 
-pub fn setup_kitty() {
-    println!("ghostctl :: Setup Kitty terminal emulator");
-}
-
 pub fn setup_ghostty() {
     println!("ghostctl :: Setup Ghostty terminal emulator");
     let is_installed = Command::new("which").arg("ghostty").output().map(|o| o.status.success()).unwrap_or(false);
@@ -22,7 +18,6 @@ pub fn setup_ghostty() {
             println!("Ghostty installed successfully.");
         } else {
             println!("Failed to install Ghostty. Please install it manually.");
-            return;
         }
     }
     let config_dir = dirs::home_dir().unwrap().join(".config/ghostty");
@@ -52,7 +47,6 @@ pub fn setup_wezterm() {
             println!("WezTerm installed successfully.");
         } else {
             println!("Failed to install WezTerm. Please install it manually.");
-            return;
         }
     }
     let config_dir = dirs::home_dir().unwrap().join(".config/wezterm");

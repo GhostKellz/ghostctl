@@ -1,17 +1,60 @@
 use std::process::Command;
 
-pub fn tailscale_up() {
-    println!("Running: tailscale up");
-    let _ = Command::new("tailscale")
-        .arg("up")
-        .status()
-        .expect("Failed to run tailscale up");
+pub fn up() {
+    println!("ghostctl :: Tailscale Up (custom config)");
+    let status = std::process::Command::new("sudo")
+        .args([
+            "tailscale", "up",
+            "--login-server", "https://ghost.cktechx.com",
+            "--accept-routes",
+            "--accept-dns=false",
+            "--ssh",
+            "--operator=chris"
+        ])
+        .status();
+    match status {
+        Ok(s) if s.success() => println!("Tailscale up with custom config!"),
+        _ => println!("Failed to bring up Tailscale."),
+    }
 }
 
-pub fn tailscale_status() {
-    let _ = Command::new("tailscale")
+pub fn advertise(subnet: &str) {
+    println!("ghostctl :: Tailscale Up (advertise subnet)");
+    let status = std::process::Command::new("sudo")
+        .args([
+            "tailscale", "up",
+            "--login-server", "https://ghost.cktechx.com",
+            "--accept-routes",
+            "--accept-dns=false",
+            "--ssh",
+            "--operator=chris",
+            "--advertise-routes", subnet
+        ])
+        .status();
+    match status {
+        Ok(s) if s.success() => println!("Tailscale up with subnet advertised!"),
+        _ => println!("Failed to advertise subnet."),
+    }
+}
+
+pub fn status() {
+    let status = std::process::Command::new("tailscale")
         .arg("status")
         .status();
+    match status {
+        Ok(s) if s.success() => (),
+        _ => println!("Failed to get Tailscale status."),
+    }
+}
+
+pub fn down() {
+    let status = std::process::Command::new("sudo")
+        .args(["tailscale", "down"])
+        .status();
+    match status {
+        Ok(s) if s.success() => println!("Tailscale brought down."),
+        _ => println!("Failed to bring down Tailscale."),
+    }
 }
 
 pub fn headscale_join(namespace: &str) {

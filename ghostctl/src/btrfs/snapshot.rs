@@ -54,17 +54,6 @@ pub fn restore_snapshot(name: &str, target: &str) {
     }
 }
 
-pub fn snapper_config(subvolume: &str, config: &str) {
-    println!("Configuring Snapper for subvolume '{}' as config '{}'...", subvolume, config);
-    let status = std::process::Command::new("sudo")
-        .args(["snapper", "-c", config, "create-config", subvolume])
-        .status();
-    match status {
-        Ok(s) if s.success() => println!("Snapper config '{}' created for '{}'.", config, subvolume),
-        _ => println!("Failed to configure Snapper."),
-    }
-}
-
 pub fn snapper_setup() {
     println!("Deploying Snapper base configs for root and home...");
     // Install snapper if not present
@@ -96,25 +85,77 @@ pub fn snapper_setup() {
 }
 
 pub fn snapper_edit(config: &str) {
+    use std::process::Command;
+    let config_path = format!("/etc/snapper/configs/{}", config);
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
-    let path = format!("/etc/snapper/configs/{}", config);
-    let status = std::process::Command::new(editor)
-        .arg(&path)
+    let status = Command::new(&editor)
+        .arg(&config_path)
         .status();
     match status {
-        Ok(s) if s.success() => println!("Edited Snapper config: {}", path),
-        _ => println!("Failed to edit Snapper config: {}", path),
+        Ok(s) if s.success() => println!("Edited Snapper config: {}", config_path),
+        _ => println!("Failed to edit Snapper config: {}", config_path),
     }
 }
 
 pub fn snapper_list() {
-    println!("Available Snapper configs:");
-    let output = std::process::Command::new("ls")
-        .arg("/etc/snapper/configs/")
-        .output();
-    match output {
-        Ok(out) => println!("{}", String::from_utf8_lossy(&out.stdout)),
-        Err(_) => println!("Failed to list Snapper configs."),
+    use std::fs;
+    let configs_dir = "/etc/snapper/configs";
+    match fs::read_dir(configs_dir) {
+        Ok(entries) => {
+            println!("Available Snapper configs:");
+            for entry in entries.flatten() {
+                if let Some(name) = entry.file_name().to_str() {
+                    println!("- {}", name);
+                }
+            }
+        },
+        Err(_) => println!("No Snapper configs found in {}", configs_dir),
+    }
+}
+
+pub fn scrub(mountpoint: &str) {
+    println!("Starting btrfs scrub on {}...", mountpoint);
+    let status = std::process::Command::new("sudo")
+        .args(["btrfs", "scrub", "start", mountpoint])
+        .status();
+    match status {
+        Ok(s) if s.success() => println!("Scrub started on {}.", mountpoint),
+        _ => println!("Failed to start scrub on {}.", mountpoint),
+    }
+}
+
+pub fn balance(mountpoint: &str) {
+    println!("Starting btrfs balance on {}...", mountpoint);
+    let status = std::process::Command::new("sudo")
+        .args(["btrfs", "balance", "start", mountpoint])
+        .status();
+    match status {
+        Ok(s) if s.success() => println!("Balance started on {}.", mountpoint),
+        _ => println!("Failed to start balance on {}.", mountpoint),
+    }
+}
+
+pub fn snapper_menu() {
+    use dialoguer::{theme::ColorfulTheme, Select, Input};
+    let opts = [
+        "Deploy Base Config",
+        "Edit Config",
+        "List Configs",
+        "Back",
+    ];
+    match Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Snapper Menu")
+        .items(&opts)
+        .default(0)
+        .interact()
+        .unwrap() {
+        0 => snapper_setup(),
+        1 => {
+            let config: String = Input::new().with_prompt("Config to edit").default("root".into()).interact_text().unwrap();
+            snapper_edit(&config)
+        },
+        2 => snapper_list(),
+        _ => (),
     }
 }
 

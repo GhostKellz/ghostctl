@@ -1,11 +1,13 @@
+use dialoguer::Input;
+
 pub fn handle(action: String) {
+    use dialoguer::Input;
     match action.as_str() {
-        "list" => list_services(),
-        "enable" => enable_service(),
-        "disable" => disable_service(),
-        "status" => status_service(),
-        "create-timer" => create_timer(),
-        _ => println!("Unknown systemd action: {}", action),
+        "enable" => super::systemd::enable(),
+        "disable" => super::systemd::disable(),
+        "status" => super::systemd::status(),
+        "create" => super::systemd::create(),
+        _ => println!("Unknown systemd action. Use enable, disable, status, or create."),
     }
 }
 
@@ -15,18 +17,40 @@ fn list_services() {
     let _ = std::process::Command::new("systemctl").arg("list-timers").status();
 }
 
-fn enable_service() {
-    println!("Enabling a systemd service/timer (stub, prompt for name in future)");
+pub fn enable() {
+    let name: String = Input::new().with_prompt("Service/Timer to enable").interact_text().unwrap();
+    let status = std::process::Command::new("sudo")
+        .args(["systemctl", "enable", "--now", &name])
+        .status();
+    match status {
+        Ok(s) if s.success() => println!("{} enabled and started.", name),
+        _ => println!("Failed to enable {}.", name),
+    }
 }
 
-fn disable_service() {
-    println!("Disabling a systemd service/timer (stub, prompt for name in future)");
+pub fn disable() {
+    let name: String = Input::new().with_prompt("Service/Timer to disable").interact_text().unwrap();
+    let status = std::process::Command::new("sudo")
+        .args(["systemctl", "disable", "--now", &name])
+        .status();
+    match status {
+        Ok(s) if s.success() => println!("{} disabled and stopped.", name),
+        _ => println!("Failed to disable {}.", name),
+    }
 }
 
-fn status_service() {
-    println!("Checking status of a systemd service/timer (stub, prompt for name in future)");
+pub fn status() {
+    let name: String = Input::new().with_prompt("Service/Timer to check status").interact_text().unwrap();
+    let status = std::process::Command::new("systemctl")
+        .args(["status", &name])
+        .status();
+    match status {
+        Ok(s) if s.success() => (),
+        _ => println!("Failed to get status for {}.", name),
+    }
 }
 
-fn create_timer() {
-    println!("Creating a systemd timer (stub, integrate with restic/backup setup)");
+pub fn create() {
+    println!("ghostctl :: Create new systemd service/timer (not yet implemented)");
+    // TODO: Implement interactive creation of service/timer units
 }

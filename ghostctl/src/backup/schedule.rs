@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub fn run() {
     println!("Running restic backup...");
     let status = std::process::Command::new("sh")
@@ -10,6 +11,7 @@ pub fn run() {
     }
 }
 
+#[allow(dead_code)]
 pub fn schedule() {
     println!("Scheduling restic backup (stub, implement systemd timer or cron)");
 }

@@ -12,8 +12,3 @@ pub fn setup_ghostty() {
 
     // Future: clone, build, configure theme
 }
-
-pub fn setup_kitty() {
-    println!("Installing Kitty...");
-    println!("sudo pacman -S kitty");
-}

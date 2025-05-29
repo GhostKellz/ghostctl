@@ -61,67 +61,45 @@ pub fn run_lua_plugin(name: &str) {
 }
 
 pub fn run_user_script_menu() {
+    use dialoguer::{Input, theme::ColorfulTheme, Select};
+    use std::fs;
     let scripts_dir = dirs::config_dir().unwrap().join("ghostctl/scripts");
-    let mut scripts = Vec::new();
     if let Ok(entries) = fs::read_dir(&scripts_dir) {
+        let mut scripts = vec![];
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_file() {
-                if let Some(name) = path.file_name() {
-                    scripts.push(name.to_string_lossy().to_string());
-                }
+                scripts.push(path.file_name().unwrap().to_string_lossy().to_string());
             }
         }
-    }
-    if scripts.is_empty() {
-        println!("No user scripts found in {:?}", scripts_dir);
-        return;
-    }
-    let selection = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Select a script to run")
-        .items(&scripts)
-        .default(0)
-        .interact()
-        .unwrap();
-    let script = &scripts[selection];
-    let script_path = scripts_dir.join(script);
-    if script.ends_with(".sh") {
-        println!("Running shell script: {}", script);
-        let _ = Command::new("bash").arg(&script_path).status();
-    } else if script.ends_with(".lua") {
-        println!("Running Lua script: {}", script);
-        run_lua_script(&script_path);
+        if scripts.is_empty() {
+            println!("No user scripts found in {:?}", scripts_dir);
+            return;
+        }
+        let idx = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Select a user script to run")
+            .items(&scripts)
+            .default(0)
+            .interact()
+            .unwrap();
+        let script_path = scripts_dir.join(&scripts[idx]);
+        if script_path.extension().unwrap_or_default() == "sh" {
+            println!("Running shell script: {}", scripts[idx]);
+            let _ = std::process::Command::new("bash")
+                .arg(&script_path)
+                .status();
+        } else if script_path.extension().unwrap_or_default() == "lua" {
+            println!("Running Lua script: {}", scripts[idx]);
+            run_lua_script(&script_path);
+        } else {
+            println!("Unknown script type: {:?}", script_path);
+        }
     } else {
-        println!("Unknown script type: {}", script);
+        println!("No user scripts directory found at {:?}", scripts_dir);
     }
 }
 
 pub fn run_lua_script(path: &PathBuf) {
-    let code = match fs::read_to_string(path) {
-        Ok(c) => c,
-        Err(e) => {
-            println!("Failed to read script: {}", e);
-            return;
-        }
-    };
-    let lua = Lua::new();
-    let globals = lua.globals();
-    globals.set("run_command", lua.create_function(|_, cmd: String| {
-        let output = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .output();
-        match output {
-            Ok(out) => {
-                let stdout = String::from_utf8_lossy(&out.stdout);
-                println!("{}", stdout);
-            },
-            Err(e) => println!("Failed to run command: {}", e),
-        }
-        Ok(())
-    }).unwrap()).unwrap();
-    match lua.load(&code).exec() {
-        Ok(_) => println!("Lua script executed successfully."),
-        Err(e) => println!("Error running Lua script: {}", e),
-    }
+    println!("Running Lua script at {} (integration not implemented, requires mlua)", path.display());
+    // TODO: Integrate with mlua if desired
 }

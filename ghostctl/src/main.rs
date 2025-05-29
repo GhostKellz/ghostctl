@@ -117,7 +117,7 @@ fn main() {
             Some(BtrfsAction::SnapperSetup) => btrfs::snapshot::snapper_setup(),
             Some(BtrfsAction::SnapperEdit { config }) => btrfs::snapshot::snapper_edit(&config),
             Some(BtrfsAction::SnapperList) => btrfs::snapshot::snapper_list(),
-            None => btrfs::run(),
+            None => btrfs::handle_none(),
         },
         Some(Command::Nvidia { action }) => match action {
             Some(NvidiaAction::Clean) => nvidia::clean(),

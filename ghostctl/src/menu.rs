@@ -1,4 +1,4 @@
-use crate::{arch, dev, btrfs, nvidia, nvim, shell, terminal, systemd, restic, scripts};
+use crate::{arch, dev, btrfs, nvidia, nvim, shell, terminal, systemd, restic, scripts, network, plugins};
 use dialoguer::{theme::ColorfulTheme, Select};
 
 pub fn show() {
@@ -11,7 +11,9 @@ pub fn show() {
         "Shell Setup (ZSH, Oh My Zsh, Powerlevel10k, tmux)",
         "Terminal Setup (Ghostty, WezTerm)",
         "Diagnostics/Status",
-        "Systemd + Restic",
+        "Systemd Management",
+        "Plugin & Script Management",
+        "Mesh (Tailscale/Headscale)",
         "Run Remote Script",
         "Exit",
     ];
@@ -112,7 +114,10 @@ pub fn show() {
         },
         5 => {
             let shell_opts = [
-                "Install ZSH", "Install Oh My Zsh", "Install Powerlevel10k", "Set Default ZSH", "Install tmux", "Back"
+                "Install ZSH + Oh My Zsh + Powerlevel10k + Plugins",
+                "Set Default ZSH",
+                "Install tmux",
+                "Back"
             ];
             match Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Shell Setup")
@@ -120,11 +125,9 @@ pub fn show() {
                 .default(0)
                 .interact()
                 .unwrap() {
-                0 => shell::install_zsh(),
-                1 => shell::install_ohmyzsh(),
-                2 => shell::install_powerlevel10k(),
-                3 => shell::set_default_zsh(),
-                4 => shell::install_tmux(),
+                0 => shell::zsh::install_zsh(),
+                1 => shell::set_default_zsh(),
+                2 => shell::install_tmux(),
                 _ => (),
             }
         },
@@ -164,10 +167,79 @@ pub fn show() {
             }
         },
         8 => {
-            systemd::handle("status".into());
-            restic::setup();
+            let sysd_opts = [
+                "Enable Service/Timer",
+                "Disable Service/Timer",
+                "Status of Service/Timer",
+                "Create New Service/Timer",
+                "Back"
+            ];
+            match Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("Systemd Management")
+                .items(&sysd_opts)
+                .default(0)
+                .interact()
+                .unwrap() {
+                0 => systemd::enable(),
+                1 => systemd::disable(),
+                2 => systemd::status(),
+                3 => systemd::create(),
+                _ => (),
+            }
         },
-        9 => scripts::run_from_url("https://raw.githubusercontent.com/..."),
+        9 => {
+            let plugin_opts = [
+                "List Plugins",
+                "Install Plugin from URL",
+                "Run Plugin",
+                "Run User Script",
+                "Back"
+            ];
+            match Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("Plugin & Script Management")
+                .items(&plugin_opts)
+                .default(0)
+                .interact()
+                .unwrap() {
+                0 => plugins::manager::list_plugins(),
+                1 => {
+                    use dialoguer::Input;
+                    let url: String = Input::new().with_prompt("Plugin URL").interact_text().unwrap();
+                    plugins::manager::install_from_url(&url);
+                },
+                2 => plugins::runner::run_user_script_menu(),
+                3 => plugins::runner::run_user_script_menu(),
+                _ => (),
+            }
+        },
+        10 => {
+            let mesh_opts = [
+                "Tailscale Up (custom config)",
+                "Advertise Subnet Route",
+                "Show Tailscale Status",
+                "Bring Down Tailscale",
+                "Back"
+            ];
+            match Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("Mesh (Tailscale/Headscale)")
+                .items(&mesh_opts)
+                .default(0)
+                .interact()
+                .unwrap() {
+                0 => {
+                    network::mesh::up();
+                },
+                1 => {
+                    use dialoguer::Input;
+                    let subnet: String = Input::new().with_prompt("Subnet to advertise (e.g. 192.168.1.0/24)").interact_text().unwrap();
+                    network::mesh::advertise(&subnet);
+                },
+                2 => network::mesh::status(),
+                3 => network::mesh::down(),
+                _ => (),
+            }
+        },
+        11 => scripts::run_from_url("https://raw.githubusercontent.com/..."),
         _ => println!("Goodbye."),
     }
 }
