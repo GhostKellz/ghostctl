@@ -24,7 +24,7 @@ pub fn list_snapshots() {
 pub fn delete_snapshot(name: &str) {
     use dialoguer::Confirm;
     let target = format!("/@snapshots/{}", name);
-    if Confirm::new().with_prompt(&format!("Delete snapshot '{}'?", name)).default(false).interact().unwrap() {
+    if Confirm::new().with_prompt(format!("Delete snapshot '{}'?", name)).default(false).interact().unwrap() {
         let status = std::process::Command::new("sudo")
             .args(["btrfs", "subvolume", "delete", &target])
             .status();
@@ -40,7 +40,7 @@ pub fn delete_snapshot(name: &str) {
 pub fn restore_snapshot(name: &str, target: &str) {
     use dialoguer::Confirm;
     println!("Restoring snapshot '{}' to '{}'...", name, target);
-    if Confirm::new().with_prompt(&format!("This will overwrite '{}'. Continue?", target)).default(false).interact().unwrap() {
+    if Confirm::new().with_prompt(format!("This will overwrite '{}'. Continue?", target)).default(false).interact().unwrap() {
         let source = format!("/@snapshots/{}", name);
         let status = std::process::Command::new("sudo")
             .args(["btrfs", "subvolume", "snapshot", &source, target])

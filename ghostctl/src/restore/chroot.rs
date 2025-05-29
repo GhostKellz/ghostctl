@@ -2,7 +2,7 @@ pub fn enter(mountpoint: &str) {
     use std::process::Command;
     use dialoguer::Confirm;
     println!("Setting up chroot environment at '{}'...", mountpoint);
-    if !Confirm::new().with_prompt(&format!("Proceed to mount and chroot into '{}'?", mountpoint)).default(false).interact().unwrap() {
+    if !Confirm::new().with_prompt(format!("Proceed to mount and chroot into '{}'?", mountpoint)).default(false).interact().unwrap() {
         println!("Aborted chroot setup.");
         return;
     }

@@ -22,7 +22,6 @@ pub fn install_zsh() {
             println!("ZSH installed successfully.");
         } else {
             println!("Failed to install ZSH. Please install it manually.");
-            return;
         }
     }
 }
@@ -43,7 +42,6 @@ pub fn install_ohmyzsh() {
             println!("Oh My Zsh installed successfully.");
         } else {
             println!("Failed to install Oh My Zsh. Please install it manually.");
-            return;
         }
     }
 }
@@ -63,7 +61,6 @@ pub fn install_powerlevel10k() {
             println!("Powerlevel10k installed successfully.");
         } else {
             println!("Failed to install Powerlevel10k. Please install it manually.");
-            return;
         }
     }
 }
