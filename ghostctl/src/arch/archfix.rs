@@ -1,4 +1,5 @@
-use dialoguer::{Select, theme::ColorfulTheme};
+use dialoguer::{Select};
+use dialoguer::theme::ColorfulTheme;
 
 #[allow(dead_code)]
 pub fn fix_pacman() {
