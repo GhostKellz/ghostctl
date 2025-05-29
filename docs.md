@@ -42,6 +42,7 @@ ghostctl is a modular, extensible CLI toolkit for Linux power users, sysadmins, 
 - Destructive/system-changing actions require confirmation
 - All critical actions are logged
 - Scripts from the internet prompt for confirmation before execution
+- Tailscale and headscale CLI and TUI support coming next
 
 ---
 
