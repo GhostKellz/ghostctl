@@ -4,12 +4,14 @@ pub fn up() {
     println!("ghostctl :: Tailscale Up (custom config)");
     let status = std::process::Command::new("sudo")
         .args([
-            "tailscale", "up",
-            "--login-server", "https://ghost.cktechx.com",
+            "tailscale",
+            "up",
+            "--login-server",
+            "https://ghost.cktechx.com",
             "--accept-routes",
             "--accept-dns=false",
             "--ssh",
-            "--operator=chris"
+            "--operator=chris",
         ])
         .status();
     match status {
@@ -22,13 +24,16 @@ pub fn advertise(subnet: &str) {
     println!("ghostctl :: Tailscale Up (advertise subnet)");
     let status = std::process::Command::new("sudo")
         .args([
-            "tailscale", "up",
-            "--login-server", "https://ghost.cktechx.com",
+            "tailscale",
+            "up",
+            "--login-server",
+            "https://ghost.cktechx.com",
             "--accept-routes",
             "--accept-dns=false",
             "--ssh",
             "--operator=chris",
-            "--advertise-routes", subnet
+            "--advertise-routes",
+            subnet,
         ])
         .status();
     match status {

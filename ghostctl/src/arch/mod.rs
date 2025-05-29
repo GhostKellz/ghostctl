@@ -9,10 +9,13 @@ pub fn fix(target: String) {
         "mirrors" => archfix::mirrors(),
         "pkgfix" => archfix::pkgfix(),
         "optimize" => archfix::optimize(),
-        _ => println!("Unknown fix target. Use pacman, keyring, orphans, mirrors, pkgfix, optimize."),
+        _ => {
+            println!("Unknown fix target. Use pacman, keyring, orphans, mirrors, pkgfix, optimize.")
+        }
     }
 }
 
+#[allow(dead_code)]
 pub fn optimize_mirrors() {
     println!("Optimizing Arch mirrorlist using reflector...");
     let status = std::process::Command::new("sh")
@@ -25,6 +28,7 @@ pub fn optimize_mirrors() {
     }
 }
 
+#[allow(dead_code)]
 pub fn cleanup_orphans() {
     println!("Cleaning up orphaned packages...");
     let status = std::process::Command::new("sh")

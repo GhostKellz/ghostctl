@@ -1,15 +1,17 @@
-pub mod setup;
-pub mod schedule;
-pub mod verify;
+pub mod chroot;
 pub mod cleanup;
 pub mod restore;
-pub mod chroot;
+pub mod schedule;
+pub mod setup;
+pub mod verify;
 
 use crate::btrfs;
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 
 pub fn menu() {
-    println!("Backup menu: Please select a backup subcommand (run, schedule, verify, cleanup, restore) from the CLI or TUI.");
+    println!(
+        "Backup menu: Please select a backup subcommand (run, schedule, verify, cleanup, restore) from the CLI or TUI."
+    );
 }
 
 pub fn restore_menu() {
@@ -25,14 +27,21 @@ pub fn restore_menu() {
         .items(&opts)
         .default(0)
         .interact()
-        .unwrap() {
+        .unwrap()
+    {
         0 => setup::restic_restore(),
         1 => {
             use dialoguer::Input;
-            let name: String = Input::new().with_prompt("Snapshot name to restore").interact_text().unwrap();
-            let target: String = Input::new().with_prompt("Restore target (mountpoint or subvolume)").interact_text().unwrap();
+            let name: String = Input::new()
+                .with_prompt("Snapshot name to restore")
+                .interact_text()
+                .unwrap();
+            let target: String = Input::new()
+                .with_prompt("Restore target (mountpoint or subvolume)")
+                .interact_text()
+                .unwrap();
             btrfs::restore_snapshot(&name, &target)
-        },
+        }
         2 => chroot::enter_chroot(),
         _ => (),
     }

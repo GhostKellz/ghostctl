@@ -11,9 +11,9 @@
 - `ghostctl btrfs create <name>` — Create a Btrfs snapshot
 - `ghostctl btrfs delete <name>` — Delete a Btrfs snapshot
 - `ghostctl btrfs restore <name> <target>` — Restore a Btrfs snapshot
-- `ghostctl btrfs snapper_setup` — Deploy Snapper base configs
-- `ghostctl btrfs snapper_edit <config>` — Edit Snapper config
-- `ghostctl btrfs snapper_list` — List Snapper configs
+- `ghostctl btrfs snapperSetup` — Deploy Snapper base configs
+- `ghostctl btrfs snapperEdit <config>` — Edit Snapper config
+- `ghostctl btrfs snapperList` — List Snapper configs
 
 ## Backups
 - `ghostctl backup run` — Run backups
@@ -65,17 +65,17 @@
 - `ghostctl nvidia info` — Show NVIDIA driver info
 - `ghostctl nvidia status` — Show NVIDIA driver status
 - `ghostctl nvidia optimize` — Run NVIDIA optimization (performance mode)
-- `ghostctl nvidia wayland_check` — Check Wayland compatibility
-- `ghostctl nvidia wayland_config` — Show Wayland config tips
-- `ghostctl nvidia perf_mode` — Enable NVIDIA performance mode
+- `ghostctl nvidia waylandCheck` — Check Wayland compatibility
+- `ghostctl nvidia waylandConfig` — Show Wayland config tips
+- `ghostctl nvidia perfMode` — Enable NVIDIA performance mode
 - `ghostctl nvidia troubleshoot` — Troubleshooting tips
-- `ghostctl nvidia write_nvidia_conf` — Write NVIDIA configuration file
+- `ghostctl nvidia writeNvidiaConf` — Write NVIDIA configuration file
 
 ## Neovim
 - `ghostctl nvim` — Neovim setup menu
 - `ghostctl nvim diagnostics` — Neovim diagnostics
-- `ghostctl nvim list_plugins` — List installed plugins
-- `ghostctl nvim update_plugins` — Update plugins
+- `ghostctl nvim listPlugins` — List installed plugins
+- `ghostctl nvim updatePlugins` — Update plugins
 
 ## Networking Tools
 - `ghostctl netcat <host> <port>` — Netcat/port scan

@@ -13,12 +13,20 @@ pub fn handle(action: String) {
 
 fn list_services() {
     println!("Listing systemd services and timers...");
-    let _ = std::process::Command::new("systemctl").arg("list-units").arg("--type=service").status();
-    let _ = std::process::Command::new("systemctl").arg("list-timers").status();
+    let _ = std::process::Command::new("systemctl")
+        .arg("list-units")
+        .arg("--type=service")
+        .status();
+    let _ = std::process::Command::new("systemctl")
+        .arg("list-timers")
+        .status();
 }
 
 pub fn enable() {
-    let name: String = Input::new().with_prompt("Service/Timer to enable").interact_text().unwrap();
+    let name: String = Input::new()
+        .with_prompt("Service/Timer to enable")
+        .interact_text()
+        .unwrap();
     let status = std::process::Command::new("sudo")
         .args(["systemctl", "enable", "--now", &name])
         .status();
@@ -29,7 +37,10 @@ pub fn enable() {
 }
 
 pub fn disable() {
-    let name: String = Input::new().with_prompt("Service/Timer to disable").interact_text().unwrap();
+    let name: String = Input::new()
+        .with_prompt("Service/Timer to disable")
+        .interact_text()
+        .unwrap();
     let status = std::process::Command::new("sudo")
         .args(["systemctl", "disable", "--now", &name])
         .status();
@@ -40,7 +51,10 @@ pub fn disable() {
 }
 
 pub fn status() {
-    let name: String = Input::new().with_prompt("Service/Timer to check status").interact_text().unwrap();
+    let name: String = Input::new()
+        .with_prompt("Service/Timer to check status")
+        .interact_text()
+        .unwrap();
     let status = std::process::Command::new("systemctl")
         .args(["status", &name])
         .status();

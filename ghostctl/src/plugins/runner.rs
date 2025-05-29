@@ -1,8 +1,8 @@
-use std::process::Command;
+use dialoguer::{Select, theme::ColorfulTheme};
 use mlua::{Lua, Result};
 use std::fs;
 use std::path::PathBuf;
-use dialoguer::{theme::ColorfulTheme, Select};
+use std::process::Command;
 
 pub fn execute(name: &str) {
     let plugin_path = dirs::config_dir()
@@ -12,9 +12,7 @@ pub fn execute(name: &str) {
 
     if plugin_path.extension().unwrap_or_default() == "sh" {
         println!("Running shell plugin: {}", name);
-        let _ = Command::new("bash")
-            .arg(plugin_path)
-            .status();
+        let _ = Command::new("bash").arg(plugin_path).status();
     } else if plugin_path.extension().unwrap_or_default() == "lua" {
         println!("Running Lua plugin: {}", name);
         run_lua_plugin(name);
@@ -40,20 +38,26 @@ pub fn run_lua_plugin(name: &str) {
     let lua = Lua::new();
     // Expose a minimal Rust API to Lua
     let globals = lua.globals();
-    globals.set("run_command", lua.create_function(|_, cmd: String| {
-        let output = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .output();
-        match output {
-            Ok(out) => {
-                let stdout = String::from_utf8_lossy(&out.stdout);
-                println!("{}", stdout);
-            },
-            Err(e) => println!("Failed to run command: {}", e),
-        }
-        Ok(())
-    }).unwrap()).unwrap();
+    globals
+        .set(
+            "run_command",
+            lua.create_function(|_, cmd: String| {
+                let output = std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(&cmd)
+                    .output();
+                match output {
+                    Ok(out) => {
+                        let stdout = String::from_utf8_lossy(&out.stdout);
+                        println!("{}", stdout);
+                    }
+                    Err(e) => println!("Failed to run command: {}", e),
+                }
+                Ok(())
+            })
+            .unwrap(),
+        )
+        .unwrap();
     match lua.load(&code).exec() {
         Ok(_) => println!("Plugin '{}' executed successfully.", name),
         Err(e) => println!("Error running plugin '{}': {}", name, e),
@@ -61,7 +65,7 @@ pub fn run_lua_plugin(name: &str) {
 }
 
 pub fn run_user_script_menu() {
-    use dialoguer::{Input, theme::ColorfulTheme, Select};
+    use dialoguer::{Input, Select, theme::ColorfulTheme};
     use std::fs;
     let scripts_dir = dirs::config_dir().unwrap().join("ghostctl/scripts");
     if let Ok(entries) = fs::read_dir(&scripts_dir) {
@@ -99,7 +103,10 @@ pub fn run_user_script_menu() {
     }
 }
 
-pub fn run_lua_script(path: &PathBuf) {
-    println!("Running Lua script at {} (integration not implemented, requires mlua)", path.display());
+pub fn run_lua_script(path: &std::path::Path) {
+    println!(
+        "Running Lua script at {} (integration not implemented, requires mlua)",
+        path.display()
+    );
     // TODO: Integrate with mlua if desired
 }

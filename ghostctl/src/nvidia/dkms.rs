@@ -14,7 +14,7 @@ pub fn rebuild() {
                 println!("[WARN] nvidia-dkms is NOT installed. Rebuild will not work.");
                 return;
             }
-        },
+        }
         Err(_) => println!("Could not check for nvidia-dkms."),
     }
     // Rebuild DKMS modules
@@ -27,9 +27,7 @@ pub fn rebuild() {
         _ => println!("Failed to rebuild DKMS modules."),
     }
     // Print DKMS status
-    let status = std::process::Command::new("dkms")
-        .arg("status")
-        .output();
+    let status = std::process::Command::new("dkms").arg("status").output();
     match status {
         Ok(out) => println!("DKMS status:\n{}", String::from_utf8_lossy(&out.stdout)),
         Err(_) => println!("Could not get DKMS status."),

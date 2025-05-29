@@ -63,6 +63,9 @@ pub fn stage(project: String) {
         "zig" => install_zig(),
         "python" => install_python(),
         "go" => install_go(),
-        _ => println!("Unknown project type: {}. Supported: rust, zig, python, go", project),
+        _ => println!(
+            "Unknown project type: {}. Supported: rust, zig, python, go",
+            project
+        ),
     }
 }

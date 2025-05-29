@@ -1,6 +1,9 @@
 pub fn rollback(snapshot: &str, mountpoint: &str) {
     use dialoguer::Confirm;
-    println!("Restoring Btrfs snapshot '{}' to '{}' (rollback)...", snapshot, mountpoint);
+    println!(
+        "Restoring Btrfs snapshot '{}' to '{}' (rollback)...",
+        snapshot, mountpoint
+    );
     if !Confirm::new().with_prompt(format!("This will DELETE the current subvolume at '{}' and replace it with snapshot '{}'. Continue?", mountpoint, snapshot)).default(false).interact().unwrap() {
         println!("Aborted rollback.");
         return;
@@ -12,7 +15,10 @@ pub fn rollback(snapshot: &str, mountpoint: &str) {
     match status {
         Ok(s) if s.success() => println!("Deleted subvolume: {}", mountpoint),
         _ => {
-            println!("Failed to delete subvolume: {}. Aborting restore.", mountpoint);
+            println!(
+                "Failed to delete subvolume: {}. Aborting restore.",
+                mountpoint
+            );
             return;
         }
     }

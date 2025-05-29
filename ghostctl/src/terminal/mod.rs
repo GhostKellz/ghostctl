@@ -1,10 +1,14 @@
-use std::process::Command;
-use std::fs;
 use dirs;
+use std::fs;
+use std::process::Command;
 
 pub fn setup_ghostty() {
     println!("ghostctl :: Setup Ghostty terminal emulator");
-    let is_installed = Command::new("which").arg("ghostty").output().map(|o| o.status.success()).unwrap_or(false);
+    let is_installed = Command::new("which")
+        .arg("ghostty")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
     if is_installed {
         println!("Ghostty is already installed.");
     } else {
@@ -33,7 +37,11 @@ pub fn setup_ghostty() {
 
 pub fn setup_wezterm() {
     println!("ghostctl :: Setup WezTerm terminal emulator");
-    let is_installed = Command::new("which").arg("wezterm").output().map(|o| o.status.success()).unwrap_or(false);
+    let is_installed = Command::new("which")
+        .arg("wezterm")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
     if is_installed {
         println!("WezTerm is already installed.");
     } else {

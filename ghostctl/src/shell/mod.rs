@@ -1,7 +1,7 @@
 use std::process::Command;
 
-pub mod zsh;
 pub mod terminals;
+pub mod zsh;
 
 pub fn setup() {
     println!("ghostctl :: Shell setup (ZSH, Oh My Zsh, Powerlevel10k, plugins)");
@@ -10,7 +10,11 @@ pub fn setup() {
 
 pub fn install_zsh() {
     println!("Installing ZSH...");
-    let is_installed = Command::new("which").arg("zsh").output().map(|o| o.status.success()).unwrap_or(false);
+    let is_installed = Command::new("which")
+        .arg("zsh")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
     if is_installed {
         println!("ZSH is already installed.");
     } else {
@@ -55,7 +59,12 @@ pub fn install_powerlevel10k() {
         println!("Powerlevel10k is already installed.");
     } else {
         let status = Command::new("git")
-            .args(["clone", "--depth=1", "https://github.com/romkatv/powerlevel10k.git", p10k_dir.to_str().unwrap()])
+            .args([
+                "clone",
+                "--depth=1",
+                "https://github.com/romkatv/powerlevel10k.git",
+                p10k_dir.to_str().unwrap(),
+            ])
             .status()
             .expect("failed to clone Powerlevel10k");
         if status.success() {
@@ -82,7 +91,11 @@ pub fn set_default_zsh() {
 
 pub fn install_tmux() {
     println!("Installing tmux...");
-    let is_installed = Command::new("which").arg("tmux").output().map(|o| o.status.success()).unwrap_or(false);
+    let is_installed = Command::new("which")
+        .arg("tmux")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
     if is_installed {
         println!("tmux is already installed.");
     } else {

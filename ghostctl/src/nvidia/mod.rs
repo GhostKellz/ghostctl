@@ -86,7 +86,7 @@ pub fn wayland_check() {
             } else {
                 println!("[WARN] nvidia-drm.modeset=1 is NOT set in kernel params");
             }
-        },
+        }
         Err(e) => println!("Failed to check kernel params: {}", e),
     }
     // Check for GBM/EGL
@@ -102,7 +102,9 @@ pub fn wayland_check() {
 
 pub fn wayland_config() {
     println!("ghostctl :: NVIDIA Wayland Config Helper");
-    println!("- To enable Wayland, add 'options nvidia-drm modeset=1' to /etc/modprobe.d/nvidia.conf");
+    println!(
+        "- To enable Wayland, add 'options nvidia-drm modeset=1' to /etc/modprobe.d/nvidia.conf"
+    );
     println!("- Add 'nvidia-drm.modeset=1' to your kernel command line (GRUB/loader)");
     println!("- Use GBM backend for best compatibility");
 }
@@ -133,9 +135,7 @@ pub fn info() {
         _ => println!("nvidia-smi failed. Driver may not be installed."),
     }
     // Show driver version
-    let output = std::process::Command::new("modinfo")
-        .arg("nvidia")
-        .output();
+    let output = std::process::Command::new("modinfo").arg("nvidia").output();
     match output {
         Ok(out) => {
             let info = String::from_utf8_lossy(&out.stdout);
@@ -144,7 +144,7 @@ pub fn info() {
                     println!("Driver version: {}", line.replace("version:", "").trim());
                 }
             }
-        },
+        }
         Err(_) => println!("Could not get driver version from modinfo."),
     }
 }
@@ -157,20 +157,20 @@ pub fn status() {
         .arg("pacman -Qs nvidia")
         .output();
     match output {
-        Ok(out) => println!("Installed NVIDIA packages:\n{}", String::from_utf8_lossy(&out.stdout)),
+        Ok(out) => println!(
+            "Installed NVIDIA packages:\n{}",
+            String::from_utf8_lossy(&out.stdout)
+        ),
         Err(_) => println!("Could not query pacman for NVIDIA packages."),
     }
     // DKMS status
-    let output = std::process::Command::new("dkms")
-        .arg("status")
-        .output();
+    let output = std::process::Command::new("dkms").arg("status").output();
     match output {
         Ok(out) => println!("DKMS status:\n{}", String::from_utf8_lossy(&out.stdout)),
         Err(_) => println!("Could not get DKMS status."),
     }
     // Kernel module
-    let output = std::process::Command::new("lsmod")
-        .output();
+    let output = std::process::Command::new("lsmod").output();
     match output {
         Ok(out) => {
             let lsmod = String::from_utf8_lossy(&out.stdout);
@@ -179,7 +179,7 @@ pub fn status() {
             } else {
                 println!("nvidia kernel module is NOT loaded.");
             }
-        },
+        }
         Err(_) => println!("Could not check kernel modules."),
     }
     // Xorg/Wayland status (basic)
@@ -204,7 +204,12 @@ pub fn write_nvidia_conf() {
     println!("About to write to {}:\n{}", conf_path, content);
     println!("Prompting for confirmation...");
     use dialoguer::Confirm;
-    if Confirm::new().with_prompt("Overwrite /etc/modprobe.d/nvidia.conf?").default(false).interact().unwrap() {
+    if Confirm::new()
+        .with_prompt("Overwrite /etc/modprobe.d/nvidia.conf?")
+        .default(false)
+        .interact()
+        .unwrap()
+    {
         match std::fs::File::create(conf_path) {
             Ok(mut file) => {
                 if file.write_all(content.as_bytes()).is_ok() {
@@ -212,11 +217,10 @@ pub fn write_nvidia_conf() {
                 } else {
                     println!("Failed to write nvidia.conf.");
                 }
-            },
+            }
             Err(e) => println!("Failed to open nvidia.conf for writing: {}", e),
         }
     } else {
         println!("Aborted writing nvidia.conf.");
     }
 }
-

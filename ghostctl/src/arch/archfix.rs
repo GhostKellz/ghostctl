@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 
 pub fn fix_pacman() {
     println!("ghostctl :: Arch Pacman Fix");
@@ -139,7 +139,8 @@ pub fn tui_menu() {
         .items(&opts)
         .default(0)
         .interact()
-        .unwrap() {
+        .unwrap()
+    {
         0 => fix(),
         1 => keyring(),
         2 => mirrors(),

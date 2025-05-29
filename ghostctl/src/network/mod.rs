@@ -1,6 +1,6 @@
-pub mod netcat;
 pub mod dns;
 pub mod mesh;
+pub mod netcat;
 
 pub fn ghostcat(host: &str, port: u16) {
     netcat::check_port(host, port);
@@ -8,10 +8,7 @@ pub fn ghostcat(host: &str, port: u16) {
 
 pub fn dns_lookup(domain: &str) {
     use std::process::Command;
-    let output = Command::new("dig")
-        .arg("+short")
-        .arg(domain)
-        .output();
+    let output = Command::new("dig").arg("+short").arg(domain).output();
     match output {
         Ok(out) => println!("{}", String::from_utf8_lossy(&out.stdout)),
         Err(e) => println!("Failed to run dig: {}", e),
@@ -20,10 +17,7 @@ pub fn dns_lookup(domain: &str) {
 
 pub fn dnssec_check(domain: &str) {
     use std::process::Command;
-    let output = Command::new("dig")
-        .arg("+dnssec")
-        .arg(domain)
-        .output();
+    let output = Command::new("dig").arg("+dnssec").arg(domain).output();
     match output {
         Ok(out) => println!("{}", String::from_utf8_lossy(&out.stdout)),
         Err(e) => println!("Failed to run dig: {}", e),
@@ -40,9 +34,7 @@ pub fn netcat(host: &str, port: u16) {
 
 pub fn route() {
     use std::process::Command;
-    let output = Command::new("ip")
-        .arg("route")
-        .output();
+    let output = Command::new("ip").arg("route").output();
     match output {
         Ok(out) => println!("{}", String::from_utf8_lossy(&out.stdout)),
         Err(e) => println!("Failed to run ip route: {}", e),

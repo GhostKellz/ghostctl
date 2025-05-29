@@ -1,13 +1,13 @@
-use std::process::Command;
-use std::fs;
 use dirs;
+use std::fs;
+use std::process::Command;
 
 // NOTE: Add this to your Cargo.toml:
 // chrono = "0.4"
 
-pub mod setup;
 pub mod diagnostics;
 pub mod plugins;
+pub mod setup;
 
 pub fn install() {
     println!("ghostctl :: Neovim Setup");
@@ -23,42 +23,58 @@ pub fn install() {
     let nvim_config = home.join(".config/nvim");
     if nvim_config.exists() {
         println!("Backing up existing Neovim config...");
-        let backup = home.join(format!(".config/nvim.backup-{}", chrono::Utc::now().timestamp()));
+        let backup = home.join(format!(
+            ".config/nvim.backup-{}",
+            chrono::Utc::now().timestamp()
+        ));
         fs::rename(&nvim_config, &backup).unwrap();
         println!("Backed up to {:?}", backup);
     }
     match selection {
-        0 => { // LazyVim
+        0 => {
+            // LazyVim
             println!("Cloning LazyVim...");
             let _ = Command::new("git")
-                .args(["clone", "https://github.com/LazyVim/starter", nvim_config.to_str().unwrap()])
+                .args([
+                    "clone",
+                    "https://github.com/LazyVim/starter",
+                    nvim_config.to_str().unwrap(),
+                ])
                 .status();
-        },
-        1 => { // Kickstart
+        }
+        1 => {
+            // Kickstart
             println!("Cloning Kickstart...");
             let _ = Command::new("git")
-                .args(["clone", "https://github.com/nvim-lua/kickstart.nvim", nvim_config.to_str().unwrap()])
+                .args([
+                    "clone",
+                    "https://github.com/nvim-lua/kickstart.nvim",
+                    nvim_config.to_str().unwrap(),
+                ])
                 .status();
-        },
+        }
         _ => {
             println!("Aborted Neovim setup.");
             return;
         }
     }
     println!("Running Neovim to install plugins...");
-    let _ = Command::new("nvim").args(["--headless", "+Lazy! sync", "+qa"]).status();
+    let _ = Command::new("nvim")
+        .args(["--headless", "+Lazy! sync", "+qa"])
+        .status();
     println!("Neovim setup complete!");
 }
 
+#[allow(dead_code)]
 pub fn diagnostics() {
     println!("ghostctl :: Neovim Diagnostics");
-    let tools = [
-        ("nvim", "Neovim"),
-        ("git", "Git"),
-        ("curl", "curl"),
-    ];
+    let tools = [("nvim", "Neovim"), ("git", "Git"), ("curl", "curl")];
     for (bin, name) in tools.iter() {
-        let found = Command::new("which").arg(bin).output().map(|o| o.status.success()).unwrap_or(false);
+        let found = Command::new("which")
+            .arg(bin)
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
         if found {
             println!("[OK]   {} is installed", name);
         } else {
@@ -67,6 +83,7 @@ pub fn diagnostics() {
     }
 }
 
+#[allow(dead_code)]
 pub fn list_plugins() {
     println!("ghostctl :: List Neovim Plugins");
     let home = dirs::home_dir().unwrap();
@@ -80,6 +97,7 @@ pub fn list_plugins() {
     }
 }
 
+#[allow(dead_code)]
 pub fn update_plugins() {
     println!("Updating Neovim plugins...");
     let status = Command::new("nvim")

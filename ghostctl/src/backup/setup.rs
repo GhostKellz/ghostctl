@@ -14,4 +14,3 @@ pub fn setup() {
 pub fn restic_restore() {
     println!("ghostctl :: Restic Restore (stub)");
 }
-

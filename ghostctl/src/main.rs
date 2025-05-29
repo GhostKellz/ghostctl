@@ -1,18 +1,18 @@
-mod menu;
-mod commands;
-mod scripts;
 mod arch;
-mod btrfs;
-mod nvim;
-mod nvidia;
-mod shell;
-mod systemd;
-mod dev;
 mod backup;
-mod restore;
+mod btrfs;
+mod commands;
+mod dev;
+mod menu;
 mod network;
+mod nvidia;
+mod nvim;
 mod plugins;
 mod restic;
+mod restore;
+mod scripts;
+mod shell;
+mod systemd;
 mod terminal;
 
 // ghostctl - Arch sysadmin CLI & TUI toolkit
@@ -73,11 +73,21 @@ enum Command {
 #[derive(Subcommand)]
 enum BtrfsAction {
     List,
-    Create { name: String, subvolume: Option<String> },
-    Delete { name: String },
-    Restore { name: String, target: String },
+    Create {
+        name: String,
+        subvolume: Option<String>,
+    },
+    Delete {
+        name: String,
+    },
+    Restore {
+        name: String,
+        target: String,
+    },
     SnapperSetup,
-    SnapperEdit { config: String },
+    SnapperEdit {
+        config: String,
+    },
     SnapperList,
 }
 
@@ -111,9 +121,13 @@ fn main() {
         Some(Command::Stage { project }) => dev::stage(project),
         Some(Command::Btrfs { action }) => match action {
             Some(BtrfsAction::List) => btrfs::snapshot::list_snapshots(),
-            Some(BtrfsAction::Create { name, subvolume }) => btrfs::snapshot::create_snapshot(subvolume.as_deref().unwrap_or("/"), &name),
+            Some(BtrfsAction::Create { name, subvolume }) => {
+                btrfs::snapshot::create_snapshot(subvolume.as_deref().unwrap_or("/"), &name)
+            }
             Some(BtrfsAction::Delete { name }) => btrfs::snapshot::delete_snapshot(&name),
-            Some(BtrfsAction::Restore { name, target }) => btrfs::snapshot::restore_snapshot(&name, &target),
+            Some(BtrfsAction::Restore { name, target }) => {
+                btrfs::snapshot::restore_snapshot(&name, &target)
+            }
             Some(BtrfsAction::SnapperSetup) => btrfs::snapshot::snapper_setup(),
             Some(BtrfsAction::SnapperEdit { config }) => btrfs::snapshot::snapper_edit(&config),
             Some(BtrfsAction::SnapperList) => btrfs::snapshot::snapper_list(),
