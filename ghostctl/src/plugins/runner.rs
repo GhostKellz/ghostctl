@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme};
+use dialoguer::{Select};
 use mlua::{Lua};
 use std::fs;
 use std::process::Command;
@@ -64,7 +64,7 @@ pub fn run_lua_plugin(name: &str) {
 }
 
 pub fn run_user_script_menu() {
-    use dialoguer::{Select, theme::ColorfulTheme};
+    use dialoguer::Select;
     use std::fs;
     let scripts_dir = dirs::config_dir().unwrap().join("ghostctl/scripts");
     if let Ok(entries) = fs::read_dir(&scripts_dir) {
@@ -79,7 +79,7 @@ pub fn run_user_script_menu() {
             println!("No user scripts found in {:?}", scripts_dir);
             return;
         }
-        let idx = Select::with_theme(&ColorfulTheme::default())
+        let idx = Select::with_theme(&dialoguer::theme::ColorfulTheme::default())
             .with_prompt("Select a user script to run")
             .items(&scripts)
             .default(0)

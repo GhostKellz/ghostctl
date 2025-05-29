@@ -1,7 +1,4 @@
-use dialoguer::Input;
-
 pub fn handle(action: String) {
-    use dialoguer::Input;
     match action.as_str() {
         "enable" => super::systemd::enable(),
         "disable" => super::systemd::disable(),
@@ -23,7 +20,7 @@ fn list_services() {
 }
 
 pub fn enable() {
-    let name: String = Input::new()
+    let name: String = dialoguer::Input::new()
         .with_prompt("Service/Timer to enable")
         .interact_text()
         .unwrap();
@@ -37,7 +34,7 @@ pub fn enable() {
 }
 
 pub fn disable() {
-    let name: String = Input::new()
+    let name: String = dialoguer::Input::new()
         .with_prompt("Service/Timer to disable")
         .interact_text()
         .unwrap();
@@ -51,7 +48,7 @@ pub fn disable() {
 }
 
 pub fn status() {
-    let name: String = Input::new()
+    let name: String = dialoguer::Input::new()
         .with_prompt("Service/Timer to check status")
         .interact_text()
         .unwrap();
