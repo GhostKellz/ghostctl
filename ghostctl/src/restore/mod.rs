@@ -1,6 +1,8 @@
 pub mod chroot;
 pub mod btrfs;
 
+use dialoguer::{theme::ColorfulTheme, Select, Input};
+
 pub fn run() {
     println!("ghostctl :: Restore Utility");
 
@@ -11,4 +13,29 @@ pub fn run() {
 
     // Later: Use dialoguer or args
     crate::restic::setup(); // call the root-level restic module
+}
+
+pub fn menu() {
+    let opts = [
+        "Rollback Btrfs Snapshot",
+        "Enter Recovery Chroot",
+        "Back",
+    ];
+    match Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Restore Menu")
+        .items(&opts)
+        .default(0)
+        .interact()
+        .unwrap() {
+        0 => {
+            let name: String = Input::new().with_prompt("Snapshot name to rollback").interact_text().unwrap();
+            let mountpoint: String = Input::new().with_prompt("Mountpoint to restore to").default("/".into()).interact_text().unwrap();
+            btrfs::rollback(&name, &mountpoint)
+        },
+        1 => {
+            let mountpoint: String = Input::new().with_prompt("Chroot mountpoint (e.g. /mnt)").default("/mnt".into()).interact_text().unwrap();
+            chroot::enter(&mountpoint)
+        },
+        _ => (),
+    }
 }
