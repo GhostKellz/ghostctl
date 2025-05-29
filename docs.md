@@ -5,11 +5,12 @@
 ghostctl is a modular, extensible CLI toolkit for Linux power users, sysadmins, and homelabbers. It provides interactive and scriptable management for:
 - Btrfs snapshots
 - Backups (Restic, Snapper)
-- Systemd services/timers
-- Neovim and plugin management
-- Shell and terminal setup
+- Systemd services/timers (enable, disable, status, create)
+- Neovim and plugin management (install, diagnostics, list, update)
+- Shell and terminal setup (ZSH, Oh My Zsh, Powerlevel10k, plugins, tmux, Ghostty, WezTerm)
 - User management
-- Networking tools
+- Networking tools (netcat, DNS, route, mesh/Tailscale/Headscale CLI)
+- Plugin system (install, list, run, user scripts)
 - Proxmox helper scripts
 - Diagnostics and self-test
 
@@ -28,6 +29,7 @@ ghostctl is a modular, extensible CLI toolkit for Linux power users, sysadmins, 
 - User config stored in `~/.config/ghostctl/config.toml`
 - History/logs in `~/.local/share/ghostctl/history.log`
 - Plugins in `~/.config/ghostctl/plugins/`
+- User scripts in `~/.config/ghostctl/scripts/`
 
 ---
 
@@ -42,7 +44,7 @@ ghostctl is a modular, extensible CLI toolkit for Linux power users, sysadmins, 
 - Destructive/system-changing actions require confirmation
 - All critical actions are logged
 - Scripts from the internet prompt for confirmation before execution
-- Tailscale and headscale CLI and TUI support coming next
+- Tailscale and headscale CLI support (mesh) is CLI-only for security
 
 ---
 
@@ -64,6 +66,47 @@ ghostctl is a modular, extensible CLI toolkit for Linux power users, sysadmins, 
 - `ghostctl btrfs snapper_list` — List available Snapper configs
 
 All destructive actions prompt for confirmation. Snapper integration is ready for both CLI and TUI.
+
+---
+
+## Backups
+- `ghostctl backup run` — Run a Restic backup
+- `ghostctl backup schedule` — Schedule backups (systemd timer)
+- `ghostctl backup verify` — Verify backup integrity
+- `ghostctl backup cleanup` — Prune old backups
+- `ghostctl backup restore` — Restore from backup
+
+---
+
+## Systemd Management
+- `ghostctl systemd enable` — Enable and start a service/timer
+- `ghostctl systemd disable` — Disable and stop a service/timer
+- `ghostctl systemd status` — Show status of a service/timer
+- `ghostctl systemd create` — Create a new service/timer (interactive)
+
+---
+
+## Shell & Terminal
+- `ghostctl shell` — Full ZSH + Oh My Zsh + Powerlevel10k + plugins setup
+- `ghostctl terminal ghostty` — Install and configure Ghostty
+- `ghostctl terminal wezterm` — Install and configure WezTerm
+
+---
+
+## Plugins & Scripts
+- `ghostctl plugin list` — List installed plugins
+- `ghostctl plugin install <url>` — Install plugin from URL
+- `ghostctl plugin run` — Run a plugin
+- `ghostctl script run` — Run a user script (shell or Lua)
+
+---
+
+## Mesh Networking (CLI only)
+- `ghostctl mesh up` — Tailscale up with custom config
+- `ghostctl mesh advertise <subnet>` — Advertise subnet route
+- `ghostctl mesh status` — Show Tailscale status
+- `ghostctl mesh down` — Bring down Tailscale
+- `ghostctl mesh api` — Generate Headscale API key
 
 ---
 

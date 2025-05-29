@@ -6,8 +6,7 @@
 - `ghostctl help` — Show in-tool documentation
 - `ghostctl diagnostics` — Run self-test and health checks
 
-## Btrfs
-- `ghostctl btrfs` — Btrfs snapshot menu
+## Btrfs and Snapper
 - `ghostctl btrfs list` — List Btrfs snapshots
 - `ghostctl btrfs create <name>` — Create a Btrfs snapshot
 - `ghostctl btrfs delete <name>` — Delete a Btrfs snapshot
@@ -15,74 +14,79 @@
 - `ghostctl btrfs snapper_setup` — Deploy Snapper base configs
 - `ghostctl btrfs snapper_edit <config>` — Edit Snapper config
 - `ghostctl btrfs snapper_list` — List Snapper configs
-- `ghostctl restore <snapshot> <mountpoint>` — Restore a Btrfs/Snapper snapshot
 
-## Backup
-- `ghostctl backup` — Backup menu
-- `ghostctl backup verify` — Verify backups
+## Backups
+- `ghostctl backup run` — Run backups
 - `ghostctl backup schedule` — Schedule backups
+- `ghostctl backup verify` — Verify backups
 - `ghostctl backup cleanup` — Cleanup old backups
+- `ghostctl backup restore` — Restore backups
 
-## Systemd
-- `ghostctl systemd <service> <action>` — Manage systemd services/timers (start, stop, enable, disable, status)
+## Systemd Management
+- `ghostctl systemd enable` — Enable systemd services/timers
+- `ghostctl systemd disable` — Disable systemd services/timers
+- `ghostctl systemd status` — Show systemd service/timer status
+- `ghostctl systemd create` — Create new systemd service/timer
+
+## Shell & Terminal
+- `ghostctl shell` — Shell management menu
+- `ghostctl terminal ghostty` — Setup Ghostty
+- `ghostctl terminal wezterm` — Setup WezTerm
+
+## Plugins & Scripts
+- `ghostctl plugin list` — List plugins
+- `ghostctl plugin install <url>` — Install plugin from URL
+- `ghostctl plugin run` — Run a plugin
+- `ghostctl script run` — Run a script
+
+## Mesh Networking (CLI only)
+- `ghostctl mesh up` — Bring up mesh network
+- `ghostctl mesh advertise <subnet>` — Advertise subnet
+- `ghostctl mesh status` — Show mesh network status
+- `ghostctl mesh down` — Bring down mesh network
+- `ghostctl mesh api` — Access mesh network API
+
+## Arch Maintenance
+- `ghostctl arch fix <target>` — Fix Arch makepkg
+- `ghostctl arch keyring` — Update Arch keyring
+- `ghostctl arch mirrors` — Update Arch mirrors
+- `ghostctl arch orphans` — Remove orphaned packages
+- `ghostctl arch pkgfix` — Update all packages
+- `ghostctl arch optimize` — System performance tuning
+- `ghostctl arch full` — Full system maintenance
+
+## NVIDIA Tools
+- `ghostctl nvidia clean` — Clean NVIDIA DKMS/modules
+- `ghostctl nvidia fix` — Rebuild DKMS/initramfs
+- `ghostctl nvidia diagnostics` — NVIDIA/Wayland diagnostics
+- `ghostctl nvidia install` — Install NVIDIA proprietary driver
+- `ghostctl nvidia open` — Install NVIDIA open driver
+- `ghostctl nvidia openbeta` — Install NVIDIA open beta from AUR
+- `ghostctl nvidia info` — Show NVIDIA driver info
+- `ghostctl nvidia status` — Show NVIDIA driver status
+- `ghostctl nvidia optimize` — Run NVIDIA optimization (performance mode)
+- `ghostctl nvidia wayland_check` — Check Wayland compatibility
+- `ghostctl nvidia wayland_config` — Show Wayland config tips
+- `ghostctl nvidia perf_mode` — Enable NVIDIA performance mode
+- `ghostctl nvidia troubleshoot` — Troubleshooting tips
+- `ghostctl nvidia write_nvidia_conf` — Write NVIDIA configuration file
 
 ## Neovim
-- `ghostctl nvim interactive` — Interactive Neovim setup
+- `ghostctl nvim` — Neovim setup menu
 - `ghostctl nvim diagnostics` — Neovim diagnostics
-- `ghostctl nvim list-plugins` — List installed plugins
-- `ghostctl nvim update-plugins` — Update plugins
+- `ghostctl nvim list_plugins` — List installed plugins
+- `ghostctl nvim update_plugins` — Update plugins
 
-## Shell
-- `ghostctl shell install-zsh` — Install zsh
-- `ghostctl shell install-ohmyzsh` — Install Oh My Zsh
-- `ghostctl shell install-spaceship` — Install Spaceship prompt
-- `ghostctl shell install-powerlevel10k` — Install Powerlevel10k
-- `ghostctl shell set-default-zsh` — Set zsh as default shell
-
-## Terminal
-- `ghostctl terminal wezterm` — Setup WezTerm
-- `ghostctl terminal kitty` — Setup Kitty
-- `ghostctl terminal ghostty` — Setup Ghostty
-
-## Plugins
-- `ghostctl plugins list` — List plugins
-- `ghostctl plugins run <plugin>` — Run a plugin
-- `ghostctl plugins install-from-url <url>` — Install plugin from URL
-
-## User Management
-- `ghostctl user add <name>` — Add user
-- `ghostctl user remove <name>` — Remove user
-- `ghostctl user list` — List users
-- `ghostctl user status <name>` — Show user status
-
-## Networking
+## Networking Tools
+- `ghostctl netcat <host> <port>` — Netcat/port scan
 - `ghostctl dns <domain>` — DNS lookup
 - `ghostctl dnssec <domain>` — DNSSEC check
-- `ghostctl netcat <host> <port>` — Netcat/port scan
-- `ghostctl gc <host> <port>` — Ghostcat (branded netcat)
 - `ghostctl route` — Print routing table
+- `ghostctl gc <host> <port>` — Ghostcat (branded netcat)
 
 ## Proxmox
-- `ghostctl proxmox` — Proxmox helper scripts menu
-
-## NVIDIA
-- `ghostctl nv clean` — Clean NVIDIA DKMS/modules
-- `ghostctl nv fix` — Rebuild DKMS/initramfs
-- `ghostctl nv diagnostics` — NVIDIA/Wayland diagnostics
-- `ghostctl nv install` — Install NVIDIA proprietary driver
-- `ghostctl nv open` — Install NVIDIA open driver
-- `ghostctl nv open-beta` — Install NVIDIA open beta from AUR
-- `ghostctl nv wayland-check` — Check Wayland compatibility
-- `ghostctl nv wayland-config` — Show Wayland config tips
-- `ghostctl nv perf-mode` — Enable NVIDIA performance mode
-- `ghostctl nv troubleshoot` — Troubleshooting tips
-- `ghostctl nv optimize` — Run NVIDIA optimization (performance mode)
-
-## Arch/Perf
-- `ghostctl archfix` — Fix Arch makepkg
-- `ghostctl optimize` — System performance tuning
-- `ghostctl pkgfix` — Update all packages
+- `ghostctl proxmox run <script_url>` — Run Proxmox helper script
 
 ---
 
-See `ghostctl help` or the interactive menu for more options and details.
+For more details, see docs.md and README.md.
