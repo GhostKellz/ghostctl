@@ -1,0 +1,26 @@
+name: Mirror Repo to Gitea
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Setup SSH for Gitea
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.GHRUNNER }}" | base64 -d > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "aur.ghostctl.io ssh-ed25519 AAAAC3nzac1lZDI1NTE5AAA..." >> ~/.ssh/known_hosts
+
+      - name: Push to Gitea
+        run: |
+          git remote add gitea git@aur.ghostctl.io:ghostkellz/ghostctl.git
+          git push --mirror gitea
