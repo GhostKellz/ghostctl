@@ -10,6 +10,7 @@ pub fn show() {
         "Neovim Configurator",
         "Shell Setup (ZSH, Oh My Zsh, Powerlevel10k, tmux)",
         "Terminal Setup (Ghostty, WezTerm)",
+        "Ghost Tools (Install/Uninstall Ghostbrew, Ghostscan, Ghostforge)",
         "Diagnostics/Status",
         "Systemd Management",
         "Plugin & Script Management",
@@ -182,7 +183,8 @@ pub fn show() {
                 _ => (),
             }
         }
-        7 => {
+        7 => dev::gtools::install_ghost_tools_menu(),
+        8 => {
             // Diagnostics/Status
             use std::process::Command;
             let tools = [
@@ -206,7 +208,7 @@ pub fn show() {
                 }
             }
         }
-        8 => {
+        9 => {
             let sysd_opts = [
                 "Enable Service/Timer",
                 "Disable Service/Timer",
@@ -228,7 +230,7 @@ pub fn show() {
                 _ => (),
             }
         }
-        9 => {
+        10 => {
             let plugin_opts = [
                 "List Plugins",
                 "Install Plugin from URL",
@@ -257,7 +259,7 @@ pub fn show() {
                 _ => (),
             }
         }
-        10 => {
+        11 => {
             let mesh_opts = [
                 "Tailscale Up (custom config)",
                 "Advertise Subnet Route",
@@ -288,7 +290,7 @@ pub fn show() {
                 _ => (),
             }
         }
-        11 => scripts::run_from_url("https://raw.githubusercontent.com/..."),
+        12 => scripts::run_from_url("https://raw.githubusercontent.com/..."),
         _ => println!("Goodbye."),
     }
 }

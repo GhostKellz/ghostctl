@@ -137,6 +137,7 @@ pub fn tui_menu() {
         "PKGBUILD/Build Env Fix",
         "Performance Optimize (zram/zswap)",
         "Full Maintenance",
+        "Install Ghost Tools",
         "Back",
     ];
     match Select::with_theme(&ColorfulTheme::default())
