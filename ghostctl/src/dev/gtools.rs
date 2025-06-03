@@ -11,13 +11,16 @@ pub fn install_ghost_tools_menu() {
     ];
     let binaries = ["ghostbrew", "ghostscan", "ghostforge"];
     loop {
-        let status_labels: Vec<String> = binaries.iter().map(|bin| {
-            if which(bin).is_ok() {
-                format!("{} [INSTALLED]", bin)
-            } else {
-                format!("{} [not installed]", bin)
-            }
-        }).collect();
+        let status_labels: Vec<String> = binaries
+            .iter()
+            .map(|bin| {
+                if which(bin).is_ok() {
+                    format!("{} [INSTALLED]", bin)
+                } else {
+                    format!("{} [not installed]", bin)
+                }
+            })
+            .collect();
         let mut menu_items: Vec<String> = status_labels.clone();
         menu_items.push("Back".to_string());
         let idx = Select::with_theme(&ColorfulTheme::default())
@@ -26,7 +29,9 @@ pub fn install_ghost_tools_menu() {
             .default(0)
             .interact()
             .unwrap();
-        if idx == menu_items.len() - 1 { break; }
+        if idx == menu_items.len() - 1 {
+            break;
+        }
         let repo = repos[idx];
         let bin = binaries[idx];
         let action_opts = ["Install/Update", "Uninstall", "Back"];
