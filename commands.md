@@ -5,6 +5,13 @@
 - `ghostctl menu` — Launch the interactive menu
 - `ghostctl help` — Show in-tool documentation
 - `ghostctl diagnostics` — Run self-test and health checks
+- `ghostctl ghosttools` — Launch Ghost Tools installer menu (TUI)
+
+## Ghost Tools
+- Accessible from the main menu: "Ghost Tools (Install/Uninstall Ghostbrew, Ghostscan, Ghostforge)"
+- Lets you install, update, or uninstall Ghostbrew, Ghostscan, and Ghostforge from GitHub
+- Shows install status for each tool
+- No extra config files required
 
 ## Btrfs and Snapper
 - `ghostctl btrfs list` — List Btrfs snapshots
