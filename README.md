@@ -26,7 +26,6 @@ A modern, modular CLI toolkit for Linux power users, sysadmins, and homelabbers.
 - Arch/Perf: System optimization, kernel, and package fixes
 - Proxmox: Run any helper script from the ProxmoxVE community-scripts repo
 - Diagnostics: Self-test, health checks, actionable suggestions
-
 ---
 
 ## Usage
