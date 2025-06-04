@@ -20,7 +20,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           touch ~/.ssh/known_hosts
           ssh-keyscan -t ed25519 aur.ghostctl.io >> ~/.ssh/known_hosts
-          echo "SSH key and known_hosts set up"
+          echo "✅ SSH key and known_hosts set up"
 
       - name: Push to Gitea
         env:
