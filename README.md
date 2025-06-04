@@ -10,7 +10,6 @@
 ![Proxmox](https://img.shields.io/badge/Proxmox-helpers-orange?logo=proxmox)
 
 A modern, modular CLI toolkit for Linux power users, sysadmins, and homelabbers. Written in Rust. Supports Btrfs, Restic, Snapper, systemd, Neovim, plugin management, Proxmox helpers, and more.
-
 ---
 
 ## Features
