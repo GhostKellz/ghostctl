@@ -18,9 +18,9 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.GHRUNNER }}" | base64 -d > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          echo "aur.ghostctl.io ssh-ed25519 AAAAC3nzac1lZDI1NTE5AAA..." >> ~/.ssh/known_hosts
+          ssh-keyscan -t ed25519 aur.ghostctl.io >> ~/.ssh/known_hosts
 
       - name: Push to Gitea
         run: |
-          git remote add gitea git@aur.ghostctl.io:ghostkellz/ghostctl.git
+          git remote add gitea git@aur.ghostctl.io:ghostkellz/ghostctl.git || true
           git push --mirror gitea
