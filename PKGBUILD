@@ -7,7 +7,7 @@ pkgdesc="Modular CLI toolkit for Linux sysadmins, homelabbers, and power users."
 arch=('x86_64')
 url="https://github.com/ghostkellz/ghostctl"
 license=('MIT')
-depends=('lua54' 'pkgconf' 'git')
+depends=('lua' 'pkgconf' 'git')
 makedepends=('cargo' 'rust')
 source=("$pkgname::git+https://github.com/ghostkellz/ghostctl.git#tag=v${pkgver}")
 b2sums=('SKIP')
