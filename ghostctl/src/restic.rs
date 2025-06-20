@@ -3,7 +3,6 @@ use std::process::Command;
 /// Pure restic CLI wrapper functions
 /// For automated workflows, use src/backup/
 /// For emergency recovery, use src/restore/
-
 pub fn setup() {
     println!("🔧 Restic CLI Setup");
     println!("===================");

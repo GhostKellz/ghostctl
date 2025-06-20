@@ -1,8 +1,6 @@
-use crate::dev::gtools;
-use crate::terminal::{self, terminal_menu};
+use crate::terminal::terminal_menu;
 use crate::{
-    arch, backup, btrfs, cloud, dev, docker, network, nginx, nvidia, nvim, proxmox, restore,
-    scripts, security, shell, systemd, tools,
+    arch, backup, btrfs, cloud, network, nvidia, proxmox, restore, security, shell, systemd, tools,
 };
 use clap::{Arg, ArgMatches, Command};
 use dialoguer::{Select, theme::ColorfulTheme};
@@ -15,6 +13,8 @@ pub fn build_cli() -> Command {
         .about("Ghost Infrastructure Control - Complete system and homelab management")
         .subcommand_required(false)
         .arg_required_else_help(false)
+        .disable_version_flag(true)
+        .disable_help_flag(true)
         .subcommand(
             Command::new("system")
                 .about("System management")
@@ -152,6 +152,7 @@ pub fn build_cli() -> Command {
                 .subcommand(Command::new("monitoring").about("Setup monitoring")),
         )
         .subcommand(Command::new("version").about("Show version information"))
+        .subcommand(Command::new("list").about("List available commands"))
         .arg(
             Arg::new("version")
                 .long("version")
@@ -230,6 +231,10 @@ pub fn handle_cli_args(matches: &ArgMatches) {
             println!("Ghost Infrastructure Control - Complete system and homelab management");
             println!("Author: Christopher Kelley <ckelley@ghostctl.sh>");
             println!("Repository: https://github.com/ghostkellz/ghostctl");
+            return;
+        }
+        Some(("list", _)) => {
+            show_command_list();
             return;
         }
         Some(("system", matches)) => handle_system_commands(matches),
@@ -844,4 +849,42 @@ fn stop_container(_id: String) {
 
 fn ssl_management_menu() {
     println!("SSL Management Menu - Coming Soon!");
+}
+
+fn show_command_list() {
+    println!("ghostctl v0.5.0 - Available Commands");
+    println!("====================================");
+    println!();
+    println!("System Management:");
+    println!("  system update    - Update system packages");
+    println!("  system status    - Show system status");
+    println!("  system arch      - Arch Linux management");
+    println!("  system nixos     - NixOS management");
+    println!();
+    println!("Development:");
+    println!("  dev menu         - Development environment menu");
+    println!("  dev rust         - Rust development tools");
+    println!("  dev zig          - Zig development tools");
+    println!("  dev go           - Go development tools");
+    println!("  dev python       - Python development tools");
+    println!();
+    println!("Infrastructure:");
+    println!("  docker menu      - Docker management");
+    println!("  pve menu         - Proxmox VE management");
+    println!("  nginx menu       - Nginx configuration");
+    println!("  ssl menu         - SSL certificate management");
+    println!();
+    println!("Utilities:");
+    println!("  scripts menu     - Script management");
+    println!("  backup menu      - Backup management");
+    println!("  restore menu     - System recovery");
+    println!("  security menu    - Security tools");
+    println!();
+    println!("General:");
+    println!("  version          - Show version information");
+    println!("  help             - Show help information");
+    println!("  menu             - Show interactive menu");
+    println!("  list             - Show this command list");
+    println!();
+    println!("For detailed help on any command, use: ghostctl <command> --help");
 }

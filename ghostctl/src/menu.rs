@@ -3,7 +3,7 @@ use crate::{
     security, shell, systemd, terminal,
 };
 use dialoguer::{Select, theme::ColorfulTheme};
-use std::io::{self, Write};
+// use std::io::{self, Write};
 
 pub fn show() {
     loop {
