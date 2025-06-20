@@ -62,6 +62,7 @@ pub fn gc(host: &str, port: u16) {
     netcat(host, port);
 }
 
+#[allow(dead_code)]
 pub fn ssh_key_management() {
     println!("🔑 SSH Key Management - TODO: Implement");
 }

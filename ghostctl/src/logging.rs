@@ -20,6 +20,7 @@ impl GhostLogger {
         );
     }
 
+    #[allow(dead_code)]
     pub fn log_action(action: &str, success: bool, details: Option<&str>) {
         let log_dir = dirs::data_dir().unwrap().join("ghostctl");
         let log_file = log_dir.join("history.log");
@@ -41,6 +42,7 @@ impl GhostLogger {
         }
     }
 
+    #[allow(dead_code)]
     pub fn show_recent_logs() {
         let log_file = dirs::data_dir().unwrap().join("ghostctl/history.log");
 
@@ -73,6 +75,7 @@ impl GhostLogger {
 }
 
 // Wrapper for consistent error handling
+#[allow(dead_code)]
 pub fn execute_with_logging<F>(action_name: &str, operation: F) -> Result<(), String>
 where
     F: FnOnce() -> Result<(), String>,
@@ -91,6 +94,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 pub fn safe_command(cmd: &str, args: &[&str], action_name: &str) -> Result<(), String> {
     execute_with_logging(action_name, || {
         let output = std::process::Command::new(cmd)

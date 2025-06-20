@@ -14,6 +14,7 @@ pub fn cleanup_old_backups() {
     }
 }
 
+#[allow(dead_code)]
 pub fn run() {
     println!("Cleaning up restic backups...");
     let status = std::process::Command::new("sh")

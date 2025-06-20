@@ -487,6 +487,7 @@ fn certificate_status_check() {
     check_letsencrypt_certificates();
 }
 
+#[allow(dead_code)]
 fn check_certificate_file(cert_path: &Path) {
     println!("🔍 Checking: {}", cert_path.display());
     check_certificate_expiry(cert_path);
@@ -650,30 +651,37 @@ fn find_ghostcert_script() -> Option<String> {
 }
 
 // Stub implementations for script generation functions to avoid missing function errors
+#[allow(dead_code)]
 fn save_script(_filename: &str, _content: &str) {
     println!("💡 Script generation feature will be added in future updates");
 }
 
+#[allow(dead_code)]
 pub fn create_proxmox_docker_script() {
     save_script("proxmox-docker-deploy.sh", "# Docker deployment script");
 }
 
+#[allow(dead_code)]
 pub fn create_proxmox_vm_script() {
     save_script("proxmox-vm-template.sh", "# VM template script");
 }
 
+#[allow(dead_code)]
 pub fn create_proxmox_lxc_script() {
     save_script("proxmox-lxc-create.sh", "# LXC creation script");
 }
 
+#[allow(dead_code)]
 pub fn create_proxmox_ssl_script() {
     save_script("proxmox-ssl-manager.sh", "# SSL management script");
 }
 
+#[allow(dead_code)]
 pub fn create_proxmox_backup_script() {
     save_script("proxmox-backup-automation.sh", "# Backup automation script");
 }
 
+#[allow(dead_code)]
 pub fn create_proxmox_monitoring_script() {
     save_script("proxmox-monitoring.sh", "# Monitoring setup script");
 }

@@ -29,6 +29,7 @@ pub fn arch_menu() {
     }
 }
 
+#[allow(dead_code)]
 pub fn fix(target: String) {
     match target.as_str() {
         "pacman" | "keyring" => archfix::fix(),
@@ -91,31 +92,34 @@ pub fn quick_system_fixes() {
     println!("✅ Quick fixes completed!");
 }
 
+#[allow(dead_code)]
 pub fn fix_gpg_keys() {
     println!("🔑 Fixing GPG keys...");
     let _ = std::process::Command::new("sudo")
-        .args(&["rm", "-rf", "/etc/pacman.d/gnupg"])
+        .args(["rm", "-rf", "/etc/pacman.d/gnupg"])
         .status();
     let _ = std::process::Command::new("sudo")
-        .args(&["pacman-key", "--init"])
+        .args(["pacman-key", "--init"])
         .status();
     let _ = std::process::Command::new("sudo")
-        .args(&["pacman-key", "--populate", "archlinux"])
+        .args(["pacman-key", "--populate", "archlinux"])
         .status();
     let _ = std::process::Command::new("sudo")
-        .args(&["pacman-key", "--refresh-keys"])
+        .args(["pacman-key", "--refresh-keys"])
         .status();
     println!("  ✅ GPG keys fixed");
 }
 
+#[allow(dead_code)]
 pub fn reset_pacman_locks() {
     println!("📦 Resetting pacman locks...");
     let _ = std::process::Command::new("sudo")
-        .args(&["rm", "-f", "/var/lib/pacman/db.lck"])
+        .args(["rm", "-f", "/var/lib/pacman/db.lck"])
         .status();
     println!("  ✅ Pacman locks cleared");
 }
 
+#[allow(dead_code)]
 pub fn update_mirror_list() {
     println!("🌐 Updating mirror list...");
     if std::process::Command::new("which")

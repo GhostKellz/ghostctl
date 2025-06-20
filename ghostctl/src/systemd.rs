@@ -8,6 +8,7 @@ pub fn manage_service(action: &str) {
     }
 }
 
+#[allow(dead_code)]
 pub fn handle(action: String) {
     match action.as_str() {
         "enable" => super::systemd::enable(),

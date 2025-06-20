@@ -35,6 +35,7 @@ pub fn diagnostics() {
     }
 }
 
+#[allow(dead_code)]
 pub fn install_proprietary() {
     println!("Installing NVIDIA proprietary driver...");
     let status = std::process::Command::new("sh")
@@ -47,6 +48,7 @@ pub fn install_proprietary() {
     }
 }
 
+#[allow(dead_code)]
 pub fn install_open() {
     println!("Installing NVIDIA open driver...");
     let status = std::process::Command::new("sh")
@@ -59,6 +61,7 @@ pub fn install_open() {
     }
 }
 
+#[allow(dead_code)]
 pub fn install_open_beta() {
     println!("Installing NVIDIA open beta driver from AUR...");
     let status = std::process::Command::new("sh")

@@ -30,7 +30,7 @@ pub fn ssh_management() {
         3 => add_to_agent(),
         4 => ssh_configuration(),
         5 => secure_ssh_daemon(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -71,14 +71,14 @@ fn generate_ssh_key() {
     println!("🔧 Generating {} key...", key_type_str);
 
     let mut cmd = Command::new("ssh-keygen");
-    cmd.args(&["-t", key_type_str]);
+    cmd.args(["-t", key_type_str]);
 
     if !key_size.is_empty() {
         cmd.args(key_size.split_whitespace());
     }
 
-    cmd.args(&["-C", &email])
-        .args(&["-f", key_path.to_str().unwrap()]);
+    cmd.args(["-C", &email])
+        .args(["-f", key_path.to_str().unwrap()]);
 
     let status = cmd.status();
 
@@ -141,7 +141,7 @@ fn list_ssh_keys() {
 
                     // Show key fingerprint
                     if let Ok(output) = Command::new("ssh-keygen")
-                        .args(&["-lf", path.to_str().unwrap()])
+                        .args(["-lf", path.to_str().unwrap()])
                         .output()
                     {
                         let fingerprint = String::from_utf8_lossy(&output.stdout);
@@ -201,7 +201,7 @@ fn copy_public_key() {
 
                 match *tool {
                     "xclip" => {
-                        cmd.args(&["-selection", "clipboard"]);
+                        cmd.args(["-selection", "clipboard"]);
                     }
                     "wl-copy" => {}
                     "pbcopy" => {}
@@ -211,12 +211,10 @@ fn copy_public_key() {
                 if let Ok(mut child) = cmd.stdin(std::process::Stdio::piped()).spawn() {
                     if let Some(stdin) = child.stdin.take() {
                         use std::io::Write;
-                        if writeln!(&stdin, "{}", content.trim()).is_ok() {
-                            if child.wait().is_ok() {
-                                println!("✅ Public key copied to clipboard using {}", tool);
-                                copied = true;
-                                break;
-                            }
+                        if writeln!(&stdin, "{}", content.trim()).is_ok() && child.wait().is_ok() {
+                            println!("✅ Public key copied to clipboard using {}", tool);
+                            copied = true;
+                            break;
                         }
                     }
                 }
@@ -309,7 +307,7 @@ fn ssh_configuration() {
         1 => show_ssh_config(),
         2 => create_ssh_config_template(),
         3 => configure_key_auth(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -443,7 +441,7 @@ fn configure_key_auth() {
     println!("🚀 Installing public key on {}@{}", username, server);
 
     let status = Command::new("ssh-copy-id")
-        .args(&[
+        .args([
             "-i",
             key_path.to_str().unwrap(),
             &format!("{}@{}", username, server),
@@ -485,7 +483,7 @@ fn secure_ssh_daemon() {
 
     // Backup original config
     let _ = Command::new("sudo")
-        .args(&["cp", "/etc/ssh/sshd_config", "/etc/ssh/sshd_config.backup"])
+        .args(["cp", "/etc/ssh/sshd_config", "/etc/ssh/sshd_config.backup"])
         .status();
 
     let hardening_options = MultiSelect::with_theme(&ColorfulTheme::default())

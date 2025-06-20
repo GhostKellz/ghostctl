@@ -1,6 +1,7 @@
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use std::process::Command;
 
+#[allow(dead_code)]
 pub fn aur_helper_management() {
     println!("📦 AUR Helper Management");
     println!("========================");
@@ -25,10 +26,11 @@ pub fn aur_helper_management() {
         1 => install_aur_helper(),
         2 => update_aur_packages(),
         3 => clean_aur_cache(),
-        _ => return,
+        _ => (),
     }
 }
 
+#[allow(dead_code)]
 fn check_aur_helpers() {
     println!("🔍 Checking AUR Helpers");
     println!("=======================");
@@ -59,6 +61,7 @@ fn check_aur_helpers() {
     }
 }
 
+#[allow(dead_code)]
 fn install_aur_helper() {
     println!("📥 Install AUR Helper");
     println!("====================");
@@ -80,10 +83,11 @@ fn install_aur_helper() {
         0 => install_reaper(),
         1 => install_paru(),
         2 => install_yay(),
-        _ => return,
+        _ => (),
     }
 }
 
+#[allow(dead_code)]
 fn install_reaper() {
     println!("🔥 Installing Reaper AUR Helper");
     println!("===============================");
@@ -111,6 +115,7 @@ fn install_reaper() {
     }
 }
 
+#[allow(dead_code)]
 fn install_paru() {
     println!("🦀 Installing Paru AUR Helper");
     println!("=============================");
@@ -119,7 +124,7 @@ fn install_paru() {
     if Command::new("which").arg("cargo").status().is_err() {
         println!("📦 Installing Rust toolchain...");
         let _ = Command::new("sudo")
-            .args(&["pacman", "-S", "--noconfirm", "rust"])
+            .args(["pacman", "-S", "--noconfirm", "rust"])
             .status();
     }
 
@@ -136,12 +141,12 @@ fn install_paru() {
         let _ = std::fs::remove_dir_all(build_dir);
 
         let status = Command::new("git")
-            .args(&["clone", "https://aur.archlinux.org/paru.git", build_dir])
+            .args(["clone", "https://aur.archlinux.org/paru.git", build_dir])
             .status();
 
         if status.is_ok() && status.unwrap().success() {
             let build_status = Command::new("makepkg")
-                .args(&["-si", "--noconfirm"])
+                .args(["-si", "--noconfirm"])
                 .current_dir(build_dir)
                 .status();
 
@@ -158,6 +163,7 @@ fn install_paru() {
     }
 }
 
+#[allow(dead_code)]
 fn install_yay() {
     println!("🚀 Installing Yay AUR Helper");
     println!("============================");
@@ -175,12 +181,12 @@ fn install_yay() {
         let _ = std::fs::remove_dir_all(build_dir);
 
         let status = Command::new("git")
-            .args(&["clone", "https://aur.archlinux.org/yay.git", build_dir])
+            .args(["clone", "https://aur.archlinux.org/yay.git", build_dir])
             .status();
 
         if status.is_ok() && status.unwrap().success() {
             let build_status = Command::new("makepkg")
-                .args(&["-si", "--noconfirm"])
+                .args(["-si", "--noconfirm"])
                 .current_dir(build_dir)
                 .status();
 
@@ -197,6 +203,7 @@ fn install_yay() {
     }
 }
 
+#[allow(dead_code)]
 fn update_aur_packages() {
     println!("🔄 Update AUR Packages");
     println!("======================");
@@ -215,6 +222,7 @@ fn update_aur_packages() {
     println!("❌ No AUR helper found for updates");
 }
 
+#[allow(dead_code)]
 fn clean_aur_cache() {
     println!("🧹 Clean AUR Cache");
     println!("==================");
@@ -240,6 +248,7 @@ fn clean_aur_cache() {
     println!("❌ No AUR helper found for cache cleaning");
 }
 
+#[allow(dead_code)]
 pub fn get_preferred_aur_helper() -> Option<String> {
     let helpers = ["reap", "paru", "yay", "trizen", "pikaur"];
 

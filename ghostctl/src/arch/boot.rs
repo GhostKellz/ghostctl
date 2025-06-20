@@ -32,7 +32,7 @@ pub fn boot_management() {
         4 => boot_diagnostics(),
         5 => set_default_boot_entry(),
         6 => kernel_information(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -64,7 +64,7 @@ fn kernel_management() {
         3 => update_kernels(),
         4 => kernel_config(),
         5 => popular_kernels(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -73,7 +73,7 @@ fn list_installed_kernels() {
     println!("====================");
 
     // List installed kernel packages
-    let _ = Command::new("pacman").args(&["-Q"]).status();
+    let _ = Command::new("pacman").args(["-Q"]).status();
 
     println!("\n🔍 Filtering kernel packages...");
     let _ = Command::new("bash")
@@ -85,7 +85,7 @@ fn list_installed_kernels() {
     println!("\n📁 Kernel files in /boot:");
     if Path::new("/boot").exists() {
         let _ = Command::new("ls")
-            .args(&["-la", "/boot/vmlinuz-*"])
+            .args(["-la", "/boot/vmlinuz-*"])
             .status();
     }
 }
@@ -151,7 +151,7 @@ fn install_specific_kernel(kernel_name: &str) {
         {
             println!("📦 Installing AUR kernel (requires yay or similar)...");
             let status = Command::new("yay")
-                .args(&[
+                .args([
                     "-S",
                     "--noconfirm",
                     kernel_name,
@@ -169,7 +169,7 @@ fn install_specific_kernel(kernel_name: &str) {
         } else {
             println!("📦 Installing official repository kernel...");
             let status = Command::new("sudo")
-                .args(&[
+                .args([
                     "pacman",
                     "-S",
                     "--noconfirm",
@@ -217,7 +217,7 @@ fn systemd_boot_config() {
         3 => manage_boot_entries(),
         4 => setup_systemd_boot(),
         5 => update_systemd_boot(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -235,7 +235,7 @@ fn show_systemd_boot_config() {
     println!("\n📁 Boot entries:");
     if Path::new("/boot/loader/entries").exists() {
         let _ = Command::new("ls")
-            .args(&["-la", "/boot/loader/entries/"])
+            .args(["-la", "/boot/loader/entries/"])
             .status();
     } else {
         println!("❌ Boot entries directory not found.");
@@ -252,7 +252,7 @@ fn edit_loader_conf() {
 
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
     let _ = Command::new("sudo")
-        .args(&[&editor, "/boot/loader/loader.conf"])
+        .args([&editor, "/boot/loader/loader.conf"])
         .status();
 }
 
@@ -265,7 +265,7 @@ editor   no
 
     let _ = Command::new("sudo")
         .arg("mkdir")
-        .args(&["-p", "/boot/loader"])
+        .args(["-p", "/boot/loader"])
         .status();
 
     let _ = Command::new("sudo")
@@ -334,7 +334,7 @@ options root=UUID={} {}
     if confirm {
         let _ = Command::new("sudo")
             .arg("mkdir")
-            .args(&["-p", "/boot/loader/entries"])
+            .args(["-p", "/boot/loader/entries"])
             .status();
 
         let _ = Command::new("sudo")
@@ -349,7 +349,7 @@ options root=UUID={} {}
 
 fn get_root_uuid() -> String {
     let output = Command::new("findmnt")
-        .args(&["-n", "-o", "UUID", "/"])
+        .args(["-n", "-o", "UUID", "/"])
         .output();
 
     match output {
@@ -378,7 +378,7 @@ fn regenerate_boot_entries() {
     // Check if mkinitcpio presets exist
     if Path::new("/etc/mkinitcpio.d").exists() {
         println!("🔍 Found mkinitcpio presets:");
-        let _ = Command::new("ls").args(&["/etc/mkinitcpio.d/"]).status();
+        let _ = Command::new("ls").args(["/etc/mkinitcpio.d/"]).status();
 
         let regenerate = Confirm::new()
             .with_prompt("Regenerate initramfs for all kernels?")
@@ -388,14 +388,14 @@ fn regenerate_boot_entries() {
 
         if regenerate {
             println!("🔄 Regenerating initramfs...");
-            let _ = Command::new("sudo").args(&["mkinitcpio", "-P"]).status();
+            let _ = Command::new("sudo").args(["mkinitcpio", "-P"]).status();
         }
     }
 
     // Update systemd-boot if installed
     if Path::new("/boot/EFI/systemd").exists() {
         println!("🔄 Updating systemd-boot...");
-        let _ = Command::new("sudo").args(&["bootctl", "update"]).status();
+        let _ = Command::new("sudo").args(["bootctl", "update"]).status();
     }
 
     println!("✅ Boot entries regenerated");
@@ -412,7 +412,7 @@ fn boot_diagnostics() {
     let _ = Command::new("efibootmgr").arg("-v").status();
 
     println!("\n📁 Boot partition info:");
-    let _ = Command::new("df").args(&["-h", "/boot"]).status();
+    let _ = Command::new("df").args(["-h", "/boot"]).status();
 }
 
 fn set_default_boot_entry() {
@@ -441,7 +441,7 @@ fn remove_kernel() {
 
 fn update_kernels() {
     println!("🔄 Update All Kernels");
-    let _ = Command::new("sudo").args(&["pacman", "-Syu"]).status();
+    let _ = Command::new("sudo").args(["pacman", "-Syu"]).status();
 }
 
 fn kernel_config() {
@@ -458,5 +458,5 @@ fn setup_systemd_boot() {
 
 fn update_systemd_boot() {
     println!("🔄 Update Systemd-boot");
-    let _ = Command::new("sudo").args(&["bootctl", "update"]).status();
+    let _ = Command::new("sudo").args(["bootctl", "update"]).status();
 }

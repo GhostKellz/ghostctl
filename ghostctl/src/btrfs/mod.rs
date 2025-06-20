@@ -4,6 +4,7 @@ use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 // Define BtrfsAction enum
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum BtrfsAction {
     List,
@@ -15,6 +16,7 @@ pub enum BtrfsAction {
     SnapperList,
 }
 
+#[allow(dead_code)]
 pub fn handle(action: crate::BtrfsAction) {
     match action {
         crate::BtrfsAction::List => snapshot::list_snapshots(),
@@ -30,6 +32,7 @@ pub fn handle(action: crate::BtrfsAction) {
     }
 }
 
+#[allow(dead_code)]
 pub fn handle_none() {
     println!("No btrfs subcommand provided. Use 'ghostctl btrfs --help' for options.");
 }
@@ -71,17 +74,17 @@ pub fn btrfs_filesystem_overview() {
 
     println!("🗂️  Btrfs Filesystems:");
     let _ = Command::new("sudo")
-        .args(&["btrfs", "filesystem", "show"])
+        .args(["btrfs", "filesystem", "show"])
         .status();
 
     println!("\n💾 Disk Usage:");
     let _ = Command::new("sudo")
-        .args(&["btrfs", "filesystem", "usage", "/"])
+        .args(["btrfs", "filesystem", "usage", "/"])
         .status();
 
     println!("\n📸 Subvolumes:");
     let _ = Command::new("sudo")
-        .args(&["btrfs", "subvolume", "list", "/"])
+        .args(["btrfs", "subvolume", "list", "/"])
         .status();
 }
 
@@ -116,7 +119,7 @@ pub fn snapshot_management() {
         2 => println!("Delete snapshots feature not yet implemented"),
         3 => println!("Rollback feature not yet implemented"),
         4 => println!("Snapper configuration not yet implemented"),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -147,7 +150,7 @@ pub fn backup_integration() {
         0 => backup_snapshots_to_restic(),
         1 => automated_backup_workflows(),
         2 => println!("Backup status not yet implemented"),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -155,7 +158,7 @@ pub fn list_snapshots() {
     println!("📋 Listing All Snapshots");
     println!("========================");
 
-    let output = Command::new("sudo").args(&["snapper", "list"]).output();
+    let output = Command::new("sudo").args(["snapper", "list"]).output();
 
     match output {
         Ok(out) if out.status.success() => {
@@ -192,7 +195,7 @@ pub fn create_manual_snapshot() {
         .unwrap();
 
     let status = Command::new("sudo")
-        .args(&[
+        .args([
             "snapper",
             "-c",
             config,
@@ -243,7 +246,7 @@ fn offer_snapper_installation() {
 
     if install {
         let _ = Command::new("sudo")
-            .args(&["pacman", "-S", "--noconfirm", "snapper"])
+            .args(["pacman", "-S", "--noconfirm", "snapper"])
             .status();
         println!("✅ Snapper installed. Configure it with 'sudo snapper -c root create-config /'");
     }
@@ -259,7 +262,7 @@ fn offer_restic_installation() {
 
     if install {
         let _ = Command::new("sudo")
-            .args(&["pacman", "-S", "--noconfirm", "restic"])
+            .args(["pacman", "-S", "--noconfirm", "restic"])
             .status();
         println!("✅ Restic installed");
     }
@@ -269,7 +272,7 @@ fn get_snapper_configs() -> Vec<String> {
     let mut configs = Vec::new();
 
     if let Ok(output) = Command::new("sudo")
-        .args(&["snapper", "list-configs"])
+        .args(["snapper", "list-configs"])
         .output()
     {
         let output_str = String::from_utf8_lossy(&output.stdout);

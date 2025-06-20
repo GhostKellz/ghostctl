@@ -224,7 +224,7 @@ fn show_script_details(name: &str, url: &str) {
         0 => run_proxmox_script(name, url),
         1 => view_full_script(url),
         2 => copy_url_to_clipboard(url),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -251,7 +251,7 @@ fn proxmox_management_tools() {
         2 => backup_management(),
         3 => network_configuration(),
         4 => storage_management(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -317,17 +317,17 @@ fn proxmox_system_info() {
     // Node resources
     println!("\n💾 Node Resources:");
     let _ = Command::new("pvesh")
-        .args(&["get", "/nodes/localhost/status"])
+        .args(["get", "/nodes/localhost/status"])
         .status();
 
     // Storage status
     println!("\n💿 Storage Status:");
-    let _ = Command::new("pvesh").args(&["get", "/storage"]).status();
+    let _ = Command::new("pvesh").args(["get", "/storage"]).status();
 
     // Recent tasks
     println!("\n📋 Recent Tasks:");
     let _ = Command::new("pvesh")
-        .args(&["get", "/cluster/tasks", "--limit", "10"])
+        .args(["get", "/cluster/tasks", "--limit", "10"])
         .status();
 }
 
@@ -338,7 +338,7 @@ fn execute_bulk_command(command: &str) {
     for target in targets {
         println!("  📋 Target: {}", target);
         let _ = Command::new("ssh")
-            .args(&[&target, &command.to_string()])
+            .args([&target, &command.to_string()])
             .status();
     }
 }
@@ -366,6 +366,7 @@ fn get_all_vms_and_cts() -> Vec<String> {
     targets
 }
 
+#[allow(dead_code)]
 fn proxmox_backup_management() {
     println!("💾 Proxmox Backup Management");
     println!("============================");
@@ -390,17 +391,19 @@ fn proxmox_backup_management() {
         1 => run_backup_now(),
         2 => schedule_backup(),
         3 => verify_backups(),
-        _ => return,
+        _ => (),
     }
 }
 
+#[allow(dead_code)]
 fn list_backup_jobs() {
     println!("📋 Listing backup jobs...");
     let _ = Command::new("pvesh")
-        .args(&["get", "/cluster/backup"])
+        .args(["get", "/cluster/backup"])
         .status();
 }
 
+#[allow(dead_code)]
 fn run_backup_now() {
     println!("▶️ Running backup now...");
     let job_id: String = Input::new()
@@ -409,7 +412,7 @@ fn run_backup_now() {
         .unwrap();
 
     let _ = Command::new("pvesh")
-        .args(&[
+        .args([
             "create",
             &format!("/nodes/localhost/vzdump"),
             "--mode",
@@ -420,18 +423,21 @@ fn run_backup_now() {
         .status();
 }
 
+#[allow(dead_code)]
 fn schedule_backup() {
     println!("📅 Scheduling backup...");
     println!("Use Proxmox web interface for advanced scheduling");
 }
 
+#[allow(dead_code)]
 fn verify_backups() {
     println!("🔍 Verifying backups...");
     let _ = Command::new("pvesh")
-        .args(&["get", "/nodes/localhost/storage"])
+        .args(["get", "/nodes/localhost/storage"])
         .status();
 }
 
+#[allow(dead_code)]
 fn proxmox_cluster_management() {
     println!("🌐 Proxmox Cluster Management");
     println!("=============================");
@@ -456,15 +462,17 @@ fn proxmox_cluster_management() {
         1 => join_cluster(),
         2 => add_cluster_node(),
         3 => remove_cluster_node(),
-        _ => return,
+        _ => (),
     }
 }
 
+#[allow(dead_code)]
 fn show_cluster_status() {
     println!("📊 Cluster Status:");
     let _ = Command::new("pvecm").arg("status").status();
 }
 
+#[allow(dead_code)]
 fn join_cluster() {
     println!("🔗 Join cluster...");
     let cluster_ip: String = Input::new()
@@ -475,11 +483,13 @@ fn join_cluster() {
     println!("Use: pvecm add {}", cluster_ip);
 }
 
+#[allow(dead_code)]
 fn add_cluster_node() {
     println!("➕ Add cluster node...");
     println!("Use Proxmox web interface for node management");
 }
 
+#[allow(dead_code)]
 fn remove_cluster_node() {
     println!("➖ Remove cluster node...");
     println!("Use: pvecm delnode <nodename>");

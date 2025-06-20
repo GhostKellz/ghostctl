@@ -51,7 +51,7 @@ fn docker_health_comprehensive() {
     // Check for unhealthy containers
     println!("\n🏥 Container Health Status:");
     let _ = Command::new("docker")
-        .args(&[
+        .args([
             "ps",
             "--filter",
             "health=unhealthy",
@@ -63,7 +63,7 @@ fn docker_health_comprehensive() {
     // Resource-hungry containers
     println!("\n🔥 Top Resource Consumers:");
     let _ = Command::new("docker")
-        .args(&[
+        .args([
             "stats",
             "--no-stream",
             "--format",
@@ -85,7 +85,7 @@ fn docker_resource_report() {
 
     println!("🐳 Running Containers:");
     let _ = Command::new("docker")
-        .args(&[
+        .args([
             "ps",
             "--format",
             "table {{.Names}}\\t{{.CPU}}\\t{{.MemUsage}}\\t{{.NetIO}}\\t{{.BlockIO}}",
@@ -94,7 +94,7 @@ fn docker_resource_report() {
 
     println!("\n💾 Image Storage:");
     let _ = Command::new("docker")
-        .args(&[
+        .args([
             "images",
             "--format",
             "table {{.Repository}}\\t{{.Tag}}\\t{{.Size}}",
@@ -324,6 +324,7 @@ fn registry_statistics() {
 }
 
 // CI/CD Helper Functions
+#[allow(dead_code)]
 pub fn cicd_helpers() {
     let options = [
         "🦀 Rust CI/CD Template",
@@ -353,6 +354,7 @@ pub fn cicd_helpers() {
     }
 }
 
+#[allow(dead_code)]
 fn rust_cicd_template() {
     println!("🦀 Generating Rust CI/CD Template");
 
@@ -394,6 +396,7 @@ fn rust_cicd_template() {
     }
 }
 
+#[allow(dead_code)]
 fn generate_rust_workflow_template(project_name: &str, features: &[usize]) -> String {
     let mut workflow = format!(
         r#"name: {project_name} CI/CD
@@ -481,26 +484,32 @@ jobs:
     workflow
 }
 
+#[allow(dead_code)]
 fn zig_cicd_template() {
     println!("⚡ Zig CI/CD Template - TODO: Implement");
 }
 
+#[allow(dead_code)]
 fn docker_multiarch_build() {
     println!("🐳 Docker Multi-arch Build - TODO: Implement");
 }
 
+#[allow(dead_code)]
 fn release_automation() {
     println!("🚀 Release Automation - TODO: Implement");
 }
 
+#[allow(dead_code)]
 fn test_coverage_setup() {
     println!("🧪 Test Coverage Setup - TODO: Implement");
 }
 
+#[allow(dead_code)]
 fn security_scanning_setup() {
     println!("🛡️  Security Scanning Setup - TODO: Implement");
 }
 
+#[allow(dead_code)]
 pub fn monitoring_tools() {
     println!("📊 Setting up Infrastructure Monitoring");
 
@@ -528,6 +537,7 @@ pub fn monitoring_tools() {
     generate_monitoring_compose(&tools);
 }
 
+#[allow(dead_code)]
 fn setup_prometheus_grafana() {
     println!("🔧 Setting up Prometheus + Grafana");
 
@@ -558,10 +568,12 @@ scrape_configs:
     println!("✅ Prometheus config saved to monitoring/prometheus/prometheus.yml");
 }
 
+#[allow(dead_code)]
 fn setup_elk_stack() {
     println!("📊 ELK Stack setup - TODO: Implement");
 }
 
+#[allow(dead_code)]
 fn generate_monitoring_compose(selected_tools: &[usize]) -> String {
     let mut compose = String::from(
         r#"version: '3.8'
@@ -618,6 +630,7 @@ networks:
 }
 
 // Complete missing function implementations
+#[allow(dead_code)]
 fn container_security_scanning() {
     println!("🔍 Container Security Scanning");
     println!("==============================");
@@ -642,6 +655,7 @@ fn container_security_scanning() {
         .status();
 }
 
+#[allow(dead_code)]
 fn scan_local_image() {
     let image: String = Input::new()
         .with_prompt("Image name to scan")
@@ -652,10 +666,12 @@ fn scan_local_image() {
     let _ = Command::new("trivy").args(&["image", &image]).status();
 }
 
+#[allow(dead_code)]
 fn compose_stack_manager() {
     crate::docker::compose::compose_stack_manager();
 }
 
+#[allow(dead_code)]
 fn list_compose_stacks(stack_dir: &str) {
     println!("📋 Compose stacks in: {}", stack_dir);
     if let Ok(entries) = std::fs::read_dir(stack_dir) {
@@ -669,6 +685,7 @@ fn list_compose_stacks(stack_dir: &str) {
     }
 }
 
+#[allow(dead_code)]
 fn deploy_new_stack(stack_dir: &str) {
     println!("🚀 Deploying new stack in: {}", stack_dir);
     let _ = Command::new("docker-compose")
@@ -681,22 +698,26 @@ fn deploy_new_stack(stack_dir: &str) {
         .status();
 }
 
+#[allow(dead_code)]
 fn registry_tools() {
     println!("🏗️ Registry Tools");
     registry_management();
 }
 
+#[allow(dead_code)]
 fn kubernetes_tools() {
     println!("☸️ Kubernetes Tools");
     println!("===================");
     println!("Feature not yet implemented");
 }
 
+#[allow(dead_code)]
 fn generate_github_workflow() {
     println!("🔄 Generating GitHub workflow...");
     rust_cicd_template();
 }
 
+#[allow(dead_code)]
 fn docker_build_optimizer() {
     println!("⚡ Docker Build Optimizer");
     println!("========================");
@@ -713,6 +734,7 @@ fn docker_build_optimizer() {
     }
 }
 
+#[allow(dead_code)]
 fn environment_manager() {
     println!("🌍 Environment Manager");
     println!("======================");
@@ -723,6 +745,7 @@ fn environment_manager() {
     }
 }
 
+#[allow(dead_code)]
 fn search_registry() {
     let query: String = Input::new()
         .with_prompt("Search query")

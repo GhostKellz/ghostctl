@@ -1,5 +1,6 @@
 use std::fs;
 
+#[allow(dead_code)]
 pub fn create_release_structure() {
     println!("🏗️  Creating GhostCTL Release Structure");
 
@@ -22,6 +23,7 @@ pub fn create_release_structure() {
     println!("✅ Release structure created successfully!");
 }
 
+#[allow(dead_code)]
 fn create_arch_pkgbuild(pkg_dir: &str) {
     let pkgbuild_content = r#"# Maintainer: Christopher Kelley <ckelley@ghostkellz.sh>
 # Contributor: GhostCTL Development Team
@@ -180,6 +182,7 @@ pkgname = ghostctl
     println!("📦 Created Arch package files in: {}", pkg_dir);
 }
 
+#[allow(dead_code)]
 fn create_debian_package(debian_dir: &str) {
     let control_content = r#"Package: ghostctl
 Version: 0.3.0
@@ -257,6 +260,7 @@ exit 0
     println!("📦 Created Debian package files in: {}", debian_dir);
 }
 
+#[allow(dead_code)]
 fn create_universal_installer(install_dir: &str) {
     let installer_content = r#"#!/bin/bash
 # GhostCTL Universal Installer
@@ -727,6 +731,7 @@ main "$@"
     println!("🚀 Created universal installer: {}/install.sh", install_dir);
 }
 
+#[allow(dead_code)]
 fn create_proxmox_installer(install_dir: &str) {
     let proxmox_installer = r#"#!/bin/bash
 # GhostCTL Proxmox VE Installer

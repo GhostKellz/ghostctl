@@ -31,7 +31,7 @@ pub fn configuration_menu() {
         3 => configuration_templates(),
         4 => reset_configuration(),
         5 => manage_config_files(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -80,7 +80,7 @@ fn install_specific_distribution(name: &str) {
 
         println!("💾 Backing up existing config to: {:?}", backup_path);
         let _ = Command::new("mv")
-            .args(&[nvim_config.to_str().unwrap(), backup_path.to_str().unwrap()])
+            .args([nvim_config.to_str().unwrap(), backup_path.to_str().unwrap()])
             .status();
     }
 
@@ -107,7 +107,7 @@ fn install_specific_distribution(name: &str) {
 
     println!("📥 Cloning {} from {}", name, repo_url);
     let status = Command::new("git")
-        .args(&["clone", repo_url, nvim_config.to_str().unwrap()])
+        .args(["clone", repo_url, nvim_config.to_str().unwrap()])
         .status();
 
     match status {
@@ -122,7 +122,7 @@ fn install_specific_distribution(name: &str) {
             // Install plugins
             println!("📦 Installing plugins...");
             let _ = Command::new("nvim")
-                .args(&["--headless", "+Lazy! sync", "+qa"])
+                .args(["--headless", "+Lazy! sync", "+qa"])
                 .status();
 
             // Install Starship prompt
@@ -152,17 +152,17 @@ fn setup_lazyvim_starter() {
 
     // Create initial git repository
     let _ = Command::new("git")
-        .args(&["init"])
+        .args(["init"])
         .current_dir(&nvim_config)
         .status();
 
     let _ = Command::new("git")
-        .args(&["add", "."])
+        .args(["add", "."])
         .current_dir(&nvim_config)
         .status();
 
     let _ = Command::new("git")
-        .args(&["commit", "-m", "Initial LazyVim setup"])
+        .args(["commit", "-m", "Initial LazyVim setup"])
         .current_dir(&nvim_config)
         .status();
 
@@ -379,7 +379,7 @@ fn edit_configuration() {
         let _ = Command::new(&editor).arg(file_path).status();
     } else if choice == available_files.len() - 2 {
         let _ = Command::new("ls")
-            .args(&["-la", nvim_config.to_str().unwrap()])
+            .args(["-la", nvim_config.to_str().unwrap()])
             .status();
     }
 }
@@ -406,7 +406,7 @@ fn backup_configuration() {
 
     println!("💾 Creating backup at {:?}", backup_path);
     let status = Command::new("cp")
-        .args(&[
+        .args([
             "-r",
             nvim_config.to_str().unwrap(),
             backup_path.to_str().unwrap(),
@@ -483,7 +483,7 @@ fn manage_config_files() {
     if nvim_config.exists() {
         println!("📁 Configuration directory: {:?}", nvim_config);
         let _ = Command::new("find")
-            .args(&[
+            .args([
                 nvim_config.to_str().unwrap(),
                 "-type",
                 "f",
@@ -500,6 +500,7 @@ fn manage_config_files() {
 }
 
 // AUR Helper management with reaper priority
+#[allow(dead_code)]
 fn get_aur_helper() -> Option<String> {
     let aur_helpers = ["reap", "paru", "yay"];
 
@@ -512,6 +513,7 @@ fn get_aur_helper() -> Option<String> {
     None
 }
 
+#[allow(dead_code)]
 fn install_aur_package(package: &str) -> bool {
     if let Some(helper) = get_aur_helper() {
         println!("📦 Installing {} with {}...", package, helper);
@@ -523,12 +525,12 @@ fn install_aur_package(package: &str) -> bool {
                 .map(|s| s.success())
                 .unwrap_or(false),
             "paru" => Command::new("paru")
-                .args(&["-S", "--noconfirm", package])
+                .args(["-S", "--noconfirm", package])
                 .status()
                 .map(|s| s.success())
                 .unwrap_or(false),
             "yay" => Command::new("yay")
-                .args(&["-S", "--noconfirm", package])
+                .args(["-S", "--noconfirm", package])
                 .status()
                 .map(|s| s.success())
                 .unwrap_or(false),
@@ -568,7 +570,7 @@ pub fn install_kickstart() {
 
         if confirm {
             let _ = std::process::Command::new("mv")
-                .args(&[nvim_config.to_str().unwrap(), backup_path.to_str().unwrap()])
+                .args([nvim_config.to_str().unwrap(), backup_path.to_str().unwrap()])
                 .status();
         } else {
             let _ = fs::remove_dir_all(&nvim_config);
@@ -578,7 +580,7 @@ pub fn install_kickstart() {
     // Clone Kickstart
     println!("📥 Cloning Kickstart.nvim...");
     let status = std::process::Command::new("git")
-        .args(&[
+        .args([
             "clone",
             "https://github.com/nvim-lua/kickstart.nvim.git",
             nvim_config.to_str().unwrap(),
@@ -624,7 +626,7 @@ pub fn install_astronvim() {
 
         if confirm {
             let _ = std::process::Command::new("mv")
-                .args(&[nvim_config.to_str().unwrap(), backup_path.to_str().unwrap()])
+                .args([nvim_config.to_str().unwrap(), backup_path.to_str().unwrap()])
                 .status();
         } else {
             let _ = fs::remove_dir_all(&nvim_config);
@@ -634,7 +636,7 @@ pub fn install_astronvim() {
     // Clone AstroNvim
     println!("📥 Cloning AstroNvim...");
     let status = std::process::Command::new("git")
-        .args(&[
+        .args([
             "clone",
             "--depth",
             "1",
@@ -682,7 +684,7 @@ pub fn install_nvchad() {
 
         if confirm {
             let _ = std::process::Command::new("mv")
-                .args(&[nvim_config.to_str().unwrap(), backup_path.to_str().unwrap()])
+                .args([nvim_config.to_str().unwrap(), backup_path.to_str().unwrap()])
                 .status();
         } else {
             let _ = fs::remove_dir_all(&nvim_config);
@@ -692,7 +694,7 @@ pub fn install_nvchad() {
     // Clone NvChad
     println!("📥 Cloning NvChad starter...");
     let status = std::process::Command::new("git")
-        .args(&[
+        .args([
             "clone",
             "https://github.com/NvChad/starter",
             nvim_config.to_str().unwrap(),

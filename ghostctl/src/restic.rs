@@ -3,6 +3,7 @@ use std::process::Command;
 /// Pure restic CLI wrapper functions
 /// For automated workflows, use src/backup/
 /// For emergency recovery, use src/restore/
+#[allow(dead_code)]
 pub fn setup() {
     println!("🔧 Restic CLI Setup");
     println!("===================");
@@ -10,6 +11,7 @@ pub fn setup() {
     println!("This is just the raw restic CLI wrapper");
 }
 
+#[allow(dead_code)]
 pub fn backup(paths: &[&str], repo: &str) -> Result<(), String> {
     let status = Command::new("restic")
         .arg("backup")
@@ -25,6 +27,7 @@ pub fn backup(paths: &[&str], repo: &str) -> Result<(), String> {
     }
 }
 
+#[allow(dead_code)]
 pub fn restore(snapshot_id: &str, target: &str, repo: &str) -> Result<(), String> {
     let status = Command::new("restic")
         .arg("restore")
@@ -42,6 +45,7 @@ pub fn restore(snapshot_id: &str, target: &str, repo: &str) -> Result<(), String
     }
 }
 
+#[allow(dead_code)]
 pub fn list_snapshots(repo: &str) -> Result<(), String> {
     let status = Command::new("restic")
         .arg("snapshots")
@@ -56,6 +60,7 @@ pub fn list_snapshots(repo: &str) -> Result<(), String> {
     }
 }
 
+#[allow(dead_code)]
 pub fn check_repository(repo: &str) -> Result<(), String> {
     let status = Command::new("restic")
         .arg("check")
@@ -70,6 +75,7 @@ pub fn check_repository(repo: &str) -> Result<(), String> {
     }
 }
 
+#[allow(dead_code)]
 pub fn init_repository(repo: &str) -> Result<(), String> {
     let status = Command::new("restic")
         .arg("init")
@@ -84,6 +90,7 @@ pub fn init_repository(repo: &str) -> Result<(), String> {
     }
 }
 
+#[allow(dead_code)]
 pub fn forget_snapshots(
     repo: &str,
     keep_daily: u32,
