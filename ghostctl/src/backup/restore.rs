@@ -1,12 +1,7 @@
+// This functionality has been moved to src/restore/system.rs
+// Use crate::restore::system::restore_from_restic() instead
+
 pub fn run() {
-    println!("Restoring restic backup...");
-    // Example: restore latest snapshot to /tmp/restore
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("restic restore latest --target /tmp/restore")
-        .status();
-    match status {
-        Ok(s) if s.success() => println!("Restore completed successfully."),
-        _ => println!("Restore failed."),
-    }
+    println!("⚠️  This function has been moved to src/restore/system.rs");
+    println!("Use: crate::restore::system::restore_from_restic()");
 }

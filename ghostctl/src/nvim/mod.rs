@@ -1,3 +1,4 @@
+use dialoguer::{Select, theme::ColorfulTheme};
 use std::fs;
 use std::process::Command;
 
@@ -7,6 +8,36 @@ use std::process::Command;
 pub mod diagnostics;
 pub mod plugins;
 pub mod setup;
+
+pub fn nvim_menu() {
+    println!("🚀 Neovim Management");
+    println!("===================");
+
+    let options = [
+        "🔽 Install Neovim Distribution",
+        "🏥 Health Check & Diagnostics",
+        "🔌 Plugin Management",
+        "🔧 Configuration Tools",
+        "📊 Show Neovim Information",
+        "⬅️  Back",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Neovim Management")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    match choice {
+        0 => install(),
+        1 => diagnostics::health_check_menu(),
+        2 => plugins::plugin_management(),
+        3 => setup::configuration_menu(),
+        4 => show_nvim_info(),
+        _ => return,
+    }
+}
 
 pub fn install() {
     println!("ghostctl :: Neovim Setup");
@@ -106,4 +137,33 @@ pub fn update_plugins() {
         Ok(s) if s.success() => println!("Plugins updated successfully."),
         _ => println!("Failed to update plugins. Is Neovim installed?"),
     }
+}
+
+fn show_nvim_info() {
+    println!("📊 Neovim Information");
+    println!("====================");
+
+    // Check Neovim version
+    let _ = Command::new("nvim").args(&["--version"]).status();
+
+    // Show config location
+    let home = dirs::home_dir().unwrap();
+    let nvim_config = home.join(".config/nvim");
+    println!("📁 Config location: {:?}", nvim_config);
+
+    if nvim_config.exists() {
+        println!("✅ Neovim config found");
+    } else {
+        println!("❌ No Neovim config found");
+    }
+}
+
+pub fn install_neovim() {
+    println!("🚀 Installing Neovim");
+    install();
+}
+
+pub fn install_lazyvim() {
+    println!("⚡ Installing LazyVim");
+    setup::install_lazyvim();
 }

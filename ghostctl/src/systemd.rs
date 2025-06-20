@@ -1,3 +1,13 @@
+pub fn manage_service(action: &str) {
+    match action {
+        "enable" => enable(),
+        "disable" => disable(),
+        "status" => status(),
+        "create" => create(),
+        _ => println!("Unknown systemd action. Use enable, disable, status, or create."),
+    }
+}
+
 pub fn handle(action: String) {
     match action.as_str() {
         "enable" => super::systemd::enable(),

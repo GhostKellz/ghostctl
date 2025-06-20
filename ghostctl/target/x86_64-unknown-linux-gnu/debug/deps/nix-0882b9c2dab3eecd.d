@@ -1,0 +1,13 @@
+/data/projects/ghostctl/ghostctl/target/x86_64-unknown-linux-gnu/debug/deps/libnix-0882b9c2dab3eecd.rmeta: /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/lib.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/macros.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/errno.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/fcntl.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/sys/mod.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/sys/signal.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/sys/sysinfo.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/sys/time.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/unistd.rs
+
+/data/projects/ghostctl/ghostctl/target/x86_64-unknown-linux-gnu/debug/deps/nix-0882b9c2dab3eecd.d: /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/lib.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/macros.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/errno.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/fcntl.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/sys/mod.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/sys/signal.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/sys/sysinfo.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/sys/time.rs /home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/unistd.rs
+
+/home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/lib.rs:
+/home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/macros.rs:
+/home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/errno.rs:
+/home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/fcntl.rs:
+/home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/sys/mod.rs:
+/home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/sys/signal.rs:
+/home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/sys/sysinfo.rs:
+/home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/sys/time.rs:
+/home/chris/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nix-0.28.0/src/unistd.rs:

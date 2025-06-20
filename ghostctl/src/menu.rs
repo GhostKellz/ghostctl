@@ -1,296 +1,289 @@
-use crate::{arch, btrfs, dev, network, nvidia, nvim, plugins, scripts, shell, systemd, terminal};
+use crate::{
+    arch, backup, btrfs, cloud, dev, docker, network, nvidia, nvim, proxmox, restore, scripts,
+    security, shell, systemd, terminal,
+};
 use dialoguer::{Select, theme::ColorfulTheme};
+use std::io::{self, Write};
 
 pub fn show() {
-    let opts = [
-        "Fix Arch Issues (Pacman, PKGBUILD, Optimize)",
-        "Stage Dev Project (Rust/Go/Zig)",
-        "Manage Btrfs Snapshots",
-        "NVIDIA Tools (Clean, Fix, Diagnostics)",
-        "Neovim Configurator",
-        "Shell Setup (ZSH, Oh My Zsh, Powerlevel10k, tmux)",
-        "Terminal Setup (Ghostty, WezTerm)",
-        "Ghost Tools (Install/Uninstall Ghostbrew, Ghostscan, Ghostforge)",
-        "Diagnostics/Status",
-        "Systemd Management",
-        "Plugin & Script Management",
-        "Mesh (Tailscale/Headscale)",
-        "Run Remote Script",
-        "Exit",
+    loop {
+        let opts = [
+            "🔧 Fix Arch Issues (Pacman, PKGBUILD, Optimize)",
+            "🛠️  Stage Dev Project (Rust/Go/Zig)",
+            "📸 Manage Btrfs Snapshots",
+            "🎮 NVIDIA Tools (Clean, Fix, Diagnostics)",
+            "🚀 Neovim Configurator",
+            "🐚 Shell Setup (ZSH, Oh My Zsh, Powerlevel10k, tmux)",
+            "💻 Terminal Setup (Ghostty, WezTerm)",
+            "🔧 Ghost Tools (Install/Uninstall)",
+            "💾 Backup Management",
+            "🚨 System Recovery & Restore",
+            "🐳 DevOps & Container Tools",
+            "🏗️  Infrastructure as Code",
+            "🌐 Nginx Configuration",
+            "❄️  NixOS Management",
+            "🖥️  Proxmox VE Helper Scripts",
+            "🔧 Systemd Management",
+            "📋 Plugin & Script Management",
+            "🌐 Mesh (Tailscale/Headscale)",
+            "🔐 Security & Key Management",
+            "📊 Diagnostics/Status",
+            "🚪 Exit",
+        ];
+
+        println!("ghostctl :: Menu");
+        println!("================");
+
+        for (i, opt) in opts.iter().enumerate() {
+            println!("{}. {}", i + 1, opt);
+        }
+
+        println!();
+        print!("Enter your choice (1-{}): ", opts.len());
+        std::io::Write::flush(&mut std::io::stdout()).unwrap();
+
+        let mut input = String::new();
+        match std::io::stdin().read_line(&mut input) {
+            Ok(_) => {
+                if let Ok(choice) = input.trim().parse::<usize>() {
+                    if choice >= 1 && choice <= opts.len() {
+                        let choice = choice - 1;
+                        match choice {
+                            0 => arch::arch_menu(),
+                            1 => dev::development_menu(),
+                            2 => btrfs::btrfs_menu(),
+                            3 => nvidia_tools_menu(),
+                            4 => nvim::nvim_menu(),
+                            5 => shell::setup(),
+                            6 => terminal::terminal_menu(),
+                            7 => dev::gtools::ghost_ecosystem_menu(),
+                            8 => backup::backup_menu(),
+                            9 => restore::restore_menu(),
+                            10 => docker::devops::docker_management(),
+                            11 => cloud::infrastructure_menu(),
+                            12 => crate::nginx::nginx_menu(),
+                            13 => crate::nix::nixos_menu(),
+                            14 => proxmox::proxmox_menu(),
+                            15 => systemd_management(),
+                            16 => scripts::scripts_menu(),
+                            17 => network_mesh_menu(),
+                            18 => security_key_management(),
+                            19 => show_diagnostics(),
+                            _ => {
+                                println!("👋 Goodbye!");
+                                break;
+                            }
+                        }
+                    } else {
+                        println!(
+                            "Invalid choice. Please enter a number between 1 and {}.",
+                            opts.len()
+                        );
+                    }
+                } else {
+                    println!("Invalid input. Please enter a number.");
+                }
+            }
+            Err(e) => {
+                println!("Error reading input: {}", e);
+                break;
+            }
+        }
+    }
+}
+
+fn nvidia_tools_menu() {
+    let options = [
+        "🔧 NVIDIA Diagnostics",
+        "🧹 Clean DKMS/Modules",
+        "🔄 Fix & Rebuild",
+        "📊 System Info",
+        "⬅️  Back",
     ];
 
-    match Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("ghostctl :: Menu")
-        .items(&opts)
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("NVIDIA Tools")
+        .items(&options)
         .default(0)
         .interact()
-        .unwrap()
-    {
-        0 => {
-            let arch_opts = [
-                "Fix Pacman/Keyring",
-                "Clean Orphans",
-                "Performance Tuning",
-                "Back",
-            ];
-            match Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("Arch Maintenance")
-                .items(&arch_opts)
-                .default(0)
-                .interact()
-                .unwrap()
-            {
-                0 => arch::archfix::fix(),
-                1 => arch::archfix::orphans(),
-                2 => arch::perf::tune(),
-                _ => (),
-            }
-        }
-        1 => dev::stage("rust".into()),
-        2 => {
-            let btrfs_opts = [
-                "List Snapshots",
-                "Create Snapshot",
-                "Delete Snapshot",
-                "Restore Snapshot",
-                "Deploy Snapper Base Configs",
-                "Edit Snapper Config",
-                "List Snapper Configs",
-                "Back",
-            ];
-            match Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("Btrfs Snapshot Manager")
-                .items(&btrfs_opts)
-                .default(0)
-                .interact()
-                .unwrap()
-            {
-                0 => btrfs::snapshot::list_snapshots(),
-                1 => {
-                    use dialoguer::Input;
-                    let name: String = Input::new()
-                        .with_prompt("Snapshot name")
-                        .interact_text()
-                        .unwrap();
-                    let subvol: String = Input::new()
-                        .with_prompt("Subvolume (e.g. /)")
-                        .default("/".into())
-                        .interact_text()
-                        .unwrap();
-                    btrfs::snapshot::create_snapshot(&subvol, &name)
-                }
-                2 => {
-                    use dialoguer::Input;
-                    let name: String = Input::new()
-                        .with_prompt("Snapshot name to delete")
-                        .interact_text()
-                        .unwrap();
-                    btrfs::snapshot::delete_snapshot(&name)
-                }
-                3 => {
-                    use dialoguer::Input;
-                    let name: String = Input::new()
-                        .with_prompt("Snapshot name to restore")
-                        .interact_text()
-                        .unwrap();
-                    let target: String = Input::new()
-                        .with_prompt("Restore target (mountpoint or subvolume)")
-                        .interact_text()
-                        .unwrap();
-                    btrfs::snapshot::restore_snapshot(&name, &target)
-                }
-                4 => btrfs::snapshot::snapper_setup(),
-                5 => {
-                    use dialoguer::Input;
-                    let config: String = Input::new()
-                        .with_prompt("Snapper config to edit")
-                        .default("root".into())
-                        .interact_text()
-                        .unwrap();
-                    btrfs::snapshot::snapper_edit(&config)
-                }
-                6 => btrfs::snapshot::snapper_list(),
-                _ => (),
-            }
-        }
-        3 => {
-            let nvidia_opts = ["Clean DKMS/Modules", "Fix/Rebuild DKMS/Initramfs", "Back"];
-            match Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("NVIDIA Tools")
-                .items(&nvidia_opts)
-                .default(0)
-                .interact()
-                .unwrap()
-            {
-                0 => nvidia::clean(),
-                1 => nvidia::fix(),
-                _ => (),
-            }
-        }
-        4 => {
-            let nvim_opts = [
-                "Install Neovim Distro",
-                "Diagnostics",
-                "List Plugins",
-                "Update Plugins",
-                "Back",
-            ];
-            match Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("Neovim Setup")
-                .items(&nvim_opts)
-                .default(0)
-                .interact()
-                .unwrap()
-            {
-                0 => nvim::install(),
-                1 => nvim::diagnostics(),
-                2 => nvim::list_plugins(),
-                3 => nvim::update_plugins(),
-                _ => (),
-            }
-        }
-        5 => {
-            let shell_opts = [
-                "Install ZSH + Oh My Zsh + Powerlevel10k + Plugins",
-                "Set Default ZSH",
-                "Install tmux",
-                "Back",
-            ];
-            match Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("Shell Setup")
-                .items(&shell_opts)
-                .default(0)
-                .interact()
-                .unwrap()
-            {
-                0 => shell::zsh::install_zsh(),
-                1 => shell::set_default_zsh(),
-                2 => shell::install_tmux(),
-                _ => (),
-            }
-        }
-        6 => {
-            let term_opts = ["Setup Ghostty", "Setup WezTerm", "Back"];
-            match Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("Terminal Setup")
-                .items(&term_opts)
-                .default(0)
-                .interact()
-                .unwrap()
-            {
-                0 => terminal::setup_ghostty(),
-                1 => terminal::setup_wezterm(),
-                _ => (),
-            }
-        }
-        7 => dev::gtools::install_ghost_tools_menu(),
-        8 => {
-            // Diagnostics/Status
-            use std::process::Command;
-            let tools = [
-                ("nvim", "Neovim"),
-                ("zsh", "ZSH"),
-                ("ghostty", "Ghostty"),
-                ("wezterm", "WezTerm"),
-                ("tmux", "tmux"),
-            ];
-            println!("\nDiagnostics/Status:");
-            for (bin, name) in tools.iter() {
-                let found = Command::new("which")
-                    .arg(bin)
-                    .output()
-                    .map(|o| o.status.success())
-                    .unwrap_or(false);
-                if found {
-                    println!("[OK]   {} is installed", name);
-                } else {
-                    println!("[MISS] {} is NOT installed", name);
-                }
-            }
-        }
-        9 => {
-            let sysd_opts = [
-                "Enable Service/Timer",
-                "Disable Service/Timer",
-                "Status of Service/Timer",
-                "Create New Service/Timer",
-                "Back",
-            ];
-            match Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("Systemd Management")
-                .items(&sysd_opts)
-                .default(0)
-                .interact()
-                .unwrap()
-            {
-                0 => systemd::enable(),
-                1 => systemd::disable(),
-                2 => systemd::status(),
-                3 => systemd::create(),
-                _ => (),
-            }
-        }
-        10 => {
-            let plugin_opts = [
-                "List Plugins",
-                "Install Plugin from URL",
-                "Run Plugin",
-                "Run User Script",
-                "Back",
-            ];
-            match Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("Plugin & Script Management")
-                .items(&plugin_opts)
-                .default(0)
-                .interact()
-                .unwrap()
-            {
-                0 => plugins::manager::list_plugins(),
-                1 => {
-                    use dialoguer::Input;
-                    let url: String = Input::new()
-                        .with_prompt("Plugin URL")
-                        .interact_text()
-                        .unwrap();
-                    plugins::manager::install_from_url(&url);
-                }
-                2 => plugins::runner::run_user_script_menu(),
-                3 => plugins::runner::run_user_script_menu(),
-                _ => (),
-            }
-        }
-        11 => {
-            let mesh_opts = [
-                "Tailscale Up (custom config)",
-                "Advertise Subnet Route",
-                "Show Tailscale Status",
-                "Bring Down Tailscale",
-                "Back",
-            ];
-            match Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("Mesh (Tailscale/Headscale)")
-                .items(&mesh_opts)
-                .default(0)
-                .interact()
-                .unwrap()
-            {
-                0 => {
-                    network::mesh::up();
-                }
-                1 => {
-                    use dialoguer::Input;
-                    let subnet: String = Input::new()
-                        .with_prompt("Subnet to advertise (e.g. 192.168.1.0/24)")
-                        .interact_text()
-                        .unwrap();
-                    network::mesh::advertise(&subnet);
-                }
-                2 => network::mesh::status(),
-                3 => network::mesh::down(),
-                _ => (),
-            }
-        }
-        12 => scripts::run_from_url("https://raw.githubusercontent.com/..."),
-        _ => println!("Goodbye."),
+        .unwrap();
+
+    match choice {
+        0 => nvidia::diagnostics(),
+        1 => nvidia::clean(),
+        2 => nvidia::fix(),
+        3 => nvidia::info(),
+        _ => return,
     }
+}
+
+fn systemd_management() {
+    let options = [
+        "📊 Service Status",
+        "🔧 Enable Service",
+        "🛑 Disable Service",
+        "📝 Create Service",
+        "⬅️  Back",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Systemd Management")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    match choice {
+        0 => systemd::status(),
+        1 => systemd::enable(),
+        2 => systemd::disable(),
+        3 => systemd::create(),
+        _ => return,
+    }
+}
+
+fn network_mesh_menu() {
+    let options = [
+        "🔗 Mesh Up",
+        "📡 Advertise Subnet",
+        "📊 Status",
+        "🔽 Mesh Down",
+        "⬅️  Back",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Mesh Networking")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    match choice {
+        0 => network::mesh::up(),
+        1 => {
+            use dialoguer::Input;
+            let subnet: String = Input::new()
+                .with_prompt("Subnet to advertise")
+                .interact_text()
+                .unwrap();
+            network::mesh::advertise(&subnet);
+        }
+        2 => network::mesh::status(),
+        3 => network::mesh::down(),
+        _ => return,
+    }
+}
+
+fn security_key_management() {
+    let options = [
+        "🔑 SSH Key Management",
+        "🔐 GPG Key Management",
+        "🛡️  Security Audit",
+        "⬅️  Back",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Security & Key Management")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    match choice {
+        0 => security::ssh::ssh_management(),
+        1 => security::gpg::gpg_key_management(),
+        2 => combined_security_audit(),
+        _ => return,
+    }
+}
+
+fn show_diagnostics() {
+    println!("📊 System Diagnostics");
+    println!("====================");
+
+    // Basic system info
+    println!("🖥️  System Information:");
+    let _ = std::process::Command::new("uname").arg("-a").status();
+
+    println!("\n💾 Memory Usage:");
+    let _ = std::process::Command::new("free").arg("-h").status();
+
+    println!("\n💿 Disk Usage:");
+    let _ = std::process::Command::new("df").arg("-h").status();
+
+    println!("\n🔄 Load Average:");
+    let _ = std::process::Command::new("cat")
+        .arg("/proc/loadavg")
+        .status();
+
+    println!("\n📊 GhostCTL Module Status:");
+    check_module_availability();
+}
+
+fn check_module_availability() {
+    let modules = [
+        ("Docker", "docker"),
+        ("Nginx", "nginx"),
+        ("Git", "git"),
+        ("Neovim", "nvim"),
+        ("Restic", "restic"),
+        ("Btrfs", "btrfs"),
+        ("Systemd", "systemctl"),
+    ];
+
+    for (name, cmd) in &modules {
+        let status = std::process::Command::new("which")
+            .arg(cmd)
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+
+        if status {
+            println!("  ✅ {} available", name);
+        } else {
+            println!("  ❌ {} not found", name);
+        }
+    }
+}
+
+fn combined_security_audit() {
+    println!("🛡️  Comprehensive Security Audit");
+    println!("=================================");
+
+    println!("🔍 1. SSH Security Audit");
+    crate::network::security_audit();
+
+    println!("\n🔍 2. GPG Security Check");
+    crate::security::gpg::list_gpg_keys();
+
+    println!("\n🔍 3. System Security Overview");
+    // Check for common security tools
+    let security_tools = [
+        ("fail2ban", "Intrusion prevention"),
+        ("ufw", "Uncomplicated Firewall"),
+        ("iptables", "Netfilter firewall"),
+        ("rkhunter", "Rootkit Hunter"),
+        ("lynis", "Security auditing tool"),
+    ];
+
+    for (tool, description) in &security_tools {
+        let available = std::process::Command::new("which")
+            .arg(tool)
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+
+        if available {
+            println!("  ✅ {} - {}", tool, description);
+        } else {
+            println!("  ❌ {} - {} (not installed)", tool, description);
+        }
+    }
+
+    println!("\n💡 Security Recommendations:");
+    println!("  🔑 Use SSH keys instead of passwords");
+    println!("  🔒 Enable automatic security updates");
+    println!("  🛡️  Configure firewall rules");
+    println!("  📊 Monitor system logs regularly");
+    println!("  🔐 Keep GPG keys backed up securely");
 }

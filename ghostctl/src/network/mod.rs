@@ -61,3 +61,11 @@ pub fn gc(host: &str, port: u16) {
     println!("Ghostcat (branded netcat):");
     netcat(host, port);
 }
+
+pub fn ssh_key_management() {
+    println!("🔑 SSH Key Management - TODO: Implement");
+}
+
+pub fn security_audit() {
+    println!("🔍 Network Security Audit - TODO: Implement");
+}

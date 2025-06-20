@@ -1,27 +1,58 @@
-# Maintainer: Christopher Kelley <ckelley@ghostkellz.sh>
+# Maintainer: Christopher Kelley <ckelley@ghostctl.sh>
 # Contributor: CK Technology LLC
 
 pkgname=ghostctl
-pkgver=0.1.0
+pkgver=0.5.0
 pkgrel=1
-pkgdesc="Modular CLI toolkit for Linux sysadmins, homelabbers, and power users."
-arch=('x86_64')
+pkgdesc="Ghost Infrastructure Control - Complete system and homelab management toolkit"
+arch=('x86_64' 'aarch64')
 url="https://github.com/ghostkellz/ghostctl"
 license=('MIT')
-depends=('rust' 'pkgconf' 'git')
-makedepends=('cargo')
-source=()
-noextract=()
-b2sums=()
+depends=('gcc-libs')
+makedepends=('rust' 'cargo' 'git')
+optdepends=(
+    'docker: for Docker management features'
+    'nginx: for web server management'
+    'restic: for backup functionality'
+    'btrfs-progs: for Btrfs filesystem management'
+    'proxmox-ve: for Proxmox VE management'
+)
+source=("$pkgname-$pkgver.tar.gz::https://github.com/ghostkellz/ghostctl/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')  # This will be updated by CI/CD
+
+prepare() {
+    cd "$pkgname-$pkgver"
+    # Update Cargo.lock if needed
+    cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
+}
 
 build() {
-  cd "$startdir/ghostctl"
-  cargo build --release --locked
+    cd "$pkgname-$pkgver/ghostctl"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    cargo build --frozen --release --all-features
+}
+
+check() {
+    cd "$pkgname-$pkgver/ghostctl"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo test --frozen --all-features
 }
 
 package() {
-  cd "$startdir/ghostctl"
-  install -Dm755 target/release/ghostctl "$pkgdir/usr/bin/ghostctl"
-  install -Dm644 "$startdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
-  install -Dm644 "$startdir/README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
+    cd "$pkgname-$pkgver"
+    
+    # Install binary
+    install -Dm755 "ghostctl/target/release/ghostctl" "$pkgdir/usr/bin/ghostctl"
+    
+    # Install documentation
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+    install -Dm644 DOCS.md "$pkgdir/usr/share/doc/$pkgname/DOCS.md"
+    install -Dm644 COMMANDS.md "$pkgdir/usr/share/doc/$pkgname/COMMANDS.md"
+    
+    # Install scripts directory (optional)
+    if [ -d "scripts" ]; then
+        cp -r scripts "$pkgdir/usr/share/doc/$pkgname/"
+    fi
 }

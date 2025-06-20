@@ -1,49 +1,68 @@
-pub mod chroot;
 pub mod cleanup;
-pub mod restore;
 pub mod schedule;
 pub mod setup;
 pub mod verify;
 
-use crate::btrfs;
 use dialoguer::{Select, theme::ColorfulTheme};
 
-pub fn menu() {
-    println!(
-        "Backup menu: Please select a backup subcommand (run, schedule, verify, cleanup, restore) from the CLI or TUI."
-    );
-}
+pub fn backup_menu() {
+    println!("💾 Backup Management");
+    println!("===================");
 
-#[allow(dead_code)]
-pub fn restore_menu() {
-    println!("ghostctl :: Restore Utility");
-    let opts = [
-        "Restic Restore",
-        "Btrfs Snapshot Restore",
-        "Enter Recovery Chroot",
-        "Back",
+    let options = [
+        "🔧 Setup Backup Repository",
+        "▶️  Run Manual Backup",
+        "📅 Schedule Automated Backups",
+        "✅ Verify Backup Integrity",
+        "🧹 Cleanup Old Backups",
+        "📊 Backup Status",
+        "⬅️  Back",
     ];
-    match Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Restore Menu")
-        .items(&opts)
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Backup Management")
+        .items(&options)
         .default(0)
         .interact()
-        .unwrap()
-    {
-        0 => setup::restic_restore(),
-        1 => {
-            use dialoguer::Input;
-            let name: String = Input::new()
-                .with_prompt("Snapshot name to restore")
-                .interact_text()
-                .unwrap();
-            let target: String = Input::new()
-                .with_prompt("Restore target (mountpoint or subvolume)")
-                .interact_text()
-                .unwrap();
-            btrfs::restore_snapshot(&name, &target)
-        }
-        2 => chroot::enter_chroot(),
-        _ => (),
+        .unwrap();
+
+    match choice {
+        0 => setup::setup(),
+        1 => setup::run_backup(),
+        2 => schedule::setup_schedule(),
+        3 => verify::verify_backups(),
+        4 => cleanup::cleanup_old_backups(),
+        5 => backup_status(),
+        _ => return,
+    }
+}
+
+fn backup_status() {
+    println!("📊 Backup Status");
+    println!("================");
+
+    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    if config_path.exists() {
+        println!("✅ Backup configuration found");
+
+        // Show recent snapshots
+        println!("\n📋 Recent snapshots:");
+        let _ = std::process::Command::new("bash")
+            .arg("-c")
+            .arg(format!(
+                "source {} && restic snapshots --last --compact",
+                config_path.display()
+            ))
+            .status();
+
+        // Show repository stats
+        println!("\n📊 Repository statistics:");
+        let _ = std::process::Command::new("bash")
+            .arg("-c")
+            .arg(format!("source {} && restic stats", config_path.display()))
+            .status();
+    } else {
+        println!("❌ No backup configuration found");
+        println!("Run 'Setup Backup Repository' first");
     }
 }

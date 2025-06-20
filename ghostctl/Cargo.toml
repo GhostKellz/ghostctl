@@ -1,6 +1,6 @@
 [package]
 name = "ghostctl"
-version = "0.1.0"
+version = "0.5.0"
 edition = "2024"
 license = "MIT"
 description = "Modular CLI toolkit for Linux sysadmins, homelabbers, and power users."
@@ -17,10 +17,13 @@ anyhow = "1.0"
 thiserror = "1.0"
 sysinfo = "0.30"
 nix = "0.28"
+num_cpus = "1.16"
 libloading = "0.8"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
 toml = "0.8"
 mlua = { version = "0.9", features = ["lua54"] }
 dialoguer = "0.11"
-reqwest = { version = "0.11", features = ["blocking"] }
+reqwest = { version = "0.11", features = ["blocking", "json"] }
 chrono = "0.4"
