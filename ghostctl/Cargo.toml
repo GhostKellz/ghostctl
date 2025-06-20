@@ -1,6 +1,6 @@
 [package]
 name = "ghostctl"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2024"
 license = "MIT"
 description = "Modular CLI toolkit for Linux sysadmins, homelabbers, and power users."

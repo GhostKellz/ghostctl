@@ -84,9 +84,7 @@ fn list_installed_kernels() {
     // Check /boot for kernel files
     println!("\n📁 Kernel files in /boot:");
     if Path::new("/boot").exists() {
-        let _ = Command::new("ls")
-            .args(["-la", "/boot/vmlinuz-*"])
-            .status();
+        let _ = Command::new("ls").args(["-la", "/boot/vmlinuz-*"]).status();
     }
 }
 
@@ -134,7 +132,7 @@ fn install_specific_kernel(kernel_name: &str) {
     println!("🔽 Installing kernel: {}", kernel_name);
 
     let confirm = Confirm::new()
-        .with_prompt(&format!(
+        .with_prompt(format!(
             "Install {} kernel? This will also install headers.",
             kernel_name
         ))
@@ -271,7 +269,7 @@ editor   no
     let _ = Command::new("sudo")
         .arg("bash")
         .arg("-c")
-        .arg(&format!(
+        .arg(format!(
             "echo '{}' > /boot/loader/loader.conf",
             default_config
         ))
@@ -340,7 +338,7 @@ options root=UUID={} {}
         let _ = Command::new("sudo")
             .arg("bash")
             .arg("-c")
-            .arg(&format!("echo '{}' > '{}'", entry_content, entry_filename))
+            .arg(format!("echo '{}' > '{}'", entry_content, entry_filename))
             .status();
 
         println!("✅ Boot entry created successfully");

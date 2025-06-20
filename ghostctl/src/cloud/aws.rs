@@ -18,7 +18,7 @@ pub fn aws_cli_tools() {
         match install_method {
             0 => {
                 let _ = Command::new("pip")
-                    .args(&["install", "--user", "awscli"])
+                    .args(["install", "--user", "awscli"])
                     .status();
             }
             1 => {
@@ -31,7 +31,7 @@ pub fn aws_cli_tools() {
             }
             _ => {
                 let _ = Command::new("sudo")
-                    .args(&["pacman", "-S", "--noconfirm", "aws-cli"])
+                    .args(["pacman", "-S", "--noconfirm", "aws-cli"])
                     .status();
             }
         }
@@ -73,7 +73,7 @@ pub fn aws_cli_tools() {
         9 => manage_ecs_clusters(),
         10 => manage_autoscaling_groups(),
         11 => manage_iam(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -84,7 +84,7 @@ fn configure_aws_credentials() {
     // Test connection
     println!("🔍 Testing AWS connection...");
     let status = Command::new("aws")
-        .args(&["sts", "get-caller-identity"])
+        .args(["sts", "get-caller-identity"])
         .status();
 
     match status {
@@ -96,7 +96,7 @@ fn configure_aws_credentials() {
 fn list_ec2_instances() {
     println!("📋 EC2 Instances:");
     let _ = Command::new("aws")
-        .args(&["ec2", "describe-instances", "--query", 
+        .args(["ec2", "describe-instances", "--query", 
                "Reservations[*].Instances[*].[InstanceId,State.Name,InstanceType,PublicIpAddress,Tags[?Key=='Name'].Value|[0]]",
                "--output", "table"])
         .status();
@@ -122,13 +122,13 @@ fn list_ec2_instances() {
         1 => instance_types_summary(),
         2 => instance_cost_analysis(),
         3 => start_stop_instances(),
-        _ => return,
+        _ => (),
     }
 }
 
 fn list_s3_buckets() {
     println!("🗂️  S3 Buckets:");
-    let _ = Command::new("aws").args(&["s3", "ls"]).status();
+    let _ = Command::new("aws").args(["s3", "ls"]).status();
 
     let options = [
         "📊 Bucket sizes",
@@ -150,14 +150,14 @@ fn list_s3_buckets() {
         1 => bucket_policies(),
         2 => list_bucket_contents(),
         3 => storage_costs(),
-        _ => return,
+        _ => (),
     }
 }
 
 fn list_vpcs() {
     println!("🌐 VPCs:");
     let _ = Command::new("aws")
-        .args(&["ec2", "describe-vpcs", "--output", "table"])
+        .args(["ec2", "describe-vpcs", "--output", "table"])
         .status();
 }
 
@@ -184,7 +184,7 @@ fn aws_cost_estimation() {
         1 => cost_trend(),
         2 => costs_by_service(),
         3 => cost_explorer(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -213,7 +213,7 @@ fn cloudwatch_metrics() {
         2 => lambda_metrics(),
         3 => rds_metrics(),
         4 => custom_metrics(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -221,7 +221,7 @@ fn manage_security_groups() {
     println!("🔒 Security Groups Management");
 
     let _ = Command::new("aws")
-        .args(&["ec2", "describe-security-groups", "--output", "table"])
+        .args(["ec2", "describe-security-groups", "--output", "table"])
         .status();
 }
 
@@ -229,7 +229,7 @@ fn manage_lambda_functions() {
     println!("🚀 Lambda Functions Management");
 
     let _ = Command::new("aws")
-        .args(&["lambda", "list-functions", "--output", "table"])
+        .args(["lambda", "list-functions", "--output", "table"])
         .status();
 }
 
@@ -237,7 +237,7 @@ fn manage_rds_databases() {
     println!("📡 RDS Databases Management");
 
     let _ = Command::new("aws")
-        .args(&["rds", "describe-db-instances", "--output", "table"])
+        .args(["rds", "describe-db-instances", "--output", "table"])
         .status();
 }
 
@@ -245,7 +245,7 @@ fn manage_ecs_clusters() {
     println!("⚡ ECS Clusters Management");
 
     let _ = Command::new("aws")
-        .args(&["ecs", "list-clusters", "--output", "table"])
+        .args(["ecs", "list-clusters", "--output", "table"])
         .status();
 }
 
@@ -253,7 +253,7 @@ fn manage_autoscaling_groups() {
     println!("📈 Auto Scaling Groups Management");
 
     let _ = Command::new("aws")
-        .args(&[
+        .args([
             "autoscaling",
             "describe-auto-scaling-groups",
             "--output",
@@ -285,7 +285,7 @@ fn manage_iam() {
         1 => list_iam_roles(),
         2 => list_iam_policies(),
         3 => manage_access_keys(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -298,7 +298,7 @@ fn filter_instances_by_state() {
         .unwrap();
 
     let _ = Command::new("aws")
-        .args(&[
+        .args([
             "ec2",
             "describe-instances",
             "--filters",
@@ -312,7 +312,7 @@ fn filter_instances_by_state() {
 fn instance_types_summary() {
     println!("📊 Instance Types Summary:");
     let _ = Command::new("aws")
-        .args(&[
+        .args([
             "ec2",
             "describe-instances",
             "--query",
@@ -336,7 +336,7 @@ fn start_stop_instances() {
 fn bucket_sizes() {
     println!("📊 S3 Bucket Sizes:");
     let _ = Command::new("aws")
-        .args(&["s3", "ls", "--summarize", "--human-readable", "--recursive"])
+        .args(["s3", "ls", "--summarize", "--human-readable", "--recursive"])
         .status();
 }
 
@@ -352,7 +352,7 @@ fn list_bucket_contents() {
         .unwrap();
 
     let _ = Command::new("aws")
-        .args(&[
+        .args([
             "s3",
             "ls",
             &format!("s3://{}", bucket_name),
@@ -369,7 +369,7 @@ fn storage_costs() {
 fn current_month_costs() {
     println!("📊 Current Month Costs");
     let _ = Command::new("aws")
-        .args(&[
+        .args([
             "ce",
             "get-cost-and-usage",
             "--time-period",
@@ -390,7 +390,7 @@ fn cost_trend() {
 fn costs_by_service() {
     println!("🏷️  Costs by Service");
     let _ = Command::new("aws")
-        .args(&[
+        .args([
             "ce",
             "get-cost-and-usage",
             "--time-period",
@@ -438,21 +438,21 @@ fn custom_metrics() {
 fn list_iam_users() {
     println!("👥 IAM Users:");
     let _ = Command::new("aws")
-        .args(&["iam", "list-users", "--output", "table"])
+        .args(["iam", "list-users", "--output", "table"])
         .status();
 }
 
 fn list_iam_roles() {
     println!("🏷️  IAM Roles:");
     let _ = Command::new("aws")
-        .args(&["iam", "list-roles", "--output", "table"])
+        .args(["iam", "list-roles", "--output", "table"])
         .status();
 }
 
 fn list_iam_policies() {
     println!("📋 IAM Policies:");
     let _ = Command::new("aws")
-        .args(&[
+        .args([
             "iam",
             "list-policies",
             "--scope",

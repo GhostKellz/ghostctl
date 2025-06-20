@@ -155,11 +155,10 @@ impl GhostConfig {
 
         if status.success() {
             // Validate the edited config
-            match Self::load() {
-                _config => {
-                    println!("✅ Configuration updated successfully");
-                    log::info!("Config edited and validated");
-                }
+            let _config = Self::load();
+            {
+                println!("✅ Configuration updated successfully");
+                log::info!("Config edited and validated");
             }
         } else {
             return Err("Editor exited with error".into());

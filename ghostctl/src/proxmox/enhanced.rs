@@ -414,7 +414,7 @@ fn run_backup_now() {
     let _ = Command::new("pvesh")
         .args([
             "create",
-            &format!("/nodes/localhost/vzdump"),
+            "/nodes/localhost/vzdump",
             "--mode",
             "snapshot",
             "--vmid",

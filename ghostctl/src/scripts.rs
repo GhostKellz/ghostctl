@@ -41,7 +41,7 @@ pub fn scripts_menu() {
         2 => ghostcert_menu(),
         3 => crate::proxmox::proxmox_menu(),
         4 => local_scripts_menu(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -79,7 +79,7 @@ fn ghostcert_menu() {
         6 => check_web_server_ssl(),
         7 => ghostcert_configuration(),
         8 => view_ghostcert_help(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -106,7 +106,7 @@ fn remote_script_runner() {
         0 => list_script_categories(),
         1 => custom_script_url(),
         2 => refresh_script_cache(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -134,7 +134,7 @@ fn script_templates() {
         1 => create_maintenance_template(),
         2 => create_package_template(),
         3 => create_service_template(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -307,7 +307,7 @@ fn save_template(filename: &str, content: &str) {
         Ok(_) => {
             // Make executable
             let _ = Command::new("chmod")
-                .args(&["+x", file_path.to_str().unwrap()])
+                .args(["+x", file_path.to_str().unwrap()])
                 .status();
 
             println!("✅ Template saved: {:?}", file_path);
@@ -329,7 +329,7 @@ pub fn run_script_by_url(url: &str) {
 
                         match fs::write(temp_file, content) {
                             Ok(_) => {
-                                let _ = Command::new("chmod").args(&["+x", temp_file]).status();
+                                let _ = Command::new("chmod").args(["+x", temp_file]).status();
 
                                 let confirm = Confirm::new()
                                     .with_prompt("Execute downloaded script?")
@@ -467,7 +467,7 @@ fn download_ghostcert_script() {
                     Ok(content) => match fs::write(&script_path, content) {
                         Ok(_) => {
                             let _ = Command::new("chmod")
-                                .args(&["+x", script_path.to_str().unwrap()])
+                                .args(["+x", script_path.to_str().unwrap()])
                                 .status();
                             println!("✅ Downloaded: {:?}", script_path);
                             let _ = Command::new("bash").arg(&script_path).status();
@@ -516,7 +516,7 @@ fn check_letsencrypt_certificates() {
 
 fn check_certificate_expiry(cert_path: &Path) {
     let output = Command::new("openssl")
-        .args(&[
+        .args([
             "x509",
             "-in",
             cert_path.to_str().unwrap(),
@@ -585,7 +585,7 @@ fn generate_new_certificate() {
         1 => println!(
             "💡 Use: openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes"
         ),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -593,7 +593,7 @@ fn renew_certificates() {
     println!("🔄 Certificate Renewal");
 
     if Command::new("which").arg("certbot").status().is_ok() {
-        let _ = Command::new("sudo").args(&["certbot", "renew"]).status();
+        let _ = Command::new("sudo").args(["certbot", "renew"]).status();
     } else {
         println!("❌ certbot not found");
     }
@@ -614,7 +614,7 @@ fn check_web_server_ssl() {
 
     println!("🔍 Checking SSL for: {}", domain);
     let _ = Command::new("curl")
-        .args(&["-I", &format!("https://{}", domain)])
+        .args(["-I", &format!("https://{}", domain)])
         .status();
 }
 
@@ -630,12 +630,14 @@ fn view_ghostcert_help() {
 }
 
 fn find_ghostcert_script() -> Option<String> {
+    let home_script = dirs::home_dir()
+        .unwrap()
+        .join(".config/ghostctl/scripts/ghostcert.sh")
+        .to_string_lossy()
+        .to_string();
+
     let locations = [
-        &dirs::home_dir()
-            .unwrap()
-            .join(".config/ghostctl/scripts/ghostcert.sh")
-            .to_string_lossy()
-            .to_string(),
+        &home_script,
         "/usr/local/bin/ghostcert.sh",
         "/usr/bin/ghostcert.sh",
         "./ghostcert.sh",

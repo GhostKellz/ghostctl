@@ -30,7 +30,7 @@ pub fn configuration_builder() {
         3 => create_static_server(),
         4 => create_load_balancer(),
         5 => custom_configuration(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -177,7 +177,7 @@ fn configure_ssl() {
     if ssl_type == 0 {
         let cert_dir = format!("/etc/nginx/certs/{}", server_name);
         let _ = Command::new("sudo")
-            .args(&["mkdir", "-p", &cert_dir])
+            .args(["mkdir", "-p", &cert_dir])
             .status();
         println!("📁 Created certificate directory: {}", cert_dir);
     }
@@ -292,7 +292,7 @@ fn create_load_balancer() {
 
     for i in 1..=count {
         let backend: String = Input::new()
-            .with_prompt(&format!("Backend {} (e.g., 192.168.1.{}:80)", i, i))
+            .with_prompt(format!("Backend {} (e.g., 192.168.1.{}:80)", i, i))
             .interact_text()
             .unwrap();
         backends.push(backend);
@@ -376,12 +376,12 @@ fn save_nginx_config(name: &str, config: &str) {
 
     // Create directories if they don't exist
     let _ = Command::new("sudo")
-        .args(&["mkdir", "-p", config_dir, enabled_dir])
+        .args(["mkdir", "-p", config_dir, enabled_dir])
         .status();
 
     // Write configuration
     let _ = Command::new("sudo")
-        .args(&["tee", &config_file])
+        .args(["tee", &config_file])
         .stdin(std::process::Stdio::piped())
         .spawn()
         .and_then(|mut child| {
@@ -401,14 +401,14 @@ fn save_nginx_config(name: &str, config: &str) {
 
     if enable {
         let _ = Command::new("sudo")
-            .args(&["ln", "-sf", &config_file, &enabled_file])
+            .args(["ln", "-sf", &config_file, &enabled_file])
             .status();
 
         println!("✅ Site enabled");
 
         // Test configuration
         println!("🧪 Testing nginx configuration...");
-        let test_result = Command::new("sudo").args(&["nginx", "-t"]).status();
+        let test_result = Command::new("sudo").args(["nginx", "-t"]).status();
 
         match test_result {
             Ok(status) if status.success() => {
@@ -422,7 +422,7 @@ fn save_nginx_config(name: &str, config: &str) {
 
                 if reload {
                     let _ = Command::new("sudo")
-                        .args(&["systemctl", "reload", "nginx"])
+                        .args(["systemctl", "reload", "nginx"])
                         .status();
                     println!("🔄 Nginx reloaded");
                 }

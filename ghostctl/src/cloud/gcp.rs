@@ -53,13 +53,13 @@ pub fn gcloud_tools() {
         11 => billing_information(),
         12 => monitoring_and_logging(),
         13 => configuration_management(),
-        _ => return,
+        _ => (),
     }
 }
 
 fn gcloud_authenticate() {
     println!("🔧 Authenticating with Google Cloud...");
-    let _ = Command::new("gcloud").args(&["auth", "login"]).status();
+    let _ = Command::new("gcloud").args(["auth", "login"]).status();
 
     // Set default project
     let set_project = dialoguer::Confirm::new()
@@ -75,7 +75,7 @@ fn gcloud_authenticate() {
             .unwrap();
 
         let _ = Command::new("gcloud")
-            .args(&["config", "set", "project", &project_id])
+            .args(["config", "set", "project", &project_id])
             .status();
 
         println!("✅ Default project set to: {}", project_id);
@@ -84,7 +84,7 @@ fn gcloud_authenticate() {
 
 fn list_projects() {
     println!("📋 Google Cloud Projects:");
-    let _ = Command::new("gcloud").args(&["projects", "list"]).status();
+    let _ = Command::new("gcloud").args(["projects", "list"]).status();
 
     let options = [
         "🔄 Switch project",
@@ -104,14 +104,14 @@ fn list_projects() {
         0 => switch_project(),
         1 => project_details(),
         2 => project_billing(),
-        _ => return,
+        _ => (),
     }
 }
 
 fn list_compute_instances() {
     println!("🖥️  Compute Instances:");
     let _ = Command::new("gcloud")
-        .args(&["compute", "instances", "list"])
+        .args(["compute", "instances", "list"])
         .status();
 
     let options = [
@@ -134,13 +134,13 @@ fn list_compute_instances() {
         1 => instance_details(),
         2 => instance_costs(),
         3 => ssh_to_instance(),
-        _ => return,
+        _ => (),
     }
 }
 
 fn list_storage_buckets() {
     println!("🗂️  Cloud Storage Buckets:");
-    let _ = Command::new("gsutil").args(&["ls"]).status();
+    let _ = Command::new("gsutil").args(["ls"]).status();
 
     let options = [
         "📁 List bucket contents",
@@ -162,14 +162,14 @@ fn list_storage_buckets() {
         1 => bucket_usage(),
         2 => bucket_permissions(),
         3 => storage_costs(),
-        _ => return,
+        _ => (),
     }
 }
 
 fn list_vpcs() {
     println!("🌐 VPC Networks:");
     let _ = Command::new("gcloud")
-        .args(&["compute", "networks", "list"])
+        .args(["compute", "networks", "list"])
         .status();
 
     let options = [
@@ -190,14 +190,14 @@ fn list_vpcs() {
         0 => network_details(),
         1 => list_subnets(),
         2 => firewall_rules(),
-        _ => return,
+        _ => (),
     }
 }
 
 fn list_gke_clusters() {
     println!("🚀 GKE Clusters:");
     let _ = Command::new("gcloud")
-        .args(&["container", "clusters", "list"])
+        .args(["container", "clusters", "list"])
         .status();
 
     let options = [
@@ -220,38 +220,38 @@ fn list_gke_clusters() {
         1 => get_cluster_credentials(),
         2 => node_pool_info(),
         3 => cluster_costs(),
-        _ => return,
+        _ => (),
     }
 }
 
 fn list_cloud_functions() {
     println!("⚡ Cloud Functions:");
-    let _ = Command::new("gcloud").args(&["functions", "list"]).status();
+    let _ = Command::new("gcloud").args(["functions", "list"]).status();
 }
 
 fn list_cloud_sql_instances() {
     println!("🗄️  Cloud SQL Instances:");
     let _ = Command::new("gcloud")
-        .args(&["sql", "instances", "list"])
+        .args(["sql", "instances", "list"])
         .status();
 }
 
 fn list_cloud_run_services() {
     println!("🐳 Cloud Run Services:");
     let _ = Command::new("gcloud")
-        .args(&["run", "services", "list"])
+        .args(["run", "services", "list"])
         .status();
 }
 
 fn list_bigquery_datasets() {
     println!("📊 BigQuery Datasets:");
-    let _ = Command::new("bq").args(&["ls"]).status();
+    let _ = Command::new("bq").args(["ls"]).status();
 }
 
 fn list_iam_policies() {
     println!("🔒 IAM Policies:");
     let _ = Command::new("gcloud")
-        .args(&[
+        .args([
             "projects",
             "get-iam-policy",
             "$(gcloud config get-value project)",
@@ -282,7 +282,7 @@ fn billing_information() {
         1 => billing_accounts(),
         2 => cost_trends(),
         3 => budget_alerts(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -309,7 +309,7 @@ fn monitoring_and_logging() {
         1 => cloud_logging(),
         2 => alerting_policies(),
         3 => dashboards(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -336,7 +336,7 @@ fn configuration_management() {
         1 => set_default_region(),
         2 => set_default_zone(),
         3 => component_manager(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -348,7 +348,7 @@ fn switch_project() {
         .unwrap();
 
     let _ = Command::new("gcloud")
-        .args(&["config", "set", "project", &project_id])
+        .args(["config", "set", "project", &project_id])
         .status();
 
     println!("✅ Switched to project: {}", project_id);
@@ -361,7 +361,7 @@ fn project_details() {
         .unwrap();
 
     let _ = Command::new("gcloud")
-        .args(&["projects", "describe", &project_id])
+        .args(["projects", "describe", &project_id])
         .status();
 }
 
@@ -372,7 +372,7 @@ fn project_billing() {
         .unwrap();
 
     let _ = Command::new("gcloud")
-        .args(&["billing", "projects", "describe", &project_id])
+        .args(["billing", "projects", "describe", &project_id])
         .status();
 }
 
@@ -400,7 +400,7 @@ fn start_stop_instances() {
 
     println!("🔄 {}ing instance: {}", command, instance_name);
     let _ = Command::new("gcloud")
-        .args(&[
+        .args([
             "compute",
             "instances",
             command,
@@ -420,7 +420,7 @@ fn instance_details() {
     let zone: String = Input::new().with_prompt("Zone").interact_text().unwrap();
 
     let _ = Command::new("gcloud")
-        .args(&[
+        .args([
             "compute",
             "instances",
             "describe",
@@ -446,7 +446,7 @@ fn ssh_to_instance() {
 
     println!("🔧 Connecting to instance: {}", instance_name);
     let _ = Command::new("gcloud")
-        .args(&["compute", "ssh", &instance_name, "--zone", &zone])
+        .args(["compute", "ssh", &instance_name, "--zone", &zone])
         .status();
 }
 
@@ -457,7 +457,7 @@ fn list_bucket_contents() {
         .unwrap();
 
     let _ = Command::new("gsutil")
-        .args(&["ls", &format!("gs://{}", bucket_name)])
+        .args(["ls", &format!("gs://{}", bucket_name)])
         .status();
 }
 
@@ -468,7 +468,7 @@ fn bucket_usage() {
         .unwrap();
 
     let _ = Command::new("gsutil")
-        .args(&["du", "-sh", &format!("gs://{}", bucket_name)])
+        .args(["du", "-sh", &format!("gs://{}", bucket_name)])
         .status();
 }
 
@@ -479,7 +479,7 @@ fn bucket_permissions() {
         .unwrap();
 
     let _ = Command::new("gsutil")
-        .args(&["iam", "get", &format!("gs://{}", bucket_name)])
+        .args(["iam", "get", &format!("gs://{}", bucket_name)])
         .status();
 }
 
@@ -495,19 +495,19 @@ fn network_details() {
         .unwrap();
 
     let _ = Command::new("gcloud")
-        .args(&["compute", "networks", "describe", &network_name])
+        .args(["compute", "networks", "describe", &network_name])
         .status();
 }
 
 fn list_subnets() {
     let _ = Command::new("gcloud")
-        .args(&["compute", "networks", "subnets", "list"])
+        .args(["compute", "networks", "subnets", "list"])
         .status();
 }
 
 fn firewall_rules() {
     let _ = Command::new("gcloud")
-        .args(&["compute", "firewall-rules", "list"])
+        .args(["compute", "firewall-rules", "list"])
         .status();
 }
 
@@ -523,7 +523,7 @@ fn cluster_details() {
         .unwrap();
 
     let _ = Command::new("gcloud")
-        .args(&[
+        .args([
             "container",
             "clusters",
             "describe",
@@ -546,7 +546,7 @@ fn get_cluster_credentials() {
         .unwrap();
 
     let _ = Command::new("gcloud")
-        .args(&[
+        .args([
             "container",
             "clusters",
             "get-credentials",
@@ -571,7 +571,7 @@ fn node_pool_info() {
         .unwrap();
 
     let _ = Command::new("gcloud")
-        .args(&[
+        .args([
             "container",
             "node-pools",
             "list",
@@ -595,7 +595,7 @@ fn current_usage() {
 
 fn billing_accounts() {
     let _ = Command::new("gcloud")
-        .args(&["billing", "accounts", "list"])
+        .args(["billing", "accounts", "list"])
         .status();
 }
 
@@ -606,7 +606,7 @@ fn cost_trends() {
 
 fn budget_alerts() {
     let _ = Command::new("gcloud")
-        .args(&[
+        .args([
             "billing",
             "budgets",
             "list",
@@ -624,7 +624,7 @@ fn cloud_monitoring_metrics() {
 fn cloud_logging() {
     println!("📝 Cloud Logging");
     let _ = Command::new("gcloud")
-        .args(&["logging", "logs", "list"])
+        .args(["logging", "logs", "list"])
         .status();
 }
 
@@ -639,7 +639,7 @@ fn dashboards() {
 }
 
 fn show_current_config() {
-    let _ = Command::new("gcloud").args(&["config", "list"]).status();
+    let _ = Command::new("gcloud").args(["config", "list"]).status();
 }
 
 fn set_default_region() {
@@ -649,7 +649,7 @@ fn set_default_region() {
         .unwrap();
 
     let _ = Command::new("gcloud")
-        .args(&["config", "set", "compute/region", &region])
+        .args(["config", "set", "compute/region", &region])
         .status();
 
     println!("✅ Default region set to: {}", region);
@@ -662,14 +662,12 @@ fn set_default_zone() {
         .unwrap();
 
     let _ = Command::new("gcloud")
-        .args(&["config", "set", "compute/zone", &zone])
+        .args(["config", "set", "compute/zone", &zone])
         .status();
 
     println!("✅ Default zone set to: {}", zone);
 }
 
 fn component_manager() {
-    let _ = Command::new("gcloud")
-        .args(&["components", "list"])
-        .status();
+    let _ = Command::new("gcloud").args(["components", "list"]).status();
 }

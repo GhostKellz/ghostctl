@@ -24,7 +24,7 @@ pub fn setup() {
         1 => configure_repository(),
         2 => create_systemd_timer(),
         3 => test_backup(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -323,7 +323,7 @@ pub fn backup_settings() {
         2 => configure_backup_paths(),
         3 => security_settings(),
         4 => storage_usage(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -467,7 +467,7 @@ fn security_settings() {
                     .status();
             }
         }
-        _ => return,
+        _ => (),
     }
 }
 

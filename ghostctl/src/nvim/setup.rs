@@ -76,7 +76,7 @@ fn install_specific_distribution(name: &str) {
     // Backup existing config
     if nvim_config.exists() {
         let backup_name = format!("nvim.backup.{}", Utc::now().timestamp());
-        let backup_path = home.join(&format!(".config/{}", backup_name));
+        let backup_path = home.join(format!(".config/{}", backup_name));
 
         println!("💾 Backing up existing config to: {:?}", backup_path);
         let _ = Command::new("mv")
@@ -209,7 +209,7 @@ fn install_starship_prompt() {
             for (name, cmd) in &pkg_managers {
                 if Command::new("which").arg(name).status().is_ok() {
                     println!("📦 Installing via {}...", name);
-                    let status = Command::new(&cmd[0]).args(&cmd[1..]).status();
+                    let status = Command::new(cmd[0]).args(&cmd[1..]).status();
                     if status.is_ok() && status.unwrap().success() {
                         println!("✅ Starship installed via {}", name);
                         configure_starship();
@@ -402,7 +402,7 @@ fn backup_configuration() {
         .interact_text()
         .unwrap();
 
-    let backup_path = home.join(&format!(".config/{}", backup_name));
+    let backup_path = home.join(format!(".config/{}", backup_name));
 
     println!("💾 Creating backup at {:?}", backup_path);
     let status = Command::new("cp")

@@ -30,7 +30,7 @@ pub fn plugin_management() {
         3 => plugin_manager_status(),
         4 => search_popular_plugins(),
         5 => plugin_configuration(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -74,7 +74,7 @@ fn update_all_plugins() {
     if confirm {
         println!("🔄 Running plugin update...");
         let _ = Command::new("nvim")
-            .args(&["--headless", "+Lazy! sync", "+qall"])
+            .args(["--headless", "+Lazy! sync", "+qall"])
             .status();
         println!("✅ Plugin update complete");
     }
@@ -93,7 +93,7 @@ fn clean_unused_plugins() {
     if confirm {
         println!("🧹 Cleaning unused plugins...");
         let _ = Command::new("nvim")
-            .args(&["--headless", "+Lazy! clean", "+qall"])
+            .args(["--headless", "+Lazy! clean", "+qall"])
             .status();
         println!("✅ Cleanup complete");
     }

@@ -30,7 +30,7 @@ pub fn health_check_menu() {
         3 => lsp_status_check(),
         4 => treesitter_status(),
         5 => configuration_analysis(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -39,7 +39,7 @@ fn run_full_health_check() {
     println!("===================================");
 
     let _ = Command::new("nvim")
-        .args(&["--headless", "+checkhealth", "+qall"])
+        .args(["--headless", "+checkhealth", "+qall"])
         .status();
 }
 
@@ -104,7 +104,7 @@ fn lsp_status_check() {
     println!("==================");
 
     let _ = Command::new("nvim")
-        .args(&["--headless", "+checkhealth lsp", "+qall"])
+        .args(["--headless", "+checkhealth lsp", "+qall"])
         .status();
 }
 
@@ -113,7 +113,7 @@ fn treesitter_status() {
     println!("===================");
 
     let _ = Command::new("nvim")
-        .args(&["--headless", "+checkhealth nvim-treesitter", "+qall"])
+        .args(["--headless", "+checkhealth nvim-treesitter", "+qall"])
         .status();
 }
 

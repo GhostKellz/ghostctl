@@ -27,7 +27,7 @@ pub fn docker_management() {
         3 => docker_resource_report(),
         4 => docker_system_cleanup(),
         5 => registry_management(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -102,10 +102,10 @@ fn docker_resource_report() {
         .status();
 
     println!("\n🔗 Network Usage:");
-    let _ = Command::new("docker").args(&["network", "ls"]).status();
+    let _ = Command::new("docker").args(["network", "ls"]).status();
 
     println!("\n💿 Volume Usage:");
-    let _ = Command::new("docker").args(&["volume", "ls"]).status();
+    let _ = Command::new("docker").args(["volume", "ls"]).status();
 }
 
 fn docker_system_cleanup() {
@@ -134,25 +134,25 @@ fn docker_system_cleanup() {
             0 => {
                 println!("🗑️  Removing stopped containers...");
                 let _ = Command::new("docker")
-                    .args(&["container", "prune", "-f"])
+                    .args(["container", "prune", "-f"])
                     .status();
             }
             1 => {
                 println!("🖼️  Removing unused images...");
                 let _ = Command::new("docker")
-                    .args(&["image", "prune", "-f"])
+                    .args(["image", "prune", "-f"])
                     .status();
             }
             2 => {
                 println!("💿 Removing unused volumes...");
                 let _ = Command::new("docker")
-                    .args(&["volume", "prune", "-f"])
+                    .args(["volume", "prune", "-f"])
                     .status();
             }
             3 => {
                 println!("🔗 Removing unused networks...");
                 let _ = Command::new("docker")
-                    .args(&["network", "prune", "-f"])
+                    .args(["network", "prune", "-f"])
                     .status();
             }
             4 => {
@@ -165,7 +165,7 @@ fn docker_system_cleanup() {
                 if confirm {
                     println!("🧹 Running full system prune...");
                     let _ = Command::new("docker")
-                        .args(&["system", "prune", "-af", "--volumes"])
+                        .args(["system", "prune", "-af", "--volumes"])
                         .status();
                 }
             }
@@ -204,7 +204,7 @@ fn registry_management() {
         3 => registry_authentication(),
         4 => delete_registry_image(),
         5 => registry_statistics(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -249,11 +249,11 @@ fn push_to_registry() {
 
     println!("🏷️  Tagging image...");
     let _ = Command::new("docker")
-        .args(&["tag", &image, &full_name])
+        .args(["tag", &image, &full_name])
         .status();
 
     println!("📤 Pushing to registry...");
-    let _ = Command::new("docker").args(&["push", &full_name]).status();
+    let _ = Command::new("docker").args(["push", &full_name]).status();
 }
 
 fn pull_from_registry() {
@@ -266,7 +266,7 @@ fn pull_from_registry() {
         .unwrap();
 
     println!("📥 Pulling {}...", image);
-    let _ = Command::new("docker").args(&["pull", &image]).status();
+    let _ = Command::new("docker").args(["pull", &image]).status();
 }
 
 fn registry_authentication() {
@@ -286,7 +286,7 @@ fn registry_authentication() {
 
     println!("🔑 Logging into {}...", registry);
     let _ = Command::new("docker")
-        .args(&["login", &registry, "-u", &username])
+        .args(["login", &registry, "-u", &username])
         .status();
 }
 
@@ -306,7 +306,7 @@ fn delete_registry_image() {
         .unwrap();
 
     if confirm {
-        let _ = Command::new("docker").args(&["rmi", &image]).status();
+        let _ = Command::new("docker").args(["rmi", &image]).status();
     }
 }
 
@@ -315,7 +315,7 @@ fn registry_statistics() {
     println!("======================");
 
     let _ = Command::new("docker")
-        .args(&[
+        .args([
             "images",
             "--format",
             "table {{.Repository}}\t{{.Tag}}\t{{.Size}}",
@@ -350,7 +350,7 @@ pub fn cicd_helpers() {
         3 => release_automation(),
         4 => test_coverage_setup(),
         5 => security_scanning_setup(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -663,7 +663,7 @@ fn scan_local_image() {
         .unwrap();
 
     println!("🔍 Scanning image: {}", image);
-    let _ = Command::new("trivy").args(&["image", &image]).status();
+    let _ = Command::new("trivy").args(["image", &image]).status();
 }
 
 #[allow(dead_code)]
@@ -689,7 +689,7 @@ fn list_compose_stacks(stack_dir: &str) {
 fn deploy_new_stack(stack_dir: &str) {
     println!("🚀 Deploying new stack in: {}", stack_dir);
     let _ = Command::new("docker-compose")
-        .args(&[
+        .args([
             "-f",
             &format!("{}/docker-compose.yml", stack_dir),
             "up",
@@ -753,5 +753,5 @@ fn search_registry() {
         .unwrap();
 
     println!("🔍 Searching for: {}", query);
-    let _ = Command::new("docker").args(&["search", &query]).status();
+    let _ = Command::new("docker").args(["search", &query]).status();
 }

@@ -84,10 +84,8 @@ pub fn quick_system_fixes() {
         return;
     }
     println!("🚀 Applying selected fixes...");
-    for fix in fixes {
-        match fix {
-            _ => (),
-        }
+    for _fix in fixes {
+        // No operation needed for current fixes
     }
     println!("✅ Quick fixes completed!");
 }

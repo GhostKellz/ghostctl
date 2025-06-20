@@ -25,7 +25,7 @@ pub fn reverse_proxy_setup() {
         1 => setup_load_balancer(),
         2 => setup_ssl_termination(),
         3 => setup_api_gateway(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -99,7 +99,7 @@ fn setup_load_balancer() {
 
     for i in 1..=count {
         let backend: String = Input::new()
-            .with_prompt(&format!("Backend {} (e.g., 192.168.1.{}:8080)", i, i))
+            .with_prompt(format!("Backend {} (e.g., 192.168.1.{}:8080)", i, i))
             .interact_text()
             .unwrap();
         backends.push(backend);
@@ -333,7 +333,7 @@ proxy_read_timeout 30s;
 "#;
 
     let _ = Command::new("sudo")
-        .args(&["tee", "/etc/nginx/proxy_params"])
+        .args(["tee", "/etc/nginx/proxy_params"])
         .stdin(std::process::Stdio::piped())
         .spawn()
         .and_then(|mut child| {
@@ -357,12 +357,12 @@ fn save_proxy_config(name: &str, config: &str) {
 
     // Create directories
     let _ = Command::new("sudo")
-        .args(&["mkdir", "-p", config_dir, enabled_dir])
+        .args(["mkdir", "-p", config_dir, enabled_dir])
         .status();
 
     // Write configuration
     let _ = Command::new("sudo")
-        .args(&["tee", &config_file])
+        .args(["tee", &config_file])
         .stdin(std::process::Stdio::piped())
         .spawn()
         .and_then(|mut child| {
@@ -375,18 +375,18 @@ fn save_proxy_config(name: &str, config: &str) {
 
     // Enable site
     let _ = Command::new("sudo")
-        .args(&["ln", "-sf", &config_file, &enabled_file])
+        .args(["ln", "-sf", &config_file, &enabled_file])
         .status();
 
     // Test and reload
     println!("🧪 Testing nginx configuration...");
-    let test_result = Command::new("sudo").args(&["nginx", "-t"]).status();
+    let test_result = Command::new("sudo").args(["nginx", "-t"]).status();
 
     match test_result {
         Ok(status) if status.success() => {
             println!("✅ Configuration test passed");
             let _ = Command::new("sudo")
-                .args(&["systemctl", "reload", "nginx"])
+                .args(["systemctl", "reload", "nginx"])
                 .status();
             println!("🔄 Nginx reloaded");
         }

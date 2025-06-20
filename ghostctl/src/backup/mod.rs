@@ -33,7 +33,7 @@ pub fn backup_menu() {
         3 => verify::verify_backups(),
         4 => cleanup::cleanup_old_backups(),
         5 => backup_status(),
-        _ => return,
+        _ => (),
     }
 }
 

@@ -26,7 +26,7 @@ pub fn edit_configuration() {
         1 => show_current_config(),
         2 => rebuild_and_switch(),
         3 => test_configuration(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -41,7 +41,7 @@ fn edit_config_file() {
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
     println!("📝 Opening {} with {}", config_path, editor);
 
-    let _ = Command::new("sudo").args(&[&editor, config_path]).status();
+    let _ = Command::new("sudo").args([&editor, config_path]).status();
 }
 
 fn show_current_config() {
@@ -61,7 +61,7 @@ fn rebuild_and_switch() {
     println!("🔄 Rebuilding and switching configuration...");
 
     let _ = Command::new("sudo")
-        .args(&["nixos-rebuild", "switch"])
+        .args(["nixos-rebuild", "switch"])
         .status();
 }
 
@@ -69,6 +69,6 @@ fn test_configuration() {
     println!("🧪 Testing configuration...");
 
     let _ = Command::new("sudo")
-        .args(&["nixos-rebuild", "test"])
+        .args(["nixos-rebuild", "test"])
         .status();
 }

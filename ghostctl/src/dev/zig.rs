@@ -27,7 +27,7 @@ pub fn zig_development_menu() {
         2 => zig_project_management(),
         3 => zig_development_tools(),
         4 => zig_learning_resources(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -58,7 +58,7 @@ fn install_zig_compiler() {
         0 => install_zig_package_manager(),
         1 => install_zig_official(),
         2 => install_zig_from_source(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -70,19 +70,19 @@ fn install_zig_package_manager() {
     } else if Command::new("which").arg("pacman").status().is_ok() {
         println!("📦 Installing Zig with pacman...");
         let _ = Command::new("sudo")
-            .args(&["pacman", "-S", "--noconfirm", "zig"])
+            .args(["pacman", "-S", "--noconfirm", "zig"])
             .status();
     } else if Command::new("which").arg("apt").status().is_ok() {
         println!("📦 Installing Zig with apt...");
         // Zig might not be in standard repos, suggest snap
         println!("💡 Zig might not be available in apt. Trying snap...");
         let _ = Command::new("sudo")
-            .args(&["snap", "install", "zig", "--classic", "--beta"])
+            .args(["snap", "install", "zig", "--classic", "--beta"])
             .status();
     } else if Command::new("which").arg("dnf").status().is_ok() {
         println!("📦 Installing Zig with dnf...");
         let _ = Command::new("sudo")
-            .args(&["dnf", "install", "-y", "zig"])
+            .args(["dnf", "install", "-y", "zig"])
             .status();
     }
 
@@ -110,21 +110,19 @@ fn install_zig_official() {
     if confirm {
         // Create zig directory
         let zig_dir = "/opt/zig";
-        let _ = Command::new("sudo")
-            .args(&["mkdir", "-p", zig_dir])
-            .status();
+        let _ = Command::new("sudo").args(["mkdir", "-p", zig_dir]).status();
 
         // Download latest (this is simplified - real implementation would get latest URL)
         println!("📥 Downloading Zig...");
         let download_url = "https://ziglang.org/builds/zig-linux-x86_64-0.12.0-dev.latest.tar.xz";
 
         let _ = Command::new("curl")
-            .args(&["-L", download_url, "-o", "/tmp/zig.tar.xz"])
+            .args(["-L", download_url, "-o", "/tmp/zig.tar.xz"])
             .status();
 
         // Extract
         let _ = Command::new("sudo")
-            .args(&[
+            .args([
                 "tar",
                 "-xf",
                 "/tmp/zig.tar.xz",
@@ -160,7 +158,7 @@ fn install_zig_from_source() {
         // This is a simplified version - real build is complex
         println!("📥 Cloning Zig repository...");
         let _ = Command::new("git")
-            .args(&[
+            .args([
                 "clone",
                 "https://github.com/ziglang/zig.git",
                 "/tmp/zig-source",
@@ -233,7 +231,7 @@ fn zig_project_management() {
         2 => manage_zig_dependencies(),
         3 => build_zig_project(),
         4 => run_zig_tests(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -255,14 +253,14 @@ fn create_zig_project() {
     if Command::new("which").arg("zion").status().is_ok() {
         println!("🛠️  Creating project with Zion...");
         let _ = Command::new("zion")
-            .args(&["new", &project_name, "--type", project_types[project_type]])
+            .args(["new", &project_name, "--type", project_types[project_type]])
             .status();
     } else {
         println!("📁 Creating project directory...");
         std::fs::create_dir_all(&project_name).unwrap();
 
         let _ = Command::new("zig")
-            .args(&["init-exe"])
+            .args(["init-exe"])
             .current_dir(&project_name)
             .status();
     }
@@ -273,7 +271,7 @@ fn create_zig_project() {
 fn init_zig_project() {
     println!("🔧 Initializing Zig project in current directory...");
 
-    let _ = Command::new("zig").args(&["init-exe"]).status();
+    let _ = Command::new("zig").args(["init-exe"]).status();
 
     println!("✅ Zig project initialized");
 }
@@ -289,7 +287,7 @@ fn manage_zig_dependencies() {
 
     // Check if using Zion for dependency management
     if Command::new("which").arg("zion").status().is_ok() {
-        let _ = Command::new("zion").args(&["deps", "list"]).status();
+        let _ = Command::new("zion").args(["deps", "list"]).status();
     } else {
         println!("💡 Zig package management is evolving. Check build.zig for dependencies.");
 
@@ -312,7 +310,7 @@ fn build_zig_project() {
     }
 
     println!("🔨 Building...");
-    let status = Command::new("zig").args(&["build"]).status();
+    let status = Command::new("zig").args(["build"]).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Build successful"),
@@ -324,7 +322,7 @@ fn run_zig_tests() {
     println!("🧪 Running Zig Tests");
     println!("====================");
 
-    let status = Command::new("zig").args(&["build", "test"]).status();
+    let status = Command::new("zig").args(["build", "test"]).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ All tests passed"),
@@ -356,7 +354,7 @@ fn zig_development_tools() {
         1 => install_zig_emacs(),
         2 => install_zig_vim(),
         3 => install_zigtools(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -376,18 +374,18 @@ fn install_zls() {
         // Build from source
         println!("🔨 Building zls from source...");
         let _ = Command::new("git")
-            .args(&["clone", "https://github.com/zigtools/zls.git", "/tmp/zls"])
+            .args(["clone", "https://github.com/zigtools/zls.git", "/tmp/zls"])
             .status();
 
         let build_status = Command::new("zig")
-            .args(&["build", "-Doptimize=ReleaseSafe"])
+            .args(["build", "-Doptimize=ReleaseSafe"])
             .current_dir("/tmp/zls")
             .status();
 
         if build_status.is_ok() {
             // Install binary
             let _ = Command::new("sudo")
-                .args(&["cp", "/tmp/zls/zig-out/bin/zls", "/usr/local/bin/"])
+                .args(["cp", "/tmp/zls/zig-out/bin/zls", "/usr/local/bin/"])
                 .status();
 
             println!("✅ zls installed successfully");

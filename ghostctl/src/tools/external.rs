@@ -27,7 +27,7 @@ pub fn external_tools_menu() {
         2 => system_utilities(),
         3 => network_tools(),
         4 => monitoring_tools(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -63,7 +63,7 @@ pub fn acme_sh_management() {
         5 => list_certificates(),
         6 => configure_dns_api(),
         7 => uninstall_acme_sh(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -101,7 +101,7 @@ pub fn install_acme_sh() {
             0 => install_acme_curl(),
             1 => install_acme_wget(),
             2 => install_acme_manual(),
-            _ => return,
+            _ => (),
         }
     }
 }
@@ -164,7 +164,7 @@ fn install_acme_manual() {
     if proceed {
         println!("📥 Cloning acme.sh repository...");
         let clone_status = Command::new("git")
-            .args(&[
+            .args([
                 "clone",
                 "https://github.com/acmesh-official/acme.sh.git",
                 "/tmp/acme.sh",
@@ -174,7 +174,7 @@ fn install_acme_manual() {
         if clone_status.is_ok() && clone_status.unwrap().success() {
             println!("🔧 Installing acme.sh...");
             let install_status = Command::new("./acme.sh")
-                .args(&["--install"])
+                .args(["--install"])
                 .current_dir("/tmp/acme.sh")
                 .status();
 
@@ -226,7 +226,7 @@ fn update_acme_sh() {
     }
 
     let acme_path = get_acme_sh_path();
-    let status = Command::new(&acme_path).args(&["--upgrade"]).status();
+    let status = Command::new(&acme_path).args(["--upgrade"]).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ acme.sh updated successfully"),
@@ -247,19 +247,19 @@ fn check_acme_status() {
 
     // Check version
     println!("📦 Version:");
-    let _ = Command::new(&acme_path).args(&["--version"]).status();
+    let _ = Command::new(&acme_path).args(["--version"]).status();
 
     // Check account info
     println!("\n👤 Account Info:");
-    let _ = Command::new(&acme_path).args(&["--info"]).status();
+    let _ = Command::new(&acme_path).args(["--info"]).status();
 
     // Check cron job
     println!("\n⏰ Cron Job Status:");
-    let _ = Command::new(&acme_path).args(&["--info"]).status();
+    let _ = Command::new(&acme_path).args(["--info"]).status();
 
     // List current certificates
     println!("\n📂 Current Certificates:");
-    let _ = Command::new(&acme_path).args(&["--list"]).status();
+    let _ = Command::new(&acme_path).args(["--list"]).status();
 }
 
 pub fn issue_certificate() {
@@ -297,7 +297,7 @@ pub fn issue_certificate() {
         1 => issue_standalone(&acme_path, &domain),
         2 => issue_dns_api(&acme_path, &domain),
         3 => issue_dns_manual(&acme_path, &domain),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -310,7 +310,7 @@ fn issue_webroot(acme_path: &str, domain: &str) {
     println!("🌐 Issuing certificate using webroot method...");
 
     let status = Command::new(acme_path)
-        .args(&["--issue", "-d", domain, "--webroot", &webroot])
+        .args(["--issue", "-d", domain, "--webroot", &webroot])
         .status();
 
     match status {
@@ -327,7 +327,7 @@ fn issue_standalone(acme_path: &str, domain: &str) {
     println!("⚠️  Make sure port 80 is available");
 
     let status = Command::new(acme_path)
-        .args(&["--issue", "-d", domain, "--standalone"])
+        .args(["--issue", "-d", domain, "--standalone"])
         .status();
 
     match status {
@@ -355,7 +355,7 @@ fn issue_dns_api(acme_path: &str, domain: &str) {
     println!("  For Cloudflare: export CF_Token=\"your-token\"");
 
     let status = Command::new(acme_path)
-        .args(&["--issue", "-d", domain, "--dns", &dns_provider])
+        .args(["--issue", "-d", domain, "--dns", &dns_provider])
         .status();
 
     match status {
@@ -372,7 +372,7 @@ fn issue_dns_manual(acme_path: &str, domain: &str) {
     println!("========================");
 
     let status = Command::new(acme_path)
-        .args(&[
+        .args([
             "--issue",
             "-d",
             domain,
@@ -406,13 +406,13 @@ fn install_certificate(acme_path: &str, domain: &str) {
 
         // Create directory
         let _ = Command::new("sudo")
-            .args(&["mkdir", "-p", &cert_dir])
+            .args(["mkdir", "-p", &cert_dir])
             .status();
 
         // Install certificate
         let status = Command::new("sudo")
             .arg(acme_path)
-            .args(&[
+            .args([
                 "--install-cert",
                 "-d",
                 domain,
@@ -465,7 +465,7 @@ pub fn renew_certificates() {
     match choice {
         0 => {
             println!("🔄 Renewing all certificates...");
-            let _ = Command::new(&acme_path).args(&["--renew-all"]).status();
+            let _ = Command::new(&acme_path).args(["--renew-all"]).status();
         }
         1 => {
             let domain: String = Input::new()
@@ -475,20 +475,20 @@ pub fn renew_certificates() {
 
             println!("🔄 Renewing certificate for: {}", domain);
             let _ = Command::new(&acme_path)
-                .args(&["--renew", "-d", &domain])
+                .args(["--renew", "-d", &domain])
                 .status();
         }
         2 => {
             println!("🧪 Testing renewal process...");
             let _ = Command::new(&acme_path)
-                .args(&["--renew-all", "--dry-run"])
+                .args(["--renew-all", "--dry-run"])
                 .status();
         }
         3 => {
             println!("⏰ Checking cron job...");
-            let _ = Command::new(&acme_path).args(&["--info"]).status();
+            let _ = Command::new(&acme_path).args(["--info"]).status();
         }
-        _ => return,
+        _ => (),
     }
 }
 
@@ -502,7 +502,7 @@ pub fn list_certificates() {
     }
 
     let acme_path = get_acme_sh_path();
-    let _ = Command::new(&acme_path).args(&["--list"]).status();
+    let _ = Command::new(&acme_path).args(["--list"]).status();
 }
 
 fn configure_dns_api() {
@@ -543,7 +543,7 @@ fn uninstall_acme_sh() {
         let acme_path = get_acme_sh_path();
 
         // Run uninstall
-        let status = Command::new(&acme_path).args(&["--uninstall"]).status();
+        let status = Command::new(&acme_path).args(["--uninstall"]).status();
 
         match status {
             Ok(s) if s.success() => {

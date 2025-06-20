@@ -36,9 +36,9 @@ pub fn list_gpg_keys() {
     println!("📋 GPG Keys");
     println!("===========");
     println!("\n🔑 Public Keys:");
-    let _ = Command::new("gpg").args(&["--list-keys"]).status();
+    let _ = Command::new("gpg").args(["--list-keys"]).status();
     println!("\n🔐 Private Keys:");
-    let _ = Command::new("gpg").args(&["--list-secret-keys"]).status();
+    let _ = Command::new("gpg").args(["--list-secret-keys"]).status();
 }
 
 pub fn generate_gpg_key() {
@@ -122,7 +122,7 @@ pub fn export_public_key() {
     println!("📤 Export Public Key");
     println!("Available keys:");
     let _ = Command::new("gpg")
-        .args(&["--list-keys", "--keyid-format", "SHORT"])
+        .args(["--list-keys", "--keyid-format", "SHORT"])
         .status();
     let key_id: String = Input::new().with_prompt("Key ID").interact_text().unwrap();
     let format = Select::with_theme(&ColorfulTheme::default())
@@ -134,11 +134,11 @@ pub fn export_public_key() {
     match format {
         0 => {
             let _ = Command::new("gpg")
-                .args(&["--armor", "--export", &key_id])
+                .args(["--armor", "--export", &key_id])
                 .status();
         }
         1 => {
-            let _ = Command::new("gpg").args(&["--export", &key_id]).status();
+            let _ = Command::new("gpg").args(["--export", &key_id]).status();
         }
         _ => (),
     }

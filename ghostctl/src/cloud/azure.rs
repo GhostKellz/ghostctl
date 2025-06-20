@@ -23,7 +23,7 @@ pub fn azure_cli_tools() {
             0 => {
                 println!("📦 Installing via package manager...");
                 let _ = Command::new("curl")
-                    .args(&["-sL", "https://aka.ms/InstallAzureCLIDeb"])
+                    .args(["-sL", "https://aka.ms/InstallAzureCLIDeb"])
                     .arg("|")
                     .arg("sudo")
                     .arg("bash")
@@ -31,7 +31,7 @@ pub fn azure_cli_tools() {
             }
             1 => {
                 let _ = Command::new("pip")
-                    .args(&["install", "--user", "azure-cli"])
+                    .args(["install", "--user", "azure-cli"])
                     .status();
             }
             _ => {
@@ -91,32 +91,32 @@ pub fn azure_cli_tools() {
         13 => azure_resource_search(),
         14 => show_resource_usage(),
         15 => azure_configuration(),
-        _ => return,
+        _ => (),
     }
 }
 
 fn azure_login() {
     println!("🔧 Logging into Azure...");
-    let _ = Command::new("az").args(&["login"]).status();
+    let _ = Command::new("az").args(["login"]).status();
 
     // Show current account info
     println!("📋 Current account information:");
     let _ = Command::new("az")
-        .args(&["account", "show", "--output", "table"])
+        .args(["account", "show", "--output", "table"])
         .status();
 }
 
 fn list_subscriptions() {
     println!("📋 Azure Subscriptions:");
     let _ = Command::new("az")
-        .args(&["account", "list", "--output", "table"])
+        .args(["account", "list", "--output", "table"])
         .status();
 }
 
 fn list_resource_groups() {
     println!("🏢 Resource Groups:");
     let _ = Command::new("az")
-        .args(&["group", "list", "--output", "table"])
+        .args(["group", "list", "--output", "table"])
         .status();
 
     let options = [
@@ -137,14 +137,14 @@ fn list_resource_groups() {
         0 => resource_group_details(),
         1 => cost_by_resource_group(),
         2 => delete_resource_group(),
-        _ => return,
+        _ => (),
     }
 }
 
 fn list_virtual_machines() {
     println!("🖥️  Virtual Machines:");
     let _ = Command::new("az")
-        .args(&["vm", "list", "--output", "table"])
+        .args(["vm", "list", "--output", "table"])
         .status();
 
     let show_details = Confirm::new()
@@ -155,7 +155,7 @@ fn list_virtual_machines() {
 
     if show_details {
         let _ = Command::new("az")
-            .args(&["vm", "list", "--show-details", "--output", "table"])
+            .args(["vm", "list", "--show-details", "--output", "table"])
             .status();
     }
 
@@ -179,14 +179,14 @@ fn list_virtual_machines() {
         1 => vm_performance_metrics(),
         2 => vm_cost_analysis(),
         3 => vm_configuration(),
-        _ => return,
+        _ => (),
     }
 }
 
 fn list_storage_accounts() {
     println!("🗂️  Storage Accounts:");
     let _ = Command::new("az")
-        .args(&["storage", "account", "list", "--output", "table"])
+        .args(["storage", "account", "list", "--output", "table"])
         .status();
 
     let options = [
@@ -209,42 +209,42 @@ fn list_storage_accounts() {
         1 => storage_access_keys(),
         2 => list_storage_containers(),
         3 => storage_costs(),
-        _ => return,
+        _ => (),
     }
 }
 
 fn list_virtual_networks() {
     println!("🌐 Virtual Networks:");
     let _ = Command::new("az")
-        .args(&["network", "vnet", "list", "--output", "table"])
+        .args(["network", "vnet", "list", "--output", "table"])
         .status();
 }
 
 fn list_key_vaults() {
     println!("🔒 Key Vaults:");
     let _ = Command::new("az")
-        .args(&["keyvault", "list", "--output", "table"])
+        .args(["keyvault", "list", "--output", "table"])
         .status();
 }
 
 fn list_container_registries() {
     println!("🐳 Container Registries:");
     let _ = Command::new("az")
-        .args(&["acr", "list", "--output", "table"])
+        .args(["acr", "list", "--output", "table"])
         .status();
 }
 
 fn list_app_services() {
     println!("☁️  App Services:");
     let _ = Command::new("az")
-        .args(&["webapp", "list", "--output", "table"])
+        .args(["webapp", "list", "--output", "table"])
         .status();
 }
 
 fn list_sql_databases() {
     println!("🗄️  SQL Databases:");
     let _ = Command::new("az")
-        .args(&["sql", "server", "list", "--output", "table"])
+        .args(["sql", "server", "list", "--output", "table"])
         .status();
 
     let show_databases = Confirm::new()
@@ -256,7 +256,7 @@ fn list_sql_databases() {
     if show_databases {
         println!("📋 Listing all databases...");
         let _ = Command::new("az")
-            .args(&[
+            .args([
                 "sql",
                 "db",
                 "list",
@@ -274,14 +274,14 @@ fn list_sql_databases() {
 fn list_azure_functions() {
     println!("⚡ Azure Functions:");
     let _ = Command::new("az")
-        .args(&["functionapp", "list", "--output", "table"])
+        .args(["functionapp", "list", "--output", "table"])
         .status();
 }
 
 fn list_aks_clusters() {
     println!("🚀 AKS Clusters:");
     let _ = Command::new("az")
-        .args(&["aks", "list", "--output", "table"])
+        .args(["aks", "list", "--output", "table"])
         .status();
 }
 
@@ -289,7 +289,7 @@ fn azure_cost_analysis() {
     println!("💰 Cost Analysis:");
     println!("📊 Getting cost analysis (last 30 days)...");
     let _ = Command::new("az")
-        .args(&[
+        .args([
             "consumption",
             "usage",
             "list",
@@ -311,7 +311,7 @@ fn azure_resource_search() {
 
     println!("🔍 Searching for: {}", search_term);
     let _ = Command::new("az")
-        .args(&[
+        .args([
             "resource",
             "list",
             "--query",
@@ -325,7 +325,7 @@ fn azure_resource_search() {
 fn show_resource_usage() {
     println!("📊 Resource Usage and Quotas:");
     let _ = Command::new("az")
-        .args(&[
+        .args([
             "vm",
             "list-usage",
             "--location",
@@ -339,7 +339,7 @@ fn show_resource_usage() {
 fn azure_configuration() {
     println!("⚙️  Azure CLI Configuration:");
     let _ = Command::new("az")
-        .args(&["configure", "--list-defaults"])
+        .args(["configure", "--list-defaults"])
         .status();
 
     let config_action = Select::with_theme(&ColorfulTheme::default())
@@ -371,12 +371,12 @@ fn resource_group_details() {
 
     println!("📊 Resource group details for: {}", rg_name);
     let _ = Command::new("az")
-        .args(&["group", "show", "--name", &rg_name, "--output", "table"])
+        .args(["group", "show", "--name", &rg_name, "--output", "table"])
         .status();
 
     println!("📋 Resources in group:");
     let _ = Command::new("az")
-        .args(&[
+        .args([
             "resource",
             "list",
             "--resource-group",
@@ -399,7 +399,7 @@ fn delete_resource_group() {
         .unwrap();
 
     let confirm = Confirm::new()
-        .with_prompt(&format!("⚠️  Are you sure you want to delete '{}'? This will delete ALL resources in the group!", rg_name))
+        .with_prompt(format!("⚠️  Are you sure you want to delete '{}'? This will delete ALL resources in the group!", rg_name))
         .default(false)
         .interact()
         .unwrap();
@@ -407,7 +407,7 @@ fn delete_resource_group() {
     if confirm {
         println!("🗑️  Deleting resource group: {}", rg_name);
         let _ = Command::new("az")
-            .args(&["group", "delete", "--name", &rg_name, "--yes", "--no-wait"])
+            .args(["group", "delete", "--name", &rg_name, "--yes", "--no-wait"])
             .status();
     }
 }
@@ -437,7 +437,7 @@ fn vm_start_stop() {
 
     println!("🔄 {}ing VM: {}", command, vm_name);
     let _ = Command::new("az")
-        .args(&[
+        .args([
             "vm",
             command,
             "--name",
@@ -481,7 +481,7 @@ fn storage_access_keys() {
 
     println!("🔒 Storage account access keys:");
     let _ = Command::new("az")
-        .args(&[
+        .args([
             "storage",
             "account",
             "keys",
@@ -504,7 +504,7 @@ fn list_storage_containers() {
 
     println!("📁 Storage containers:");
     let _ = Command::new("az")
-        .args(&[
+        .args([
             "storage",
             "container",
             "list",
@@ -529,7 +529,7 @@ fn set_default_location() {
         .unwrap();
 
     let _ = Command::new("az")
-        .args(&["configure", "--defaults", &format!("location={}", location)])
+        .args(["configure", "--defaults", &format!("location={}", location)])
         .status();
 
     println!("✅ Default location set to: {}", location);
@@ -542,7 +542,7 @@ fn set_default_resource_group() {
         .unwrap();
 
     let _ = Command::new("az")
-        .args(&["configure", "--defaults", &format!("group={}", rg)])
+        .args(["configure", "--defaults", &format!("group={}", rg)])
         .status();
 
     println!("✅ Default resource group set to: {}", rg);
@@ -550,6 +550,6 @@ fn set_default_resource_group() {
 
 fn show_all_config() {
     let _ = Command::new("az")
-        .args(&["configure", "--list-defaults"])
+        .args(["configure", "--list-defaults"])
         .status();
 }

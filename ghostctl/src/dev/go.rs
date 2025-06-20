@@ -29,7 +29,7 @@ pub fn go_development_menu() {
         3 => go_development_tools(),
         4 => go_testing_benchmarking(),
         5 => go_learning_resources(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -60,7 +60,7 @@ fn install_go_compiler() {
         0 => install_go_package_manager(),
         1 => install_go_official(),
         2 => install_go_from_source(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -72,18 +72,18 @@ fn install_go_package_manager() {
     } else if Command::new("which").arg("pacman").status().is_ok() {
         println!("📦 Installing Go with pacman...");
         let _ = Command::new("sudo")
-            .args(&["pacman", "-S", "--noconfirm", "go"])
+            .args(["pacman", "-S", "--noconfirm", "go"])
             .status();
     } else if Command::new("which").arg("apt").status().is_ok() {
         println!("📦 Installing Go with apt...");
-        let _ = Command::new("sudo").args(&["apt", "update"]).status();
+        let _ = Command::new("sudo").args(["apt", "update"]).status();
         let _ = Command::new("sudo")
-            .args(&["apt", "install", "-y", "golang-go"])
+            .args(["apt", "install", "-y", "golang-go"])
             .status();
     } else if Command::new("which").arg("dnf").status().is_ok() {
         println!("📦 Installing Go with dnf...");
         let _ = Command::new("sudo")
-            .args(&["dnf", "install", "-y", "go"])
+            .args(["dnf", "install", "-y", "go"])
             .status();
     }
 
@@ -111,7 +111,7 @@ fn install_go_official() {
     if confirm {
         // Remove existing Go installation
         let _ = Command::new("sudo")
-            .args(&["rm", "-rf", "/usr/local/go"])
+            .args(["rm", "-rf", "/usr/local/go"])
             .status();
 
         // Download latest Go (this would need to be updated with actual latest version)
@@ -119,12 +119,12 @@ fn install_go_official() {
         let download_url = "https://golang.org/dl/go1.21.5.linux-amd64.tar.gz";
 
         let _ = Command::new("curl")
-            .args(&["-L", download_url, "-o", "/tmp/go.tar.gz"])
+            .args(["-L", download_url, "-o", "/tmp/go.tar.gz"])
             .status();
 
         // Extract
         let _ = Command::new("sudo")
-            .args(&["tar", "-C", "/usr/local", "-xzf", "/tmp/go.tar.gz"])
+            .args(["tar", "-C", "/usr/local", "-xzf", "/tmp/go.tar.gz"])
             .status();
 
         // Setup environment
@@ -152,7 +152,7 @@ fn install_go_from_source() {
     if confirm {
         println!("📥 Cloning Go repository...");
         let _ = Command::new("git")
-            .args(&["clone", "https://go.googlesource.com/go", "/tmp/go-source"])
+            .args(["clone", "https://go.googlesource.com/go", "/tmp/go-source"])
             .status();
 
         println!("🔨 Building... (this will take a while)");
@@ -235,7 +235,7 @@ fn go_project_management() {
         3 => build_go_project(),
         4 => run_go_project(),
         5 => clean_go_project(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -245,13 +245,13 @@ fn create_go_module() {
         .interact_text()
         .unwrap();
 
-    let project_name = module_name.split('/').last().unwrap_or("go-project");
+    let project_name = module_name.split('/').next_back().unwrap_or("go-project");
 
     println!("📁 Creating project directory...");
     std::fs::create_dir_all(project_name).unwrap();
 
     let _ = Command::new("go")
-        .args(&["mod", "init", &module_name])
+        .args(["mod", "init", &module_name])
         .current_dir(project_name)
         .status();
 
@@ -280,7 +280,7 @@ fn init_go_module() {
         .unwrap();
 
     let _ = Command::new("go")
-        .args(&["mod", "init", &module_name])
+        .args(["mod", "init", &module_name])
         .status();
 
     println!("✅ Go module initialized");
@@ -300,7 +300,7 @@ fn add_go_dependencies() {
         .interact_text()
         .unwrap();
 
-    let _ = Command::new("go").args(&["get", &package]).status();
+    let _ = Command::new("go").args(["get", &package]).status();
 
     println!("✅ Added dependency: {}", package);
 }
@@ -309,7 +309,7 @@ fn build_go_project() {
     println!("🏗️  Building Go Project");
     println!("=======================");
 
-    let _ = Command::new("go").args(&["build"]).status();
+    let _ = Command::new("go").args(["build"]).status();
     println!("✅ Build completed");
 }
 
@@ -317,15 +317,15 @@ fn run_go_project() {
     println!("🚀 Running Go Project");
     println!("=====================");
 
-    let _ = Command::new("go").args(&["run", "."]).status();
+    let _ = Command::new("go").args(["run", "."]).status();
 }
 
 fn clean_go_project() {
     println!("🧹 Cleaning Go Project");
     println!("======================");
 
-    let _ = Command::new("go").args(&["clean"]).status();
-    let _ = Command::new("go").args(&["mod", "tidy"]).status();
+    let _ = Command::new("go").args(["clean"]).status();
+    let _ = Command::new("go").args(["mod", "tidy"]).status();
 
     println!("✅ Project cleaned");
 }
@@ -356,7 +356,7 @@ fn go_package_management() {
         2 => tidy_go_modules(),
         3 => show_dependency_graph(),
         4 => search_go_packages(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -364,14 +364,14 @@ fn list_go_dependencies() {
     println!("📋 Go Dependencies");
     println!("==================");
 
-    let _ = Command::new("go").args(&["list", "-m", "all"]).status();
+    let _ = Command::new("go").args(["list", "-m", "all"]).status();
 }
 
 fn update_go_dependencies() {
     println!("🔄 Updating Go Dependencies");
     println!("===========================");
 
-    let _ = Command::new("go").args(&["get", "-u", "./..."]).status();
+    let _ = Command::new("go").args(["get", "-u", "./..."]).status();
     println!("✅ Dependencies updated");
 }
 
@@ -379,7 +379,7 @@ fn tidy_go_modules() {
     println!("🧹 Tidying Go Modules");
     println!("=====================");
 
-    let _ = Command::new("go").args(&["mod", "tidy"]).status();
+    let _ = Command::new("go").args(["mod", "tidy"]).status();
     println!("✅ Modules tidied");
 }
 
@@ -387,7 +387,7 @@ fn show_dependency_graph() {
     println!("📊 Dependency Graph");
     println!("==================");
 
-    let _ = Command::new("go").args(&["mod", "graph"]).status();
+    let _ = Command::new("go").args(["mod", "graph"]).status();
 }
 
 fn search_go_packages() {
@@ -426,7 +426,7 @@ fn go_development_tools() {
         2 => install_go_linters(),
         3 => install_go_testing_tools(),
         4 => install_go_profiling_tools(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -435,7 +435,7 @@ fn install_gopls() {
     println!("=========================================");
 
     let _ = Command::new("go")
-        .args(&["install", "golang.org/x/tools/gopls@latest"])
+        .args(["install", "golang.org/x/tools/gopls@latest"])
         .status();
 
     println!("✅ gopls installed");
@@ -446,7 +446,7 @@ fn install_go_formatters() {
     println!("===========================");
 
     let _ = Command::new("go")
-        .args(&["install", "golang.org/x/tools/cmd/goimports@latest"])
+        .args(["install", "golang.org/x/tools/cmd/goimports@latest"])
         .status();
 
     println!("✅ goimports installed (gofmt is included with Go)");
@@ -457,7 +457,7 @@ fn install_go_linters() {
     println!("========================");
 
     let _ = Command::new("go")
-        .args(&["install", "golang.org/x/lint/golint@latest"])
+        .args(["install", "golang.org/x/lint/golint@latest"])
         .status();
 
     println!("✅ golint installed (go vet is included with Go)");
@@ -474,7 +474,7 @@ fn install_go_testing_tools() {
     ];
 
     for tool in &tools {
-        let _ = Command::new("go").args(&["install", tool]).status();
+        let _ = Command::new("go").args(["install", tool]).status();
     }
 
     println!("✅ Testing tools installed");
@@ -485,7 +485,7 @@ fn install_go_profiling_tools() {
     println!("================================");
 
     let _ = Command::new("go")
-        .args(&["install", "github.com/google/pprof@latest"])
+        .args(["install", "github.com/google/pprof@latest"])
         .status();
 
     println!("✅ pprof installed");
@@ -517,7 +517,7 @@ fn go_testing_benchmarking() {
         2 => go_test_coverage(),
         3 => go_race_detection(),
         4 => generate_test_files(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -525,7 +525,7 @@ fn run_go_tests() {
     println!("🧪 Running Go Tests");
     println!("===================");
 
-    let _ = Command::new("go").args(&["test", "./..."]).status();
+    let _ = Command::new("go").args(["test", "./..."]).status();
 }
 
 fn run_go_benchmarks() {
@@ -533,7 +533,7 @@ fn run_go_benchmarks() {
     println!("========================");
 
     let _ = Command::new("go")
-        .args(&["test", "-bench=.", "./..."])
+        .args(["test", "-bench=.", "./..."])
         .status();
 }
 
@@ -542,7 +542,7 @@ fn go_test_coverage() {
     println!("===================");
 
     let _ = Command::new("go")
-        .args(&["test", "-cover", "./..."])
+        .args(["test", "-cover", "./..."])
         .status();
 }
 
@@ -550,9 +550,7 @@ fn go_race_detection() {
     println!("🎯 Go Race Detection");
     println!("===================");
 
-    let _ = Command::new("go")
-        .args(&["test", "-race", "./..."])
-        .status();
+    let _ = Command::new("go").args(["test", "-race", "./..."]).status();
 }
 
 fn generate_test_files() {

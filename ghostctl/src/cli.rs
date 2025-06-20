@@ -8,7 +8,7 @@ use dialoguer::{Select, theme::ColorfulTheme};
 // Command-line interface setup
 pub fn build_cli() -> Command {
     Command::new("ghostctl")
-        .version("0.5.0")
+        .version("0.5.1")
         .author("Christopher Kelley <ckelley@ghostctl.sh>")
         .about("Ghost Infrastructure Control - Complete system and homelab management")
         .subcommand_required(false)
@@ -195,7 +195,7 @@ pub fn build_cli() -> Command {
 pub fn handle_cli_args(matches: &ArgMatches) {
     // Handle global flags first
     if matches.get_flag("version") {
-        println!("ghostctl v0.5.0");
+        println!("ghostctl v0.5.1");
         return;
     }
 
@@ -227,15 +227,13 @@ pub fn handle_cli_args(matches: &ArgMatches) {
     // Handle subcommands
     match matches.subcommand() {
         Some(("version", _)) => {
-            println!("ghostctl v0.5.0");
+            println!("ghostctl v0.5.1");
             println!("Ghost Infrastructure Control - Complete system and homelab management");
             println!("Author: Christopher Kelley <ckelley@ghostctl.sh>");
             println!("Repository: https://github.com/ghostkellz/ghostctl");
-            return;
         }
         Some(("list", _)) => {
             show_command_list();
-            return;
         }
         Some(("system", matches)) => handle_system_commands(matches),
         Some(("arch", matches)) => handle_arch_commands(matches),
@@ -607,9 +605,9 @@ fn show_docker_status() {
     println!("================");
 
     let _ = std::process::Command::new("docker")
-        .args(&["version"])
+        .args(["version"])
         .status();
-    let _ = std::process::Command::new("docker").args(&["ps"]).status();
+    let _ = std::process::Command::new("docker").args(["ps"]).status();
 }
 
 fn docker_homelab_menu() {
@@ -637,7 +635,7 @@ fn show_nginx_status() {
     println!("===============");
 
     let _ = std::process::Command::new("systemctl")
-        .args(&["status", "nginx"])
+        .args(["status", "nginx"])
         .status();
 }
 
@@ -645,7 +643,7 @@ fn restart_nginx() {
     println!("🔄 Restarting Nginx...");
 
     let _ = std::process::Command::new("sudo")
-        .args(&["systemctl", "restart", "nginx"])
+        .args(["systemctl", "restart", "nginx"])
         .status();
 
     println!("✅ Nginx restarted");
@@ -708,7 +706,7 @@ fn homelab_management_menu() {
         5 => setup_homelab_network(),
         6 => deploy_media_server(),
         7 => deploy_game_server(),
-        _ => return,
+        _ => (),
     }
 }
 

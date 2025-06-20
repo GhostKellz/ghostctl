@@ -120,7 +120,7 @@ fn list_ssh_keys() {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_file() && !path.extension().map_or(false, |ext| ext == "pub") {
+            if path.is_file() && path.extension().is_none_or(|ext| ext != "pub") {
                 if let Some(filename) = path.file_name() {
                     let filename_str = filename.to_string_lossy();
                     if filename_str.starts_with("id_") || filename_str.contains("key") {
@@ -135,7 +135,7 @@ fn list_ssh_keys() {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "pub") {
+            if path.extension().is_some_and(|ext| ext == "pub") {
                 if let Some(filename) = path.file_name() {
                     println!("  📄 {}", filename.to_string_lossy());
 
@@ -166,7 +166,7 @@ fn copy_public_key() {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "pub") {
+            if path.extension().is_some_and(|ext| ext == "pub") {
                 if let Some(filename) = path.file_name() {
                     pub_keys.push((filename.to_string_lossy().to_string(), path));
                 }
@@ -246,7 +246,7 @@ fn add_to_agent() {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_file() && !path.extension().map_or(false, |ext| ext == "pub") {
+            if path.is_file() && path.extension().is_none_or(|ext| ext != "pub") {
                 if let Some(filename) = path.file_name() {
                     let filename_str = filename.to_string_lossy();
                     if filename_str.starts_with("id_") || filename_str.contains("key") {
@@ -414,7 +414,7 @@ fn configure_key_auth() {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "pub") {
+            if path.extension().is_some_and(|ext| ext == "pub") {
                 if let Some(filename) = path.file_name() {
                     pub_keys.push((filename.to_string_lossy().to_string(), path));
                 }

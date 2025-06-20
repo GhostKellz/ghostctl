@@ -74,7 +74,7 @@ pub fn rollback_btrfs_snapshot() {
     // List available snapshots
     println!("📋 Available Btrfs snapshots:");
     let _ = Command::new("sudo")
-        .args(&["btrfs", "subvolume", "list", "/"])
+        .args(["btrfs", "subvolume", "list", "/"])
         .status();
 
     let snapshot_name: String = Input::new()
@@ -103,7 +103,7 @@ pub fn rollback_btrfs_snapshot() {
         // This is a simplified example - real rollback is more complex
         let source = format!("/@snapshots/{}", snapshot_name);
         let status = Command::new("sudo")
-            .args(&["btrfs", "subvolume", "snapshot", &source, &target])
+            .args(["btrfs", "subvolume", "snapshot", &source, &target])
             .status();
 
         match status {
@@ -166,7 +166,7 @@ pub fn full_system_recovery() {
         1 => rollback_to_last_snapshot(),
         2 => manual_system_recovery(),
         3 => recovery_diagnostics(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -193,7 +193,7 @@ pub fn list_available_backups() {
     println!("\n📸 Btrfs Snapshots:");
     if Command::new("which").arg("btrfs").status().is_ok() {
         let _ = Command::new("sudo")
-            .args(&["btrfs", "subvolume", "list", "/"])
+            .args(["btrfs", "subvolume", "list", "/"])
             .status();
     } else {
         println!("  ❌ Btrfs tools not available");
@@ -202,7 +202,7 @@ pub fn list_available_backups() {
     // List Snapper snapshots
     println!("\n📷 Snapper Snapshots:");
     if Command::new("which").arg("snapper").status().is_ok() {
-        let _ = Command::new("sudo").args(&["snapper", "list"]).status();
+        let _ = Command::new("sudo").args(["snapper", "list"]).status();
     } else {
         println!("  ❌ Snapper not available");
     }
@@ -218,7 +218,7 @@ fn setup_chroot_environment(mountpoint: &str) {
     for mount_point in &mount_points {
         let target = format!("{}{}", mountpoint, mount_point);
         let _ = Command::new("sudo")
-            .args(&["mount", "--bind", mount_point, &target])
+            .args(["mount", "--bind", mount_point, &target])
             .status();
     }
 
@@ -227,7 +227,7 @@ fn setup_chroot_environment(mountpoint: &str) {
         let target = format!("{}{}", mountpoint, boot_dir);
         if Path::new(&target).exists() {
             let _ = Command::new("sudo")
-                .args(&["mount", "--bind", boot_dir, &target])
+                .args(["mount", "--bind", boot_dir, &target])
                 .status();
         }
     }
@@ -236,7 +236,7 @@ fn setup_chroot_environment(mountpoint: &str) {
     println!("Type 'exit' to leave the chroot environment");
 
     let _ = Command::new("sudo")
-        .args(&["arch-chroot", mountpoint])
+        .args(["arch-chroot", mountpoint])
         .status();
 
     // Cleanup after chroot exit
@@ -252,7 +252,7 @@ fn cleanup_chroot_environment(mountpoint: &str) {
     for mount_point in &mount_points {
         let target = format!("{}{}", mountpoint, mount_point);
         let _ = Command::new("sudo")
-            .args(&["umount", "-l", &target])
+            .args(["umount", "-l", &target])
             .status();
     }
 
@@ -287,7 +287,7 @@ fn restore_system_from_backup() {
             println!("🔄 Rolling back to latest Snapper snapshot...");
             rollback_snapper_snapshot();
         }
-        _ => return,
+        _ => (),
     }
 }
 
@@ -298,7 +298,7 @@ fn rollback_to_last_snapshot() {
     // Find the most recent snapshot
     if Command::new("which").arg("snapper").status().is_ok() {
         println!("🔍 Finding latest snapshot...");
-        let _ = Command::new("sudo").args(&["snapper", "list"]).status();
+        let _ = Command::new("sudo").args(["snapper", "list"]).status();
 
         let snapshot_id: String = Input::new()
             .with_prompt("Snapshot number to rollback to")
@@ -313,7 +313,7 @@ fn rollback_to_last_snapshot() {
 
         if confirm {
             let _ = Command::new("sudo")
-                .args(&["snapper", "undochange", &format!("{}..0", snapshot_id)])
+                .args(["snapper", "undochange", &format!("{}..0", snapshot_id)])
                 .status();
         }
     } else {
@@ -352,7 +352,7 @@ fn manual_system_recovery() {
         2 => enter_recovery_chroot(),
         3 => rebuild_initramfs(),
         4 => fix_bootloader(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -363,25 +363,25 @@ fn recovery_diagnostics() {
     println!("🔍 System Status:");
     println!("  Boot Status: Checking...");
     let _ = Command::new("systemctl")
-        .args(&["is-system-running"])
+        .args(["is-system-running"])
         .status();
 
     println!("\n💾 Filesystem Status:");
-    let _ = Command::new("df").args(&["-h"]).status();
+    let _ = Command::new("df").args(["-h"]).status();
 
     println!("\n🔧 Kernel Modules:");
     let _ = Command::new("lsmod").status();
 
     println!("\n📝 Recent Boot Logs:");
     let _ = Command::new("journalctl")
-        .args(&["-b", "-p", "err", "--no-pager", "-n", "10"])
+        .args(["-b", "-p", "err", "--no-pager", "-n", "10"])
         .status();
 }
 
 fn rollback_snapper_snapshot() {
     println!("📷 Rollback Snapper Snapshot");
     if Command::new("which").arg("snapper").status().is_ok() {
-        let _ = Command::new("sudo").args(&["snapper", "list"]).status();
+        let _ = Command::new("sudo").args(["snapper", "list"]).status();
     } else {
         println!("❌ Snapper not available");
     }
@@ -389,17 +389,17 @@ fn rollback_snapper_snapshot() {
 
 fn check_filesystem_integrity() {
     println!("🔍 Checking filesystem integrity...");
-    let _ = Command::new("sudo").args(&["fsck", "-f", "/"]).status();
+    let _ = Command::new("sudo").args(["fsck", "-f", "/"]).status();
 }
 
 fn repair_filesystem() {
     println!("🔧 Repairing filesystem...");
-    let _ = Command::new("sudo").args(&["fsck", "-y", "/"]).status();
+    let _ = Command::new("sudo").args(["fsck", "-y", "/"]).status();
 }
 
 fn rebuild_initramfs() {
     println!("🔄 Rebuilding initramfs...");
-    let _ = Command::new("sudo").args(&["mkinitcpio", "-P"]).status();
+    let _ = Command::new("sudo").args(["mkinitcpio", "-P"]).status();
 }
 
 fn fix_bootloader() {
@@ -414,14 +414,14 @@ fn fix_bootloader() {
     match bootloader {
         0 => {
             let _ = Command::new("sudo")
-                .args(&["grub-install", "/dev/sda"])
+                .args(["grub-install", "/dev/sda"])
                 .status();
             let _ = Command::new("sudo")
-                .args(&["grub-mkconfig", "-o", "/boot/grub/grub.cfg"])
+                .args(["grub-mkconfig", "-o", "/boot/grub/grub.cfg"])
                 .status();
         }
         1 => {
-            let _ = Command::new("sudo").args(&["bootctl", "install"]).status();
+            let _ = Command::new("sudo").args(["bootctl", "install"]).status();
         }
         _ => println!("Manual bootloader repair needed"),
     }

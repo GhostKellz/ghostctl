@@ -35,7 +35,7 @@ pub fn nvim_menu() {
         2 => plugins::plugin_management(),
         3 => setup::configuration_menu(),
         4 => show_nvim_info(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -144,7 +144,7 @@ fn show_nvim_info() {
     println!("====================");
 
     // Check Neovim version
-    let _ = Command::new("nvim").args(&["--version"]).status();
+    let _ = Command::new("nvim").args(["--version"]).status();
 
     // Show config location
     let home = dirs::home_dir().unwrap();

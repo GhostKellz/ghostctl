@@ -113,7 +113,7 @@ fn nvidia_tools_menu() {
         1 => nvidia::clean(),
         2 => nvidia::fix(),
         3 => nvidia::info(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -138,7 +138,7 @@ fn systemd_management() {
         1 => systemd::enable(),
         2 => systemd::disable(),
         3 => systemd::create(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -170,7 +170,7 @@ fn network_mesh_menu() {
         }
         2 => network::mesh::status(),
         3 => network::mesh::down(),
-        _ => return,
+        _ => (),
     }
 }
 
@@ -193,7 +193,7 @@ fn security_key_management() {
         0 => security::ssh::ssh_management(),
         1 => security::gpg::gpg_key_management(),
         2 => combined_security_audit(),
-        _ => return,
+        _ => (),
     }
 }
 
