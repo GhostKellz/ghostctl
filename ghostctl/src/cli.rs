@@ -8,8 +8,8 @@ use dialoguer::{Select, theme::ColorfulTheme};
 // Command-line interface setup
 pub fn build_cli() -> Command {
     Command::new("ghostctl")
-        .version("0.5.1")
-        .author("Christopher Kelley <ckelley@ghostctl.sh>")
+        .version(env!("CARGO_PKG_VERSION"))
+        .author("Christopher Kelley <ckelley@ghostkellz.sh>")
         .about("Ghost Infrastructure Control - Complete system and homelab management")
         .subcommand_required(false)
         .arg_required_else_help(false)
@@ -151,83 +151,107 @@ pub fn build_cli() -> Command {
                 .subcommand(Command::new("media-server").about("Deploy media server"))
                 .subcommand(Command::new("monitoring").about("Setup monitoring")),
         )
+        .subcommand(
+            Command::new("btrfs")
+                .about("Btrfs filesystem management")
+                .subcommand(Command::new("snapshot").about("Create snapshots"))
+                .subcommand(Command::new("restore").about("Restore from snapshot"))
+                .subcommand(Command::new("list").about("List snapshots")),
+        )
+        .subcommand(
+            Command::new("nvidia")
+                .about("NVIDIA GPU management")
+                .subcommand(Command::new("install").about("Install NVIDIA drivers"))
+                .subcommand(Command::new("optimize").about("Optimize GPU settings"))
+                .subcommand(Command::new("passthrough").about("Setup GPU passthrough"))
+                .subcommand(Command::new("wayland").about("Configure Wayland support")),
+        )
+        .subcommand(
+            Command::new("security")
+                .about("Security management")
+                .subcommand(Command::new("ssh").about("SSH configuration"))
+                .subcommand(Command::new("gpg").about("GPG management"))
+                .subcommand(Command::new("credentials").about("Credential management")),
+        )
+        .subcommand(
+            Command::new("backup")
+                .about("Backup management")
+                .subcommand(Command::new("setup").about("Setup backup system"))
+                .subcommand(Command::new("schedule").about("Schedule backups"))
+                .subcommand(Command::new("verify").about("Verify backups"))
+                .subcommand(Command::new("cleanup").about("Cleanup old backups")),
+        )
+        .subcommand(
+            Command::new("restore")
+                .about("System restore")
+                .subcommand(Command::new("btrfs").about("Restore from Btrfs"))
+                .subcommand(Command::new("system").about("System restore"))
+                .subcommand(Command::new("chroot").about("Chroot restore")),
+        )
+        .subcommand(
+            Command::new("shell")
+                .about("Shell configuration")
+                .subcommand(Command::new("setup").about("Setup shell environment"))
+                .subcommand(Command::new("zsh").about("Install and configure ZSH")),
+        )
+        .subcommand(
+            Command::new("systemd")
+                .about("Systemd management")
+                .subcommand(
+                    Command::new("enable")
+                        .about("Enable service")
+                        .arg(Arg::new("service").required(true).help("Service name")),
+                )
+                .subcommand(
+                    Command::new("disable")
+                        .about("Disable service")
+                        .arg(Arg::new("service").required(true).help("Service name")),
+                )
+                .subcommand(
+                    Command::new("status")
+                        .about("Show service status")
+                        .arg(Arg::new("service").required(true).help("Service name")),
+                ),
+        )
+        .subcommand(
+            Command::new("arch")
+                .about("Arch Linux management")
+                .subcommand(Command::new("fix").about("Fix common Arch issues"))
+                .subcommand(Command::new("aur").about("AUR package management"))
+                .subcommand(Command::new("boot").about("Boot configuration"))
+                .subcommand(Command::new("health").about("System health check"))
+                .subcommand(Command::new("performance").about("Performance optimization")),
+        )
+        .subcommand(
+            Command::new("network")
+                .about("Network management")
+                .subcommand(Command::new("dns").about("DNS configuration"))
+                .subcommand(Command::new("mesh").about("Mesh networking"))
+                .subcommand(Command::new("netcat").about("Network testing")),
+        )
+        .subcommand(
+            Command::new("cloud")
+                .about("Cloud provider management")
+                .subcommand(Command::new("aws").about("AWS management"))
+                .subcommand(Command::new("azure").about("Azure management"))
+                .subcommand(Command::new("gcp").about("Google Cloud management")),
+        )
+        .subcommand(
+            Command::new("tools")
+                .about("System tools and utilities")
+                .subcommand(Command::new("install").about("Install development tools"))
+                .subcommand(Command::new("configure").about("Configure tools"))
+                .subcommand(Command::new("update").about("Update tools")),
+        )
         .subcommand(Command::new("version").about("Show version information"))
         .subcommand(Command::new("list").about("List available commands"))
-        .arg(
-            Arg::new("version")
-                .long("version")
-                .short('v')
-                .action(clap::ArgAction::SetTrue)
-                .help("Show version"),
-        )
-        .arg(
-            Arg::new("system")
-                .long("system")
-                .action(clap::ArgAction::SetTrue)
-                .help("System management menu"),
-        )
-        .arg(
-            Arg::new("dev")
-                .long("dev")
-                .action(clap::ArgAction::SetTrue)
-                .help("Development environment menu"),
-        )
-        .arg(
-            Arg::new("docker")
-                .long("docker")
-                .action(clap::ArgAction::SetTrue)
-                .help("Docker management menu"),
-        )
-        .arg(
-            Arg::new("pve")
-                .long("pve")
-                .action(clap::ArgAction::SetTrue)
-                .help("Proxmox VE menu"),
-        )
-        .arg(
-            Arg::new("ssl")
-                .long("ssl")
-                .action(clap::ArgAction::SetTrue)
-                .help("SSL management menu"),
-        )
 }
 
 pub fn handle_cli_args(matches: &ArgMatches) {
-    // Handle global flags first
-    if matches.get_flag("version") {
-        println!("ghostctl v0.5.1");
-        return;
-    }
-
-    if matches.get_flag("system") {
-        crate::menu::show();
-        return;
-    }
-
-    if matches.get_flag("dev") {
-        crate::dev::development_menu();
-        return;
-    }
-
-    if matches.get_flag("docker") {
-        crate::docker::docker_menu();
-        return;
-    }
-
-    if matches.get_flag("pve") {
-        pve_management_menu();
-        return;
-    }
-
-    if matches.get_flag("ssl") {
-        ssl_management_menu();
-        return;
-    }
-
     // Handle subcommands
     match matches.subcommand() {
         Some(("version", _)) => {
-            println!("ghostctl v0.5.1");
+            println!("ghostctl v{}", env!("CARGO_PKG_VERSION"));
             println!("Ghost Infrastructure Control - Complete system and homelab management");
             println!("Author: Christopher Kelley <ckelley@ghostctl.sh>");
             println!("Repository: https://github.com/ghostkellz/ghostctl");
