@@ -7,6 +7,7 @@ pub fn container_security() {
 
     let options = [
         "🔍 Vulnerability Scanning (Trivy)",
+        "🐳 Container Security Scanning",
         "📊 Security Assessment Report",
         "🔒 Runtime Security Monitoring",
         "📜 Security Best Practices Check",
@@ -23,10 +24,11 @@ pub fn container_security() {
 
     match choice {
         0 => vulnerability_scanning(),
-        1 => security_assessment(),
-        2 => runtime_monitoring(),
-        3 => security_best_practices(),
-        4 => security_policy_generation(),
+        1 => crate::docker::devops::container_security_scanning(),
+        2 => security_assessment(),
+        3 => runtime_monitoring(),
+        4 => security_best_practices(),
+        5 => security_policy_generation(),
         _ => return,
     }
 }

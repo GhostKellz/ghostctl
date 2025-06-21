@@ -136,6 +136,10 @@ impl SecureCredentialManager {
         serde_json::from_str(&content).context("Failed to parse credential store")
     }
 
+    pub fn set_master_key(&mut self, key: String) {
+        self.master_key = Some(key);
+    }
+
     fn save_store(&self, store: &CredentialStore) -> Result<()> {
         // Ensure directory exists
         if let Some(parent) = self.store_path.parent() {
@@ -196,6 +200,136 @@ fn simple_decrypt(ciphertext: &str, key: &str) -> Result<String, String> {
     String::from_utf8(result).map_err(|e| format!("UTF-8 decode failed: {}", e))
 }
 
+pub fn credential_management() {
+    use dialoguer::{Select, theme::ColorfulTheme};
+    
+    println!("🔐 Secure Credential Management");
+    println!("===============================");
+
+    let options = [
+        "📝 Store credential",
+        "🔍 Retrieve credential", 
+        "📋 List credentials",
+        "🗑️  Delete credential",
+        "🔧 Setup master key",
+        "⬅️  Back",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Credential Management")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    let mut manager = match SecureCredentialManager::new() {
+        Ok(m) => m,
+        Err(e) => {
+            println!("❌ Failed to initialize credential manager: {}", e);
+            return;
+        }
+    };
+
+    match choice {
+        0 => store_credential_interactive(&mut manager),
+        1 => retrieve_credential_interactive(&mut manager),
+        2 => list_credentials_interactive(&manager),
+        3 => delete_credential_interactive(&mut manager),
+        4 => setup_master_key_interactive(&mut manager),
+        _ => return,
+    }
+}
+
+fn store_credential_interactive(manager: &mut SecureCredentialManager) {
+    let master_key: String = dialoguer::Input::new()
+        .with_prompt("Master key (for encryption)")
+        .interact_text()
+        .unwrap();
+
+    if let Err(e) = manager.unlock(&master_key) {
+        println!("❌ Failed to unlock: {}", e);
+        return;
+    }
+
+    let key: String = dialoguer::Input::new()
+        .with_prompt("Credential name/key")
+        .interact_text()
+        .unwrap();
+
+    let value: String = dialoguer::Input::new()
+        .with_prompt("Credential value")
+        .interact_text()
+        .unwrap();
+
+    match manager.store_credential(&key, &value) {
+        Ok(_) => println!("✅ Credential '{}' stored securely", key),
+        Err(e) => println!("❌ Failed to store credential: {}", e),
+    }
+}
+
+fn retrieve_credential_interactive(manager: &mut SecureCredentialManager) {
+    let master_key: String = dialoguer::Input::new()
+        .with_prompt("Master key (for decryption)")
+        .interact_text()
+        .unwrap();
+
+    if let Err(e) = manager.unlock(&master_key) {
+        println!("❌ Failed to unlock: {}", e);
+        return;
+    }
+
+    let key: String = dialoguer::Input::new()
+        .with_prompt("Credential name/key")
+        .interact_text()
+        .unwrap();
+
+    match manager.get_credential(&key) {
+        Ok(value) => println!("🔐 Credential '{}': {}", key, value),
+        Err(e) => println!("❌ Failed to retrieve credential: {}", e),
+    }
+}
+
+fn list_credentials_interactive(manager: &SecureCredentialManager) {
+    match manager.list_credentials() {
+        Ok(keys) => {
+            if keys.is_empty() {
+                println!("📋 No credentials stored");
+            } else {
+                println!("📋 Stored credentials:");
+                for key in keys {
+                    println!("  🔑 {}", key);
+                }
+            }
+        }
+        Err(e) => println!("❌ Failed to list credentials: {}", e),
+    }
+}
+
+fn delete_credential_interactive(manager: &mut SecureCredentialManager) {
+    let key: String = dialoguer::Input::new()
+        .with_prompt("Credential name/key to delete")
+        .interact_text()
+        .unwrap();
+
+    match manager.delete_credential(&key) {
+        Ok(_) => println!("✅ Credential '{}' deleted", key),
+        Err(e) => println!("❌ Failed to delete credential: {}", e),
+    }
+}
+
+fn setup_master_key_interactive(manager: &mut SecureCredentialManager) {
+    let master_key: String = dialoguer::Input::new()
+        .with_prompt("Enter new master key")
+        .interact_text()
+        .unwrap();
+
+    if let Err(e) = manager.unlock(&master_key) {
+        println!("❌ Failed to set master key: {}", e);
+    } else {
+        println!("✅ Master key configured for this session");
+    }
+}
+
 fn generate_salt() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -251,164 +385,4 @@ pub fn create_secure_env_file(path: &PathBuf) -> Result<()> {
     }
 
     Ok(())
-}
-
-pub fn credential_management() {
-    use dialoguer::{Select, theme::ColorfulTheme};
-    
-    println!("🗂️  Credential Management");
-    println!("========================");
-
-    let options = [
-        "🔓 Unlock credential store",
-        "💾 Store new credential",
-        "📋 List credentials", 
-        "🔍 Get credential",
-        "🗑️  Delete credential",
-        "⬅️  Back",
-    ];
-
-    let choice = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Credential Management")
-        .items(&options)
-        .default(0)
-        .interact()
-        .unwrap();
-
-    match choice {
-        0 => unlock_credential_store(),
-        1 => store_new_credential(),
-        2 => list_stored_credentials(),
-        3 => get_stored_credential(),
-        4 => delete_stored_credential(),
-        _ => return,
-    }
-}
-
-fn unlock_credential_store() {
-    use dialoguer::Password;
-    
-    let master_password = Password::new()
-        .with_prompt("Enter master password")
-        .interact()
-        .unwrap();
-
-    match SecureCredentialManager::new().and_then(|mut manager| {
-        manager.unlock(&master_password)?;
-        Ok(manager)
-    }) {
-        Ok(_) => println!("✅ Credential store unlocked successfully"),
-        Err(e) => println!("❌ Failed to unlock credential store: {}", e),
-    }
-}
-
-fn store_new_credential() {
-    use dialoguer::{Input, Password};
-    
-    let key: String = Input::new()
-        .with_prompt("Credential name/key")
-        .interact_text()
-        .unwrap();
-
-    let value = Password::new()
-        .with_prompt("Credential value")
-        .interact()
-        .unwrap();
-
-    let master_password = Password::new()
-        .with_prompt("Enter master password")
-        .interact()
-        .unwrap();
-
-    match SecureCredentialManager::new().and_then(|mut manager| {
-        manager.unlock(&master_password)?;
-        manager.store_credential(&key, &value)
-    }) {
-        Ok(_) => println!("✅ Credential '{}' stored successfully", key),
-        Err(e) => println!("❌ Failed to store credential: {}", e),
-    }
-}
-
-fn list_stored_credentials() {
-    use dialoguer::Password;
-    
-    let master_password = Password::new()
-        .with_prompt("Enter master password")
-        .interact()
-        .unwrap();
-
-    match SecureCredentialManager::new().and_then(|mut manager| {
-        manager.unlock(&master_password)?;
-        manager.list_credentials()
-    }) {
-        Ok(credentials) => {
-            if credentials.is_empty() {
-                println!("📭 No credentials stored");
-            } else {
-                println!("📋 Stored credentials:");
-                for credential in credentials {
-                    println!("  • {}", credential);
-                }
-            }
-        }
-        Err(e) => println!("❌ Failed to list credentials: {}", e),
-    }
-}
-
-fn get_stored_credential() {
-    use dialoguer::{Input, Password};
-    
-    let key: String = Input::new()
-        .with_prompt("Credential name/key")
-        .interact_text()
-        .unwrap();
-
-    let master_password = Password::new()
-        .with_prompt("Enter master password")
-        .interact()
-        .unwrap();
-
-    match SecureCredentialManager::new().and_then(|mut manager| {
-        manager.unlock(&master_password)?;
-        manager.get_credential(&key)
-    }) {
-        Ok(value) => {
-            println!("🔍 Credential '{}': {}", key, value);
-            println!("⚠️  Value displayed in terminal - ensure it's secure!");
-        }
-        Err(e) => println!("❌ Failed to get credential: {}", e),
-    }
-}
-
-fn delete_stored_credential() {
-    use dialoguer::{Input, Password, Confirm};
-    
-    let key: String = Input::new()
-        .with_prompt("Credential name/key to delete")
-        .interact_text()
-        .unwrap();
-
-    let confirm = Confirm::new()
-        .with_prompt(&format!("Are you sure you want to delete '{}'?", key))
-        .default(false)
-        .interact()
-        .unwrap();
-
-    if !confirm {
-        println!("🚫 Deletion cancelled");
-        return;
-    }
-
-    let master_password = Password::new()
-        .with_prompt("Enter master password")
-        .interact()
-        .unwrap();
-
-    match SecureCredentialManager::new().and_then(|mut manager| {
-        manager.unlock(&master_password)?;
-        manager.delete_credential(&key)
-    }) {
-        Ok(_) => println!("✅ Credential '{}' deleted successfully", key),
-        Err(e) => println!("❌ Failed to delete credential: {}", e),
-    }
 }

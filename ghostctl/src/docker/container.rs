@@ -51,7 +51,36 @@ pub fn list_containers() {
 }
 
 fn run_container() {
-    println!("🚀 Run Docker Container - TODO: Implement");
+    use dialoguer::Input;
+    
+    let image: String = Input::new()
+        .with_prompt("Image name")
+        .interact_text()
+        .unwrap();
+
+    let name: String = Input::new()
+        .with_prompt("Container name (optional)")
+        .allow_empty(true)
+        .interact_text()
+        .unwrap();
+
+    let mut args = vec!["run", "-d"];
+    
+    if !name.is_empty() {
+        args.extend_from_slice(&["--name", &name]);
+    }
+    
+    args.push(&image);
+
+    println!("🚀 Running container from image: {}", image);
+    let status = Command::new("docker")
+        .args(&args)
+        .status();
+
+    match status {
+        Ok(s) if s.success() => println!("✅ Container started successfully"),
+        _ => println!("❌ Failed to start container"),
+    }
 }
 
 pub fn stop_container(id: String) {
@@ -62,11 +91,53 @@ pub fn stop_container(id: String) {
 }
 
 fn restart_container() {
-    println!("🔄 Restart Docker Container - TODO: Implement");
+    use dialoguer::Input;
+    
+    let container: String = Input::new()
+        .with_prompt("Container name or ID")
+        .interact_text()
+        .unwrap();
+
+    println!("🔄 Restarting container: {}", container);
+    let status = Command::new("docker")
+        .args(&["restart", &container])
+        .status();
+
+    match status {
+        Ok(s) if s.success() => println!("✅ Container restarted successfully"),
+        _ => println!("❌ Failed to restart container"),
+    }
 }
 
 fn remove_container() {
-    println!("🗑️  Remove Docker Container - TODO: Implement");
+    use dialoguer::{Input, Confirm};
+    
+    let container: String = Input::new()
+        .with_prompt("Container name or ID")
+        .interact_text()
+        .unwrap();
+
+    let force = Confirm::new()
+        .with_prompt("Force remove (stop if running)?")
+        .default(false)
+        .interact()
+        .unwrap();
+
+    let mut args = vec!["rm"];
+    if force {
+        args.push("-f");
+    }
+    args.push(&container);
+
+    println!("🗑️  Removing container: {}", container);
+    let status = Command::new("docker")
+        .args(&args)
+        .status();
+
+    match status {
+        Ok(s) if s.success() => println!("✅ Container removed successfully"),
+        _ => println!("❌ Failed to remove container"),
+    }
 }
 
 fn container_stats() {
@@ -77,9 +148,42 @@ fn container_stats() {
 }
 
 fn container_logs() {
-    println!("📜 Container Logs - TODO: Implement");
+    use dialoguer::{Input, Confirm};
+    
+    let container: String = Input::new()
+        .with_prompt("Container name or ID")
+        .interact_text()
+        .unwrap();
+
+    let follow = Confirm::new()
+        .with_prompt("Follow logs (real-time)?")
+        .default(false)
+        .interact()
+        .unwrap();
+
+    let mut args = vec!["logs"];
+    if follow {
+        args.push("-f");
+    }
+    args.extend_from_slice(&["--tail", "100"]);
+    args.push(&container);
+
+    println!("📜 Container logs for: {}", container);
+    let _ = Command::new("docker")
+        .args(&args)
+        .status();
 }
 
 fn inspect_container() {
-    println!("🔍 Inspect Container - TODO: Implement");
+    use dialoguer::Input;
+    
+    let container: String = Input::new()
+        .with_prompt("Container name or ID")
+        .interact_text()
+        .unwrap();
+
+    println!("🔍 Inspecting container: {}", container);
+    let _ = Command::new("docker")
+        .args(&["inspect", &container])
+        .status();
 }

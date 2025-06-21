@@ -983,7 +983,7 @@ fn handle_btrfs_commands(matches: &ArgMatches) {
                 Some(("list", _)) => {
                     btrfs::handle_btrfs_action(crate::BtrfsAction::SnapperList);
                 }
-                _ => btrfs::snapshot::snapper_menu(),
+                _ => btrfs::btrfs_menu(),
             }
         }
         None => btrfs::btrfs_menu(),
@@ -1270,6 +1270,9 @@ fn container_management_menu() {
     println!("Container Management Menu - Coming Soon!");
 }
 
+fn ssl_management_menu() {
+    println!("SSL Management Menu - Coming Soon!");
+}
 
 fn show_command_list() {
     println!("ghostctl Available Commands");

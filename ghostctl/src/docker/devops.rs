@@ -9,6 +9,8 @@ pub fn docker_management() {
         "🛡️  Container Security",
         "📦 Stack Management",
         "📊 Resource Monitoring",
+        "📈 Infrastructure Monitoring",
+        "🚀 CI/CD Tools",
         "🧹 System Cleanup",
         "🏗️  Registry Management",
         "⬅️  Back",
@@ -27,8 +29,10 @@ pub fn docker_management() {
         2 => crate::docker::security::container_security(),
         3 => crate::docker::compose::compose_stack_manager(),
         4 => docker_resource_report(),
-        5 => docker_system_cleanup(),
-        6 => registry_management(),
+        5 => monitoring_tools(),
+        6 => cicd_helpers(),
+        7 => docker_system_cleanup(),
+        8 => registry_management(),
         _ => return,
     }
 }

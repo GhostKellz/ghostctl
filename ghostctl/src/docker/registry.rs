@@ -48,11 +48,37 @@ fn search_images() {
 }
 
 fn pull_image() {
-    println!("📥 Pull Docker Image - TODO: Implement");
+    let image: String = Input::new()
+        .with_prompt("Image name (e.g., nginx:latest)")
+        .interact_text()
+        .unwrap();
+
+    println!("📥 Pulling image: {}", image);
+    let status = Command::new("docker")
+        .args(["pull", &image])
+        .status();
+
+    match status {
+        Ok(s) if s.success() => println!("✅ Successfully pulled {}", image),
+        _ => println!("❌ Failed to pull {}", image),
+    }
 }
 
 fn push_image() {
-    println!("📤 Push Docker Image - TODO: Implement");
+    let image: String = Input::new()
+        .with_prompt("Image name to push (e.g., myregistry.com/myimage:tag)")
+        .interact_text()
+        .unwrap();
+
+    println!("📤 Pushing image: {}", image);
+    let status = Command::new("docker")
+        .args(["push", &image])
+        .status();
+
+    match status {
+        Ok(s) if s.success() => println!("✅ Successfully pushed {}", image),
+        _ => println!("❌ Failed to push {}", image),
+    }
 }
 
 fn list_images() {
@@ -61,13 +87,52 @@ fn list_images() {
 }
 
 fn remove_image() {
-    println!("🗑️  Remove Docker Image - TODO: Implement");
+    let image: String = Input::new()
+        .with_prompt("Image name or ID to remove")
+        .interact_text()
+        .unwrap();
+
+    println!("🗑️  Removing image: {}", image);
+    let status = Command::new("docker")
+        .args(["rmi", &image])
+        .status();
+
+    match status {
+        Ok(s) if s.success() => println!("✅ Successfully removed {}", image),
+        _ => println!("❌ Failed to remove {}", image),
+    }
 }
 
 fn tag_image() {
-    println!("🏷️  Tag Docker Image - TODO: Implement");
+    let source: String = Input::new()
+        .with_prompt("Source image name")
+        .interact_text()
+        .unwrap();
+
+    let target: String = Input::new()
+        .with_prompt("Target tag name")
+        .interact_text()
+        .unwrap();
+
+    println!("🏷️  Tagging {} as {}", source, target);
+    let status = Command::new("docker")
+        .args(["tag", &source, &target])
+        .status();
+
+    match status {
+        Ok(s) if s.success() => println!("✅ Successfully tagged {} as {}", source, target),
+        _ => println!("❌ Failed to tag image"),
+    }
 }
 
 fn image_history() {
-    println!("📊 Image History - TODO: Implement");
+    let image: String = Input::new()
+        .with_prompt("Image name")
+        .interact_text()
+        .unwrap();
+
+    println!("📊 Image History for: {}", image);
+    let _ = Command::new("docker")
+        .args(["history", &image])
+        .status();
 }

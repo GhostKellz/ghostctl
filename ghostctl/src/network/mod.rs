@@ -25,15 +25,63 @@ pub fn network_menu() {
         .unwrap();
 
     match choice {
+        0 => dns_menu(),
+        1 => scan_menu(),
+        2 => netcat_menu(),
+        3 => mesh::status(),
+        _ => return,
+    }
+}
+
+fn dns_menu() {
+    println!("🔍 DNS Tools");
+    println!("============");
+
+    let options = [
+        "🔍 DNS Lookup",
+        "🔒 DNSSEC Check",
+        "⬅️  Back",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("DNS Tools")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    use dialoguer::Input;
+    let domain: String = Input::new()
+        .with_prompt("Domain name")
+        .interact_text()
+        .unwrap();
+
+    match choice {
+        0 => dns::lookup(&domain),
+        1 => dns::check_dnssec(&domain),
+        _ => return,
+    }
+}
+
+fn scan_menu() {
+    println!("📡 Network Scanning");
+    println!("===================");
+
+    let options = [
+        "🎯 Target Scan",
+        "🔍 Interactive Scan",
+        "⬅️  Back",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Scanning Options")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    match choice {
         0 => {
-            use dialoguer::Input;
-            let domain: String = Input::new()
-                .with_prompt("Domain to lookup")
-                .interact_text()
-                .unwrap();
-            dns::lookup(&domain);
-        }
-        1 => {
             use dialoguer::Input;
             let target: String = Input::new()
                 .with_prompt("Target IP, CIDR, or range")
@@ -41,8 +89,7 @@ pub fn network_menu() {
                 .unwrap();
             scan::gscan_port_scan(&target, None, None, false);
         }
-        2 => netcat_menu(),
-        3 => mesh::status(),
+        1 => scan::gscan_interactive(),
         _ => return,
     }
 }

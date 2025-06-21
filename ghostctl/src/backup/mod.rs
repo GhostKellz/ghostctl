@@ -16,6 +16,7 @@ pub fn backup_menu() {
         "✅ Verify Backup Integrity",
         "🧹 Cleanup Old Backups",
         "📊 Backup Status",
+        "🔧 Restic CLI Tools",
         "⬅️  Back",
     ];
 
@@ -33,6 +34,7 @@ pub fn backup_menu() {
         3 => verify::verify_backups(),
         4 => cleanup::cleanup_old_backups(),
         5 => backup_status(),
+        6 => crate::restic::setup(),
         _ => return,
     }
 }

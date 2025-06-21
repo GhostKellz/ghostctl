@@ -248,7 +248,7 @@ fn proxmox_management_tools() {
     match choice {
         0 => bulk_vm_operations(),
         1 => resource_usage_report(),
-        2 => backup_management(),
+        2 => proxmox_backup_management(),
         3 => network_configuration(),
         4 => storage_management(),
         _ => return,
