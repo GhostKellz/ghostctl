@@ -2,7 +2,13 @@
 
 All notable changes to GhostCTL will be documented in this file.
 
-## [0.7.0] - 2024-12-21
+
+## [0.8.0] - 2025-06-21
+- **NEW**: Complete shortnames for network and security, seperately calling ssh, gpg, dns outside of security and network is allowed.
+
+
+
+## [0.7.0] - 2025-06-20
 
 ### 🎯 Major Features & Enhancements
 
@@ -125,9 +131,9 @@ ghostctl nvim mason              # Mason.nvim LSP/DAP management
 
 #### Security (`ghostctl security`)
 ```bash
-ghostctl security ssh             # SSH key management
-ghostctl security gpg             # GPG key management
-ghostctl security audit           # Security auditing
+ghostctl ssh             # SSH key management
+ghostctl gpg             # GPG key management
+ghostctl security audit  # Security auditing
 ```
 
 #### Backup & Recovery (`ghostctl backup` + `ghostctl restore`)

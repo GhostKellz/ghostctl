@@ -1,6 +1,6 @@
-# 📋 GhostCTL Commands Reference v0.7.0
+# 📋 GhostCTL Commands Reference v1 
 
-Complete command documentation for GhostCTL v0.7.0 - The ultimate system and homelab management tool.
+Complete command documentation for GhostCTL v0.8.0 - The ultimate system and homelab management tool.
 
 ## 🚀 Core Commands
 
@@ -27,22 +27,28 @@ ghostctl system nixos             # NixOS management
 ### 🐧 Arch Linux Management
 ```bash
 # Arch system maintenance and optimization
-ghostctl arch menu                # Interactive Arch menu
 ghostctl arch fix                 # Fix common Arch issues (pacman, keyring, mirrors)
+ghostctl arch clean <target>      # Clean specific targets (orphans, mirrors, pkgfix, gpg, locks, all)
+ghostctl arch bouncer <target>    # Fix and bounce back from issues (pacman, keyring, mirrors, all)
+ghostctl arch aur                 # AUR package management
+ghostctl arch boot                # Boot configuration management
+ghostctl arch health              # System health check and maintenance
+ghostctl arch performance         # Performance optimization
 ghostctl arch optimize            # Optimize system performance (zram/zswap)
 ghostctl arch mirrors             # Optimize mirror list with reflector
 ghostctl arch orphans             # Remove orphaned packages
-ghostctl arch pkgfix              # Clean PKGBUILD/build environment
-ghostctl arch keyring             # Refresh Arch keyring
-ghostctl arch full                # Run full system maintenance
 
-# New v0.7.0 features
-ghostctl arch health              # System health and maintenance
-ghostctl arch swap                # Swap and zram management
-ghostctl arch dotfiles            # Dotfiles management
-ghostctl arch aur                 # AUR helper management
-ghostctl arch boot                # Boot and kernel management
-ghostctl arch perf                # Performance tuning
+# Clean target examples:
+ghostctl arch clean orphans       # Remove orphaned packages
+ghostctl arch clean mirrors       # Clean and optimize mirror list
+ghostctl arch clean locks         # Clear pacman locks
+ghostctl arch clean all           # Perform all cleanup operations
+
+# Bouncer target examples:
+ghostctl arch bouncer pacman      # Fix pacman database and bounce back
+ghostctl arch bouncer keyring     # Fix keyring issues and bounce back
+ghostctl arch bouncer mirrors     # Fix mirrors and test connectivity
+ghostctl arch bouncer all         # Full system recovery sequence
 ```
 
 ### 🎯 NVIDIA Management
@@ -144,14 +150,55 @@ ghostctl pve ct start <id>        # Start container
 ghostctl pve ct stop <id>         # Stop container
 ```
 
-## 🔐 Security & Key Management (New in v0.7.0)
+## 🔐 Security & Key Management (Updated in v0.7.0)
 
 ### Security Commands
 ```bash
+# Full security menu (both long and short form)
 ghostctl security menu            # Security management menu
-ghostctl security ssh             # SSH key management
-ghostctl security gpg             # GPG key management  
+ghostctl sec menu                 # Security management menu (short alias)
+
+# Direct command access
+ghostctl ssh                      # SSH key management
+ghostctl gpg                      # GPG key management
+ghostctl security credentials     # Credential management
+ghostctl sec credentials          # Credential management (short alias)
 ghostctl security audit           # Security audit
+ghostctl sec audit                # Security audit (short alias)
+```
+
+### SSH Key Management
+```bash
+# SSH operations (direct access)
+ghostctl ssh                      # Interactive SSH key management
+ghostctl ssh generate             # Generate new SSH key pair
+ghostctl ssh list                 # List SSH keys
+ghostctl ssh copy-id user@host    # Copy SSH key to remote host
+ghostctl ssh config               # SSH configuration management
+```
+
+### GPG Key Management
+```bash
+# GPG operations (direct access)
+ghostctl gpg                      # Interactive GPG key management
+ghostctl gpg generate             # Generate new GPG key
+ghostctl gpg list                 # List GPG keys
+ghostctl gpg export               # Export GPG keys
+ghostctl gpg import               # Import GPG keys
+```
+
+### Credential Management
+```bash
+# Secure credential storage
+ghostctl security credentials     # Credential management menu
+ghostctl sec credentials          # Credential management menu (short)
+
+# Available operations through menu:
+# - Unlock credential store
+# - Store new credential
+# - List stored credentials
+# - Retrieve credential
+# - Delete credential
 ```
 
 ## 💾 Backup & Recovery (New in v0.7.0)
@@ -178,20 +225,81 @@ ghostctl restore chroot           # Enter recovery chroot
 ### Btrfs Operations
 ```bash
 ghostctl btrfs menu               # Btrfs management menu
-ghostctl btrfs snapshot           # Create snapshot
 ghostctl btrfs list               # List snapshots
-ghostctl btrfs delete             # Delete snapshot
-ghostctl btrfs restore            # Restore snapshot
+ghostctl btrfs create NAME        # Create snapshot with specified name
+ghostctl btrfs create NAME -s /home  # Create snapshot of specific subvolume
+ghostctl btrfs delete NAME        # Delete snapshot by name
+ghostctl btrfs restore NAME PATH  # Restore snapshot to target path
+ghostctl btrfs status             # Show filesystem status and health
+ghostctl btrfs scrub [PATH]       # Start filesystem scrub (default: /)
+ghostctl btrfs balance [PATH]     # Start filesystem balance (default: /)
+ghostctl btrfs usage [PATH]       # Show filesystem usage (default: /)
+ghostctl btrfs quota [PATH]       # Manage quotas (default: /)
 ```
 
-## 🌐 Network & Infrastructure (New in v0.7.0)
+### Snapper Integration
+```bash
+ghostctl btrfs snapper setup     # Setup snapper configurations
+ghostctl btrfs snapper edit CONFIG # Edit snapper configuration
+ghostctl btrfs snapper list      # List snapper configurations
+```
+
+## 🌐 Network & Infrastructure (Updated in v0.7.0)
 
 ### Network Management
 ```bash
-ghostctl network menu             # Network tools menu
-ghostctl network status           # Network status
-ghostctl network test             # Network connectivity test
-ghostctl network config           # Network configuration
+# Full network menu (both long and short form)
+ghostctl network menu             # Network management menu
+ghostctl net menu                 # Network management menu (short alias)
+
+# Direct command access
+ghostctl dns DOMAIN               # DNS lookup and configuration
+ghostctl nc                       # Netcat utilities
+ghostctl network mesh             # Mesh networking (Tailscale/Headscale)
+ghostctl net mesh                 # Mesh networking (short alias)
+ghostctl network scan TARGET      # Network port scanning with gscan
+ghostctl net scan TARGET          # Network port scanning (short alias)
+```
+
+### DNS Operations
+```bash
+# DNS lookup and management
+ghostctl dns google.com           # DNS lookup for domain
+ghostctl dns --type MX domain.com # Specific record type lookup
+ghostctl dns --reverse 8.8.8.8    # Reverse DNS lookup
+```
+
+### Network Scanning with gscan
+```bash
+# Basic scan
+ghostctl network scan 192.168.1.1
+ghostctl net scan 192.168.1.1     # Short form
+
+# Network range scan
+ghostctl network scan 192.168.1.0/24
+ghostctl net scan 192.168.1.0/24  # Short form
+
+# Custom port range
+ghostctl network scan TARGET -s START_PORT -e END_PORT
+ghostctl net scan TARGET -s START_PORT -e END_PORT
+
+# Scan with banner grabbing
+ghostctl network scan TARGET --banner
+ghostctl net scan TARGET --banner
+```
+
+### Netcat Utilities
+```bash
+# File transfer
+ghostctl nc send FILE HOST PORT    # Send file to host
+ghostctl nc receive FILE PORT      # Receive file on port
+
+# Communication
+ghostctl nc chat HOST PORT         # Connect to chat session
+ghostctl nc chat PORT              # Start chat server
+
+# Connectivity testing
+ghostctl nc check HOST PORT        # Check port connectivity
 ```
 
 ### ☁️ Cloud Provider Management
@@ -267,6 +375,13 @@ ghostctl tools acme               # acme.sh SSL management
 
 ## 🆕 What's New in v0.7.0
 
+### 🚀 Enhanced CLI Experience (New in v0.7.0)
+- **Short Command Aliases**: Quick access with `ghostctl net` and `ghostctl sec` shortcuts
+- **Direct Command Access**: Run `ghostctl ssh`, `ghostctl gpg`, `ghostctl dns`, `ghostctl nc` directly without menus
+- **Unified Menu System**: Both long and short forms support interactive menus (`ghostctl network menu` or `ghostctl net menu`)
+- **Intuitive Command Structure**: Unix-like command patterns for better usability
+- **Backward Compatibility**: All existing commands continue to work as before
+
 ### 🎯 Enhanced System Management
 - **Arch Linux Enhancements**: Complete system maintenance with dotfiles management, disk space checking, package database rebuild, swap/zram configuration
 - **NVIDIA Complete Suite**: Driver management (proprietary/open/open-beta), container runtime setup, GPU passthrough for VMs
@@ -278,9 +393,11 @@ ghostctl tools acme               # acme.sh SSL management
 - **Language Support**: Comprehensive Rust, Python, Go, Zig development environments
 
 ### 🔐 Security & Infrastructure
-- **Security Management**: SSH/GPG key management, security auditing
+- **Enhanced Security Management**: Direct command access for SSH (`ghostctl ssh`) and GPG (`ghostctl gpg`) operations
+- **Short Command Aliases**: Use `ghostctl sec` and `ghostctl net` for quick access to security and network menus
+- **Credential Management**: Secure credential storage and management with interactive menus
 - **Backup & Recovery**: Automated backup systems, integrity verification, system recovery
-- **Network Tools**: Network diagnostics, configuration management
+- **Network Tools**: Direct access to DNS lookups (`ghostctl dns`), netcat utilities (`ghostctl nc`), and network diagnostics
 
 ### 📁 Filesystem & Storage
 - **Btrfs Management**: Snapshot creation, restoration, management
@@ -297,8 +414,9 @@ ghostctl tools acme               # acme.sh SSL management
 
 ### Quick System Maintenance
 ```bash
-# Complete Arch system maintenance
-ghostctl arch full
+# Complete Arch system maintenance  
+ghostctl arch clean all          # Comprehensive cleanup
+ghostctl arch bouncer all        # Full recovery sequence
 
 # Check system health
 ghostctl arch health
@@ -321,7 +439,11 @@ ghostctl nvidia container
 ```bash
 # Setup security
 ghostctl security audit
-ghostctl security ssh
+ghostctl sec audit               # Short form
+ghostctl ssh                     # SSH key management
+ghostctl gpg                     # GPG key management
+ghostctl security credentials    # Credential management
+ghostctl sec credentials         # Short form
 
 # Setup automated backups
 ghostctl backup setup
@@ -359,7 +481,8 @@ ghostctl arch perf               # System performance optimization
 ghostctl nvidia optimize         # GPU performance tuning
 
 # Maintenance automation
-ghostctl arch full               # Complete system maintenance
+ghostctl arch clean all          # Complete system cleanup
+ghostctl arch bouncer all        # Full system recovery
 ghostctl backup verify           # Backup integrity verification
 ```
 
@@ -403,3 +526,457 @@ ghostctl nginx ssl-setup        # Automated SSL setup
 
 For detailed usage examples and guides, see [DOCS.md](DOCS.md).
 For quick start and overview, see [README.md](README.md).
+               # Update GhostCTL
+ghostctl update system        # Update system packages
+ghostctl update ghost-tools   # Update Ghost tools
+ghostctl update all           # Update everything
+```
+
+### Maintenance
+```bash
+ghostctl maintenance          # Run maintenance tasks
+ghostctl cleanup              # Clean temporary files
+ghostctl backup-config        # Backup configurations
+ghostctl restore-config       # Restore configurations
+```
+
+## 🚨 Troubleshooting Commands
+
+### Diagnostics
+```bash
+ghostctl diagnose            # Run diagnostics
+ghostctl logs                # View all logs
+ghostctl debug               # Enable debug mode
+ghostctl reset               # Reset to defaults
+```
+
+### Repair Operations
+```bash
+ghostctl repair docker       # Repair Docker installation
+ghostctl repair nginx        # Repair Nginx configuration
+ghostctl repair ssl          # Repair SSL certificates
+ghostctl repair permissions  # Fix file permissions
+```
+
+## 💡 Help & Documentation
+
+### Help System
+```bash
+ghostctl help                # Main help
+ghostctl help <command>      # Command-specific help
+ghostctl docs                # Open documentation
+ghostctl examples            # Show examples
+ghostctl tips                # Usage tips
+```
+
+### Interactive Guides
+```bash
+ghostctl guide homelab       # Homelab setup guide
+ghostctl guide dev-env       # Development environment guide
+ghostctl guide ssl           # SSL setup guide
+ghostctl guide docker        # Docker guide
+```
+
+---
+
+## 📝 Notes
+
+- All commands can be run interactively through the main menu: `ghostctl`
+- Most commands have both interactive and non-interactive modes
+- Use `ghostctl help <command>` for detailed command information
+- Configuration files are stored in `~/.config/ghostctl/`
+- Scripts are located in `/data/projects/ghostctl/scripts/`
+- Logs are available via `ghostctl logs` or `journalctl -u ghostctl`
+
+## 🛠️ Development Environment
+
+### Multi-Language Support
+
+#### 🦀 Rust Development
+```bash
+# Toolchain management
+rustup update                # Update Rust
+cargo new project           # New project
+cargo build --release      # Release build
+cargo test                 # Run tests
+cargo clippy              # Linting
+cargo fmt                 # Formatting
+```
+
+#### ⚡ Zig Development
+```bash
+# With Zion meta-tool
+zion new project           # New project
+zion build                # Build project
+zion test                 # Run tests
+
+# Direct Zig commands
+zig init-exe              # Initialize executable
+zig build                 # Build project
+zig test                  # Run tests
+```
+
+#### 🐹 Go Development
+```bash
+# Module management
+go mod init module-name    # Initialize module
+go mod tidy               # Clean dependencies
+go get package            # Add dependency
+go build                  # Build project
+go test ./...             # Run tests
+go run .                  # Run project
+```
+
+#### 🐍 Python Development
+```bash
+# Virtual environments
+python3 -m venv env       # Create venv
+source env/bin/activate   # Activate venv
+conda create -n env       # Create conda env
+conda activate env       # Activate conda env
+
+# Package management
+pip install package       # Install package
+pip freeze > requirements.txt  # Export deps
+pip install -r requirements.txt  # Install deps
+```
+
+### 👻 Ghost Tools Commands
+
+#### ⚡ Reaper (AUR Helper)
+```bash
+reap <package>            # Install package
+reap -S <query>           # Search packages
+reap -R <package>         # Remove package
+reap -Syu                 # System update
+reap -Qm                  # List AUR packages
+```
+
+#### 🦀 Oxygen (Rust Tool)
+```bash
+oxygen new <project>      # New Rust project
+oxygen build             # Build project
+oxygen test              # Run tests
+oxygen deploy            # Deploy project
+oxygen bench             # Run benchmarks
+```
+
+#### ⚡ Zion (Zig Tool)
+```bash
+zion new <project>        # New Zig project
+zion build               # Build project
+zion test                # Run tests
+zion clean               # Clean build
+zion deps                # Manage dependencies
+```
+
+#### 🎮 NVControl
+```bash
+nvcontrol status         # GPU status
+nvcontrol temp           # Temperature info
+nvcontrol fan            # Fan control
+nvcontrol overclock      # Performance tuning
+```
+
+## 🔐 SSL Certificate Management (acme.sh)
+
+### Installation & Setup
+```bash
+# Install acme.sh
+curl https://get.acme.sh | sh
+source ~/.bashrc
+
+# Account registration
+acme.sh --register-account -m your@email.com
+```
+
+### Certificate Operations
+```bash
+# Issue certificate (webroot)
+acme.sh --issue -d domain.com --webroot /var/www/html
+
+# Issue certificate (standalone)
+acme.sh --issue -d domain.com --standalone
+
+# Issue certificate (DNS API - Cloudflare)
+export CF_Token="your-token"
+acme.sh --issue -d domain.com --dns dns_cf
+
+# Install certificate to custom location
+acme.sh --install-cert -d domain.com \
+  --cert-file /etc/nginx/certs/domain.com/cert.pem \
+  --key-file /etc/nginx/certs/domain.com/private.key \
+  --fullchain-file /etc/nginx/certs/domain.com/fullchain.pem \
+  --reloadcmd "systemctl reload nginx"
+
+# Renew certificates
+acme.sh --renew-all         # Renew all
+acme.sh --renew -d domain.com  # Renew specific
+
+# List certificates
+acme.sh --list
+
+# Certificate info
+acme.sh --info -d domain.com
+```
+
+### DNS API Configuration
+```bash
+# Cloudflare
+export CF_Token="your-cloudflare-token"
+export CF_Account_ID="your-account-id"
+
+# DigitalOcean
+export DO_API_KEY="your-digitalocean-api-key"
+
+# AWS Route53
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+
+# Add to shell config for persistence
+echo 'export CF_Token="your-token"' >> ~/.bashrc
+```
+
+## 🐳 Docker Management
+
+### Container Operations
+```bash
+# Basic commands
+docker ps                 # List running containers
+docker ps -a              # List all containers
+docker images             # List images
+docker logs container     # View logs
+docker exec -it container bash  # Enter container
+
+# Container lifecycle
+docker run image          # Run container
+docker start container    # Start container
+docker stop container     # Stop container
+docker restart container  # Restart container
+docker rm container       # Remove container
+```
+
+### Docker Compose
+```bash
+# Compose operations
+docker-compose up         # Start services
+docker-compose up -d      # Start in background
+docker-compose down       # Stop services
+docker-compose logs       # View logs
+docker-compose ps         # List services
+docker-compose restart    # Restart services
+```
+
+### Image Management
+```bash
+# Image operations
+docker build -t name .    # Build image
+docker pull image         # Pull image
+docker push image         # Push image
+docker rmi image          # Remove image
+docker system prune       # Clean unused data
+```
+
+## 🌐 Nginx Management
+
+### Service Control
+```bash
+# Systemd service
+sudo systemctl start nginx     # Start Nginx
+sudo systemctl stop nginx      # Stop Nginx
+sudo systemctl restart nginx   # Restart Nginx
+sudo systemctl reload nginx    # Reload config
+sudo systemctl status nginx    # Check status
+sudo systemctl enable nginx    # Enable auto-start
+```
+
+### Configuration
+```bash
+# Test configuration
+sudo nginx -t             # Test config syntax
+sudo nginx -T             # Test and dump config
+
+# Reload configuration
+sudo nginx -s reload      # Graceful reload
+sudo nginx -s quit        # Graceful shutdown
+```
+
+### SSL Configuration
+```bash
+# Certificate paths (GhostCTL standard)
+/etc/nginx/certs/domain.com/cert.pem
+/etc/nginx/certs/domain.com/private.key
+/etc/nginx/certs/domain.com/fullchain.pem
+
+# Nginx SSL config example
+server {
+    listen 443 ssl;
+    server_name domain.com;
+    
+    ssl_certificate /etc/nginx/certs/domain.com/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/domain.com/private.key;
+    
+    # SSL security settings
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+}
+```
+
+## 📝 Script Management
+
+### Local Scripts
+```bash
+# Script directories
+/data/projects/ghostctl/scripts/homelab/     # Homelab automation
+/data/projects/ghostctl/scripts/dev/         # Development scripts
+/data/projects/ghostctl/scripts/docker/      # Container scripts
+/data/projects/ghostctl/scripts/templates/   # Script templates
+
+# Execute scripts
+bash /path/to/script.sh   # Run script
+chmod +x script.sh        # Make executable
+./script.sh              # Execute directly
+```
+
+### Script Templates
+```bash
+# Create from template
+cp templates/basic_bash.sh new_script.sh
+cp templates/service_manager.sh my_service.sh
+cp templates/package_installer.sh install_deps.sh
+```
+
+## 📝 Editor Configuration
+
+### Neovim with LazyVim
+```bash
+# LazyVim commands
+:Lazy                     # Plugin manager
+:LazyUpdate              # Update plugins
+:LazyClean               # Clean unused plugins
+:LazyProfile             # Performance profiling
+
+# LSP commands
+:LspInfo                 # Language server info
+:LspRestart              # Restart language server
+:Mason                   # LSP installer
+
+# File operations
+:Telescope find_files    # Find files
+:Telescope live_grep     # Search in files
+:NvimTreeToggle         # File explorer
+```
+
+### Terminal (Ghostty)
+```bash
+# Ghostty configuration
+~/.config/ghostty/config  # Config file location
+
+# Key bindings (default)
+Ctrl+Shift+T             # New tab
+Ctrl+Shift+N             # New window
+Ctrl+Shift+C             # Copy
+Ctrl+Shift+V             # Paste
+```
+
+## 🏠 Homelab Commands
+
+### Proxmox VE
+```bash
+# VM management
+qm list                  # List VMs
+qm start vmid           # Start VM
+qm stop vmid            # Stop VM
+qm restart vmid         # Restart VM
+qm status vmid          # VM status
+
+# Container management
+pct list                # List containers
+pct start ctid          # Start container
+pct stop ctid           # Stop container
+pct enter ctid          # Enter container
+
+# Storage management
+pvesm status            # Storage status
+pvesm list storage      # List storage
+```
+
+### System Monitoring
+```bash
+# Resource monitoring
+htop                    # Interactive process viewer
+df -h                   # Disk usage
+free -h                 # Memory usage
+iostat                  # I/O statistics
+netstat -tulpn         # Network connections
+
+# Service monitoring
+systemctl list-units   # List services
+journalctl -f          # Follow system logs
+journalctl -u service  # Service-specific logs
+```
+
+## 🔧 Troubleshooting Commands
+
+### System Diagnostics
+```bash
+# System information
+uname -a                # System info
+lsb_release -a         # Distribution info
+cat /proc/version      # Kernel version
+systemctl --failed     # Failed services
+
+# Network diagnostics
+ping google.com        # Network connectivity
+dig domain.com         # DNS lookup
+nslookup domain.com    # DNS resolution
+ss -tulpn             # Socket statistics
+
+# Disk diagnostics
+lsblk                  # Block devices
+fdisk -l              # Disk partitions
+fsck /dev/device      # File system check
+smartctl -a /dev/sda  # SMART disk info
+```
+
+### Log Analysis
+```bash
+# System logs
+journalctl --since yesterday    # Recent logs
+journalctl -p err              # Error logs only
+journalctl -u nginx            # Service logs
+tail -f /var/log/nginx/error.log  # Follow error log
+
+# Application logs
+docker logs container          # Container logs
+tail -f application.log       # Follow app log
+grep -i error /var/log/syslog # Search for errors
+```
+
+## 🔄 Backup & Recovery
+
+### Restic Backup
+```bash
+# Initialize repository
+restic init --repo /backup/location
+
+# Create backup
+restic backup ~/important --repo /backup/location
+
+# List snapshots
+restic snapshots --repo /backup/location
+
+# Restore backup
+restic restore latest --repo /backup/location --target /restore/path
+
+# Check repository
+restic check --repo /backup/location
+```
+
+---
+
+For more detailed information, see the specific documentation files:
+- [Docker Guide](DOCKER.md)
+- [Proxmox Integration](PROXMOX.md) 
+- [Cloud Services](CLOUD.md)
+- [Backup with Restic](RESTIC.md)

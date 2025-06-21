@@ -5,7 +5,7 @@
 
 [![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org)
 [![Platform](https://img.shields.io/badge/platform-linux-lightgrey.svg)](https://www.kernel.org)
-[![Build Status](https://github.com/GhostKellz/ghostctl/actions/workflows/main.yml/badge.svg)](https://github.com/GhostKellz/ghostctl/actions/workflows/main.yml)
+[![Build Status](https://github.com/GhostKellz/ghostctl/actions/workflows/ci.yml/badge.svg)](https://github.com/GhostKellz/ghostctl/actions/workflows/ci.yml)
 [![Arch Linux](https://img.shields.io/badge/Arch--Linux-blue?logo=arch-linux&logoColor=white)](https://archlinux.org)
 [![Btrfs](https://img.shields.io/badge/Btrfs--supported-blueviolet?logo=linux)](https://btrfs.readthedocs.io)
 [![Rust](https://img.shields.io/badge/Rust--Toolchain-orange?logo=rust)](https://www.rust-lang.org/)

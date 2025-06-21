@@ -27,7 +27,15 @@ pub fn container_management() {
     match choice {
         0 => list_containers(),
         1 => run_container(),
-        2 => stop_container(),
+        2 => {
+            println!("Enter container ID to stop:");
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).unwrap();
+            let id = input.trim().to_string();
+            if !id.is_empty() {
+                stop_container(id);
+            }
+        },
         3 => restart_container(),
         4 => remove_container(),
         5 => container_stats(),
@@ -46,8 +54,11 @@ fn run_container() {
     println!("🚀 Run Docker Container - TODO: Implement");
 }
 
-fn stop_container() {
-    println!("🛑 Stop Docker Container - TODO: Implement");
+pub fn stop_container(id: String) {
+    println!("🛑 Stopping Docker Container: {}", id);
+    let _ = std::process::Command::new("docker")
+        .args(&["stop", &id])
+        .status();
 }
 
 fn restart_container() {

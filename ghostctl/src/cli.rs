@@ -221,6 +221,7 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("security")
                 .about("Security management")
+                .subcommand(Command::new("menu").about("Security management menu"))
                 .subcommand(Command::new("ssh").about("SSH configuration"))
                 .subcommand(Command::new("gpg").about("GPG management"))
                 .subcommand(Command::new("credentials").about("Credential management")),
@@ -269,6 +270,16 @@ pub fn build_cli() -> Command {
             Command::new("arch")
                 .about("Arch Linux management")
                 .subcommand(Command::new("fix").about("Fix common Arch issues"))
+                .subcommand(
+                    Command::new("clean")
+                        .about("Clean specific target")
+                        .arg(Arg::new("target").required(true).help("Target to clean (orphans, mirrors, pkgfix, gpg, locks, all)"))
+                )
+                .subcommand(
+                    Command::new("bouncer")
+                        .about("Fix and bounce back from issues")
+                        .arg(Arg::new("target").required(true).help("Target to fix (pacman, keyring, mirrors, all)"))
+                )
                 .subcommand(Command::new("aur").about("AUR package management"))
                 .subcommand(Command::new("boot").about("Boot configuration"))
                 .subcommand(Command::new("health").about("System health check"))
@@ -280,6 +291,7 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("network")
                 .about("Network management")
+                .subcommand(Command::new("menu").about("Network management menu"))
                 .subcommand(
                     Command::new("dns")
                         .about("DNS configuration")
@@ -338,6 +350,123 @@ pub fn build_cli() -> Command {
                 .subcommand(Command::new("configure").about("Configure tools"))
                 .subcommand(Command::new("update").about("Update tools")),
         )
+        // Short aliases (hidden from main help)
+        .subcommand(
+            Command::new("net")
+                .about("Network management (short alias)")
+                .subcommand(Command::new("menu").about("Network management menu"))
+                .subcommand(
+                    Command::new("dns")
+                        .about("DNS configuration")
+                        .arg(Arg::new("domain").required(true).help("Domain name to lookup"))
+                )
+                .subcommand(Command::new("mesh").about("Mesh networking"))
+                .subcommand(
+                    Command::new("scan")
+                        .about("Network port scanning")
+                        .arg(Arg::new("target").required(true).help("Target IP, CIDR, or range"))
+                        .arg(Arg::new("start-port").short('s').help("Start port"))
+                        .arg(Arg::new("end-port").short('e').help("End port"))
+                        .arg(Arg::new("banner").long("banner").action(clap::ArgAction::SetTrue).help("Enable banner grabbing"))
+                )
+                .subcommand(
+                    Command::new("netcat")
+                        .about("Netcat utilities")
+                        .subcommand(
+                            Command::new("send")
+                                .about("Send a file")
+                                .arg(Arg::new("file").required(true).help("File to send"))
+                                .arg(Arg::new("host").required(true).help("Target host"))
+                                .arg(Arg::new("port").required(true).help("Target port"))
+                        )
+                        .subcommand(
+                            Command::new("receive")
+                                .about("Receive a file")
+                                .arg(Arg::new("file").required(true).help("File to save as"))
+                                .arg(Arg::new("port").required(true).help("Port to listen on"))
+                        )
+                        .subcommand(
+                            Command::new("chat")
+                                .about("Start or join a chat session")
+                                .arg(Arg::new("host").help("Host to connect to"))
+                                .arg(Arg::new("port").required(true).help("Port to use"))
+                        )
+                        .subcommand(
+                            Command::new("check")
+                                .about("Check port connectivity")
+                                .arg(Arg::new("host").required(true).help("Host to check"))
+                                .arg(Arg::new("port").required(true).help("Port to check"))
+                        )
+                )
+                .hide(true)
+        )
+        .subcommand(
+            Command::new("sec")
+                .about("Security management (short alias)")
+                .subcommand(Command::new("menu").about("Security management menu"))
+                .subcommand(Command::new("ssh").about("SSH configuration"))
+                .subcommand(Command::new("gpg").about("GPG management"))
+                .subcommand(Command::new("credentials").about("Credential management"))
+                .hide(true)
+        )
+        .subcommand(
+            Command::new("ssh")
+                .about("SSH configuration and management")
+                .subcommand(Command::new("menu").about("Interactive SSH management menu"))
+                .subcommand(Command::new("generate").about("Generate new SSH key pair"))
+                .subcommand(Command::new("list").about("List SSH keys"))
+                .subcommand(
+                    Command::new("copy-id")
+                        .about("Copy SSH key to remote host")
+                        .arg(Arg::new("target").required(true).help("user@hostname"))
+                )
+                .subcommand(Command::new("config").about("SSH configuration management"))
+                .hide(true)
+        )
+        .subcommand(
+            Command::new("gpg")
+                .about("GPG key management")
+                .hide(true)
+        )
+        .subcommand(
+            Command::new("dns")
+                .about("DNS lookup and management")
+                .arg(Arg::new("domain").help("Domain name to lookup"))
+                .arg(Arg::new("type").long("type").short('t').help("DNS record type (A, AAAA, MX, NS, TXT, etc.)"))
+                .arg(Arg::new("reverse").long("reverse").short('r').action(clap::ArgAction::SetTrue).help("Perform reverse DNS lookup"))
+                .arg(Arg::new("server").long("server").short('s').help("DNS server to use"))
+                .hide(true)
+        )
+        .subcommand(
+            Command::new("nc")
+                .about("Netcat utilities")
+                .subcommand(
+                    Command::new("send")
+                        .about("Send file to host")
+                        .arg(Arg::new("file").required(true).help("File to send"))
+                        .arg(Arg::new("host").required(true).help("Target host"))
+                        .arg(Arg::new("port").required(true).help("Target port"))
+                )
+                .subcommand(
+                    Command::new("receive")
+                        .about("Receive file on port")
+                        .arg(Arg::new("file").required(true).help("Output file"))
+                        .arg(Arg::new("port").required(true).help("Listen port"))
+                )
+                .subcommand(
+                    Command::new("chat")
+                        .about("Start chat session")
+                        .arg(Arg::new("host").help("Host to connect to (omit for server mode)"))
+                        .arg(Arg::new("port").required(true).help("Port"))
+                )
+                .subcommand(
+                    Command::new("check")
+                        .about("Check port connectivity")
+                        .arg(Arg::new("host").required(true).help("Target host"))
+                        .arg(Arg::new("port").required(true).help("Target port"))
+                )
+                .hide(true)
+        )
         .subcommand(Command::new("version").about("Show version information"))
         .subcommand(Command::new("list").about("List available commands"))
 }
@@ -364,12 +493,18 @@ pub fn handle_cli_args(matches: &ArgMatches) {
         Some(("proxmox", matches)) => handle_proxmox_commands(matches),
         Some(("pve", matches)) => handle_pve_commands(matches),
         Some(("network", matches)) => handle_network_commands(matches),
+        Some(("net", matches)) => handle_network_commands(matches), // Short alias for network
+        Some(("security", matches)) => handle_security_commands(matches),
+        Some(("sec", matches)) => handle_security_commands(matches), // Short alias for security
+        Some(("ssh", matches)) => handle_ssh_management(matches), // SSH management with subcommands
+        Some(("gpg", matches)) => handle_gpg_management(matches), // GPG management with subcommands
+        Some(("dns", matches)) => handle_dnslookup_commands(matches), // DNS lookup with options
+        Some(("nc", matches)) => handle_netcat_commands(matches), // Netcat utilities
         Some(("cloud", matches)) => handle_cloud_commands(matches),
         Some(("nginx", matches)) => handle_nginx_commands(matches),
         Some(("tools", matches)) => handle_tools_commands(matches),
         Some(("btrfs", matches)) => handle_btrfs_commands(matches),
         Some(("nvidia", matches)) => handle_nvidia_commands(matches),
-        Some(("security", matches)) => handle_security_commands(matches),
         Some(("backup", matches)) => handle_backup_commands(matches),
         Some(("restore", matches)) => handle_restore_commands(matches),
         Some(("scripts", matches)) => handle_scripts_commands(matches),
@@ -455,7 +590,7 @@ fn handle_ct_commands(matches: &ArgMatches) {
         }
         Some(("stop", sub_matches)) => {
             if let Some(id) = sub_matches.get_one::<String>("id") {
-                stop_container(id.to_string());
+                crate::docker::container::stop_container(id.to_string());
             }
         }
         None => container_management_menu(),
@@ -572,6 +707,16 @@ fn handle_homelab_commands(matches: &ArgMatches) {
 fn handle_arch_commands(matches: &ArgMatches) {
     match matches.subcommand() {
         Some(("fix", _)) => arch::archfix::fix(),
+        Some(("clean", sub_matches)) => {
+            if let Some(target) = sub_matches.get_one::<String>("target") {
+                handle_arch_clean(target);
+            }
+        }
+        Some(("bouncer", sub_matches)) => {
+            if let Some(target) = sub_matches.get_one::<String>("target") {
+                handle_arch_bouncer(target);
+            }
+        }
         Some(("aur", _)) => arch::aur::aur_helper_management(),
         Some(("boot", _)) => arch::boot::boot_management(),
         Some(("health", _)) => arch::health::health_menu(),
@@ -626,6 +771,7 @@ fn handle_proxmox_commands(matches: &ArgMatches) {
 
 fn handle_network_commands(matches: &ArgMatches) {
     match matches.subcommand() {
+        Some(("menu", _)) => network::network_menu(),
         Some(("dns", sub_matches)) => {
             if let Some(domain) = sub_matches.get_one::<String>("domain") {
                 network::dns::lookup(domain);
@@ -708,17 +854,17 @@ fn handle_network_commands(matches: &ArgMatches) {
                     println!("  chat     - Start or join a chat session");
                     println!("  check    - Check port connectivity");
                     println!();
-                    println!("Use 'ghostctl network netcat <subcommand> --help' for details");
+                    println!("Use 'ghostctl nc help' for more details");
                 }
                 _ => {
                     println!("❌ Unknown netcat subcommand. Use 'ghostctl network netcat help' for available options.");
                 }
             }
         }
-        None => network::mesh::status(),
+        None => network::network_menu(),
         _ => {
             println!("❌ Unknown network subcommand. Use 'ghostctl network help' for available options.");
-            network::mesh::status();
+            network::network_menu();
         }
     }
 }
@@ -837,7 +983,7 @@ fn handle_btrfs_commands(matches: &ArgMatches) {
                 Some(("list", _)) => {
                     btrfs::handle_btrfs_action(crate::BtrfsAction::SnapperList);
                 }
-                _ => btrfs::btrfs_menu(),
+                _ => btrfs::snapshot::snapper_menu(),
             }
         }
         None => btrfs::btrfs_menu(),
@@ -860,8 +1006,11 @@ fn handle_nvidia_commands(matches: &ArgMatches) {
 
 fn handle_security_commands(matches: &ArgMatches) {
     match matches.subcommand() {
+        Some(("menu", _)) => security::security_menu(),
         Some(("ssh", _)) => security::ssh::ssh_management(),
         Some(("gpg", _)) => security::gpg::gpg_key_management(),
+        Some(("credentials", _)) => security::credentials::credential_management(),
+        None => security::security_menu(),
         _ => security::ssh::ssh_management(),
     }
 }
@@ -1121,13 +1270,6 @@ fn container_management_menu() {
     println!("Container Management Menu - Coming Soon!");
 }
 
-fn stop_container(_id: String) {
-    println!("Stopping Container - Coming Soon!");
-}
-
-fn ssl_management_menu() {
-    println!("SSL Management Menu - Coming Soon!");
-}
 
 fn show_command_list() {
     println!("ghostctl Available Commands");
@@ -1165,4 +1307,244 @@ fn show_command_list() {
     println!("  list             - Show this command list");
     println!();
     println!("For detailed help on any command, use: ghostctl <command> help");
+}
+
+fn handle_arch_clean(target: &str) {
+    println!("🧹 Cleaning target: {}", target);
+    match target {
+        "orphans" => arch::archfix::orphans(),
+        "mirrors" => arch::optimize_mirrors(),
+        "pkgfix" => arch::archfix::pkgfix(),
+        "gpg" => arch::fix_gpg_keys(),
+        "locks" => arch::reset_pacman_locks(),
+        "all" => {
+            println!("🧹 Performing comprehensive system cleanup...");
+            arch::cleanup_orphans();
+            arch::reset_pacman_locks();
+            arch::fix_gpg_keys();
+            arch::optimize_mirrors();
+            println!("✅ System cleanup complete!");
+        }
+        _ => {
+            println!("❌ Unknown clean target: {}", target);
+            println!("📋 Available clean targets:");
+            println!("  orphans  - Remove orphaned packages");
+            println!("  mirrors  - Clean and optimize mirror list");
+            println!("  pkgfix   - Clean PKGBUILD issues");
+            println!("  gpg      - Clean and fix GPG keys");
+            println!("  locks    - Clear pacman locks");
+            println!("  all      - Perform all cleanup operations");
+        }
+    }
+}
+
+fn handle_arch_bouncer(target: &str) {
+    println!("🏀 Bouncing back from issues with target: {}", target);
+    match target {
+        "pacman" => {
+            arch::reset_pacman_locks();
+            arch::archfix::fix();
+        }
+        "keyring" => {
+            arch::fix_gpg_keys();
+            arch::archfix::fix();
+        }
+        "mirrors" => {
+            arch::optimize_mirrors();
+            println!("🔄 Testing mirror connectivity...");
+            let _ = std::process::Command::new("sudo")
+                .args(&["pacman", "-Sy"])
+                .status();
+        }
+        "all" => {
+            println!("🏀 Full system bounce-back sequence...");
+            arch::reset_pacman_locks();
+            arch::fix_gpg_keys();
+            arch::optimize_mirrors();
+            arch::archfix::fix();
+            println!("✅ System bounce-back complete!");
+        }
+        _ => {
+            println!("❌ Unknown bouncer target: {}", target);
+            println!("📋 Available bouncer targets:");
+            println!("  pacman   - Fix pacman database and bounce back");
+            println!("  keyring  - Fix keyring issues and bounce back");
+            println!("  mirrors  - Fix mirrors and test connectivity");
+            println!("  all      - Full system recovery sequence");
+        }
+    }
+}
+
+fn handle_ssh_management(matches: &ArgMatches) {
+    match matches.subcommand() {
+        Some(("help", _)) => {
+            println!("� SSH Key Management");
+            println!("=====================");
+            println!();
+            println!("📋 Available commands:");
+            println!("  ghostctl ssh help    - Show this help message");
+            println!("  ghostctl ssh menu    - Launch interactive SSH management menu");
+            println!();
+            println!("� Use 'ghostctl ssh menu' to access the full interactive SSH management interface");
+        }
+        Some(("menu", _)) => security::ssh::ssh_management(),
+        _ => {
+            // No subcommand provided, launch the existing SSH menu directly
+            security::ssh::ssh_management();
+        }
+    }
+}
+
+fn handle_gpg_management(matches: &ArgMatches) {
+    match matches.subcommand() {
+        Some(("help", _)) => {
+            println!("🔑 GPG Key Management");
+            println!("=====================");
+            println!();
+            println!("📋 Available commands:");
+            println!("  ghostctl gpg help    - Show this help message");
+            println!("  ghostctl gpg menu    - Launch interactive GPG management menu");
+            println!();
+            println!("� Use 'ghostctl gpg menu' to access the full interactive GPG management interface");
+        }
+        Some(("menu", _)) => security::gpg::gpg_key_management(),
+        _ => {
+            // No subcommand provided, launch the existing GPG menu directly
+            security::gpg::gpg_key_management();
+        }
+    }
+}
+
+fn handle_dnslookup_commands(matches: &ArgMatches) {
+    if let Some(domain) = matches.get_one::<String>("domain") {
+        if domain == "help" {
+            println!("🌐 DNS Lookup and Management");
+            println!("============================");
+            println!();
+            println!("📋 Usage:");
+            println!("  ghostctl dns <domain>                    - Basic DNS lookup");
+            println!("  ghostctl dns <domain> --type MX         - Specific record type");
+            println!("  ghostctl dns <ip> --reverse              - Reverse DNS lookup");
+            println!("  ghostctl dns <domain> --server 8.8.8.8  - Use specific DNS server");
+            println!("  ghostctl dns help                       - Show this help message");
+            println!();
+            println!("📖 Examples:");
+            println!("  ghostctl dns google.com");
+            println!("  ghostctl dns google.com --type MX");
+            println!("  ghostctl dns 8.8.8.8 --reverse");
+            println!("  ghostctl dns example.com --server 1.1.1.1");
+            println!();
+            println!("💡 Tip: Use 'ghostctl network menu' for more network tools");
+            return;
+        }
+
+        let record_type = matches.get_one::<String>("type").map(|s| s.as_str()).unwrap_or("A");
+        let dns_server = matches.get_one::<String>("server");
+        let is_reverse = matches.get_flag("reverse");
+        
+        println!("🌐 DNS Lookup for: {}", domain);
+        if is_reverse {
+            println!("🔄 Performing reverse DNS lookup...");
+        } else {
+            println!("📋 Record type: {}", record_type);
+        }
+        if let Some(server) = dns_server {
+            println!("🎯 Using DNS server: {}", server);
+        }
+        
+        // Call DNS lookup function
+        network::dns::lookup(domain);
+    } else {
+        // No domain provided, show help
+        println!("🌐 DNS Lookup and Management");
+        println!("============================");
+        println!();
+        println!("📋 Usage:");
+        println!("  ghostctl dns <domain>                    - Basic DNS lookup");
+        println!("  ghostctl dns <domain> --type MX         - Specific record type");
+        println!("  ghostctl dns <ip> --reverse              - Reverse DNS lookup");
+        println!("  ghostctl dns <domain> --server 8.8.8.8  - Use specific DNS server");
+        println!();
+        println!("📖 Examples:");
+        println!("  ghostctl dns google.com");
+        println!("  ghostctl dns google.com --type MX");
+        println!("  ghostctl dns 8.8.8.8 --reverse");
+        println!("  ghostctl dns example.com --server 1.1.1.1");
+        println!();
+        println!("💡 Tip: Use 'ghostctl network menu' for more network tools");
+    }
+}
+
+fn handle_netcat_commands(matches: &ArgMatches) {
+    match matches.subcommand() {
+        Some(("send", sub_matches)) => {
+            let file = sub_matches.get_one::<String>("file").unwrap();
+            let host = sub_matches.get_one::<String>("host").unwrap();
+            let port_str = sub_matches.get_one::<String>("port").unwrap();
+            
+            if let Ok(port) = port_str.parse::<u16>() {
+                println!("📤 Sending file '{}' to {}:{}", file, host, port);
+                network::netcat::send_file(file, host, port);
+            } else {
+                println!("❌ Invalid port number: {}", port_str);
+            }
+        }
+        Some(("receive", sub_matches)) => {
+            let file = sub_matches.get_one::<String>("file").unwrap();
+            let port_str = sub_matches.get_one::<String>("port").unwrap();
+            
+            if let Ok(port) = port_str.parse::<u16>() {
+                println!("📥 Receiving file '{}' on port {}", file, port);
+                network::netcat::receive_file(file, port);
+            } else {
+                println!("❌ Invalid port number: {}", port_str);
+            }
+        }
+        Some(("chat", sub_matches)) => {
+            let port_str = sub_matches.get_one::<String>("port").unwrap();
+            if let Ok(port) = port_str.parse::<u16>() {
+                if let Some(host) = sub_matches.get_one::<String>("host") {
+                    println!("💬 Connecting to chat at {}:{}", host, port);
+                    network::netcat::chat(Some(host), port);
+                } else {
+                    println!("💬 Starting chat server on port {}", port);
+                    network::netcat::chat(None, port);
+                }
+            } else {
+                println!("❌ Invalid port number: {}", port_str);
+            }
+        }
+        Some(("check", sub_matches)) => {
+            let host = sub_matches.get_one::<String>("host").unwrap();
+            let port_str = sub_matches.get_one::<String>("port").unwrap();
+            
+            if let Ok(port) = port_str.parse::<u16>() {
+                println!("🔍 Checking connectivity to {}:{}", host, port);
+                network::netcat::check_port(host, port);
+            } else {
+                println!("❌ Invalid port number: {}", port_str);
+            }
+        }
+        _ => {
+            // No subcommand provided, show help
+            println!("🔌 Netcat Utilities");
+            println!("===================");
+            println!();
+            println!("📋 Available commands:");
+            println!("  ghostctl nc send <file> <host> <port>   - Send file to host");
+            println!("  ghostctl nc receive <file> <port>       - Receive file on port");
+            println!("  ghostctl nc chat <host> <port>          - Connect to chat");
+            println!("  ghostctl nc chat <port>                 - Start chat server");
+            println!("  ghostctl nc check <host> <port>         - Check port connectivity");
+            println!();
+            println!("📖 Examples:");
+            println!("  ghostctl nc send backup.tar.gz 192.168.1.100 8080");
+            println!("  ghostctl nc receive backup.tar.gz 8080");
+            println!("  ghostctl nc chat 192.168.1.100 9999");
+            println!("  ghostctl nc chat 9999");
+            println!("  ghostctl nc check google.com 80");
+            println!();
+            println!("💡 Tip: Use 'ghostctl network menu' for more network tools");
+        }
+    }
 }

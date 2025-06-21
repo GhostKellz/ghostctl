@@ -3,6 +3,7 @@ pub mod aur;
 pub mod boot;
 pub mod dotfiles;
 pub mod health;
+pub mod mirror;
 pub mod perf;
 pub mod pkgfix;
 pub mod swap;
@@ -16,6 +17,7 @@ pub fn arch_menu() {
             "🛠️  Arch Maintenance (Fix/Optimize/Clean)",
             "🏥 System Health & Maintenance",
             "💾 Swap & Zram Management",
+            "🌐 Mirror Management",
             "📁 Dotfiles Management",
             "📦 AUR Helper Management",
             "🥾 Boot & Kernel Management",
@@ -34,11 +36,12 @@ pub fn arch_menu() {
             1 => archfix::tui_menu(),
             2 => health::health_menu(),
             3 => swap::swap_menu(),
-            4 => dotfiles::dotfiles_menu(),
-            5 => aur::aur_helper_management(),
-            6 => boot::boot_management(),
-            7 => crate::security::gpg::gpg_key_management(),
-            8 => perf::tune(),
+            4 => mirror::update_mirror_list(),
+            5 => dotfiles::dotfiles_menu(),
+            6 => aur::aur_helper_management(),
+            7 => boot::boot_management(),
+            8 => crate::security::gpg::gpg_key_management(),
+            9 => perf::tune(),
             _ => break,
         }
     }
@@ -56,7 +59,7 @@ pub fn fix_target(target: &str) {
         "all" => {
             reset_pacman_locks();
             fix_gpg_keys();
-            update_mirror_list();
+            mirror::update_mirror_list();
             archfix::fix();
         }
         _ => {
@@ -146,21 +149,3 @@ pub fn reset_pacman_locks() {
     println!("  ✅ Pacman locks cleared");
 }
 
-pub fn update_mirror_list() {
-    println!("🌐 Updating mirror list...");
-    if std::process::Command::new("which")
-        .arg("reflector")
-        .status()
-        .is_ok()
-    {
-        let _ = std::process::Command::new("sudo").status();
-        println!("  ✅ Mirror list updated with reflector");
-    } else {
-        println!("  ⚠️  Reflector not installed, using manual backup");
-        let _ = std::process::Command::new("sudo");
-        let _ = std::process::Command::new("curl");
-        if std::path::Path::new("/tmp/mirrorlist").exists() {
-            // Add logic if needed
-        }
-    }
-}
