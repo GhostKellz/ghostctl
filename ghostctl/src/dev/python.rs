@@ -29,7 +29,7 @@ pub fn python_development_menu() {
         3 => development_tools(),
         4 => testing_quality(),
         5 => learning_resources(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -63,7 +63,7 @@ fn install_python() {
         1 => install_pyenv(),
         2 => install_python_official(),
         3 => install_python_from_source(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -76,13 +76,13 @@ fn install_python_package_manager() {
     } else if Command::new("which").arg("pacman").status().is_ok() {
         println!("📦 Installing Python with pacman...");
         let _ = Command::new("sudo")
-            .args(["pacman", "-S", "--noconfirm", "python", "python-pip"])
+            .args(&["pacman", "-S", "--noconfirm", "python", "python-pip"])
             .status();
     } else if Command::new("which").arg("apt").status().is_ok() {
         println!("📦 Installing Python with apt...");
-        let _ = Command::new("sudo").args(["apt", "update"]).status();
+        let _ = Command::new("sudo").args(&["apt", "update"]).status();
         let _ = Command::new("sudo")
-            .args([
+            .args(&[
                 "apt",
                 "install",
                 "-y",
@@ -94,7 +94,7 @@ fn install_python_package_manager() {
     } else if Command::new("which").arg("dnf").status().is_ok() {
         println!("📦 Installing Python with dnf...");
         let _ = Command::new("sudo")
-            .args(["dnf", "install", "-y", "python3", "python3-pip"])
+            .args(&["dnf", "install", "-y", "python3", "python3-pip"])
             .status();
     }
 
@@ -125,7 +125,7 @@ fn install_pyenv() {
     if confirm {
         println!("📥 Installing pyenv...");
         let status = Command::new("curl")
-            .args(["https://pyenv.run", "|", "bash"])
+            .args(&["https://pyenv.run", "|", "bash"])
             .status();
 
         if status.is_ok() {
@@ -158,7 +158,7 @@ fn install_python_from_source() {
         // Install build dependencies first
         if Command::new("which").arg("pacman").status().is_ok() {
             let _ = Command::new("sudo")
-                .args([
+                .args(&[
                     "pacman",
                     "-S",
                     "--noconfirm",
@@ -172,7 +172,7 @@ fn install_python_from_source() {
 
         println!("📥 Downloading Python source...");
         let _ = Command::new("wget")
-            .args(["https://www.python.org/ftp/python/3.11.0/Python-3.11.0.tgz"])
+            .args(&["https://www.python.org/ftp/python/3.11.0/Python-3.11.0.tgz"])
             .status();
 
         println!("🔨 Building... (this will take a while)");
@@ -210,7 +210,7 @@ fn virtual_environment_management() {
         3 => remove_environment(),
         4 => install_virtualenv(),
         5 => install_conda(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -231,7 +231,7 @@ fn create_virtual_environment() {
     match tool {
         0 => {
             let _ = Command::new("python3")
-                .args(["-m", "venv", &env_name])
+                .args(&["-m", "venv", &env_name])
                 .status();
             println!("✅ Virtual environment '{}' created with venv", env_name);
             println!("💡 Activate with: source {}/bin/activate", env_name);
@@ -245,12 +245,12 @@ fn create_virtual_environment() {
         }
         2 => {
             let _ = Command::new("conda")
-                .args(["create", "-n", &env_name, "python"])
+                .args(&["create", "-n", &env_name, "python"])
                 .status();
             println!("✅ Conda environment '{}' created", env_name);
             println!("💡 Activate with: conda activate {}", env_name);
         }
-        _ => (),
+        _ => return,
     }
 }
 
@@ -271,13 +271,13 @@ fn list_environments() {
     // List conda environments
     if Command::new("which").arg("conda").status().is_ok() {
         println!("🐍 Conda environments:");
-        let _ = Command::new("conda").args(["env", "list"]).status();
+        let _ = Command::new("conda").args(&["env", "list"]).status();
     }
 
     // List pyenv environments
     if Command::new("which").arg("pyenv").status().is_ok() {
         println!("\n🐍 Pyenv versions:");
-        let _ = Command::new("pyenv").args(["versions"]).status();
+        let _ = Command::new("pyenv").args(&["versions"]).status();
     }
 
     // List local venv directories
@@ -307,7 +307,7 @@ fn remove_environment() {
         .unwrap();
 
     let confirm = Confirm::new()
-        .with_prompt(format!("Remove environment '{}'?", env_name))
+        .with_prompt(&format!("Remove environment '{}'?", env_name))
         .default(false)
         .interact()
         .unwrap();
@@ -320,11 +320,11 @@ fn remove_environment() {
             }
             1 => {
                 let _ = Command::new("conda")
-                    .args(["env", "remove", "-n", &env_name])
+                    .args(&["env", "remove", "-n", &env_name])
                     .status();
                 println!("✅ Removed conda environment: {}", env_name);
             }
-            _ => (),
+            _ => return,
         }
     }
 }
@@ -334,7 +334,7 @@ fn install_virtualenv() {
     println!("========================");
 
     let _ = Command::new("pip3")
-        .args(["install", "--user", "virtualenv"])
+        .args(&["install", "--user", "virtualenv"])
         .status();
 
     println!("✅ virtualenv installed");
@@ -358,12 +358,12 @@ fn install_conda() {
     if confirm {
         println!("📥 Downloading Miniconda...");
         let _ = Command::new("wget")
-            .args(["https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"])
+            .args(&["https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"])
             .status();
 
         println!("🔧 Installing Miniconda...");
         let _ = Command::new("bash")
-            .args(["Miniconda3-latest-Linux-x86_64.sh", "-b"])
+            .args(&["Miniconda3-latest-Linux-x86_64.sh", "-b"])
             .status();
 
         // Add to PATH
@@ -406,7 +406,7 @@ fn package_management() {
         4 => update_packages(),
         5 => requirements_management(),
         6 => pip_configuration(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -414,7 +414,7 @@ fn list_packages() {
     println!("📋 Installed Python Packages");
     println!("=============================");
 
-    let _ = Command::new("pip3").args(["list"]).status();
+    let _ = Command::new("pip3").args(&["list"]).status();
 }
 
 fn search_packages() {
@@ -447,16 +447,16 @@ fn install_package() {
 
     match install_type {
         0 => {
-            let _ = Command::new("pip3").args(["install", &package]).status();
+            let _ = Command::new("pip3").args(&["install", &package]).status();
         }
         1 => {
             let _ = Command::new("pip3")
-                .args(["install", "--user", &package])
+                .args(&["install", "--user", &package])
                 .status();
         }
         2 => {
             let _ = Command::new("pip3")
-                .args(["install", "-e", &package])
+                .args(&["install", "-e", &package])
                 .status();
         }
         _ => return,
@@ -471,7 +471,7 @@ fn uninstall_package() {
         .interact_text()
         .unwrap();
 
-    let _ = Command::new("pip3").args(["uninstall", &package]).status();
+    let _ = Command::new("pip3").args(&["uninstall", &package]).status();
 }
 
 fn update_packages() {
@@ -480,12 +480,12 @@ fn update_packages() {
 
     // Update pip first
     let _ = Command::new("pip3")
-        .args(["install", "--upgrade", "pip"])
+        .args(&["install", "--upgrade", "pip"])
         .status();
 
     // List outdated packages
     println!("📋 Checking for outdated packages...");
-    let _ = Command::new("pip3").args(["list", "--outdated"]).status();
+    let _ = Command::new("pip3").args(&["list", "--outdated"]).status();
 
     println!("💡 To update all packages: pip-review --auto");
     println!("💡 Install pip-review with: pip install pip-review");
@@ -512,7 +512,7 @@ fn requirements_management() {
     match choice {
         0 => {
             let _ = Command::new("pip3")
-                .args(["freeze"])
+                .args(&["freeze"])
                 .output()
                 .and_then(|output| {
                     std::fs::write("requirements.txt", output.stdout)?;
@@ -522,7 +522,7 @@ fn requirements_management() {
         }
         1 => {
             let _ = Command::new("pip3")
-                .args(["install", "-r", "requirements.txt"])
+                .args(&["install", "-r", "requirements.txt"])
                 .status();
         }
         2 => {
@@ -533,7 +533,7 @@ fn requirements_management() {
             println!("💡 Install pipdeptree: pip install pipdeptree");
             let _ = Command::new("pipdeptree").status();
         }
-        _ => (),
+        _ => return,
     }
 }
 
@@ -542,7 +542,7 @@ fn pip_configuration() {
     println!("====================");
 
     println!("📋 Current pip configuration:");
-    let _ = Command::new("pip3").args(["config", "list"]).status();
+    let _ = Command::new("pip3").args(&["config", "list"]).status();
 
     println!("\n💡 Common pip configurations:");
     println!("  pip config set global.timeout 60");
@@ -575,7 +575,7 @@ fn development_tools() {
         2 => install_linters(),
         3 => install_jupyter(),
         4 => install_dev_utilities(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -599,17 +599,17 @@ fn install_language_server() {
         match index {
             0 => {
                 let _ = Command::new("pip3")
-                    .args(["install", "python-lsp-server"])
+                    .args(&["install", "python-lsp-server"])
                     .status();
                 println!("✅ pylsp installed");
             }
             1 => {
-                let _ = Command::new("pip3").args(["install", "pyright"]).status();
+                let _ = Command::new("pip3").args(&["install", "pyright"]).status();
                 println!("✅ pyright installed");
             }
             2 => {
                 let _ = Command::new("pip3")
-                    .args(["install", "jedi-language-server"])
+                    .args(&["install", "jedi-language-server"])
                     .status();
                 println!("✅ jedi-language-server installed");
             }
@@ -638,19 +638,19 @@ fn install_formatters() {
     for &index in &selected {
         match index {
             0 => {
-                let _ = Command::new("pip3").args(["install", "black"]).status();
+                let _ = Command::new("pip3").args(&["install", "black"]).status();
                 println!("✅ black installed");
             }
             1 => {
-                let _ = Command::new("pip3").args(["install", "autopep8"]).status();
+                let _ = Command::new("pip3").args(&["install", "autopep8"]).status();
                 println!("✅ autopep8 installed");
             }
             2 => {
-                let _ = Command::new("pip3").args(["install", "isort"]).status();
+                let _ = Command::new("pip3").args(&["install", "isort"]).status();
                 println!("✅ isort installed");
             }
             3 => {
-                let _ = Command::new("pip3").args(["install", "yapf"]).status();
+                let _ = Command::new("pip3").args(&["install", "yapf"]).status();
                 println!("✅ yapf installed");
             }
             _ => {}
@@ -678,19 +678,19 @@ fn install_linters() {
     for &index in &selected {
         match index {
             0 => {
-                let _ = Command::new("pip3").args(["install", "flake8"]).status();
+                let _ = Command::new("pip3").args(&["install", "flake8"]).status();
                 println!("✅ flake8 installed");
             }
             1 => {
-                let _ = Command::new("pip3").args(["install", "pylint"]).status();
+                let _ = Command::new("pip3").args(&["install", "pylint"]).status();
                 println!("✅ pylint installed");
             }
             2 => {
-                let _ = Command::new("pip3").args(["install", "mypy"]).status();
+                let _ = Command::new("pip3").args(&["install", "mypy"]).status();
                 println!("✅ mypy installed");
             }
             3 => {
-                let _ = Command::new("pip3").args(["install", "bandit"]).status();
+                let _ = Command::new("pip3").args(&["install", "bandit"]).status();
                 println!("✅ bandit installed");
             }
             _ => {}
@@ -718,26 +718,26 @@ fn install_jupyter() {
 
     match choice {
         0 => {
-            let _ = Command::new("pip3").args(["install", "ipython"]).status();
+            let _ = Command::new("pip3").args(&["install", "ipython"]).status();
             println!("✅ IPython installed");
         }
         1 => {
-            let _ = Command::new("pip3").args(["install", "notebook"]).status();
+            let _ = Command::new("pip3").args(&["install", "notebook"]).status();
             println!("✅ Jupyter Notebook installed");
         }
         2 => {
             let _ = Command::new("pip3")
-                .args(["install", "jupyterlab"])
+                .args(&["install", "jupyterlab"])
                 .status();
             println!("✅ JupyterLab installed");
         }
         3 => {
             let _ = Command::new("pip3")
-                .args(["install", "ipython", "jupyterlab"])
+                .args(&["install", "ipython", "jupyterlab"])
                 .status();
             println!("✅ IPython and JupyterLab installed");
         }
-        _ => (),
+        _ => return,
     }
 }
 
@@ -763,26 +763,26 @@ fn install_dev_utilities() {
         match index {
             0 => {
                 let _ = Command::new("pip3")
-                    .args(["install", "cookiecutter"])
+                    .args(&["install", "cookiecutter"])
                     .status();
                 println!("✅ cookiecutter installed");
             }
             1 => {
                 let _ = Command::new("pip3")
-                    .args(["install", "pre-commit"])
+                    .args(&["install", "pre-commit"])
                     .status();
                 println!("✅ pre-commit installed");
             }
             2 => {
-                let _ = Command::new("pip3").args(["install", "tox"]).status();
+                let _ = Command::new("pip3").args(&["install", "tox"]).status();
                 println!("✅ tox installed");
             }
             3 => {
-                let _ = Command::new("pip3").args(["install", "poetry"]).status();
+                let _ = Command::new("pip3").args(&["install", "poetry"]).status();
                 println!("✅ poetry installed");
             }
             4 => {
-                let _ = Command::new("pip3").args(["install", "pipenv"]).status();
+                let _ = Command::new("pip3").args(&["install", "pipenv"]).status();
                 println!("✅ pipenv installed");
             }
             _ => {}
@@ -816,7 +816,7 @@ fn testing_quality() {
         2 => install_quality_tools(),
         3 => run_tests(),
         4 => generate_coverage_report(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -837,19 +837,19 @@ fn install_testing_frameworks() {
     for &index in &selected {
         match index {
             0 => {
-                let _ = Command::new("pip3").args(["install", "pytest"]).status();
+                let _ = Command::new("pip3").args(&["install", "pytest"]).status();
                 println!("✅ pytest installed");
             }
             1 => {
                 println!("✅ unittest is built-in with Python");
             }
             2 => {
-                let _ = Command::new("pip3").args(["install", "nose2"]).status();
+                let _ = Command::new("pip3").args(&["install", "nose2"]).status();
                 println!("✅ nose2 installed");
             }
             3 => {
                 let _ = Command::new("pip3")
-                    .args(["install", "hypothesis"])
+                    .args(&["install", "hypothesis"])
                     .status();
                 println!("✅ hypothesis installed");
             }
@@ -860,7 +860,7 @@ fn install_testing_frameworks() {
 
 fn install_coverage_tools() {
     let _ = Command::new("pip3")
-        .args(["install", "coverage", "pytest-cov"])
+        .args(&["install", "coverage", "pytest-cov"])
         .status();
     println!("✅ Coverage tools installed");
 }
@@ -869,7 +869,7 @@ fn install_quality_tools() {
     let tools = ["flake8", "pylint", "mypy", "bandit", "safety", "pydocstyle"];
 
     for tool in &tools {
-        let _ = Command::new("pip3").args(["install", tool]).status();
+        let _ = Command::new("pip3").args(&["install", tool]).status();
     }
 
     println!("✅ Quality tools installed");
@@ -883,7 +883,7 @@ fn run_tests() {
         let _ = Command::new("pytest").status();
     } else {
         let _ = Command::new("python3")
-            .args(["-m", "unittest", "discover"])
+            .args(&["-m", "unittest", "discover"])
             .status();
     }
 }
@@ -893,10 +893,10 @@ fn generate_coverage_report() {
     println!("=============================");
 
     let _ = Command::new("coverage")
-        .args(["run", "-m", "pytest"])
+        .args(&["run", "-m", "pytest"])
         .status();
-    let _ = Command::new("coverage").args(["report"]).status();
-    let _ = Command::new("coverage").args(["html"]).status();
+    let _ = Command::new("coverage").args(&["report"]).status();
+    let _ = Command::new("coverage").args(&["html"]).status();
 
     println!("✅ Coverage report generated in htmlcov/");
 }
@@ -932,11 +932,11 @@ fn check_pip_installation() {
 fn install_pip() {
     if Command::new("which").arg("pacman").status().is_ok() {
         let _ = Command::new("sudo")
-            .args(["pacman", "-S", "--noconfirm", "python-pip"])
+            .args(&["pacman", "-S", "--noconfirm", "python-pip"])
             .status();
     } else if Command::new("which").arg("apt").status().is_ok() {
         let _ = Command::new("sudo")
-            .args(["apt", "install", "-y", "python3-pip"])
+            .args(&["apt", "install", "-y", "python3-pip"])
             .status();
     } else {
         println!("💡 Install pip manually: python3 -m ensurepip");
@@ -948,14 +948,14 @@ fn setup_python_environment() {
 
     // Upgrade pip
     let _ = Command::new("pip3")
-        .args(["install", "--upgrade", "pip"])
+        .args(&["install", "--upgrade", "pip"])
         .status();
 
     // Install essential packages
     let essential_packages = ["wheel", "setuptools", "virtualenv"];
     for package in &essential_packages {
         let _ = Command::new("pip3")
-            .args(["install", "--user", package])
+            .args(&["install", "--user", package])
             .status();
     }
 

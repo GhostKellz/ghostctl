@@ -6,6 +6,7 @@ use std::process::Command;
 // chrono = "0.4"
 
 pub mod diagnostics;
+pub mod mason;
 pub mod plugins;
 pub mod setup;
 
@@ -15,6 +16,7 @@ pub fn nvim_menu() {
 
     let options = [
         "🔽 Install Neovim Distribution",
+        "🔨 Mason - LSP & Tool Management",
         "🏥 Health Check & Diagnostics",
         "🔌 Plugin Management",
         "🔧 Configuration Tools",
@@ -31,11 +33,12 @@ pub fn nvim_menu() {
 
     match choice {
         0 => install(),
-        1 => diagnostics::health_check_menu(),
-        2 => plugins::plugin_management(),
-        3 => setup::configuration_menu(),
-        4 => show_nvim_info(),
-        _ => (),
+        1 => mason::mason_menu(),
+        2 => diagnostics::health_check_menu(),
+        3 => plugins::plugin_management(),
+        4 => setup::configuration_menu(),
+        5 => show_nvim_info(),
+        _ => return,
     }
 }
 
@@ -144,7 +147,7 @@ fn show_nvim_info() {
     println!("====================");
 
     // Check Neovim version
-    let _ = Command::new("nvim").args(["--version"]).status();
+    let _ = Command::new("nvim").args(&["--version"]).status();
 
     // Show config location
     let home = dirs::home_dir().unwrap();

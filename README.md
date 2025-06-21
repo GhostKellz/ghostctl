@@ -281,12 +281,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - 🐛 **Issues**: [GitHub Issues](https://github.com/ghostkellz/ghostctl/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/ghostkellz/ghostctl/discussions)
-- 📧 **Email**: support@ghostctl.dev
+- 📧 **Email**: support@ghostctl.io
 - 📖 **Documentation**: [docs.ghostctl.dev](https://docs.ghostctl.dev)
 
 ---
 
-**Made with ❤️ for the Linux community**
+**Made for for the Linux community**
 
 *GhostCTL - Simplifying Linux administration, one command at a time.*
 

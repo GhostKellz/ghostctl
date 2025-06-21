@@ -27,7 +27,7 @@ pub fn container_security() {
         2 => runtime_monitoring(),
         3 => security_best_practices(),
         4 => security_policy_generation(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -72,7 +72,7 @@ fn vulnerability_scanning() {
         1 => scan_running_container(),
         2 => scan_filesystem(),
         3 => scan_all_images(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -85,7 +85,7 @@ fn scan_docker_image() {
     println!("🔍 Scanning image: {}", image);
 
     let status = Command::new("trivy")
-        .args(["image", "--severity", "HIGH,CRITICAL", &image])
+        .args(&["image", "--severity", "HIGH,CRITICAL", &image])
         .status();
 
     match status {
@@ -97,7 +97,7 @@ fn scan_docker_image() {
 fn scan_running_container() {
     println!("📦 Available containers:");
     let _ = Command::new("docker")
-        .args([
+        .args(&[
             "ps",
             "--format",
             "table {{.Names}}\\t{{.Image}}\\t{{.Status}}",
@@ -111,7 +111,7 @@ fn scan_running_container() {
 
     println!("🔍 Scanning container: {}", container);
 
-    let status = Command::new("trivy").args(["image", &container]).status();
+    let status = Command::new("trivy").args(&["image", &container]).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Container scan completed"),
@@ -129,7 +129,7 @@ fn scan_filesystem() {
     println!("🔍 Scanning filesystem: {}", path);
 
     let status = Command::new("trivy")
-        .args(["fs", "--severity", "HIGH,CRITICAL", &path])
+        .args(&["fs", "--severity", "HIGH,CRITICAL", &path])
         .status();
 
     match status {
@@ -366,7 +366,7 @@ fn generate_security_score() {
 // Helper functions for security checks
 fn check_docker_root() -> bool {
     Command::new("ps")
-        .args(["aux"])
+        .args(&["aux"])
         .output()
         .map(|o| String::from_utf8_lossy(&o.stdout).contains("dockerd"))
         .unwrap_or(false)

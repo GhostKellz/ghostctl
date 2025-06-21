@@ -1,7 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
 
-#[allow(dead_code)]
 pub fn list_plugins() {
     let plugins_dir = PathBuf::from("./plugins");
     println!("ghostctl :: List Plugins");
@@ -17,7 +16,6 @@ pub fn list_plugins() {
     }
 }
 
-#[allow(dead_code)]
 pub fn install_from_url(url: &str) {
     use std::fs::create_dir_all;
     use std::io::Write;

@@ -1,7 +1,6 @@
 use dialoguer::{Select, theme::ColorfulTheme};
 use std::process::Command;
 
-#[allow(dead_code)]
 pub fn container_management() {
     println!("📦 Docker Container Management");
     println!("==============================");
@@ -34,49 +33,42 @@ pub fn container_management() {
         5 => container_stats(),
         6 => container_logs(),
         7 => inspect_container(),
-        _ => (),
+        _ => return,
     }
 }
 
 pub fn list_containers() {
     println!("📋 Docker Containers");
-    let _ = Command::new("docker").args(["ps", "-a"]).status();
+    let _ = Command::new("docker").args(&["ps", "-a"]).status();
 }
 
-#[allow(dead_code)]
 fn run_container() {
     println!("🚀 Run Docker Container - TODO: Implement");
 }
 
-#[allow(dead_code)]
 fn stop_container() {
     println!("🛑 Stop Docker Container - TODO: Implement");
 }
 
-#[allow(dead_code)]
 fn restart_container() {
     println!("🔄 Restart Docker Container - TODO: Implement");
 }
 
-#[allow(dead_code)]
 fn remove_container() {
     println!("🗑️  Remove Docker Container - TODO: Implement");
 }
 
-#[allow(dead_code)]
 fn container_stats() {
     println!("📊 Container Stats");
     let _ = Command::new("docker")
-        .args(["stats", "--no-stream"])
+        .args(&["stats", "--no-stream"])
         .status();
 }
 
-#[allow(dead_code)]
 fn container_logs() {
     println!("📜 Container Logs - TODO: Implement");
 }
 
-#[allow(dead_code)]
 fn inspect_container() {
     println!("🔍 Inspect Container - TODO: Implement");
 }

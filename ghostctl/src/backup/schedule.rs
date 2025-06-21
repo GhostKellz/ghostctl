@@ -25,7 +25,7 @@ pub fn setup_schedule() {
         1 => view_current_schedule(),
         2 => toggle_timer(),
         3 => remove_schedule(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -128,7 +128,7 @@ fn view_current_schedule() {
 
     // Check if systemd timer exists
     let timer_status = std::process::Command::new("systemctl")
-        .args(["--user", "is-active", "ghostctl-backup.timer"])
+        .args(&["--user", "is-active", "ghostctl-backup.timer"])
         .output();
 
     match timer_status {
@@ -137,12 +137,12 @@ fn view_current_schedule() {
 
             // Show timer details
             let _ = std::process::Command::new("systemctl")
-                .args(["--user", "status", "ghostctl-backup.timer"])
+                .args(&["--user", "status", "ghostctl-backup.timer"])
                 .status();
 
             println!("\n📅 Next scheduled runs:");
             let _ = std::process::Command::new("systemctl")
-                .args(["--user", "list-timers", "ghostctl-backup.timer"])
+                .args(&["--user", "list-timers", "ghostctl-backup.timer"])
                 .status();
         }
         _ => {
@@ -157,7 +157,7 @@ fn toggle_timer() {
     println!("==============================");
 
     let timer_status = std::process::Command::new("systemctl")
-        .args(["--user", "is-enabled", "ghostctl-backup.timer"])
+        .args(&["--user", "is-enabled", "ghostctl-backup.timer"])
         .output();
 
     let is_enabled = timer_status.is_ok() && timer_status.unwrap().status.success();
@@ -171,7 +171,7 @@ fn toggle_timer() {
 
         if disable {
             let _ = std::process::Command::new("systemctl")
-                .args(["--user", "disable", "--now", "ghostctl-backup.timer"])
+                .args(&["--user", "disable", "--now", "ghostctl-backup.timer"])
                 .status();
             println!("⏹️  Backup timer disabled");
         }
@@ -184,7 +184,7 @@ fn toggle_timer() {
 
         if enable {
             let _ = std::process::Command::new("systemctl")
-                .args(["--user", "enable", "--now", "ghostctl-backup.timer"])
+                .args(&["--user", "enable", "--now", "ghostctl-backup.timer"])
                 .status();
             println!("▶️  Backup timer enabled");
         }
@@ -204,7 +204,7 @@ fn remove_schedule() {
     if confirm {
         // Stop and disable timer
         let _ = std::process::Command::new("systemctl")
-            .args(["--user", "disable", "--now", "ghostctl-backup.timer"])
+            .args(&["--user", "disable", "--now", "ghostctl-backup.timer"])
             .status();
 
         // Remove systemd files

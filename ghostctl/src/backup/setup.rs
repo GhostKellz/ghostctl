@@ -1,3 +1,4 @@
+use crate::security::credentials::{create_secure_env_file, store_backup_credentials};
 use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::fs;
 
@@ -24,7 +25,7 @@ pub fn setup() {
         1 => configure_repository(),
         2 => create_systemd_timer(),
         3 => test_backup(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -74,19 +75,32 @@ fn init_repository() {
     let config_dir = dirs::config_dir().unwrap().join("ghostctl");
     fs::create_dir_all(&config_dir).unwrap();
 
-    // Write restic config
-    let config_content = format!(
-        "RESTIC_REPOSITORY={}\nRESTIC_PASSWORD={}\n",
-        repo_url, password
-    );
+    // Store credentials securely
+    if let Err(e) = store_backup_credentials(&repo_url, &password) {
+        println!("⚠️  Warning: Could not store credentials securely: {}", e);
+        println!("💡 Falling back to plaintext storage");
 
-    let config_path = config_dir.join("restic.env");
-    fs::write(&config_path, config_content).unwrap();
-
-    println!("💾 Config saved to: {:?}", config_path);
+        // Fallback to plaintext
+        let config_content = format!(
+            "RESTIC_REPOSITORY={}\nRESTIC_PASSWORD={}\n",
+            repo_url, password
+        );
+        let config_path = config_dir.join("restic.env");
+        fs::write(&config_path, config_content).unwrap();
+        println!("💾 Config saved to: {:?}", config_path);
+    } else {
+        // Create temporary env file for this session
+        let config_path = config_dir.join("restic.env");
+        if let Err(e) = create_secure_env_file(&config_path) {
+            println!("⚠️  Warning: Could not create temporary env file: {}", e);
+        } else {
+            println!("🔐 Credentials stored securely and temporary env file created");
+        }
+    }
 
     // Initialize repository
     println!("🚀 Initializing repository...");
+    let config_path = config_dir.join("restic.env");
     let status = std::process::Command::new("bash")
         .arg("-c")
         .arg(format!("source {} && restic init", config_path.display()))
@@ -235,7 +249,6 @@ fn test_backup() {
     }
 }
 
-#[allow(dead_code)]
 pub fn restic_restore() {
     println!("🔄 Restic Restore");
 
@@ -296,7 +309,6 @@ pub fn restic_restore() {
     }
 }
 
-#[allow(dead_code)]
 pub fn backup_settings() {
     println!("⚙️  Backup Settings");
     println!("==================");
@@ -323,7 +335,7 @@ pub fn backup_settings() {
         2 => configure_backup_paths(),
         3 => security_settings(),
         4 => storage_usage(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -400,7 +412,6 @@ pub fn run_backup() {
     }
 }
 
-#[allow(dead_code)]
 fn configure_backup_paths() {
     println!("🗂️  Configure Backup Paths");
     println!("=========================");
@@ -422,7 +433,6 @@ fn configure_backup_paths() {
     println!("\nCurrent backup configuration saved to ~/.config/ghostctl/backup-paths.txt");
 }
 
-#[allow(dead_code)]
 fn security_settings() {
     println!("🔐 Backup Security Settings");
     println!("===========================");
@@ -467,11 +477,10 @@ fn security_settings() {
                     .status();
             }
         }
-        _ => (),
+        _ => return,
     }
 }
 
-#[allow(dead_code)]
 fn storage_usage() {
     println!("📊 Storage Usage");
     println!("===============");

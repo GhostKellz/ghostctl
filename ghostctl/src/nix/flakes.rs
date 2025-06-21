@@ -27,7 +27,7 @@ pub fn flakes_management() {
         2 => show_flake_info(),
         3 => lock_flake(),
         4 => clean_flake_cache(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -49,7 +49,7 @@ fn initialize_flake() {
 
     if confirm {
         let _ = Command::new("nix")
-            .args(["flake", "init"])
+            .args(&["flake", "init"])
             .current_dir(&path)
             .status();
     }
@@ -59,21 +59,21 @@ fn update_flake_inputs() {
     println!("🔄 Update Flake Inputs");
     println!("======================");
 
-    let _ = Command::new("nix").args(["flake", "update"]).status();
+    let _ = Command::new("nix").args(&["flake", "update"]).status();
 }
 
 fn show_flake_info() {
     println!("📋 Flake Information");
     println!("====================");
 
-    let _ = Command::new("nix").args(["flake", "show"]).status();
+    let _ = Command::new("nix").args(&["flake", "show"]).status();
 }
 
 fn lock_flake() {
     println!("🔒 Lock Flake");
     println!("=============");
 
-    let _ = Command::new("nix").args(["flake", "lock"]).status();
+    let _ = Command::new("nix").args(&["flake", "lock"]).status();
 }
 
 fn clean_flake_cache() {
@@ -88,7 +88,7 @@ fn clean_flake_cache() {
 
     if confirm {
         let _ = Command::new("nix")
-            .args(["registry", "remove", "--all"])
+            .args(&["registry", "remove", "--all"])
             .status();
     }
 }

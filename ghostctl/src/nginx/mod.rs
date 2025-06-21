@@ -33,7 +33,7 @@ pub fn nginx_menu() {
         3 => nginx_status(),
         4 => test_configuration(),
         5 => service_management(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -43,7 +43,7 @@ fn nginx_status() {
 
     // Check if nginx is running
     let nginx_status = Command::new("systemctl")
-        .args(["is-active", "nginx"])
+        .args(&["is-active", "nginx"])
         .output();
 
     match nginx_status {
@@ -61,22 +61,22 @@ fn nginx_status() {
 
     // Show nginx processes
     println!("\n🔍 Nginx Processes:");
-    let _ = Command::new("ps").args(["aux"]).status();
+    let _ = Command::new("ps").args(&["aux"]).status();
 
     // Show nginx configuration test
     println!("\n🧪 Configuration Test:");
-    let _ = Command::new("nginx").args(["-t"]).status();
+    let _ = Command::new("nginx").args(&["-t"]).status();
 
     // Show access logs (last 10 lines)
     println!("\n📜 Recent Access Logs:");
     let _ = Command::new("tail")
-        .args(["-n", "10", "/var/log/nginx/access.log"])
+        .args(&["-n", "10", "/var/log/nginx/access.log"])
         .status();
 
     // Show error logs (last 10 lines)
     println!("\n❌ Recent Error Logs:");
     let _ = Command::new("tail")
-        .args(["-n", "10", "/var/log/nginx/error.log"])
+        .args(&["-n", "10", "/var/log/nginx/error.log"])
         .status();
 }
 
@@ -84,7 +84,7 @@ fn test_configuration() {
     println!("🧪 Testing Nginx Configuration");
     println!("==============================");
 
-    let status = Command::new("nginx").args(["-t"]).status();
+    let status = Command::new("nginx").args(&["-t"]).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -130,7 +130,7 @@ fn service_management() {
         2 => stop_nginx(),
         3 => start_nginx(),
         4 => nginx_service_status(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -138,7 +138,7 @@ fn reload_nginx() {
     println!("🔄 Reloading nginx configuration...");
 
     let status = Command::new("sudo")
-        .args(["systemctl", "reload", "nginx"])
+        .args(&["systemctl", "reload", "nginx"])
         .status();
 
     match status {
@@ -151,7 +151,7 @@ fn restart_nginx() {
     println!("🔄 Restarting nginx service...");
 
     let status = Command::new("sudo")
-        .args(["systemctl", "restart", "nginx"])
+        .args(&["systemctl", "restart", "nginx"])
         .status();
 
     match status {
@@ -171,7 +171,7 @@ fn stop_nginx() {
 
     if confirm {
         let status = Command::new("sudo")
-            .args(["systemctl", "stop", "nginx"])
+            .args(&["systemctl", "stop", "nginx"])
             .status();
 
         match status {
@@ -185,7 +185,7 @@ fn start_nginx() {
     println!("🚀 Starting nginx service...");
 
     let status = Command::new("sudo")
-        .args(["systemctl", "start", "nginx"])
+        .args(&["systemctl", "start", "nginx"])
         .status();
 
     match status {
@@ -199,28 +199,23 @@ fn nginx_service_status() {
     println!("=======================");
 
     let _ = Command::new("sudo")
-        .args(["systemctl", "status", "nginx"])
+        .args(&["systemctl", "status", "nginx"])
         .status();
 }
 
 // Functions called from main.rs
-#[allow(dead_code)]
 pub fn generate_config() {
     config::configuration_builder();
 }
-#[allow(dead_code)]
 pub fn ssl_management() {
     ssl::ssl_management();
 }
-#[allow(dead_code)]
 pub fn proxy_config() {
     proxy::reverse_proxy_setup();
 }
-#[allow(dead_code)]
 pub fn test_config() {
     test_configuration();
 }
-#[allow(dead_code)]
 pub fn reload_service() {
     reload_nginx();
 }

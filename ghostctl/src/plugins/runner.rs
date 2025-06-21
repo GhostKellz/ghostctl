@@ -64,7 +64,6 @@ pub fn run_lua_plugin(name: &str) {
     }
 }
 
-#[allow(dead_code)]
 pub fn run_user_script_menu() {
     use dialoguer::Select;
     use std::fs;
@@ -104,7 +103,6 @@ pub fn run_user_script_menu() {
     }
 }
 
-#[allow(dead_code)]
 pub fn run_lua_script(path: &std::path::Path) {
     println!(
         "Running Lua script at {} (integration not implemented, requires mlua)",

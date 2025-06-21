@@ -700,7 +700,7 @@ fn install_nvcontrol() {
 
         // Download the install script
         let status = Command::new("curl")
-            .args([
+            .args(&[
                 "-O",
                 "https://raw.githubusercontent.com/GhostKellz/nvcontrol/main/install.sh",
             ])
@@ -708,7 +708,7 @@ fn install_nvcontrol() {
 
         if status.is_ok() && status.unwrap().success() {
             // Make it executable and run
-            let _ = Command::new("chmod").args(["+x", "install.sh"]).status();
+            let _ = Command::new("chmod").args(&["+x", "install.sh"]).status();
             let install_status = Command::new("bash").arg("install.sh").status();
 
             match install_status {
@@ -760,7 +760,6 @@ pub fn check_tool_status() {
     println!("\n💡 Use 'Install All Ghost Tools' to install missing tools");
 }
 
-#[allow(dead_code)]
 fn uninstall_ghost_tools() {
     println!("🗑️  Uninstall Ghost Tools");
     println!("=========================");
@@ -794,7 +793,7 @@ fn uninstall_ghost_tools() {
 
                 for path in &paths {
                     if std::path::Path::new(path).exists() {
-                        let _ = Command::new("sudo").args(["rm", "-f", path]).status();
+                        let _ = Command::new("sudo").args(&["rm", "-f", path]).status();
                     }
                 }
             }

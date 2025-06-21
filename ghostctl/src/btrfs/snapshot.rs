@@ -10,7 +10,6 @@ pub fn create_snapshot(subvolume: &str, name: &str) {
     }
 }
 
-#[allow(dead_code)]
 pub fn list_snapshots() {
     println!("Listing Btrfs snapshots:");
     let output = std::process::Command::new("sudo")
@@ -22,7 +21,6 @@ pub fn list_snapshots() {
     }
 }
 
-#[allow(dead_code)]
 pub fn delete_snapshot(name: &str) {
     use dialoguer::Confirm;
     let target = format!("/@snapshots/{}", name);
@@ -44,7 +42,6 @@ pub fn delete_snapshot(name: &str) {
     }
 }
 
-#[allow(dead_code)]
 pub fn restore_snapshot(name: &str, target: &str) {
     use dialoguer::Confirm;
     println!("Restoring snapshot '{}' to '{}'...", name, target);

@@ -42,10 +42,8 @@ const POPULAR_COMMUNITY_SCRIPTS: &[(&str, &str)] = &[
 ];
 
 // Repository configurations
-#[allow(dead_code)]
 const COMMUNITY_SCRIPTS_REPO: &str =
     "https://api.github.com/repos/community-scripts/ProxmoxVE/contents";
-#[allow(dead_code)]
 const CKTECH_REPO: &str = "https://api.github.com/repos/GhostKellz/proxmox/contents/helper-scripts";
 
 pub fn proxmox_menu() {
@@ -67,7 +65,7 @@ pub fn proxmox_menu() {
         1 => enhanced::enhanced_proxmox_menu(),
         2 => helper::cktech_helper_scripts(),
         3 => helper::community_scripts_enhanced(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -115,7 +113,6 @@ pub fn run_script_by_url(url: &str) {
     }
 }
 
-#[allow(dead_code)]
 pub fn list_popular_scripts() {
     println!("📋 Popular Proxmox Helper Scripts:");
     for (i, (name, url)) in POPULAR_COMMUNITY_SCRIPTS.iter().enumerate() {

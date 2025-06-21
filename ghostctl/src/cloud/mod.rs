@@ -62,7 +62,7 @@ pub fn ansible_management() {
         5 => configure_ansible(),
         6 => ansible_history(),
         7 => test_ansible_connection(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -97,7 +97,7 @@ pub fn terraform_management() {
         6 => terraform_show(),
         7 => manage_terraform_state(),
         8 => terraform_modules(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -128,7 +128,7 @@ pub fn cloud_provider_tools() {
         4 => hetzner_tools(),
         5 => linode_tools(),
         6 => multicloud_setup(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -159,7 +159,7 @@ pub fn infrastructure_dashboard() {
         3 => health_checks(),
         4 => usage_metrics(),
         5 => object_storage_management(),
-        _ => (),
+        _ => return,
     }
 }
 

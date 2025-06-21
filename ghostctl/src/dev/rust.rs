@@ -29,7 +29,7 @@ pub fn rust_development() {
         3 => rust_development_tools(),
         4 => cargo_utilities(),
         5 => rust_resources(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -84,7 +84,7 @@ fn install_rust_toolchain() {
     match method {
         0 => install_rustup(),
         1 => install_rust_package_manager(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -116,16 +116,16 @@ fn install_rust_package_manager() {
 
     if Command::new("which").arg("pacman").status().is_ok() {
         let _ = Command::new("sudo")
-            .args(["pacman", "-S", "--noconfirm", "rust", "cargo"])
+            .args(&["pacman", "-S", "--noconfirm", "rust", "cargo"])
             .status();
     } else if Command::new("which").arg("apt").status().is_ok() {
-        let _ = Command::new("sudo").args(["apt", "update"]).status();
+        let _ = Command::new("sudo").args(&["apt", "update"]).status();
         let _ = Command::new("sudo")
-            .args(["apt", "install", "-y", "rustc", "cargo"])
+            .args(&["apt", "install", "-y", "rustc", "cargo"])
             .status();
     } else if Command::new("which").arg("dnf").status().is_ok() {
         let _ = Command::new("sudo")
-            .args(["dnf", "install", "-y", "rust", "cargo"])
+            .args(&["dnf", "install", "-y", "rust", "cargo"])
             .status();
     }
 
@@ -149,14 +149,14 @@ fn install_default_rust_tools() {
 
     for (tool, description) in &tools {
         println!("📦 Installing {} - {}", tool, description);
-        let _ = Command::new("cargo").args(["install", tool]).status();
+        let _ = Command::new("cargo").args(&["install", tool]).status();
     }
 }
 
 fn update_rust() {
     println!("🔄 Updating Rust toolchain...");
 
-    let _ = Command::new("rustup").args(["update"]).status();
+    let _ = Command::new("rustup").args(&["update"]).status();
 
     println!("✅ Rust updated");
 }
@@ -192,7 +192,7 @@ fn add_rust_targets() {
                 .unwrap();
             println!("📦 Adding target: {}", custom);
             let _ = Command::new("rustup")
-                .args(["target", "add", &custom])
+                .args(&["target", "add", &custom])
                 .status();
             return;
         }
@@ -201,7 +201,7 @@ fn add_rust_targets() {
 
     println!("📦 Adding target: {}", target);
     let _ = Command::new("rustup")
-        .args(["target", "add", target])
+        .args(&["target", "add", target])
         .status();
 }
 
@@ -237,7 +237,7 @@ fn add_rust_components() {
 
     println!("📦 Adding component: {}", component);
     let _ = Command::new("rustup")
-        .args(["component", "add", component])
+        .args(&["component", "add", component])
         .status();
 }
 
@@ -252,16 +252,16 @@ fn show_rust_info() {
     let _ = Command::new("cargo").arg("--version").status();
 
     println!("\n🔧 Installed toolchains:");
-    let _ = Command::new("rustup").args(["toolchain", "list"]).status();
+    let _ = Command::new("rustup").args(&["toolchain", "list"]).status();
 
     println!("\n🎯 Installed targets:");
     let _ = Command::new("rustup")
-        .args(["target", "list", "--installed"])
+        .args(&["target", "list", "--installed"])
         .status();
 
     println!("\n🔧 Installed components:");
     let _ = Command::new("rustup")
-        .args(["component", "list", "--installed"])
+        .args(&["component", "list", "--installed"])
         .status();
 }
 
@@ -410,7 +410,7 @@ fn setup_web_project(project_name: &str) {
     };
 
     let _ = Command::new("cargo")
-        .args(["add", dependency, "tokio", "serde"])
+        .args(&["add", dependency, "tokio", "serde"])
         .current_dir(project_name)
         .status();
 }
@@ -439,7 +439,7 @@ fn setup_game_project(project_name: &str) {
     };
 
     let _ = Command::new("cargo")
-        .args(["add", dependency])
+        .args(&["add", dependency])
         .current_dir(project_name)
         .status();
 }
@@ -448,7 +448,7 @@ fn setup_cli_project(project_name: &str) {
     println!("🔧 Setting up CLI project dependencies...");
 
     let _ = Command::new("cargo")
-        .args(["add", "clap", "anyhow", "serde"])
+        .args(&["add", "clap", "anyhow", "serde"])
         .current_dir(project_name)
         .status();
 }
@@ -503,7 +503,7 @@ fn cargo_utilities() {
     };
 
     println!("📦 Installing {}...", tool);
-    let _ = Command::new("cargo").args(["install", tool]).status();
+    let _ = Command::new("cargo").args(&["install", tool]).status();
 }
 
 fn rust_resources() {

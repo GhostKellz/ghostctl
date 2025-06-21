@@ -28,6 +28,6 @@ pub fn restore_menu() {
         2 => system::enter_recovery_chroot(),
         3 => system::full_system_recovery(),
         4 => system::list_available_backups(),
-        _ => (),
+        _ => return,
     }
 }

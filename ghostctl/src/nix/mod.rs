@@ -6,7 +6,6 @@ use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 // Define NixosAction enum
-#[allow(dead_code)]
 #[derive(Debug)]
 pub enum NixosAction {
     Rebuild,
@@ -46,7 +45,7 @@ pub fn nixos_menu() {
         4 => system_status(),
         5 => garbage_collection(),
         6 => generation_management(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -86,7 +85,7 @@ fn rebuild_system() {
     if confirm {
         println!("🚀 Running: sudo nixos-rebuild {}", rebuild_cmd);
         let _ = Command::new("sudo")
-            .args(["nixos-rebuild", rebuild_cmd])
+            .args(&["nixos-rebuild", rebuild_cmd])
             .status();
     }
 }
@@ -102,7 +101,7 @@ fn system_status() {
     // Show system configuration
     println!("\n⚙️  System Configuration:");
     let _ = Command::new("nix-env")
-        .args([
+        .args(&[
             "--list-generations",
             "--profile",
             "/nix/var/nix/profiles/system",
@@ -111,12 +110,12 @@ fn system_status() {
 
     // Show installed packages
     println!("\n📦 User Packages:");
-    let _ = Command::new("nix-env").args(["-q"]).status();
+    let _ = Command::new("nix-env").args(&["-q"]).status();
 
     // Show disk usage
     println!("\n💾 Nix Store Usage:");
     let _ = Command::new("nix")
-        .args(["path-info", "-S", "/nix/store"])
+        .args(&["path-info", "-S", "/nix/store"])
         .status();
 }
 
@@ -160,7 +159,7 @@ fn garbage_collection() {
     }
 
     println!("🚀 Running garbage collection...");
-    let _ = Command::new("sudo").args(gc_cmd).status();
+    let _ = Command::new("sudo").args(&gc_cmd).status();
 }
 
 fn generation_management() {
@@ -170,7 +169,7 @@ fn generation_management() {
     // List generations
     println!("📋 Available generations:");
     let _ = Command::new("nixos-rebuild")
-        .args(["list-generations"])
+        .args(&["list-generations"])
         .status();
 
     let gen_options = [
@@ -191,7 +190,7 @@ fn generation_management() {
         0 => rollback_generation(),
         1 => switch_to_generation(),
         2 => delete_old_generations(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -204,7 +203,7 @@ fn rollback_generation() {
 
     if confirm {
         let _ = Command::new("sudo")
-            .args(["nixos-rebuild", "switch", "--rollback"])
+            .args(&["nixos-rebuild", "switch", "--rollback"])
             .status();
     }
 }
@@ -223,7 +222,7 @@ fn switch_to_generation() {
 
     if confirm {
         let _ = Command::new("sudo")
-            .args([
+            .args(&[
                 "/nix/var/nix/profiles/system-{}-link/bin/switch-to-configuration",
                 "switch",
             ])
@@ -246,7 +245,7 @@ fn delete_old_generations() {
 
     if confirm {
         let _ = Command::new("sudo")
-            .args([
+            .args(&[
                 "nix-env",
                 "--delete-generations",
                 &format!("+{}", keep),
@@ -258,14 +257,13 @@ fn delete_old_generations() {
 }
 
 // Handle CLI commands
-#[allow(dead_code)]
 pub fn handle_nixos_action(action: crate::NixosAction) {
     match action {
         crate::NixosAction::Rebuild => rebuild_system(),
         crate::NixosAction::Update => {
             println!("🔄 Updating NixOS channels...");
             let _ = Command::new("sudo")
-                .args(["nix-channel", "--update"])
+                .args(&["nix-channel", "--update"])
                 .status();
             rebuild_system();
         }

@@ -88,7 +88,6 @@ impl Default for GhostConfig {
 }
 
 impl GhostConfig {
-    #[allow(dead_code)]
     pub fn load() -> Self {
         let config_path = Self::config_path();
 
@@ -118,7 +117,6 @@ impl GhostConfig {
         default_config
     }
 
-    #[allow(dead_code)]
     pub fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
         let config_path = Self::config_path();
 
@@ -134,7 +132,6 @@ impl GhostConfig {
         Ok(())
     }
 
-    #[allow(dead_code)]
     pub fn config_path() -> PathBuf {
         dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
@@ -142,7 +139,6 @@ impl GhostConfig {
             .join("config.toml")
     }
 
-    #[allow(dead_code)]
     pub fn edit() -> Result<(), Box<dyn std::error::Error>> {
         let config_path = Self::config_path();
         let _config = Self::load(); // Ensure config exists
@@ -155,10 +151,11 @@ impl GhostConfig {
 
         if status.success() {
             // Validate the edited config
-            let _config = Self::load();
-            {
-                println!("✅ Configuration updated successfully");
-                log::info!("Config edited and validated");
+            match Self::load() {
+                _config => {
+                    println!("✅ Configuration updated successfully");
+                    log::info!("Config edited and validated");
+                }
             }
         } else {
             return Err("Editor exited with error".into());
@@ -167,7 +164,6 @@ impl GhostConfig {
         Ok(())
     }
 
-    #[allow(dead_code)]
     pub fn show() {
         let config = Self::load();
 
@@ -212,7 +208,6 @@ impl GhostConfig {
         println!("  Confirmations: {}", config.ui.confirmation_prompts);
     }
 
-    #[allow(dead_code)]
     pub fn reset() -> Result<(), Box<dyn std::error::Error>> {
         let config_path = Self::config_path();
 

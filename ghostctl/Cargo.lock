@@ -509,9 +509,10 @@ dependencies = [
 
 [[package]]
 name = "ghostctl"
-version = "0.5.1"
+version = "0.7.0"
 dependencies = [
  "anyhow",
+ "base64",
  "chrono",
  "clap",
  "dialoguer",

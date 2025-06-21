@@ -24,7 +24,7 @@ pub fn cktech_helper_scripts() {
     match choice {
         0 => load_cktech_lxc_scripts(),
         1 => load_cktech_vm_scripts(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -54,7 +54,7 @@ pub fn community_scripts_enhanced() {
         2 => load_community_misc_scripts(),
         3 => load_pve_tools(),
         4 => load_turnkey_scripts(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -474,7 +474,7 @@ fn load_turnkey_scripts() {
                 .arg("https://www.turnkeylinux.org/")
                 .status();
         }
-        _ => (),
+        _ => return,
     }
 }
 
@@ -507,7 +507,7 @@ fn confirm_and_run_script(name: &str, url: &str) {
 
         let status = Command::new("bash")
             .arg("-c")
-            .arg(format!("curl -sSL {} | bash", url))
+            .arg(&format!("curl -sSL {} | bash", url))
             .status();
 
         match status {

@@ -8,13 +8,13 @@ use dialoguer::{Select, theme::ColorfulTheme};
 // Command-line interface setup
 pub fn build_cli() -> Command {
     Command::new("ghostctl")
-        .version("0.5.1")
+        .version(env!("CARGO_PKG_VERSION"))
         .author("Christopher Kelley <ckelley@ghostctl.sh>")
         .about("Ghost Infrastructure Control - Complete system and homelab management")
         .subcommand_required(false)
         .arg_required_else_help(false)
-        .disable_version_flag(true)
         .disable_help_flag(true)
+        .disable_version_flag(true)
         .subcommand(
             Command::new("system")
                 .about("System management")
@@ -151,89 +151,111 @@ pub fn build_cli() -> Command {
                 .subcommand(Command::new("media-server").about("Deploy media server"))
                 .subcommand(Command::new("monitoring").about("Setup monitoring")),
         )
+        .subcommand(
+            Command::new("arch")
+                .about("Arch Linux system management")
+                .subcommand(
+                    Command::new("fix").about("Fix common Arch issues (pacman, keyring, mirrors)"),
+                )
+                .subcommand(
+                    Command::new("optimize").about("Optimize system performance (zram/zswap)"),
+                )
+                .subcommand(Command::new("mirrors").about("Optimize mirror list with reflector"))
+                .subcommand(Command::new("orphans").about("Remove orphaned packages"))
+                .subcommand(Command::new("pkgfix").about("Clean PKGBUILD/build environment"))
+                .subcommand(Command::new("keyring").about("Refresh Arch keyring"))
+                .subcommand(Command::new("full").about("Run full system maintenance"))
+                .subcommand(Command::new("health").about("System health and maintenance"))
+                .subcommand(Command::new("swap").about("Swap and zram management"))
+                .subcommand(Command::new("dotfiles").about("Dotfiles management"))
+                .subcommand(Command::new("aur").about("AUR helper management"))
+                .subcommand(Command::new("boot").about("Boot and kernel management"))
+                .subcommand(Command::new("perf").about("Performance tuning"))
+                .subcommand(Command::new("menu").about("Interactive Arch menu")),
+        )
+        .subcommand(
+            Command::new("nvidia")
+                .about("NVIDIA driver and GPU management")
+                .subcommand(Command::new("menu").about("NVIDIA management menu"))
+                .subcommand(Command::new("status").about("Check driver status"))
+                .subcommand(Command::new("drivers").about("Driver management"))
+                .subcommand(Command::new("container").about("Container GPU support"))
+                .subcommand(Command::new("passthrough").about("GPU passthrough setup"))
+                .subcommand(Command::new("fix").about("Fix NVIDIA issues"))
+                .subcommand(Command::new("optimize").about("Optimize performance"))
+                .subcommand(Command::new("info").about("Show GPU info")),
+        )
+        .subcommand(
+            Command::new("backup")
+                .about("Backup and data protection management")
+                .subcommand(Command::new("menu").about("Backup management menu"))
+                .subcommand(Command::new("setup").about("Setup backup system"))
+                .subcommand(Command::new("schedule").about("Schedule automated backups"))
+                .subcommand(Command::new("verify").about("Verify backup integrity"))
+                .subcommand(Command::new("cleanup").about("Clean old backups")),
+        )
+        .subcommand(
+            Command::new("restore")
+                .about("System recovery and restoration")
+                .subcommand(Command::new("menu").about("System recovery menu"))
+                .subcommand(Command::new("restic").about("Restore from Restic backup"))
+                .subcommand(Command::new("btrfs").about("Rollback Btrfs snapshot"))
+                .subcommand(Command::new("chroot").about("Enter recovery chroot")),
+        )
+        .subcommand(
+            Command::new("btrfs")
+                .about("Btrfs filesystem management")
+                .subcommand(Command::new("menu").about("Btrfs management menu"))
+                .subcommand(Command::new("snapshot").about("Create snapshot"))
+                .subcommand(Command::new("list").about("List snapshots"))
+                .subcommand(Command::new("delete").about("Delete snapshot"))
+                .subcommand(Command::new("restore").about("Restore snapshot")),
+        )
+        .subcommand(
+            Command::new("network")
+                .about("Network diagnostics and management")
+                .subcommand(Command::new("menu").about("Network tools menu"))
+                .subcommand(Command::new("status").about("Network status"))
+                .subcommand(Command::new("test").about("Network connectivity test"))
+                .subcommand(Command::new("config").about("Network configuration")),
+        )
+        .subcommand(
+            Command::new("security")
+                .about("Security and key management")
+                .subcommand(Command::new("menu").about("Security management menu"))
+                .subcommand(Command::new("ssh").about("SSH key management"))
+                .subcommand(Command::new("gpg").about("GPG key management"))
+                .subcommand(Command::new("audit").about("Security audit")),
+        )
+        .subcommand(
+            Command::new("systemd")
+                .about("Systemd service management")
+                .subcommand(Command::new("menu").about("Systemd management menu"))
+                .subcommand(Command::new("status").about("Service status"))
+                .subcommand(Command::new("enable").about("Enable service"))
+                .subcommand(Command::new("disable").about("Disable service"))
+                .subcommand(Command::new("restart").about("Restart service")),
+        )
+        .subcommand(
+            Command::new("cloud")
+                .about("Cloud provider management")
+                .subcommand(Command::new("menu").about("Cloud management menu"))
+                .subcommand(Command::new("aws").about("AWS tools"))
+                .subcommand(Command::new("azure").about("Azure tools"))
+                .subcommand(Command::new("gcp").about("Google Cloud tools")),
+        )
         .subcommand(Command::new("version").about("Show version information"))
-        .subcommand(Command::new("list").about("List available commands"))
-        .arg(
-            Arg::new("version")
-                .long("version")
-                .short('v')
-                .action(clap::ArgAction::SetTrue)
-                .help("Show version"),
-        )
-        .arg(
-            Arg::new("system")
-                .long("system")
-                .action(clap::ArgAction::SetTrue)
-                .help("System management menu"),
-        )
-        .arg(
-            Arg::new("dev")
-                .long("dev")
-                .action(clap::ArgAction::SetTrue)
-                .help("Development environment menu"),
-        )
-        .arg(
-            Arg::new("docker")
-                .long("docker")
-                .action(clap::ArgAction::SetTrue)
-                .help("Docker management menu"),
-        )
-        .arg(
-            Arg::new("pve")
-                .long("pve")
-                .action(clap::ArgAction::SetTrue)
-                .help("Proxmox VE menu"),
-        )
-        .arg(
-            Arg::new("ssl")
-                .long("ssl")
-                .action(clap::ArgAction::SetTrue)
-                .help("SSL management menu"),
-        )
 }
 
 pub fn handle_cli_args(matches: &ArgMatches) {
-    // Handle global flags first
-    if matches.get_flag("version") {
-        println!("ghostctl v0.5.1");
-        return;
-    }
-
-    if matches.get_flag("system") {
-        crate::menu::show();
-        return;
-    }
-
-    if matches.get_flag("dev") {
-        crate::dev::development_menu();
-        return;
-    }
-
-    if matches.get_flag("docker") {
-        crate::docker::docker_menu();
-        return;
-    }
-
-    if matches.get_flag("pve") {
-        pve_management_menu();
-        return;
-    }
-
-    if matches.get_flag("ssl") {
-        ssl_management_menu();
-        return;
-    }
-
     // Handle subcommands
     match matches.subcommand() {
         Some(("version", _)) => {
-            println!("ghostctl v0.5.1");
+            println!("ghostctl v{}", env!("CARGO_PKG_VERSION"));
             println!("Ghost Infrastructure Control - Complete system and homelab management");
             println!("Author: Christopher Kelley <ckelley@ghostctl.sh>");
             println!("Repository: https://github.com/ghostkellz/ghostctl");
-        }
-        Some(("list", _)) => {
-            show_command_list();
+            return;
         }
         Some(("system", matches)) => handle_system_commands(matches),
         Some(("arch", matches)) => handle_arch_commands(matches),
@@ -457,7 +479,18 @@ fn handle_arch_commands(matches: &ArgMatches) {
         Some(("optimize", _)) => arch::archfix::optimize(),
         Some(("mirrors", _)) => arch::archfix::mirrors(),
         Some(("orphans", _)) => arch::archfix::orphans(),
-        _ => arch::arch_menu(),
+        Some(("pkgfix", _)) => arch::archfix::pkgfix(),
+        Some(("keyring", _)) => arch::archfix::keyring(),
+        Some(("full", _)) => arch::archfix::full(),
+        Some(("health", _)) => arch::health::health_menu(),
+        Some(("swap", _)) => arch::swap::swap_menu(),
+        Some(("dotfiles", _)) => arch::dotfiles::dotfiles_menu(),
+        Some(("aur", _)) => arch::aur::aur_helper_management(),
+        Some(("boot", _)) => arch::boot::boot_management(),
+        Some(("perf", _)) => arch::perf::tune(),
+        Some(("menu", _)) => arch::arch_menu(),
+        None => arch::arch_menu(),
+        _ => unreachable!(),
     }
 }
 
@@ -471,21 +504,11 @@ fn handle_shell_commands(matches: &ArgMatches) {
 
 fn handle_systemd_commands(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("enable", sub_matches)) => {
-            if let Some(service) = sub_matches.get_one::<String>("service") {
-                systemd::manage_service(&format!("enable {}", service));
-            }
-        }
-        Some(("disable", sub_matches)) => {
-            if let Some(service) = sub_matches.get_one::<String>("service") {
-                systemd::manage_service(&format!("disable {}", service));
-            }
-        }
-        Some(("status", sub_matches)) => {
-            if let Some(service) = sub_matches.get_one::<String>("service") {
-                systemd::manage_service(&format!("status {}", service));
-            }
-        }
+        Some(("menu", _)) => systemd::enable(),
+        Some(("status", _)) => systemd::enable(),
+        Some(("enable", _)) => systemd::enable(),
+        Some(("disable", _)) => systemd::enable(),
+        Some(("restart", _)) => systemd::enable(),
         _ => systemd::enable(),
     }
 }
@@ -500,21 +523,20 @@ fn handle_proxmox_commands(matches: &ArgMatches) {
 
 fn handle_network_commands(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("mesh", _)) => network::mesh::status(),
-        Some(("dns", sub_matches)) => {
-            if let Some(domain) = sub_matches.get_one::<String>("domain") {
-                network::dns::lookup(domain);
-            }
-        }
+        Some(("menu", _)) => network::mesh::status(),
+        Some(("status", _)) => network::mesh::status(),
+        Some(("test", _)) => network::mesh::status(),
+        Some(("config", _)) => network::mesh::status(),
         _ => network::mesh::status(),
     }
 }
 
 fn handle_cloud_commands(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("infrastructure", _)) => cloud::infrastructure_menu(),
-        Some(("ansible", _)) => cloud::ansible_management(),
-        Some(("terraform", _)) => cloud::terraform_management(),
+        Some(("menu", _)) => cloud::infrastructure_menu(),
+        Some(("aws", _)) => cloud::infrastructure_menu(),
+        Some(("azure", _)) => cloud::infrastructure_menu(),
+        Some(("gcp", _)) => cloud::infrastructure_menu(),
         _ => cloud::infrastructure_menu(),
     }
 }
@@ -529,36 +551,42 @@ fn handle_tools_commands(matches: &ArgMatches) {
 
 fn handle_btrfs_commands(matches: &ArgMatches) {
     match matches.subcommand() {
+        Some(("menu", _)) => btrfs::btrfs_menu(),
+        Some(("snapshot", _)) => btrfs::btrfs_menu(),
         Some(("list", _)) => btrfs::list_snapshots(),
-        Some(("create", sub_matches)) => {
-            if let Some(name) = sub_matches.get_one::<String>("name") {
-                btrfs::snapshot::create_snapshot("/", name);
-            }
-        }
+        Some(("delete", _)) => btrfs::btrfs_menu(),
+        Some(("restore", _)) => btrfs::btrfs_menu(),
         _ => btrfs::btrfs_menu(),
     }
 }
 
 fn handle_nvidia_commands(matches: &ArgMatches) {
     match matches.subcommand() {
+        Some(("menu", _)) => nvidia::nvidia_menu(),
+        Some(("status", _)) => nvidia::status(),
+        Some(("drivers", _)) => nvidia::drivers::driver_menu(),
+        Some(("container", _)) => nvidia::container::container_menu(),
+        Some(("passthrough", _)) => nvidia::passthrough::passthrough_menu(),
         Some(("fix", _)) => nvidia::fix(),
         Some(("optimize", _)) => nvidia::optimize(),
-        Some(("status", _)) => nvidia::status(),
         Some(("info", _)) => nvidia::info(),
-        _ => nvidia::fix(),
+        _ => nvidia::nvidia_menu(),
     }
 }
 
 fn handle_security_commands(matches: &ArgMatches) {
     match matches.subcommand() {
+        Some(("menu", _)) => security::ssh::ssh_management(),
         Some(("ssh", _)) => security::ssh::ssh_management(),
         Some(("gpg", _)) => security::gpg::gpg_key_management(),
+        Some(("audit", _)) => security::ssh::ssh_management(),
         _ => security::ssh::ssh_management(),
     }
 }
 
 fn handle_backup_commands(matches: &ArgMatches) {
     match matches.subcommand() {
+        Some(("menu", _)) => backup::backup_menu(),
         Some(("setup", _)) => backup::setup::setup(),
         Some(("schedule", _)) => backup::schedule::setup_schedule(),
         Some(("verify", _)) => backup::verify::verify_backups(),
@@ -569,6 +597,7 @@ fn handle_backup_commands(matches: &ArgMatches) {
 
 fn handle_restore_commands(matches: &ArgMatches) {
     match matches.subcommand() {
+        Some(("menu", _)) => restore::restore_menu(),
         Some(("restic", _)) => restore::system::restore_from_restic(),
         Some(("btrfs", _)) => restore::system::rollback_btrfs_snapshot(),
         Some(("chroot", _)) => restore::system::enter_recovery_chroot(),
@@ -605,9 +634,9 @@ fn show_docker_status() {
     println!("================");
 
     let _ = std::process::Command::new("docker")
-        .args(["version"])
+        .args(&["version"])
         .status();
-    let _ = std::process::Command::new("docker").args(["ps"]).status();
+    let _ = std::process::Command::new("docker").args(&["ps"]).status();
 }
 
 fn docker_homelab_menu() {
@@ -635,7 +664,7 @@ fn show_nginx_status() {
     println!("===============");
 
     let _ = std::process::Command::new("systemctl")
-        .args(["status", "nginx"])
+        .args(&["status", "nginx"])
         .status();
 }
 
@@ -643,7 +672,7 @@ fn restart_nginx() {
     println!("🔄 Restarting Nginx...");
 
     let _ = std::process::Command::new("sudo")
-        .args(["systemctl", "restart", "nginx"])
+        .args(&["systemctl", "restart", "nginx"])
         .status();
 
     println!("✅ Nginx restarted");
@@ -706,7 +735,7 @@ fn homelab_management_menu() {
         5 => setup_homelab_network(),
         6 => deploy_media_server(),
         7 => deploy_game_server(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -847,42 +876,4 @@ fn stop_container(_id: String) {
 
 fn ssl_management_menu() {
     println!("SSL Management Menu - Coming Soon!");
-}
-
-fn show_command_list() {
-    println!("ghostctl v0.5.0 - Available Commands");
-    println!("====================================");
-    println!();
-    println!("System Management:");
-    println!("  system update    - Update system packages");
-    println!("  system status    - Show system status");
-    println!("  system arch      - Arch Linux management");
-    println!("  system nixos     - NixOS management");
-    println!();
-    println!("Development:");
-    println!("  dev menu         - Development environment menu");
-    println!("  dev rust         - Rust development tools");
-    println!("  dev zig          - Zig development tools");
-    println!("  dev go           - Go development tools");
-    println!("  dev python       - Python development tools");
-    println!();
-    println!("Infrastructure:");
-    println!("  docker menu      - Docker management");
-    println!("  pve menu         - Proxmox VE management");
-    println!("  nginx menu       - Nginx configuration");
-    println!("  ssl menu         - SSL certificate management");
-    println!();
-    println!("Utilities:");
-    println!("  scripts menu     - Script management");
-    println!("  backup menu      - Backup management");
-    println!("  restore menu     - System recovery");
-    println!("  security menu    - Security tools");
-    println!();
-    println!("General:");
-    println!("  version          - Show version information");
-    println!("  help             - Show help information");
-    println!("  menu             - Show interactive menu");
-    println!("  list             - Show this command list");
-    println!();
-    println!("For detailed help on any command, use: ghostctl <command> --help");
 }

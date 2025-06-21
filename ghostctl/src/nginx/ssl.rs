@@ -27,7 +27,7 @@ pub fn ssl_management() {
         2 => install_custom_cert(),
         3 => renew_certificates(),
         4 => list_certificates(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -39,7 +39,7 @@ fn setup_letsencrypt() {
     if Command::new("which").arg("certbot").status().is_err() {
         println!("❌ Certbot not found. Installing...");
         let _ = Command::new("sudo")
-            .args(["pacman", "-S", "--noconfirm", "certbot", "certbot-nginx"])
+            .args(&["pacman", "-S", "--noconfirm", "certbot", "certbot-nginx"])
             .status();
     }
 
@@ -57,13 +57,13 @@ fn setup_letsencrypt() {
     let cert_dir = format!("/etc/nginx/certs/{}", domain);
     println!("� Creating certificate directory: {}", cert_dir);
     let _ = Command::new("sudo")
-        .args(["mkdir", "-p", &cert_dir])
+        .args(&["mkdir", "-p", &cert_dir])
         .status();
 
     println!("�🚀 Setting up Let's Encrypt for: {}", domain);
 
     let status = Command::new("sudo")
-        .args([
+        .args(&[
             "certbot",
             "certonly",
             "--standalone",
@@ -82,7 +82,7 @@ fn setup_letsencrypt() {
         let letsencrypt_dir = format!("/etc/letsencrypt/live/{}", domain);
 
         let _ = Command::new("sudo")
-            .args([
+            .args(&[
                 "cp",
                 &format!("{}/fullchain.pem", letsencrypt_dir),
                 &format!("{}/cert.pem", cert_dir),
@@ -90,7 +90,7 @@ fn setup_letsencrypt() {
             .status();
 
         let _ = Command::new("sudo")
-            .args([
+            .args(&[
                 "cp",
                 &format!("{}/privkey.pem", letsencrypt_dir),
                 &format!("{}/privkey.pem", cert_dir),
@@ -114,12 +114,12 @@ fn generate_self_signed() {
 
     // Create SSL directory
     let _ = Command::new("sudo")
-        .args(["mkdir", "-p", "/etc/nginx/ssl"])
+        .args(&["mkdir", "-p", "/etc/nginx/ssl"])
         .status();
 
     // Generate private key and certificate
     let _ = Command::new("sudo")
-        .args([
+        .args(&[
             "openssl",
             "req",
             "-x509",
@@ -163,11 +163,11 @@ fn install_custom_cert() {
 
     // Copy certificate files to nginx SSL directory
     let _ = Command::new("sudo")
-        .args(["mkdir", "-p", "/etc/nginx/ssl"])
+        .args(&["mkdir", "-p", "/etc/nginx/ssl"])
         .status();
 
     let _ = Command::new("sudo")
-        .args([
+        .args(&[
             "cp",
             &cert_path,
             &format!("/etc/nginx/ssl/{}.crt", dest_name),
@@ -175,7 +175,7 @@ fn install_custom_cert() {
         .status();
 
     let _ = Command::new("sudo")
-        .args([
+        .args(&[
             "cp",
             &key_path,
             &format!("/etc/nginx/ssl/{}.key", dest_name),
@@ -193,7 +193,7 @@ fn renew_certificates() {
     if Command::new("which").arg("certbot").status().is_ok() {
         println!("🔄 Renewing Let's Encrypt certificates...");
         let _ = Command::new("sudo")
-            .args(["certbot", "renew", "--nginx"])
+            .args(&["certbot", "renew", "--nginx"])
             .status();
     } else {
         println!("❌ Certbot not found for automatic renewal");
@@ -208,19 +208,18 @@ fn list_certificates() {
     if Command::new("which").arg("certbot").status().is_ok() {
         println!("🌐 Let's Encrypt certificates:");
         let _ = Command::new("sudo")
-            .args(["certbot", "certificates"])
+            .args(&["certbot", "certificates"])
             .status();
     }
 
     // List custom certificates
     println!("\n📁 Custom certificates in /etc/nginx/ssl/:");
     let _ = Command::new("sudo")
-        .args(["ls", "-la", "/etc/nginx/ssl/"])
+        .args(&["ls", "-la", "/etc/nginx/ssl/"])
         .status();
 }
 
 // Custom certificate path management for your /etc/nginx/certs/domain/ structure
-#[allow(dead_code)]
 fn get_certificate_paths(domain: &str) -> (String, String) {
     let custom_cert_dir = format!("/etc/nginx/certs/{}", domain);
 
@@ -260,13 +259,12 @@ fn get_certificate_paths(domain: &str) -> (String, String) {
     (custom_cert, custom_key)
 }
 
-#[allow(dead_code)]
 fn ensure_custom_cert_structure(domain: &str) {
     let cert_dir = format!("/etc/nginx/certs/{}", domain);
 
     // Create directory if it doesn't exist
     let _ = Command::new("sudo")
-        .args(["mkdir", "-p", &cert_dir])
+        .args(&["mkdir", "-p", &cert_dir])
         .status();
 
     println!("📁 Certificate directory: {}", cert_dir);

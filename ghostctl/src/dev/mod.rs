@@ -36,7 +36,7 @@ pub fn development_menu() {
         4 => crate::dev::gtools::ghost_ecosystem_menu(),
         5 => package_managers_menu(),
         6 => ide_setup_menu(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -59,21 +59,18 @@ pub fn rust_development_menu() {
     println!("  • rustfmt: Code formatter");
 }
 
-#[allow(dead_code)]
 fn python_development() {
     println!("🐍 Python Development - Coming Soon!");
     println!("====================================");
     println!("💡 This feature will be added in a future update");
 }
 
-#[allow(dead_code)]
 fn go_development() {
     println!("🐹 Go Development - Coming Soon!");
     println!("=================================");
     println!("💡 This feature will be added in a future update");
 }
 
-#[allow(dead_code)]
 fn nodejs_development() {
     println!("🟦 Node.js Development - Coming Soon!");
     println!("=====================================");

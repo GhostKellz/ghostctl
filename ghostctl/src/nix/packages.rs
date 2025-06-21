@@ -29,7 +29,7 @@ pub fn package_management() {
         3 => list_packages(),
         4 => update_packages(),
         5 => package_info(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -41,7 +41,7 @@ fn search_packages() {
 
     println!("🔍 Searching for: {}", query);
     let _ = Command::new("nix")
-        .args(["search", "nixpkgs", &query])
+        .args(&["search", "nixpkgs", &query])
         .status();
 }
 
@@ -53,7 +53,7 @@ fn install_package() {
 
     println!("📦 Installing: {}", package);
     let _ = Command::new("nix-env")
-        .args(["-iA", &format!("nixpkgs.{}", package)])
+        .args(&["-iA", &format!("nixpkgs.{}", package)])
         .status();
 }
 
@@ -64,17 +64,17 @@ fn remove_package() {
         .unwrap();
 
     println!("🗑️  Removing: {}", package);
-    let _ = Command::new("nix-env").args(["-e", &package]).status();
+    let _ = Command::new("nix-env").args(&["-e", &package]).status();
 }
 
 fn list_packages() {
     println!("📋 Installed packages:");
-    let _ = Command::new("nix-env").args(["-q"]).status();
+    let _ = Command::new("nix-env").args(&["-q"]).status();
 }
 
 fn update_packages() {
     println!("🔄 Updating packages...");
-    let _ = Command::new("nix-env").args(["-u"]).status();
+    let _ = Command::new("nix-env").args(&["-u"]).status();
 }
 
 fn package_info() {
@@ -85,6 +85,6 @@ fn package_info() {
 
     println!("📊 Package information for: {}", package);
     let _ = Command::new("nix")
-        .args(["show-derivation", &format!("nixpkgs#{}", package)])
+        .args(&["show-derivation", &format!("nixpkgs#{}", package)])
         .status();
 }

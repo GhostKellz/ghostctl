@@ -17,7 +17,6 @@ pub fn run() {
     println!("restic snapshots");
 }
 
-#[allow(dead_code)]
 pub fn verify() {
     println!("Verifying restic backup...");
     let status = std::process::Command::new("sh")

@@ -3,7 +3,6 @@ use crate::{
     security, shell, systemd, terminal,
 };
 use dialoguer::{Select, theme::ColorfulTheme};
-// use std::io::{self, Write};
 
 pub fn show() {
     loop {
@@ -11,7 +10,7 @@ pub fn show() {
             "🔧 Fix Arch Issues (Pacman, PKGBUILD, Optimize)",
             "🛠️  Stage Dev Project (Rust/Go/Zig)",
             "📸 Manage Btrfs Snapshots",
-            "🎮 NVIDIA Tools (Clean, Fix, Diagnostics)",
+            "🎮 NVIDIA Management (Drivers, Container, Passthrough)",
             "🚀 Neovim Configurator",
             "🐚 Shell Setup (ZSH, Oh My Zsh, Powerlevel10k, tmux)",
             "💻 Terminal Setup (Ghostty, WezTerm)",
@@ -52,7 +51,7 @@ pub fn show() {
                             0 => arch::arch_menu(),
                             1 => dev::development_menu(),
                             2 => btrfs::btrfs_menu(),
-                            3 => nvidia_tools_menu(),
+                            3 => nvidia::nvidia_menu(),
                             4 => nvim::nvim_menu(),
                             5 => shell::setup(),
                             6 => terminal::terminal_menu(),
@@ -92,30 +91,7 @@ pub fn show() {
     }
 }
 
-fn nvidia_tools_menu() {
-    let options = [
-        "🔧 NVIDIA Diagnostics",
-        "🧹 Clean DKMS/Modules",
-        "🔄 Fix & Rebuild",
-        "📊 System Info",
-        "⬅️  Back",
-    ];
-
-    let choice = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("NVIDIA Tools")
-        .items(&options)
-        .default(0)
-        .interact()
-        .unwrap();
-
-    match choice {
-        0 => nvidia::diagnostics(),
-        1 => nvidia::clean(),
-        2 => nvidia::fix(),
-        3 => nvidia::info(),
-        _ => (),
-    }
-}
+// NVIDIA menu moved to nvidia::nvidia_menu() for comprehensive functionality
 
 fn systemd_management() {
     let options = [
@@ -138,7 +114,7 @@ fn systemd_management() {
         1 => systemd::enable(),
         2 => systemd::disable(),
         3 => systemd::create(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -170,7 +146,7 @@ fn network_mesh_menu() {
         }
         2 => network::mesh::status(),
         3 => network::mesh::down(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -193,7 +169,7 @@ fn security_key_management() {
         0 => security::ssh::ssh_management(),
         1 => security::gpg::gpg_key_management(),
         2 => combined_security_audit(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -254,7 +230,7 @@ fn combined_security_audit() {
     crate::network::security_audit();
 
     println!("\n🔍 2. GPG Security Check");
-    crate::security::gpg::list_gpg_keys();
+    let _ = crate::security::gpg::list_gpg_keys();
 
     println!("\n🔍 3. System Security Overview");
     // Check for common security tools

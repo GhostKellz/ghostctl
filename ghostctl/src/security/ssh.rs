@@ -1,6 +1,25 @@
+use anyhow::{Context, Result};
 use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::fs;
+use std::path::PathBuf;
 use std::process::Command;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum SshError {
+    #[error("SSH directory not accessible: {0}")]
+    DirectoryError(String),
+    #[error("SSH key operation failed: {0}")]
+    KeyError(String),
+    #[error("SSH command failed: {0}")]
+    CommandError(String),
+    #[error("File operation failed: {0}")]
+    FileError(String),
+    #[error("Invalid input: {0}")]
+    ValidationError(String),
+    #[error("Configuration error: {0}")]
+    ConfigError(String),
+}
 
 pub fn ssh_management() {
     println!("🔐 SSH Key Management");
@@ -16,25 +35,35 @@ pub fn ssh_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("SSH Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(choice) => choice,
+        Err(e) => {
+            eprintln!("❌ Menu selection failed: {}", e);
+            return;
+        }
+    };
 
-    match choice {
+    let result = match choice {
         0 => generate_ssh_key(),
         1 => list_ssh_keys(),
         2 => copy_public_key(),
-        3 => add_to_agent(),
-        4 => ssh_configuration(),
-        5 => secure_ssh_daemon(),
-        _ => (),
+        3 => Ok(add_to_agent()),
+        4 => Ok(ssh_configuration()),
+        5 => Ok(secure_ssh_daemon()),
+        _ => return,
+    };
+
+    if let Err(e) = result {
+        eprintln!("❌ Operation failed: {}", e);
     }
 }
 
-fn generate_ssh_key() {
+fn generate_ssh_key() -> Result<()> {
     println!("🔑 Generate SSH Key Pair");
     println!("========================");
 
@@ -43,18 +72,28 @@ fn generate_ssh_key() {
         .items(&["ed25519 (recommended)", "rsa 4096", "ecdsa"])
         .default(0)
         .interact()
-        .unwrap();
+        .context("Failed to get key type selection")?;
 
     let email: String = Input::new()
         .with_prompt("Email for key comment")
+        .validate_with(|input: &String| -> Result<(), &str> {
+            if input.trim().is_empty() {
+                Err("Email cannot be empty")
+            } else if !input.contains('@') {
+                Err("Please enter a valid email address")
+            } else {
+                Ok(())
+            }
+        })
         .interact_text()
-        .unwrap();
+        .context("Failed to get email input")?;
 
     let filename: String = Input::new()
         .with_prompt("Key filename")
         .default("id_ed25519".into())
+        .validate_with(|input: &String| -> Result<(), &str> { validate_key_filename(input) })
         .interact_text()
-        .unwrap();
+        .context("Failed to get filename input")?;
 
     let (key_type_str, key_size) = match key_type {
         0 => ("ed25519", ""),
@@ -63,64 +102,84 @@ fn generate_ssh_key() {
         _ => ("ed25519", ""),
     };
 
-    let ssh_dir = dirs::home_dir().unwrap().join(".ssh");
-    fs::create_dir_all(&ssh_dir).unwrap();
+    let ssh_dir = get_ssh_dir()?;
+    fs::create_dir_all(&ssh_dir)
+        .with_context(|| format!("Failed to create SSH directory: {}", ssh_dir.display()))?;
 
     let key_path = ssh_dir.join(&filename);
 
     println!("🔧 Generating {} key...", key_type_str);
 
     let mut cmd = Command::new("ssh-keygen");
-    cmd.args(["-t", key_type_str]);
+    cmd.args(&["-t", key_type_str]);
 
     if !key_size.is_empty() {
         cmd.args(key_size.split_whitespace());
     }
 
-    cmd.args(["-C", &email])
-        .args(["-f", key_path.to_str().unwrap()]);
+    cmd.args(&["-C", &email]).args(&[
+        "-f",
+        key_path
+            .to_str()
+            .ok_or_else(|| SshError::FileError("Invalid key path".to_string()))?,
+    ]);
 
-    let status = cmd.status();
+    let status = cmd
+        .status()
+        .context("Failed to execute ssh-keygen command")?;
 
-    match status {
-        Ok(s) if s.success() => {
-            println!("✅ SSH key pair generated!");
-            println!("📁 Private key: {}", key_path.display());
-            println!("📁 Public key: {}.pub", key_path.display());
-
-            let add_to_agent = Confirm::new()
-                .with_prompt("Add key to SSH agent?")
-                .default(true)
-                .interact()
-                .unwrap();
-
-            if add_to_agent {
-                let _ = Command::new("ssh-add")
-                    .arg(key_path.to_str().unwrap())
-                    .status();
-                println!("✅ Key added to SSH agent");
-            }
-        }
-        _ => println!("❌ Failed to generate SSH key"),
+    if !status.success() {
+        return Err(SshError::CommandError("ssh-keygen failed".to_string()).into());
     }
+
+    println!("✅ SSH key pair generated!");
+    println!("📁 Private key: {}", key_path.display());
+    println!("📁 Public key: {}.pub", key_path.display());
+
+    let add_to_agent = Confirm::new()
+        .with_prompt("Add key to SSH agent?")
+        .default(true)
+        .interact()
+        .context("Failed to get agent confirmation")?;
+
+    if add_to_agent {
+        if let Err(e) = Command::new("ssh-add")
+            .arg(
+                key_path
+                    .to_str()
+                    .ok_or_else(|| SshError::FileError("Invalid key path".to_string()))?,
+            )
+            .status()
+        {
+            log::warn!("Failed to add key to SSH agent: {}", e);
+            println!("⚠️  Warning: Could not add key to SSH agent");
+        } else {
+            println!("✅ Key added to SSH agent");
+        }
+    }
+
+    Ok(())
 }
 
-fn list_ssh_keys() {
+fn list_ssh_keys() -> Result<()> {
     println!("📋 SSH Keys");
     println!("===========");
 
-    let ssh_dir = dirs::home_dir().unwrap().join(".ssh");
+    let ssh_dir = get_ssh_dir()?;
 
     if !ssh_dir.exists() {
-        println!("❌ SSH directory does not exist: {}", ssh_dir.display());
-        return;
+        return Err(SshError::DirectoryError(format!(
+            "SSH directory does not exist: {}",
+            ssh_dir.display()
+        ))
+        .into());
     }
 
     println!("\n🔑 Private Keys:");
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_file() && path.extension().is_none_or(|ext| ext != "pub") {
+            if path.is_file() && !path.extension().map_or(false, |ext| ext == "pub") {
                 if let Some(filename) = path.file_name() {
                     let filename_str = filename.to_string_lossy();
                     if filename_str.starts_with("id_") || filename_str.contains("key") {
@@ -135,13 +194,13 @@ fn list_ssh_keys() {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().is_some_and(|ext| ext == "pub") {
+            if path.extension().map_or(false, |ext| ext == "pub") {
                 if let Some(filename) = path.file_name() {
                     println!("  📄 {}", filename.to_string_lossy());
 
                     // Show key fingerprint
                     if let Ok(output) = Command::new("ssh-keygen")
-                        .args(["-lf", path.to_str().unwrap()])
+                        .args(&["-lf", path.to_str().unwrap()])
                         .output()
                     {
                         let fingerprint = String::from_utf8_lossy(&output.stdout);
@@ -153,20 +212,25 @@ fn list_ssh_keys() {
     }
 
     println!("\n🔐 SSH Agent Keys:");
-    let _ = Command::new("ssh-add").arg("-l").status();
+    if let Err(e) = Command::new("ssh-add").arg("-l").status() {
+        log::warn!("Could not list SSH agent keys: {}", e);
+        println!("  ⚠️  SSH agent not available or no keys loaded");
+    }
+
+    Ok(())
 }
 
-fn copy_public_key() {
+fn copy_public_key() -> Result<()> {
     println!("📤 Copy Public Key to Clipboard");
     println!("===============================");
 
-    let ssh_dir = dirs::home_dir().unwrap().join(".ssh");
+    let ssh_dir = get_ssh_dir()?;
     let mut pub_keys = Vec::new();
 
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().is_some_and(|ext| ext == "pub") {
+            if path.extension().map_or(false, |ext| ext == "pub") {
                 if let Some(filename) = path.file_name() {
                     pub_keys.push((filename.to_string_lossy().to_string(), path));
                 }
@@ -176,7 +240,7 @@ fn copy_public_key() {
 
     if pub_keys.is_empty() {
         println!("❌ No public keys found");
-        return;
+        return Ok(());
     }
 
     let key_names: Vec<String> = pub_keys.iter().map(|(name, _)| name.clone()).collect();
@@ -201,7 +265,7 @@ fn copy_public_key() {
 
                 match *tool {
                     "xclip" => {
-                        cmd.args(["-selection", "clipboard"]);
+                        cmd.args(&["-selection", "clipboard"]);
                     }
                     "wl-copy" => {}
                     "pbcopy" => {}
@@ -211,10 +275,12 @@ fn copy_public_key() {
                 if let Ok(mut child) = cmd.stdin(std::process::Stdio::piped()).spawn() {
                     if let Some(stdin) = child.stdin.take() {
                         use std::io::Write;
-                        if writeln!(&stdin, "{}", content.trim()).is_ok() && child.wait().is_ok() {
-                            println!("✅ Public key copied to clipboard using {}", tool);
-                            copied = true;
-                            break;
+                        if writeln!(&stdin, "{}", content.trim()).is_ok() {
+                            if child.wait().is_ok() {
+                                println!("✅ Public key copied to clipboard using {}", tool);
+                                copied = true;
+                                break;
+                            }
                         }
                     }
                 }
@@ -228,6 +294,7 @@ fn copy_public_key() {
     } else {
         println!("❌ Could not read public key file");
     }
+    Ok(())
 }
 
 fn add_to_agent() {
@@ -246,7 +313,7 @@ fn add_to_agent() {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_file() && path.extension().is_none_or(|ext| ext != "pub") {
+            if path.is_file() && !path.extension().map_or(false, |ext| ext == "pub") {
                 if let Some(filename) = path.file_name() {
                     let filename_str = filename.to_string_lossy();
                     if filename_str.starts_with("id_") || filename_str.contains("key") {
@@ -307,7 +374,7 @@ fn ssh_configuration() {
         1 => show_ssh_config(),
         2 => create_ssh_config_template(),
         3 => configure_key_auth(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -414,7 +481,7 @@ fn configure_key_auth() {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().is_some_and(|ext| ext == "pub") {
+            if path.extension().map_or(false, |ext| ext == "pub") {
                 if let Some(filename) = path.file_name() {
                     pub_keys.push((filename.to_string_lossy().to_string(), path));
                 }
@@ -441,7 +508,7 @@ fn configure_key_auth() {
     println!("🚀 Installing public key on {}@{}", username, server);
 
     let status = Command::new("ssh-copy-id")
-        .args([
+        .args(&[
             "-i",
             key_path.to_str().unwrap(),
             &format!("{}@{}", username, server),
@@ -483,7 +550,7 @@ fn secure_ssh_daemon() {
 
     // Backup original config
     let _ = Command::new("sudo")
-        .args(["cp", "/etc/ssh/sshd_config", "/etc/ssh/sshd_config.backup"])
+        .args(&["cp", "/etc/ssh/sshd_config", "/etc/ssh/sshd_config.backup"])
         .status();
 
     let hardening_options = MultiSelect::with_theme(&ColorfulTheme::default())
@@ -524,4 +591,54 @@ fn secure_ssh_daemon() {
 
     println!("\n🔄 After making changes, restart SSH daemon:");
     println!("   sudo systemctl restart sshd");
+}
+
+// Helper functions for error handling and validation
+fn get_ssh_dir() -> Result<PathBuf> {
+    dirs::home_dir()
+        .ok_or_else(|| SshError::DirectoryError("Could not determine home directory".to_string()))
+        .map(|home| home.join(".ssh"))
+        .map_err(Into::into)
+}
+
+fn validate_key_filename(filename: &str) -> Result<(), &'static str> {
+    if filename.trim().is_empty() {
+        return Err("Filename cannot be empty");
+    }
+    if filename.contains('/') || filename.contains('\\') {
+        return Err("Filename cannot contain path separators");
+    }
+    if filename.contains("..") {
+        return Err("Filename cannot contain '..'");
+    }
+    if filename.starts_with('.') && filename.len() > 1 {
+        return Err("Filename should not start with '.'");
+    }
+    Ok(())
+}
+
+fn validate_hostname(hostname: &str) -> Result<(), &'static str> {
+    if hostname.trim().is_empty() {
+        return Err("Hostname cannot be empty");
+    }
+    if hostname.contains(' ') {
+        return Err("Hostname cannot contain spaces");
+    }
+    if hostname.len() > 253 {
+        return Err("Hostname too long");
+    }
+    Ok(())
+}
+
+fn validate_username(username: &str) -> Result<(), &'static str> {
+    if username.trim().is_empty() {
+        return Err("Username cannot be empty");
+    }
+    if username.contains(' ') {
+        return Err("Username cannot contain spaces");
+    }
+    if username.contains('@') {
+        return Err("Username should not contain '@' symbol");
+    }
+    Ok(())
 }

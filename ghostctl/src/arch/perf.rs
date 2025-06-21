@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 pub fn tune() {
     println!("ghostctl :: Arch System Performance Tuning");
     // Apply sysctl tweaks

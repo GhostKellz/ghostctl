@@ -30,7 +30,7 @@ pub fn compose_stack_manager() {
         3 => manage_running_stacks(),
         4 => stack_templates_library(),
         5 => update_all_stacks(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -123,7 +123,7 @@ fn manage_stack(stack_path: &std::path::Path) {
         5 => show_stack_config(stack_path),
         6 => pull_stack_images(stack_path),
         7 => remove_stack(stack_path),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -131,7 +131,7 @@ fn show_stack_status(stack_path: &std::path::Path) {
     println!("📊 Stack Status: {}", stack_path.display());
 
     let status = Command::new("docker-compose")
-        .args(["ps"])
+        .args(&["ps"])
         .current_dir(stack_path)
         .status();
 
@@ -145,7 +145,7 @@ fn start_stack(stack_path: &std::path::Path) {
     println!("🚀 Starting stack: {}", stack_path.display());
 
     let status = Command::new("docker-compose")
-        .args(["up", "-d"])
+        .args(&["up", "-d"])
         .current_dir(stack_path)
         .status();
 
@@ -166,7 +166,7 @@ fn stop_stack(stack_path: &std::path::Path) {
 
     if confirm {
         let status = Command::new("docker-compose")
-            .args(["down"])
+            .args(&["down"])
             .current_dir(stack_path)
             .status();
 
@@ -181,7 +181,7 @@ fn restart_stack(stack_path: &std::path::Path) {
     println!("🔄 Restarting stack: {}", stack_path.display());
 
     let status = Command::new("docker-compose")
-        .args(["restart"])
+        .args(&["restart"])
         .current_dir(stack_path)
         .status();
 
@@ -208,14 +208,14 @@ fn view_stack_logs(stack_path: &std::path::Path) {
     match log_type {
         0 => {
             let _ = Command::new("docker-compose")
-                .args(["logs", "--tail=50"])
+                .args(&["logs", "--tail=50"])
                 .current_dir(stack_path)
                 .status();
         }
         1 => {
             println!("Press Ctrl+C to stop following logs");
             let _ = Command::new("docker-compose")
-                .args(["logs", "-f"])
+                .args(&["logs", "-f"])
                 .current_dir(stack_path)
                 .status();
         }
@@ -226,11 +226,11 @@ fn view_stack_logs(stack_path: &std::path::Path) {
                 .unwrap();
 
             let _ = Command::new("docker-compose")
-                .args(["logs", "--tail=50", &service])
+                .args(&["logs", "--tail=50", &service])
                 .current_dir(stack_path)
                 .status();
         }
-        _ => (),
+        _ => return,
     }
 }
 
@@ -255,7 +255,7 @@ fn pull_stack_images(stack_path: &std::path::Path) {
     println!("📥 Pulling images for: {}", stack_path.display());
 
     let status = Command::new("docker-compose")
-        .args(["pull"])
+        .args(&["pull"])
         .current_dir(stack_path)
         .status();
 
@@ -278,7 +278,7 @@ fn remove_stack(stack_path: &std::path::Path) {
 
     if confirm {
         let status = Command::new("docker-compose")
-            .args(["down", "-v", "--remove-orphans"])
+            .args(&["down", "-v", "--remove-orphans"])
             .current_dir(stack_path)
             .status();
 
@@ -311,7 +311,7 @@ fn deploy_new_stack() {
         0 => deploy_from_directory(),
         1 => deploy_from_url(),
         2 => deploy_from_template(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -340,7 +340,7 @@ fn deploy_from_directory() {
     println!("🚀 Deploying from: {}/{}", directory, compose_file);
 
     let status = Command::new("docker-compose")
-        .args(["up", "-d"])
+        .args(&["up", "-d"])
         .current_dir(path)
         .status();
 
@@ -378,7 +378,7 @@ fn stack_status_overview() {
         println!("\n📁 Stack: {}", stack.display());
 
         let output = Command::new("docker-compose")
-            .args(["ps", "--format", "table"])
+            .args(&["ps", "--format", "table"])
             .current_dir(&stack)
             .output();
 
@@ -401,7 +401,7 @@ fn manage_running_stacks() {
     println!("========================");
 
     // Get all running compose projects
-    let _output = Command::new("docker").args([
+    let _output = Command::new("docker").args(&[
         "ps",
         "--filter",
         "label=com.docker.compose.project",
@@ -468,7 +468,7 @@ fn update_all_stacks() {
             println!("\n🔄 Updating: {}", stack.display());
 
             let status = Command::new("docker-compose")
-                .args(["pull"])
+                .args(&["pull"])
                 .current_dir(&stack)
                 .status();
 

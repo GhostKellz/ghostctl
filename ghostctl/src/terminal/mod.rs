@@ -2,6 +2,8 @@ use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use std::fs;
 use std::process::Command;
 
+pub mod alacritty;
+
 pub fn terminal_menu() {
     println!("💻 Terminal Setup & Configuration");
     println!("=================================");
@@ -9,6 +11,7 @@ pub fn terminal_menu() {
     let options = [
         "👻 Setup Ghostty",
         "🔷 Setup WezTerm",
+        "⚡ Setup Alacritty",
         "🔧 Configure terminal preferences",
         "📊 Terminal information",
         "⬅️  Back",
@@ -24,9 +27,10 @@ pub fn terminal_menu() {
     match choice {
         0 => setup_ghostty(),
         1 => setup_wezterm(),
-        2 => configure_preferences(),
-        3 => show_terminal_info(),
-        _ => (),
+        2 => alacritty::alacritty_menu(),
+        3 => configure_preferences(),
+        4 => show_terminal_info(),
+        _ => return,
     }
 }
 
@@ -83,7 +87,7 @@ fn install_ghostty_aur() {
     // Check if yay is available
     if Command::new("which").arg("yay").status().is_ok() {
         let status = Command::new("yay")
-            .args(["-S", "--noconfirm", "ghostty"])
+            .args(&["-S", "--noconfirm", "ghostty"])
             .status();
 
         match status {
@@ -91,7 +95,7 @@ fn install_ghostty_aur() {
             _ => {
                 println!("❌ Failed to install via yay, trying paru...");
                 let _ = Command::new("paru")
-                    .args(["-S", "--noconfirm", "ghostty"])
+                    .args(&["-S", "--noconfirm", "ghostty"])
                     .status();
             }
         }
@@ -105,7 +109,7 @@ fn install_ghostty_source() {
     println!("📋 Prerequisites: Zig compiler");
 
     // Check if zig is installed
-    if Command::new("which").arg("zig").status().is_err() {
+    if !Command::new("which").arg("zig").status().is_ok() {
         println!("❌ Zig compiler not found");
         let install_zig = Confirm::new()
             .with_prompt("Install Zig compiler?")
@@ -116,7 +120,7 @@ fn install_ghostty_source() {
         if install_zig {
             println!("📦 Installing Zig...");
             let _ = Command::new("sudo")
-                .args(["pacman", "-S", "--noconfirm", "zig"])
+                .args(&["pacman", "-S", "--noconfirm", "zig"])
                 .status();
         } else {
             return;
@@ -127,7 +131,7 @@ fn install_ghostty_source() {
 
     println!("📥 Cloning Ghostty repository...");
     let _ = Command::new("git")
-        .args([
+        .args(&[
             "clone",
             "https://github.com/mitchellh/ghostty",
             build_dir.to_str().unwrap(),
@@ -136,7 +140,7 @@ fn install_ghostty_source() {
 
     println!("🔨 Building Ghostty (this may take a while)...");
     let status = Command::new("zig")
-        .args(["build", "-Doptimize=ReleaseFast"])
+        .args(&["build", "-Doptimize=ReleaseFast"])
         .current_dir(&build_dir)
         .status();
 
@@ -154,7 +158,7 @@ fn install_ghostty_source() {
             if install {
                 let binary_path = build_dir.join("zig-out/bin/ghostty");
                 let _ = Command::new("sudo")
-                    .args([
+                    .args(&[
                         "install",
                         "-Dm755",
                         binary_path.to_str().unwrap(),
@@ -360,7 +364,7 @@ fn configure_preferences() {
         1 => setup_terminal_themes(),
         2 => configure_shell_integration(),
         3 => set_default_terminal(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -393,7 +397,7 @@ fn install_nerd_fonts() {
 
     println!("📦 Installing {}...", fonts[selected]);
     let _ = Command::new("sudo")
-        .args(["pacman", "-S", "--noconfirm", font_package])
+        .args(&["pacman", "-S", "--noconfirm", font_package])
         .status();
 }
 
@@ -457,7 +461,7 @@ fn set_default_terminal() {
 
     // For most environments
     let _ = Command::new("sudo")
-        .args([
+        .args(&[
             "update-alternatives",
             "--install",
             "/usr/bin/x-terminal-emulator",

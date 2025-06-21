@@ -1,5 +1,8 @@
+pub mod container;
 pub mod dkms;
+pub mod drivers;
 pub mod optimize;
+pub mod passthrough;
 
 pub fn clean() {
     println!("ghostctl :: NVIDIA Clean DKMS/Modules");
@@ -35,7 +38,6 @@ pub fn diagnostics() {
     }
 }
 
-#[allow(dead_code)]
 pub fn install_proprietary() {
     println!("Installing NVIDIA proprietary driver...");
     let status = std::process::Command::new("sh")
@@ -48,7 +50,6 @@ pub fn install_proprietary() {
     }
 }
 
-#[allow(dead_code)]
 pub fn install_open() {
     println!("Installing NVIDIA open driver...");
     let status = std::process::Command::new("sh")
@@ -61,7 +62,6 @@ pub fn install_open() {
     }
 }
 
-#[allow(dead_code)]
 pub fn install_open_beta() {
     println!("Installing NVIDIA open beta driver from AUR...");
     let status = std::process::Command::new("sh")
@@ -153,6 +153,44 @@ pub fn info() {
             }
         }
         Err(_) => println!("Could not get driver version from modinfo."),
+    }
+}
+
+pub fn nvidia_menu() {
+    use dialoguer::{Select, theme::ColorfulTheme};
+
+    println!("🎮 NVIDIA Management");
+    println!("===================");
+
+    let options = [
+        "📊 Check status and driver info",
+        "🚀 Driver management",
+        "🐳 Container & virtualization",
+        "🖥️  GPU passthrough",
+        "🔧 DKMS rebuild and fixes",
+        "⚡ Performance optimization",
+        "🧹 Clean DKMS modules",
+        "📋 Diagnostics",
+        "⬅️  Back",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("NVIDIA Management")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    match choice {
+        0 => status(),
+        1 => drivers::driver_menu(),
+        2 => container::container_menu(),
+        3 => passthrough::passthrough_menu(),
+        4 => fix(),
+        5 => optimize(),
+        6 => clean(),
+        7 => diagnostics(),
+        _ => return,
     }
 }
 
