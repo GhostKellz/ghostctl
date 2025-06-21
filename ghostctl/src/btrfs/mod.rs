@@ -16,6 +16,11 @@ pub fn handle_btrfs_action(action: crate::BtrfsAction) {
         crate::BtrfsAction::SnapperSetup => snapshot::snapper_setup(),
         crate::BtrfsAction::SnapperEdit { config } => snapshot::snapper_edit(&config),
         crate::BtrfsAction::SnapperList => snapshot::snapper_list(),
+        crate::BtrfsAction::Status => show_filesystem_status(),
+        crate::BtrfsAction::Scrub { mountpoint } => snapshot::scrub(&mountpoint),
+        crate::BtrfsAction::Balance { mountpoint } => snapshot::balance(&mountpoint),
+        crate::BtrfsAction::Usage { mountpoint } => show_filesystem_usage(&mountpoint),
+        crate::BtrfsAction::Quota { mountpoint } => show_quota_info(&mountpoint),
     }
 }
 
@@ -272,4 +277,82 @@ fn get_snapper_configs() -> Vec<String> {
     }
 
     configs
+}
+
+pub fn show_filesystem_status() {
+    println!("📊 Btrfs Filesystem Status");
+    println!("==========================");
+
+    // Check if btrfs tools are installed
+    if !check_btrfs_tools() {
+        println!("❌ Btrfs tools not found. Please install btrfs-progs.");
+        return;
+    }
+
+    println!("🗂️  Filesystem Show:");
+    let _ = Command::new("sudo")
+        .args(&["btrfs", "filesystem", "show"])
+        .status();
+
+    println!("\n📸 Subvolumes:");
+    let _ = Command::new("sudo")
+        .args(&["btrfs", "subvolume", "list", "/"])
+        .status();
+
+    println!("\n🔍 Device Statistics:");
+    let _ = Command::new("sudo")
+        .args(&["btrfs", "device", "stats", "/"])
+        .status();
+}
+
+pub fn show_filesystem_usage(mountpoint: &str) {
+    println!("💾 Btrfs Filesystem Usage: {}", mountpoint);
+    println!("==========================================");
+
+    // Check if btrfs tools are installed
+    if !check_btrfs_tools() {
+        println!("❌ Btrfs tools not found. Please install btrfs-progs.");
+        return;
+    }
+
+    println!("📊 Filesystem Usage:");
+    let _ = Command::new("sudo")
+        .args(&["btrfs", "filesystem", "usage", mountpoint])
+        .status();
+
+    println!("\n📈 Space Info:");
+    let _ = Command::new("sudo")
+        .args(&["btrfs", "filesystem", "df", mountpoint])
+        .status();
+}
+
+pub fn show_quota_info(mountpoint: &str) {
+    println!("📏 Btrfs Quota Information: {}", mountpoint);
+    println!("==========================================");
+
+    // Check if btrfs tools are installed
+    if !check_btrfs_tools() {
+        println!("❌ Btrfs tools not found. Please install btrfs-progs.");
+        return;
+    }
+
+    // Check if quotas are enabled
+    let status = Command::new("sudo")
+        .args(&["btrfs", "qgroup", "show", mountpoint])
+        .status();
+
+    match status {
+        Ok(s) if s.success() => {
+            println!("✅ Quotas are enabled");
+            println!("\n📊 Quota Groups:");
+            let _ = Command::new("sudo")
+                .args(&["btrfs", "qgroup", "show", "-p", mountpoint])
+                .status();
+        }
+        _ => {
+            println!("❌ Quotas are not enabled on this filesystem");
+            println!("💡 To enable quotas, run: sudo btrfs quota enable {}", mountpoint);
+            println!("⚠️  Note: Enabling quotas can impact performance on large filesystems");
+        }
+    }
 }

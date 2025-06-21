@@ -123,7 +123,6 @@ pub fn snapper_list() {
     }
 }
 
-#[allow(dead_code)]
 pub fn scrub(mountpoint: &str) {
     println!("Starting btrfs scrub on {}...", mountpoint);
     let status = std::process::Command::new("sudo")
@@ -135,7 +134,6 @@ pub fn scrub(mountpoint: &str) {
     }
 }
 
-#[allow(dead_code)]
 pub fn balance(mountpoint: &str) {
     println!("Starting btrfs balance on {}...", mountpoint);
     let status = std::process::Command::new("sudo")
@@ -147,7 +145,6 @@ pub fn balance(mountpoint: &str) {
     }
 }
 
-#[allow(dead_code)]
 pub fn snapper_menu() {
     use dialoguer::{Input, Select, theme::ColorfulTheme};
     let opts = ["Deploy Base Config", "Edit Config", "List Configs", "Back"];

@@ -148,15 +148,67 @@ pub fn build_cli() -> Command {
                 .about("Homelab management")
                 .subcommand(Command::new("menu").about("Homelab menu"))
                 .subcommand(Command::new("init").about("Initialize homelab"))
-                .subcommand(Command::new("media-server").about("Deploy media server"))
                 .subcommand(Command::new("monitoring").about("Setup monitoring")),
         )
         .subcommand(
             Command::new("btrfs")
                 .about("Btrfs filesystem management")
-                .subcommand(Command::new("snapshot").about("Create snapshots"))
-                .subcommand(Command::new("restore").about("Restore from snapshot"))
-                .subcommand(Command::new("list").about("List snapshots")),
+                .subcommand(
+                    Command::new("list")
+                        .about("List snapshots")
+                )
+                .subcommand(
+                    Command::new("create")
+                        .about("Create snapshot")
+                        .arg(Arg::new("name").required(true).help("Snapshot name"))
+                        .arg(Arg::new("subvolume").short('s').long("subvolume").default_value("/").help("Source subvolume"))
+                )
+                .subcommand(
+                    Command::new("delete")
+                        .about("Delete snapshot")
+                        .arg(Arg::new("name").required(true).help("Snapshot name"))
+                )
+                .subcommand(
+                    Command::new("restore")
+                        .about("Restore snapshot")
+                        .arg(Arg::new("name").required(true).help("Snapshot name"))
+                        .arg(Arg::new("target").required(true).help("Target path"))
+                )
+                .subcommand(
+                    Command::new("status")
+                        .about("Show filesystem status and health")
+                )
+                .subcommand(
+                    Command::new("scrub")
+                        .about("Start filesystem scrub")
+                        .arg(Arg::new("mountpoint").default_value("/").help("Mountpoint to scrub"))
+                )
+                .subcommand(
+                    Command::new("balance")
+                        .about("Start filesystem balance")
+                        .arg(Arg::new("mountpoint").default_value("/").help("Mountpoint to balance"))
+                )
+                .subcommand(
+                    Command::new("usage")
+                        .about("Show filesystem usage")
+                        .arg(Arg::new("mountpoint").default_value("/").help("Mountpoint to analyze"))
+                )
+                .subcommand(
+                    Command::new("quota")
+                        .about("Manage quotas")
+                        .arg(Arg::new("mountpoint").default_value("/").help("Mountpoint for quota management"))
+                )
+                .subcommand(
+                    Command::new("snapper")
+                        .about("Snapper integration")
+                        .subcommand(Command::new("setup").about("Setup snapper configurations"))
+                        .subcommand(
+                            Command::new("edit")
+                                .about("Edit snapper config")
+                                .arg(Arg::new("config").required(true).help("Config name"))
+                        )
+                        .subcommand(Command::new("list").about("List snapper configs"))
+                )
         )
         .subcommand(
             Command::new("nvidia")
@@ -511,7 +563,6 @@ fn handle_homelab_commands(matches: &ArgMatches) {
     match matches.subcommand() {
         Some(("menu", _)) => homelab_management_menu(),
         Some(("init", _)) => initialize_homelab(),
-        Some(("media-server", _)) => deploy_media_server(),
         Some(("monitoring", _)) => setup_homelab_monitoring(),
         None => homelab_management_menu(),
         _ => unreachable!(),
@@ -709,13 +760,91 @@ fn handle_tools_commands(matches: &ArgMatches) {
 
 fn handle_btrfs_commands(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("list", _)) => btrfs::list_snapshots(),
+        Some(("list", _)) => {
+            btrfs::handle_btrfs_action(crate::BtrfsAction::List);
+        }
         Some(("create", sub_matches)) => {
             if let Some(name) = sub_matches.get_one::<String>("name") {
-                btrfs::snapshot::create_snapshot("/", name);
+                let default_subvolume = String::from("/");
+                let subvolume = sub_matches.get_one::<String>("subvolume").unwrap_or(&default_subvolume);
+                btrfs::handle_btrfs_action(crate::BtrfsAction::Create {
+                    name: name.clone(),
+                    subvolume: subvolume.clone(),
+                });
             }
         }
-        _ => btrfs::btrfs_menu(),
+        Some(("delete", sub_matches)) => {
+            if let Some(name) = sub_matches.get_one::<String>("name") {
+                btrfs::handle_btrfs_action(crate::BtrfsAction::Delete {
+                    name: name.clone(),
+                });
+            }
+        }
+        Some(("restore", sub_matches)) => {
+            if let (Some(name), Some(target)) = (
+                sub_matches.get_one::<String>("name"),
+                sub_matches.get_one::<String>("target")
+            ) {
+                btrfs::handle_btrfs_action(crate::BtrfsAction::Restore {
+                    name: name.clone(),
+                    target: target.clone(),
+                });
+            }
+        }
+        Some(("status", _)) => {
+            btrfs::handle_btrfs_action(crate::BtrfsAction::Status);
+        }
+        Some(("scrub", sub_matches)) => {
+            let default_mountpoint = String::from("/");
+            let mountpoint = sub_matches.get_one::<String>("mountpoint").unwrap_or(&default_mountpoint);
+            btrfs::handle_btrfs_action(crate::BtrfsAction::Scrub {
+                mountpoint: mountpoint.clone(),
+            });
+        }
+        Some(("balance", sub_matches)) => {
+            let default_mountpoint = String::from("/");
+            let mountpoint = sub_matches.get_one::<String>("mountpoint").unwrap_or(&default_mountpoint);
+            btrfs::handle_btrfs_action(crate::BtrfsAction::Balance {
+                mountpoint: mountpoint.clone(),
+            });
+        }
+        Some(("usage", sub_matches)) => {
+            let default_mountpoint = String::from("/");
+            let mountpoint = sub_matches.get_one::<String>("mountpoint").unwrap_or(&default_mountpoint);
+            btrfs::handle_btrfs_action(crate::BtrfsAction::Usage {
+                mountpoint: mountpoint.clone(),
+            });
+        }
+        Some(("quota", sub_matches)) => {
+            let default_mountpoint = String::from("/");
+            let mountpoint = sub_matches.get_one::<String>("mountpoint").unwrap_or(&default_mountpoint);
+            btrfs::handle_btrfs_action(crate::BtrfsAction::Quota {
+                mountpoint: mountpoint.clone(),
+            });
+        }
+        Some(("snapper", snapper_matches)) => {
+            match snapper_matches.subcommand() {
+                Some(("setup", _)) => {
+                    btrfs::handle_btrfs_action(crate::BtrfsAction::SnapperSetup);
+                }
+                Some(("edit", sub_matches)) => {
+                    if let Some(config) = sub_matches.get_one::<String>("config") {
+                        btrfs::handle_btrfs_action(crate::BtrfsAction::SnapperEdit {
+                            config: config.clone(),
+                        });
+                    }
+                }
+                Some(("list", _)) => {
+                    btrfs::handle_btrfs_action(crate::BtrfsAction::SnapperList);
+                }
+                _ => btrfs::btrfs_menu(),
+            }
+        }
+        None => btrfs::btrfs_menu(),
+        _ => {
+            println!("❌ Unknown btrfs subcommand. Use 'ghostctl btrfs help' for available options.");
+            btrfs::btrfs_menu();
+        }
     }
 }
 
@@ -865,8 +994,6 @@ fn homelab_management_menu() {
         "📊 Monitoring Setup",
         "🔄 Backup Configuration",
         "🌐 Network Configuration",
-        "📱 Media Server Setup",
-        "🎮 Game Server Setup",
         "⬅️  Back",
     ];
 
@@ -884,8 +1011,6 @@ fn homelab_management_menu() {
         3 => setup_homelab_monitoring(),
         4 => setup_homelab_backup(),
         5 => setup_homelab_network(),
-        6 => deploy_media_server(),
-        7 => deploy_game_server(),
         _ => (),
     }
 }
@@ -953,31 +1078,6 @@ fn setup_homelab_network() {
     println!("🌐 Network setup - Coming soon!");
 }
 
-fn deploy_media_server() {
-    println!("📱 Deploying Media Server");
-    println!("=========================");
-
-    println!("🎬 Media server options:");
-    println!("  • Plex Media Server");
-    println!("  • Jellyfin");
-    println!("  • Emby");
-    println!("  • *arr stack (Sonarr, Radarr, etc.)");
-
-    println!("🎬 Media server deployment - Coming soon!");
-}
-
-fn deploy_game_server() {
-    println!("🎮 Deploying Game Server");
-    println!("========================");
-
-    println!("🕹️  Game server options:");
-    println!("  • Minecraft server");
-    println!("  • Valheim server");
-    println!("  • CS:GO server");
-    println!("  • Terraria server");
-
-    println!("🎮 Game server deployment - Coming soon!");
-}
 
 // PVE CLI functions placeholder
 // TODO: Add PVE module back when implemented
@@ -1030,7 +1130,7 @@ fn ssl_management_menu() {
 }
 
 fn show_command_list() {
-    println!("ghostctl v0.5.0 - Available Commands");
+    println!("ghostctl Available Commands");
     println!("====================================");
     println!();
     println!("System Management:");
@@ -1064,5 +1164,5 @@ fn show_command_list() {
     println!("  menu             - Show interactive menu");
     println!("  list             - Show this command list");
     println!();
-    println!("For detailed help on any command, use: ghostctl <command> --help");
+    println!("For detailed help on any command, use: ghostctl <command> help");
 }

@@ -37,6 +37,11 @@ pub enum BtrfsAction {
     SnapperSetup,
     SnapperEdit { config: String },
     SnapperList,
+    Status,
+    Scrub { mountpoint: String },
+    Balance { mountpoint: String },
+    Usage { mountpoint: String },
+    Quota { mountpoint: String },
 }
 
 #[derive(Debug)]
