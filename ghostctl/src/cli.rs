@@ -220,7 +220,10 @@ pub fn build_cli() -> Command {
                 .subcommand(Command::new("aur").about("AUR package management"))
                 .subcommand(Command::new("boot").about("Boot configuration"))
                 .subcommand(Command::new("health").about("System health check"))
-                .subcommand(Command::new("performance").about("Performance optimization")),
+                .subcommand(Command::new("performance").about("Performance optimization"))
+                .subcommand(Command::new("optimize").about("Optimize system performance"))
+                .subcommand(Command::new("mirrors").about("Optimize mirror list"))
+                .subcommand(Command::new("orphans").about("Clean orphaned packages")),
         )
         .subcommand(
             Command::new("network")
@@ -478,10 +481,18 @@ fn handle_homelab_commands(matches: &ArgMatches) {
 fn handle_arch_commands(matches: &ArgMatches) {
     match matches.subcommand() {
         Some(("fix", _)) => arch::archfix::fix(),
+        Some(("aur", _)) => arch::aur::aur_helper_management(),
+        Some(("boot", _)) => arch::boot::boot_management(),
+        Some(("health", _)) => arch::health::health_menu(),
+        Some(("performance", _)) => arch::perf::tune(),
         Some(("optimize", _)) => arch::archfix::optimize(),
         Some(("mirrors", _)) => arch::archfix::mirrors(),
         Some(("orphans", _)) => arch::archfix::orphans(),
-        _ => arch::arch_menu(),
+        None => arch::arch_menu(),
+        _ => {
+            println!("❌ Unknown arch subcommand. Use 'ghostctl arch help' for available options.");
+            arch::arch_menu();
+        }
     }
 }
 
