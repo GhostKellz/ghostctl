@@ -298,7 +298,8 @@ fn install_mason() {
 
     println!("✅ Mason.nvim configuration created");
     println!("💡 Add the following configuration to your init.lua:");
-    println!(r#"
+    println!(
+        r#"
 -- Mason.nvim setup
 require("mason").setup({{
     ui = {{
@@ -313,7 +314,8 @@ require("mason").setup({{
 require("mason-lspconfig").setup({{
     automatic_installation = true,
 }})
-"#);
+"#
+    );
     println!("💡 Install mason.nvim plugin via your plugin manager");
 }
 

@@ -160,7 +160,9 @@ fn check_gpu_info() {
         let mut gpu_count = 0;
 
         for line in lspci_output.lines() {
-            if (line.to_lowercase().contains("vga") || line.to_lowercase().contains("3d")) && line.to_lowercase().contains("nvidia") {
+            if (line.to_lowercase().contains("vga") || line.to_lowercase().contains("3d"))
+                && line.to_lowercase().contains("nvidia")
+            {
                 gpu_count += 1;
                 println!("🎮 GPU {}: {}", gpu_count, line);
 
