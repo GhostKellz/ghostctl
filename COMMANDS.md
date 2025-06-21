@@ -2,6 +2,8 @@
 
 Complete command documentation for GhostCTL v0.8.0 - The ultimate system and homelab management tool.
 
+⚠️ **Version Note**: This documentation covers the latest v0.8.0 features including enhanced Proxmox VE management, Restic CLI integration, AUR helper preference system, and improved network/DNS tools.
+
 ## 🚀 Core Commands
 
 ### Basic Usage
@@ -136,9 +138,22 @@ ghostctl docker status            # Docker status
 ghostctl docker homelab           # Homelab container stacks
 ```
 
-### 🏠 Proxmox VE Management
+### 🏠 Proxmox VE Management (Enhanced in v0.8.0)
 ```bash
 ghostctl pve menu                 # PVE management menu
+ghostctl proxmox menu             # Enhanced Proxmox tools with categories
+
+# Through enhanced Proxmox menu:
+# - Container Templates (Docker, Portainer, Nginx Proxy Manager, Pi-hole, etc.)
+# - Virtual Machines (Home Assistant OS, Windows 11, Ubuntu, Debian)
+# - System Administration (Post install, PBS, Dark theme, CPU scaling)
+# - Monitoring & Logging (Prometheus, Grafana, InfluxDB, Zabbix)
+# - Development Tools (GitLab, Jenkins, Code Server, Docker Registry)
+# - Proxmox Management Tools (Bulk VM/CT operations, backup management)
+# - Cluster Management (status, join, add/remove nodes)
+# - Resource usage reports and system information
+
+# Legacy commands still available:
 ghostctl pve status               # Show PVE status
 ghostctl pve vm list              # List VMs
 ghostctl pve vm create            # Create VM wizard
@@ -261,15 +276,21 @@ ghostctl network scan TARGET      # Network port scanning with gscan
 ghostctl net scan TARGET          # Network port scanning (short alias)
 ```
 
-### DNS Operations
+### DNS Operations (Enhanced in v0.8.0)
 ```bash
 # DNS lookup and management
 ghostctl dns google.com           # DNS lookup for domain
 ghostctl dns --type MX domain.com # Specific record type lookup
 ghostctl dns --reverse 8.8.8.8    # Reverse DNS lookup
+
+# Through network menu:
+# - DNS lookup with multiple record types
+# - DNSSEC verification and validation
+# - Reverse DNS lookups
+# - DNS performance testing
 ```
 
-### Network Scanning with gscan
+### Network Scanning with gscan (Enhanced in v0.8.0)
 ```bash
 # Basic scan
 ghostctl network scan 192.168.1.1
@@ -286,6 +307,12 @@ ghostctl net scan TARGET -s START_PORT -e END_PORT
 # Scan with banner grabbing
 ghostctl network scan TARGET --banner
 ghostctl net scan TARGET --banner
+
+# Through network menu:
+# - Target-based scanning with custom parameters
+# - Interactive scan mode with real-time results
+# - Service detection and banner grabbing
+# - Network discovery and host enumeration
 ```
 
 ### Netcat Utilities
@@ -321,11 +348,22 @@ ghostctl systemd disable          # Disable service
 ghostctl systemd restart          # Restart service
 ```
 
-## 🔐 SSL Certificate Management
+## 🔐 SSL Certificate Management (Enhanced in v0.8.0)
 
 ### SSL Operations
 ```bash
 ghostctl ssl menu                 # SSL management menu
+ghostctl nginx menu               # Enhanced nginx management with ACME.sh
+
+# Through nginx menu:
+# - ACME.sh installation and setup
+# - Certificate issuance with multiple DNS providers
+# - PowerDNS API integration
+# - Azure DNS provider support  
+# - Automated certificate deployment
+# - Certificate renewal and monitoring
+
+# Legacy commands still available:
 ghostctl ssl install              # Install acme.sh
 ghostctl ssl issue <domain>       # Issue certificate
 ghostctl ssl renew                # Renew certificates
@@ -340,6 +378,36 @@ ghostctl nginx menu               # Nginx management menu
 ghostctl nginx status             # Nginx status
 ghostctl nginx restart            # Restart Nginx
 ghostctl nginx ssl-setup <domain> # Setup SSL for domain
+```
+
+## 💾 Restic Backup CLI (New in v0.8.0)
+
+### Restic Operations
+```bash
+ghostctl restic menu              # Interactive restic CLI tools
+ghostctl backup menu              # Full backup management system
+
+# Through restic menu:
+# - Initialize repository
+# - Create backups with custom paths
+# - List and browse snapshots  
+# - Restore from specific snapshots
+# - Forget old snapshots with retention policies
+# - Check repository integrity
+```
+
+## 📦 AUR Helper Management (Enhanced in v0.8.0)
+
+### AUR Operations  
+```bash
+ghostctl arch aur                 # AUR helper management menu
+
+# Through AUR menu:
+# - Check installed AUR helpers (reaper/paru/yay/trizen/pikaur)
+# - Set preferred AUR helper with persistent config
+# - Install AUR helpers (reaper recommended, paru, yay)
+# - Update AUR packages using preferred helper
+# - Clean AUR cache with confirmation
 ```
 
 ## 📋 Script Management
@@ -372,6 +440,23 @@ ghostctl tools acme               # acme.sh SSL management
 ```
 
 ---
+
+## 🆕 What's New in v0.8.0
+
+### 🚀 Enhanced Infrastructure Management 
+- **Restic CLI Integration**: Complete interactive restic backup management with repository initialization, backup creation, snapshot management, restoration, and integrity checking
+- **AUR Helper Preference System**: Persistent AUR helper selection (reap/paru/yay) with automatic fallback and installation management  
+- **Enhanced Proxmox VE Tools**: Comprehensive Proxmox management with categorized scripts, cluster management, bulk operations, and system administration tools
+
+### 🌐 Network & DNS Improvements
+- **Enhanced DNS Tools**: DNSSEC verification, comprehensive record type support, and DNS performance testing
+- **Interactive Network Scanning**: Target-based scanning with real-time results, service detection, and network discovery
+- **SSL Certificate Enhancements**: PowerDNS and Azure DNS provider support for ACME.sh integration
+
+### 💾 Backup & Security Enhancements  
+- **Restic CLI Menu**: Full interactive menu for repository management, backup scheduling, snapshot browsing, and restoration workflows
+- **Container Security**: Enhanced Docker container management with security scanning and vulnerability assessment
+- **Credential Management**: Improved secure credential storage with interactive management interface
 
 ## 🆕 What's New in v0.7.0
 

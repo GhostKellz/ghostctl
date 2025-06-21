@@ -7,6 +7,7 @@ pub fn aur_helper_management() {
 
     let options = [
         "🔍 Check installed AUR helpers",
+        "⭐ Set preferred AUR helper",
         "📥 Install AUR helper",
         "🔄 Update AUR packages",
         "🧹 Clean AUR cache",
@@ -22,9 +23,10 @@ pub fn aur_helper_management() {
 
     match choice {
         0 => check_aur_helpers(),
-        1 => install_aur_helper(),
-        2 => update_aur_packages(),
-        3 => clean_aur_cache(),
+        1 => set_preferred_aur_helper(),
+        2 => install_aur_helper(),
+        3 => update_aur_packages(),
+        4 => clean_aur_cache(),
         _ => return,
     }
 }
@@ -240,7 +242,85 @@ fn clean_aur_cache() {
     println!("❌ No AUR helper found for cache cleaning");
 }
 
+fn set_preferred_aur_helper() {
+    println!("⭐ Set Preferred AUR Helper");
+    println!("===========================");
+
+    // Check which helpers are installed
+    let helpers = [
+        ("reaper (reap command)", "reap", "GhostKellz's modern AUR helper"),
+        ("paru", "paru", "Feature packed AUR helper"),
+        ("yay", "yay", "Yet another Yogurt AUR helper"),
+    ];
+
+    let mut available_helpers = Vec::new();
+    let mut helper_options = Vec::new();
+
+    for (display_name, cmd, description) in &helpers {
+        if Command::new("which").arg(cmd).status().is_ok() {
+            available_helpers.push(*cmd);
+            helper_options.push(format!("{} - {}", display_name, description));
+        }
+    }
+
+    if available_helpers.is_empty() {
+        println!("❌ No preferred AUR helpers found installed.");
+        println!("Please install one of: reap, paru, or yay first.");
+        return;
+    }
+
+    // Show current preferred helper
+    if let Some(current) = get_preferred_aur_helper() {
+        println!("📋 Current preferred helper: {}", current);
+    }
+
+    helper_options.push("⬅️  Back".to_string());
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Select preferred AUR helper")
+        .items(&helper_options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    if choice < available_helpers.len() {
+        let selected = available_helpers[choice];
+        println!("✅ Set {} as preferred AUR helper", selected);
+        
+        // Save preference to config file
+        save_aur_helper_preference(selected);
+    }
+}
+
+fn save_aur_helper_preference(helper: &str) {
+    use std::fs;
+    
+    if let Some(config_dir) = dirs::config_dir() {
+        let ghostctl_dir = config_dir.join("ghostctl");
+        let _ = fs::create_dir_all(&ghostctl_dir);
+        
+        let config_file = ghostctl_dir.join("aur_helper");
+        if let Err(e) = fs::write(config_file, helper) {
+            println!("⚠️  Warning: Could not save preference: {}", e);
+        }
+    }
+}
+
 pub fn get_preferred_aur_helper() -> Option<String> {
+    use std::fs;
+    
+    // First check saved preference
+    if let Some(config_dir) = dirs::config_dir() {
+        let config_file = config_dir.join("ghostctl").join("aur_helper");
+        if let Ok(saved_helper) = fs::read_to_string(config_file) {
+            let saved_helper = saved_helper.trim();
+            if Command::new("which").arg(saved_helper).status().is_ok() {
+                return Some(saved_helper.to_string());
+            }
+        }
+    }
+    
+    // Fallback to priority order: reap, paru, yay, others
     let helpers = ["reap", "paru", "yay", "trizen", "pikaur"];
 
     for helper in &helpers {

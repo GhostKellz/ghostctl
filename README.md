@@ -42,10 +42,10 @@ GhostCTL is a comprehensive system administration platform that transforms compl
 - **SSL Certificate Management**: GhostCert integration for automated certificate handling
 - **Security Auditing**: Comprehensive system security assessment and recommendations
 
-### 💾 **Data Protection & Backups**
+### 💾 **Data Protection & Backups** (Enhanced in v0.8.0)
 - **Btrfs Integration**: Snapshot management, subvolume operations, filesystem optimization
 - **Snapper Automation**: Automated snapshot creation, cleanup, and rollback capabilities
-- **Restic Backups**: Multi-destination backups with encryption and deduplication
+- **Restic CLI Tools**: Interactive restic backup management with repository initialization, snapshot browsing, restoration workflows, and integrity checking
 - **Automated Workflows**: Custom backup scripts with systemd timer integration
 
 ### 🐳 **DevOps & Container Management**
@@ -54,17 +54,18 @@ GhostCTL is a comprehensive system administration platform that transforms compl
 - **GitHub Templates**: Direct deployment from repository templates
 - **Environment Management**: Multi-environment project isolation
 
-### 🏥 **Proxmox VE Management**
-- **SDN Configuration**: Software Defined Networking with zone and VNet management
-- **Advanced Firewall**: Security groups, DDoS protection, intrusion detection
-- **VM/Container Lifecycle**: Complete virtualization management
-- **Cluster Operations**: Multi-node Proxmox cluster administration
+### 🏥 **Proxmox VE Management** (Enhanced in v0.8.0)
+- **Enhanced Script Categories**: Container templates, VMs, system administration, monitoring tools, and development environments
+- **Cluster Management**: Join/leave cluster operations, node management, and cluster status monitoring
+- **Bulk Operations**: Mass VM/container start/stop/restart with confirmation prompts
+- **System Administration**: Post-install setup, backup management, resource usage reports, and network configuration
+- **Community Scripts Integration**: Access to 40+ categorized Proxmox helper scripts with preview and execution
 
-### 🛠️ **System Administration**
-- **Arch Linux Optimization**: Package management, AUR helpers, system fixes
-- **Package Management**: Multi-distro package operations and conflict resolution
+### 🛠️ **System Administration** (Enhanced in v0.8.0)
+- **Arch Linux Optimization**: Package management, AUR helpers with persistent preferences, system fixes
+- **AUR Helper Management**: Preference system for reaper/paru/yay with automatic detection and installation
 - **Service Management**: Systemd operations, log analysis, performance monitoring
-- **Network Diagnostics**: Comprehensive network troubleshooting and optimization
+- **Network Diagnostics**: Enhanced DNS tools with DNSSEC verification, interactive network scanning, and comprehensive troubleshooting
 
 ### 💻 **Development Environment**
 - **Neovim Management**: Health checks, plugin management, LSP configuration
@@ -164,15 +165,16 @@ ghostctl --system             # System management menu
 ```bash
 # Version and help
 ghostctl version              # Show detailed version info
-ghostctl backup quick-backup     # Immediate backup
-ghostctl devops docker-status    # Docker overview
+ghostctl backup menu             # Backup management system
+ghostctl restic menu             # Interactive restic CLI tools
 
-# Infrastructure
+# Infrastructure  
+ghostctl proxmox menu            # Enhanced Proxmox VE management
 ghostctl infrastructure ansible  # Ansible management
 ghostctl infrastructure terraform # Terraform operations
-ghostctl infrastructure cloud    # Multi-cloud tools
 
-# Development
+# Development & System
+ghostctl arch aur               # AUR helper management
 ghostctl nvim health-check       # Neovim diagnostics
 ghostctl shell setup-zsh         # ZSH configuration
 ```
@@ -214,10 +216,10 @@ GhostCTL/
 
 ## 📚 Documentation
 
-- **[Commands Reference](commands.md)** - Complete command documentation
-- **[User Guide](docs.md)** - Detailed usage instructions
+- **[Commands Reference](COMMANDS.md)** - Complete command documentation with v0.8.0 features
+- **[User Guide](DOCS.md)** - Detailed usage instructions and examples  
+- **[Change Log](CHANGELOG.md)** - Version history and feature updates
 - **[Configuration](config.md)** - Setup and customization
-- **[API Documentation](api.md)** - Plugin development
 - **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
 
 ## 🤝 Contributing
@@ -244,8 +246,8 @@ cargo install --path ghostctl
 
 ### Dependencies
 - **Core**: Rust 1.70+, OpenSSL
-- **Optional**: Docker, Ansible, Terraform, Azure CLI, AWS CLI
-- **Recommended**: Snapper, Restic, Neovim, ZSH
+- **Optional**: Docker, Ansible, Terraform, Azure CLI, AWS CLI, PowerDNS
+- **Recommended**: Snapper, Restic, Neovim, ZSH, gscan (for network scanning)
 
 ### Supported Distributions
 - ✅ Arch Linux (native package)

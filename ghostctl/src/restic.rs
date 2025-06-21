@@ -1,13 +1,153 @@
 use std::process::Command;
+use dialoguer::{Input, Select, theme::ColorfulTheme};
 
 /// Pure restic CLI wrapper functions
 /// For automated workflows, use src/backup/
 /// For emergency recovery, use src/restore/
 pub fn setup() {
-    println!("🔧 Restic CLI Setup");
+    
+    println!("🔧 Restic CLI Tools");
     println!("===================");
-    println!("For full backup setup, use the backup management menu");
-    println!("This is just the raw restic CLI wrapper");
+
+    let options = [
+        "🏗️  Initialize repository",
+        "💾 Create backup",
+        "📋 List snapshots",
+        "🔄 Restore from snapshot",
+        "🧹 Forget snapshots",
+        "🔍 Check repository",
+        "⬅️  Back",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Restic CLI Tools")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    match choice {
+        0 => restic_init_interactive(),
+        1 => restic_backup_interactive(),
+        2 => restic_list_interactive(),
+        3 => restic_restore_interactive(),
+        4 => restic_forget_interactive(),
+        5 => restic_check_interactive(),
+        _ => return,
+    }
+}
+
+fn restic_init_interactive() {
+    let repo: String = Input::new()
+        .with_prompt("Repository path/URL")
+        .interact_text()
+        .unwrap();
+
+    println!("🏗️  Initializing repository: {}", repo);
+    match init_repository(&repo) {
+        Ok(_) => println!("✅ Repository initialized successfully"),
+        Err(e) => println!("❌ Failed to initialize repository: {}", e),
+    }
+}
+
+fn restic_backup_interactive() {
+    let repo: String = Input::new()
+        .with_prompt("Repository path/URL")
+        .interact_text()
+        .unwrap();
+
+    let paths: String = Input::new()
+        .with_prompt("Paths to backup (space-separated)")
+        .interact_text()
+        .unwrap();
+
+    let path_list: Vec<&str> = paths.split_whitespace().collect();
+
+    println!("💾 Creating backup...");
+    match backup(&path_list, &repo) {
+        Ok(_) => println!("✅ Backup completed successfully"),
+        Err(e) => println!("❌ Backup failed: {}", e),
+    }
+}
+
+fn restic_list_interactive() {
+    let repo: String = Input::new()
+        .with_prompt("Repository path/URL")
+        .interact_text()
+        .unwrap();
+
+    println!("📋 Listing snapshots...");
+    match list_snapshots(&repo) {
+        Ok(_) => {},
+        Err(e) => println!("❌ Failed to list snapshots: {}", e),
+    }
+}
+
+fn restic_restore_interactive() {
+    let repo: String = Input::new()
+        .with_prompt("Repository path/URL")
+        .interact_text()
+        .unwrap();
+
+    let snapshot_id: String = Input::new()
+        .with_prompt("Snapshot ID")
+        .interact_text()
+        .unwrap();
+
+    let target: String = Input::new()
+        .with_prompt("Restore target directory")
+        .interact_text()
+        .unwrap();
+
+    println!("🔄 Restoring snapshot {} to {}...", snapshot_id, target);
+    match restore(&snapshot_id, &target, &repo) {
+        Ok(_) => println!("✅ Restore completed successfully"),
+        Err(e) => println!("❌ Restore failed: {}", e),
+    }
+}
+
+fn restic_forget_interactive() {
+    let repo: String = Input::new()
+        .with_prompt("Repository path/URL")
+        .interact_text()
+        .unwrap();
+
+    let keep_daily: u32 = Input::new()
+        .with_prompt("Keep daily snapshots for N days")
+        .default(7)
+        .interact()
+        .unwrap();
+
+    let keep_weekly: u32 = Input::new()
+        .with_prompt("Keep weekly snapshots for N weeks")
+        .default(4)
+        .interact()
+        .unwrap();
+
+    let keep_monthly: u32 = Input::new()
+        .with_prompt("Keep monthly snapshots for N months")
+        .default(6)
+        .interact()
+        .unwrap();
+
+    println!("🧹 Forgetting old snapshots...");
+    match forget_snapshots(&repo, keep_daily, keep_weekly, keep_monthly) {
+        Ok(_) => println!("✅ Snapshot cleanup completed"),
+        Err(e) => println!("❌ Cleanup failed: {}", e),
+    }
+}
+
+fn restic_check_interactive() {
+    let repo: String = Input::new()
+        .with_prompt("Repository path/URL")
+        .interact_text()
+        .unwrap();
+
+    println!("🔍 Checking repository integrity...");
+    match check_repository(&repo) {
+        Ok(_) => println!("✅ Repository check completed"),
+        Err(e) => println!("❌ Repository check failed: {}", e),
+    }
 }
 
 pub fn backup(paths: &[&str], repo: &str) -> Result<(), String> {
