@@ -228,9 +228,49 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("network")
                 .about("Network management")
-                .subcommand(Command::new("dns").about("DNS configuration"))
+                .subcommand(
+                    Command::new("dns")
+                        .about("DNS configuration")
+                        .arg(Arg::new("domain").required(true).help("Domain name to lookup"))
+                )
                 .subcommand(Command::new("mesh").about("Mesh networking"))
-                .subcommand(Command::new("netcat").about("Network testing")),
+                .subcommand(
+                    Command::new("scan")
+                        .about("Network port scanning (using gscan)")
+                        .arg(Arg::new("target").required(true).help("Target IP, CIDR, or range (e.g. 192.168.1.1, 192.168.1.0/24)"))
+                        .arg(Arg::new("start-port").short('s').help("Start port [default: 1]"))
+                        .arg(Arg::new("end-port").short('e').help("End port [default: 1024]"))
+                        .arg(Arg::new("banner").long("banner").action(clap::ArgAction::SetTrue).help("Enable banner grabbing"))
+                )
+                .subcommand(
+                    Command::new("netcat")
+                        .about("Netcat utilities for file transfer and communication")
+                        .subcommand(
+                            Command::new("send")
+                                .about("Send a file")
+                                .arg(Arg::new("file").required(true).help("File to send"))
+                                .arg(Arg::new("host").required(true).help("Target host"))
+                                .arg(Arg::new("port").required(true).help("Target port"))
+                        )
+                        .subcommand(
+                            Command::new("receive")
+                                .about("Receive a file")
+                                .arg(Arg::new("file").required(true).help("File to save as"))
+                                .arg(Arg::new("port").required(true).help("Port to listen on"))
+                        )
+                        .subcommand(
+                            Command::new("chat")
+                                .about("Start or join a chat session")
+                                .arg(Arg::new("host").help("Host to connect to (if not provided, starts server)"))
+                                .arg(Arg::new("port").required(true).help("Port to use"))
+                        )
+                        .subcommand(
+                            Command::new("check")
+                                .about("Check port connectivity")
+                                .arg(Arg::new("host").required(true).help("Host to check"))
+                                .arg(Arg::new("port").required(true).help("Port to check"))
+                        )
+                ),
         )
         .subcommand(
             Command::new("cloud")
@@ -535,30 +575,135 @@ fn handle_proxmox_commands(matches: &ArgMatches) {
 
 fn handle_network_commands(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("mesh", _)) => network::mesh::status(),
         Some(("dns", sub_matches)) => {
             if let Some(domain) = sub_matches.get_one::<String>("domain") {
                 network::dns::lookup(domain);
+            } else {
+                println!("❌ Please provide a domain name. Usage: ghostctl network dns <domain>");
             }
         }
-        _ => network::mesh::status(),
+        Some(("mesh", _)) => network::mesh::status(),
+        Some(("scan", sub_matches)) => {
+            if let Some(target) = sub_matches.get_one::<String>("target") {
+                let start_port = sub_matches.get_one::<String>("start-port");
+                let end_port = sub_matches.get_one::<String>("end-port");
+                let banner = sub_matches.get_flag("banner");
+                network::scan::gscan_port_scan(target, start_port, end_port, banner);
+            } else {
+                println!("❌ Please provide a target. Usage: ghostctl network scan <target>");
+            }
+        }
+        Some(("netcat", sub_matches)) => {
+            match sub_matches.subcommand() {
+                Some(("send", send_matches)) => {
+                    if let (Some(file), Some(host), Some(port_str)) = (
+                        send_matches.get_one::<String>("file"),
+                        send_matches.get_one::<String>("host"),
+                        send_matches.get_one::<String>("port")
+                    ) {
+                        if let Ok(port) = port_str.parse::<u16>() {
+                            network::netcat::send_file(file, host, port);
+                        } else {
+                            println!("❌ Invalid port number: {}", port_str);
+                        }
+                    } else {
+                        println!("❌ Usage: ghostctl network netcat send <file> <host> <port>");
+                    }
+                }
+                Some(("receive", receive_matches)) => {
+                    if let (Some(file), Some(port_str)) = (
+                        receive_matches.get_one::<String>("file"),
+                        receive_matches.get_one::<String>("port")
+                    ) {
+                        if let Ok(port) = port_str.parse::<u16>() {
+                            network::netcat::receive_file(file, port);
+                        } else {
+                            println!("❌ Invalid port number: {}", port_str);
+                        }
+                    } else {
+                        println!("❌ Usage: ghostctl network netcat receive <file> <port>");
+                    }
+                }
+                Some(("chat", chat_matches)) => {
+                    if let Some(port_str) = chat_matches.get_one::<String>("port") {
+                        if let Ok(port) = port_str.parse::<u16>() {
+                            let host = chat_matches.get_one::<String>("host");
+                            network::netcat::chat(host.map(|s| s.as_str()), port);
+                        } else {
+                            println!("❌ Invalid port number: {}", port_str);
+                        }
+                    } else {
+                        println!("❌ Usage: ghostctl network netcat chat [host] <port>");
+                    }
+                }
+                Some(("check", check_matches)) => {
+                    if let (Some(host), Some(port_str)) = (
+                        check_matches.get_one::<String>("host"),
+                        check_matches.get_one::<String>("port")
+                    ) {
+                        if let Ok(port) = port_str.parse::<u16>() {
+                            network::netcat::check_port(host, port);
+                        } else {
+                            println!("❌ Invalid port number: {}", port_str);
+                        }
+                    } else {
+                        println!("❌ Usage: ghostctl network netcat check <host> <port>");
+                    }
+                }
+                None => {
+                    println!("🌐 Netcat utilities available:");
+                    println!("  send     - Send a file to a remote host");
+                    println!("  receive  - Receive a file from a remote host");
+                    println!("  chat     - Start or join a chat session");
+                    println!("  check    - Check port connectivity");
+                    println!();
+                    println!("Use 'ghostctl network netcat <subcommand> --help' for details");
+                }
+                _ => {
+                    println!("❌ Unknown netcat subcommand. Use 'ghostctl network netcat help' for available options.");
+                }
+            }
+        }
+        None => network::mesh::status(),
+        _ => {
+            println!("❌ Unknown network subcommand. Use 'ghostctl network help' for available options.");
+            network::mesh::status();
+        }
     }
 }
 
 fn handle_cloud_commands(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("infrastructure", _)) => cloud::infrastructure_menu(),
-        Some(("ansible", _)) => cloud::ansible_management(),
-        Some(("terraform", _)) => cloud::terraform_management(),
-        _ => cloud::infrastructure_menu(),
+        Some(("aws", _)) => cloud::aws::aws_cli_tools(),
+        Some(("azure", _)) => cloud::azure::azure_cli_tools(),
+        Some(("gcp", _)) => cloud::gcp::gcloud_tools(),
+        None => cloud::infrastructure_menu(),
+        _ => {
+            println!("❌ Unknown cloud subcommand. Use 'ghostctl cloud help' for available options.");
+            cloud::infrastructure_menu();
+        }
     }
 }
 
 fn handle_tools_commands(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("external", _)) => tools::external_tools_menu(),
-        Some(("acme", _)) => tools::install_acme_sh(),
-        _ => tools::external_tools_menu(),
+        Some(("install", _)) => {
+            println!("🛠️  Installing development tools...");
+            tools::external_tools_menu();
+        }
+        Some(("configure", _)) => {
+            println!("⚙️  Configuring tools...");
+            tools::acme_sh_management();
+        }
+        Some(("update", _)) => {
+            println!("🔄 Updating tools...");
+            tools::external_tools_menu();
+        }
+        None => tools::external_tools_menu(),
+        _ => {
+            println!("❌ Unknown tools subcommand. Use 'ghostctl tools help' for available options.");
+            tools::external_tools_menu();
+        }
     }
 }
 
