@@ -249,6 +249,7 @@ fn test_backup() {
     }
 }
 
+#[allow(dead_code)]
 pub fn restic_restore() {
     println!("🔄 Restic Restore");
 
@@ -309,6 +310,7 @@ pub fn restic_restore() {
     }
 }
 
+#[allow(dead_code)]
 pub fn backup_settings() {
     println!("⚙️  Backup Settings");
     println!("==================");
@@ -412,6 +414,7 @@ pub fn run_backup() {
     }
 }
 
+#[allow(dead_code)]
 fn configure_backup_paths() {
     println!("🗂️  Configure Backup Paths");
     println!("=========================");
@@ -433,6 +436,7 @@ fn configure_backup_paths() {
     println!("\nCurrent backup configuration saved to ~/.config/ghostctl/backup-paths.txt");
 }
 
+#[allow(dead_code)]
 fn security_settings() {
     println!("🔐 Backup Security Settings");
     println!("===========================");
@@ -481,6 +485,7 @@ fn security_settings() {
     }
 }
 
+#[allow(dead_code)]
 fn storage_usage() {
     println!("📊 Storage Usage");
     println!("===============");

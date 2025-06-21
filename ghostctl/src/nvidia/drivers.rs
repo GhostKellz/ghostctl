@@ -187,6 +187,7 @@ fn check_common_issues() {
     }
 }
 
+#[allow(dead_code)]
 pub fn install_proprietary_drivers() {
     println!("🏢 Installing NVIDIA proprietary drivers...");
 
@@ -238,6 +239,7 @@ pub fn install_proprietary_drivers() {
     }
 }
 
+#[allow(dead_code)]
 pub fn install_open_drivers() {
     println!("🔓 Installing NVIDIA open-source drivers...");
 
@@ -279,6 +281,7 @@ pub fn install_open_drivers() {
     }
 }
 
+#[allow(dead_code)]
 pub fn install_open_beta_drivers() {
     println!("🧪 Installing NVIDIA open-source beta drivers from AUR...");
 

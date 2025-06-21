@@ -1,5 +1,6 @@
 use std::fs;
 
+#[allow(dead_code)]
 pub fn create_release_structure() {
     println!("🏗️  Creating GhostCTL Release Structure");
 

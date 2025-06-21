@@ -78,6 +78,7 @@ pub fn install_powerlevel10k() {
     }
 }
 
+#[allow(dead_code)]
 pub fn set_default_zsh() {
     println!("Setting ZSH as default shell...");
     let status = Command::new("chsh")
@@ -92,6 +93,7 @@ pub fn set_default_zsh() {
     }
 }
 
+#[allow(dead_code)]
 pub fn install_tmux() {
     println!("Installing tmux...");
     let is_installed = Command::new("which")

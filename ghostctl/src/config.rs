@@ -87,6 +87,7 @@ impl Default for GhostConfig {
     }
 }
 
+#[allow(dead_code)]
 impl GhostConfig {
     pub fn load() -> Self {
         let config_path = Self::config_path();

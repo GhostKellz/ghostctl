@@ -6,6 +6,7 @@ use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 // Define NixosAction enum
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum NixosAction {
     Rebuild,
@@ -257,6 +258,7 @@ fn delete_old_generations() {
 }
 
 // Handle CLI commands
+#[allow(dead_code)]
 pub fn handle_nixos_action(action: crate::NixosAction) {
     match action {
         crate::NixosAction::Rebuild => rebuild_system(),

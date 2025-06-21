@@ -3,24 +3,13 @@ pub mod snapshot;
 use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 
-// Define BtrfsAction enum
-#[derive(Debug)]
-pub enum BtrfsAction {
-    List,
-    Create { name: String, subvolume: String },
-    Delete { name: String },
-    Restore { name: String, target: String },
-    SnapperSetup,
-    SnapperEdit { config: String },
-    SnapperList,
-}
+// We'll use the BtrfsAction enum from main.rs
 
-pub fn handle(action: crate::BtrfsAction) {
+pub fn handle_btrfs_action(action: crate::BtrfsAction) {
     match action {
-        crate::BtrfsAction::List => snapshot::list_snapshots(),
+        crate::BtrfsAction::List => list_snapshots(),
         crate::BtrfsAction::Create { name, subvolume } => {
-            let sub: &str = subvolume.as_str();
-            snapshot::create_snapshot(sub, &name)
+            snapshot::create_snapshot(&subvolume, &name)
         }
         crate::BtrfsAction::Delete { name } => snapshot::delete_snapshot(&name),
         crate::BtrfsAction::Restore { name, target } => snapshot::restore_snapshot(&name, &target),
@@ -28,10 +17,6 @@ pub fn handle(action: crate::BtrfsAction) {
         crate::BtrfsAction::SnapperEdit { config } => snapshot::snapper_edit(&config),
         crate::BtrfsAction::SnapperList => snapshot::snapper_list(),
     }
-}
-
-pub fn handle_none() {
-    println!("No btrfs subcommand provided. Use 'ghostctl btrfs --help' for options.");
 }
 
 pub fn btrfs_menu() {
@@ -155,13 +140,18 @@ pub fn list_snapshots() {
     println!("📋 Listing All Snapshots");
     println!("========================");
 
+    // Try snapper first
     let output = Command::new("sudo").args(&["snapper", "list"]).output();
 
     match output {
         Ok(out) if out.status.success() => {
             println!("{}", String::from_utf8_lossy(&out.stdout));
         }
-        _ => println!("❌ Failed to list snapshots. Is snapper configured?"),
+        _ => {
+            // Fall back to btrfs subvolume list
+            println!("📸 Listing Btrfs subvolumes:");
+            snapshot::list_snapshots();
+        }
     }
 }
 

@@ -31,7 +31,7 @@ pub fn docker_management() {
     }
 }
 
-fn docker_health_comprehensive() {
+pub fn docker_health_comprehensive() {
     println!("🔍 Comprehensive Docker Health Check");
     println!("====================================");
 
@@ -79,7 +79,7 @@ fn docker_health_comprehensive() {
         .status();
 }
 
-fn docker_resource_report() {
+pub fn docker_resource_report() {
     println!("📊 Docker Resource Report");
     println!("========================");
 
@@ -108,7 +108,7 @@ fn docker_resource_report() {
     let _ = Command::new("docker").args(&["volume", "ls"]).status();
 }
 
-fn docker_system_cleanup() {
+pub fn docker_system_cleanup() {
     println!("🧹 Docker System Cleanup");
     println!("========================");
 
@@ -618,7 +618,7 @@ networks:
 }
 
 // Complete missing function implementations
-fn container_security_scanning() {
+pub fn container_security_scanning() {
     println!("🔍 Container Security Scanning");
     println!("==============================");
 
@@ -642,7 +642,7 @@ fn container_security_scanning() {
         .status();
 }
 
-fn scan_local_image() {
+pub fn scan_local_image() {
     let image: String = Input::new()
         .with_prompt("Image name to scan")
         .interact_text()
@@ -652,11 +652,11 @@ fn scan_local_image() {
     let _ = Command::new("trivy").args(&["image", &image]).status();
 }
 
-fn compose_stack_manager() {
+pub fn compose_stack_manager() {
     crate::docker::compose::compose_stack_manager();
 }
 
-fn list_compose_stacks(stack_dir: &str) {
+pub fn list_compose_stacks(stack_dir: &str) {
     println!("📋 Compose stacks in: {}", stack_dir);
     if let Ok(entries) = std::fs::read_dir(stack_dir) {
         for entry in entries.flatten() {
@@ -669,7 +669,7 @@ fn list_compose_stacks(stack_dir: &str) {
     }
 }
 
-fn deploy_new_stack(stack_dir: &str) {
+pub fn deploy_new_stack(stack_dir: &str) {
     println!("🚀 Deploying new stack in: {}", stack_dir);
     let _ = Command::new("docker-compose")
         .args(&[
@@ -681,23 +681,23 @@ fn deploy_new_stack(stack_dir: &str) {
         .status();
 }
 
-fn registry_tools() {
+pub fn registry_tools() {
     println!("🏗️ Registry Tools");
-    registry_management();
+    crate::docker::registry::registry_management();
 }
 
-fn kubernetes_tools() {
+pub fn kubernetes_tools() {
     println!("☸️ Kubernetes Tools");
     println!("===================");
     println!("Feature not yet implemented");
 }
 
-fn generate_github_workflow() {
+pub fn generate_github_workflow() {
     println!("🔄 Generating GitHub workflow...");
     rust_cicd_template();
 }
 
-fn docker_build_optimizer() {
+pub fn docker_build_optimizer() {
     println!("⚡ Docker Build Optimizer");
     println!("========================");
 
@@ -713,7 +713,7 @@ fn docker_build_optimizer() {
     }
 }
 
-fn environment_manager() {
+pub fn environment_manager() {
     println!("🌍 Environment Manager");
     println!("======================");
 
@@ -723,7 +723,7 @@ fn environment_manager() {
     }
 }
 
-fn search_registry() {
+pub fn search_registry() {
     let query: String = Input::new()
         .with_prompt("Search query")
         .interact_text()
@@ -731,4 +731,15 @@ fn search_registry() {
 
     println!("🔍 Searching for: {}", query);
     let _ = Command::new("docker").args(&["search", &query]).status();
+}
+
+// Wrapper functions for CLI usage
+pub fn scan_local_image_with_name(image: &str) {
+    println!("🔍 Scanning image: {}", image);
+    let _ = Command::new("trivy").args(&["image", image]).status();
+}
+
+pub fn search_registry_with_query(query: &str) {
+    println!("🔍 Searching for: {}", query);
+    let _ = Command::new("docker").args(&["search", query]).status();
 }

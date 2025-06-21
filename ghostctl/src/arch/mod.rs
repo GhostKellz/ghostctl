@@ -44,22 +44,38 @@ pub fn arch_menu() {
     }
 }
 
-pub fn fix(target: String) {
-    match target.as_str() {
+pub fn fix_target(target: &str) {
+    match target {
         "pacman" | "keyring" => archfix::fix(),
         "orphans" => archfix::orphans(),
         "mirrors" => archfix::mirrors(),
         "pkgfix" => archfix::pkgfix(),
         "optimize" => archfix::optimize(),
+        "gpg" => fix_gpg_keys(),
+        "locks" => reset_pacman_locks(),
+        "all" => {
+            reset_pacman_locks();
+            fix_gpg_keys();
+            update_mirror_list();
+            archfix::fix();
+        }
         _ => {
-            println!("Unknown fix target. Use pacman, keyring, orphans, mirrors, pkgfix, optimize.")
+            println!("❌ Unknown fix target: {}", target);
+            println!("📋 Available targets:");
+            println!("  pacman   - Fix pacman database issues");
+            println!("  keyring  - Fix keyring issues");
+            println!("  orphans  - Remove orphaned packages");
+            println!("  mirrors  - Update mirror list");
+            println!("  pkgfix   - Fix PKGBUILD issues");
+            println!("  optimize - Optimize system");
+            println!("  gpg      - Fix GPG keys");
+            println!("  locks    - Clear pacman locks");
+            println!("  all      - Apply all fixes");
         }
     }
 }
 
-// Move any general arch menu or fix logic here if not already present
-
-#[allow(dead_code)]
+// Helper functions now integrated into main commands
 pub fn optimize_mirrors() {
     println!("Optimizing Arch mirrorlist using reflector...");
     let status = std::process::Command::new("sh")
@@ -72,7 +88,6 @@ pub fn optimize_mirrors() {
     }
 }
 
-#[allow(dead_code)]
 pub fn cleanup_orphans() {
     println!("Cleaning up orphaned packages...");
     let status = std::process::Command::new("sh")

@@ -760,6 +760,7 @@ pub fn check_tool_status() {
     println!("\n💡 Use 'Install All Ghost Tools' to install missing tools");
 }
 
+#[allow(dead_code)]
 fn uninstall_ghost_tools() {
     println!("🗑️  Uninstall Ghost Tools");
     println!("=========================");
