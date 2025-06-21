@@ -17,7 +17,5 @@ pub fn homelab_stacks_menu() {
 }
 
 pub fn docker_menu() {
-    println!("🐳 Docker Management Menu");
-    println!("=========================");
     devops::docker_management();
 }

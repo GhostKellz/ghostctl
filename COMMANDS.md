@@ -1,8 +1,8 @@
 # 📋 GhostCTL Commands Reference v1 
 
-Complete command documentation for GhostCTL v0.8.0 - The ultimate system and homelab management tool.
+Complete command documentation for GhostCTL v0.8.2 - The ultimate system and homelab management tool.
 
-⚠️ **Version Note**: This documentation covers the latest v0.8.0 features including enhanced Proxmox VE management, Restic CLI integration, AUR helper preference system, and improved network/DNS tools.
+⚠️ **Version Note**: This documentation covers the latest v0.8.2 features including enhanced Docker ecosystem, multi-registry support, enhanced Proxmox VE management, Restic CLI integration, AUR helper preference system, and improved network/DNS tools.
 
 ## 🚀 Core Commands
 

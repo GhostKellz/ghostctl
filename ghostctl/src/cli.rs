@@ -632,16 +632,16 @@ fn handle_scripts_commands(matches: &ArgMatches) {
 
 fn handle_ssl_commands(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("menu", _)) => crate::tools::acme_sh_management(),
-        Some(("install", _)) => crate::tools::install_acme_sh(),
+        Some(("menu", _)) => crate::nginx::acme::acme_management(),
+        Some(("install", _)) => crate::nginx::acme::install_acme_sh(),
         Some(("issue", sub_matches)) => {
             if let Some(domain) = sub_matches.get_one::<String>("domain") {
                 issue_certificate_cli(domain);
             }
         }
-        Some(("renew", _)) => crate::tools::renew_certificates(),
-        Some(("list", _)) => crate::tools::list_certificates(),
-        None => crate::tools::acme_sh_management(),
+        Some(("renew", _)) => crate::nginx::acme::renew_all_certificates(),
+        Some(("list", _)) => crate::nginx::acme::list_certificates(),
+        None => crate::nginx::acme::acme_management(),
         _ => unreachable!(),
     }
 }
@@ -1270,9 +1270,6 @@ fn container_management_menu() {
     println!("Container Management Menu - Coming Soon!");
 }
 
-fn ssl_management_menu() {
-    println!("SSL Management Menu - Coming Soon!");
-}
 
 fn show_command_list() {
     println!("ghostctl Available Commands");

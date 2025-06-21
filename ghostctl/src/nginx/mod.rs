@@ -1,3 +1,4 @@
+pub mod acme;
 pub mod config;
 pub mod proxy;
 pub mod ssl;
@@ -12,6 +13,7 @@ pub fn nginx_menu() {
     let options = [
         "⚙️  Configuration Builder",
         "🔒 SSL/TLS Management",
+        "🌐 ACME.sh Certificate Management",
         "🔄 Reverse Proxy Setup",
         "📊 Status & Monitoring",
         "🧪 Configuration Testing",
@@ -29,10 +31,11 @@ pub fn nginx_menu() {
     match choice {
         0 => config::configuration_builder(),
         1 => ssl::ssl_management(),
-        2 => proxy::reverse_proxy_setup(),
-        3 => nginx_status(),
-        4 => test_configuration(),
-        5 => service_management(),
+        2 => acme::acme_management(),
+        3 => proxy::reverse_proxy_setup(),
+        4 => nginx_status(),
+        5 => test_configuration(),
+        6 => service_management(),
         _ => return,
     }
 }

@@ -105,7 +105,7 @@ pub fn snapshot_management() {
         1 => create_manual_snapshot(),
         2 => println!("Delete snapshots feature not yet implemented"),
         3 => println!("Rollback feature not yet implemented"),
-        4 => println!("Snapper configuration not yet implemented"),
+        4 => snapshot::snapper_menu(),
         _ => return,
     }
 }

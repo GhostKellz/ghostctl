@@ -13,6 +13,7 @@ pub fn docker_management() {
         "🚀 CI/CD Tools",
         "🧹 System Cleanup",
         "🏗️  Registry Management",
+        "☸️  Kubernetes Tools",
         "⬅️  Back",
     ];
 
@@ -27,12 +28,13 @@ pub fn docker_management() {
         0 => docker_health_comprehensive(),
         1 => crate::docker::container::container_management(),
         2 => crate::docker::security::container_security(),
-        3 => crate::docker::compose::compose_stack_manager(),
+        3 => compose_stack_manager(),
         4 => docker_resource_report(),
         5 => monitoring_tools(),
         6 => cicd_helpers(),
         7 => docker_system_cleanup(),
-        8 => registry_management(),
+        8 => registry_tools(),
+        9 => kubernetes_tools(),
         _ => return,
     }
 }
