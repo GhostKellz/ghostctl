@@ -151,6 +151,6 @@ pub fn tui_menu() {
         4 => pkgfix(),
         5 => optimize(),
         6 => full(),
-        _ => (),
+        _ => return,
     }
 }

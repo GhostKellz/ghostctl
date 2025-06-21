@@ -86,7 +86,7 @@ pub fn generate_gpg_key() -> Result<()> {
     match key_type {
         0 => println!("Generating RSA 2048 key..."),
         1 => println!("Generating RSA 4096 key..."),
-        _ => (),
+        _ => return Ok(()),
     }
     println!("✅ GPG key generation completed!");
     println!("💡 Don't forget to:");

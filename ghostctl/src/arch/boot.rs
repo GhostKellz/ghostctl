@@ -73,7 +73,7 @@ fn list_installed_kernels() {
     println!("====================");
 
     // List installed kernel packages
-    let _ = Command::new("pacman").args(&["-Q"]).status();
+    let _ = Command::new("pacman").args(["-Q"]).status();
 
     println!("\n🔍 Filtering kernel packages...");
     let _ = Command::new("bash")
@@ -84,9 +84,7 @@ fn list_installed_kernels() {
     // Check /boot for kernel files
     println!("\n📁 Kernel files in /boot:");
     if Path::new("/boot").exists() {
-        let _ = Command::new("ls")
-            .args(&["-la", "/boot/vmlinuz-*"])
-            .status();
+        let _ = Command::new("ls").args(["-la", "/boot/vmlinuz-*"]).status();
     }
 }
 
@@ -151,7 +149,7 @@ fn install_specific_kernel(kernel_name: &str) {
         {
             println!("📦 Installing AUR kernel (requires yay or similar)...");
             let status = Command::new("yay")
-                .args(&[
+                .args([
                     "-S",
                     "--noconfirm",
                     kernel_name,
@@ -169,7 +167,7 @@ fn install_specific_kernel(kernel_name: &str) {
         } else {
             println!("📦 Installing official repository kernel...");
             let status = Command::new("sudo")
-                .args(&[
+                .args([
                     "pacman",
                     "-S",
                     "--noconfirm",
@@ -235,7 +233,7 @@ fn show_systemd_boot_config() {
     println!("\n📁 Boot entries:");
     if Path::new("/boot/loader/entries").exists() {
         let _ = Command::new("ls")
-            .args(&["-la", "/boot/loader/entries/"])
+            .args(["-la", "/boot/loader/entries/"])
             .status();
     } else {
         println!("❌ Boot entries directory not found.");

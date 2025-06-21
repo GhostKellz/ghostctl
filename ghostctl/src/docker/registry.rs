@@ -33,7 +33,7 @@ pub fn registry_management() {
         5 => remove_image(),
         6 => tag_image(),
         7 => image_history(),
-        _ => (),
+        _ => return,
     }
 }
 

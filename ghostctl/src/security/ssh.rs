@@ -275,12 +275,10 @@ fn copy_public_key() -> Result<()> {
                 if let Ok(mut child) = cmd.stdin(std::process::Stdio::piped()).spawn() {
                     if let Some(stdin) = child.stdin.take() {
                         use std::io::Write;
-                        if writeln!(&stdin, "{}", content.trim()).is_ok() {
-                            if child.wait().is_ok() {
-                                println!("✅ Public key copied to clipboard using {}", tool);
-                                copied = true;
-                                break;
-                            }
+                        if writeln!(&stdin, "{}", content.trim()).is_ok() && child.wait().is_ok() {
+                            println!("✅ Public key copied to clipboard using {}", tool);
+                            copied = true;
+                            break;
                         }
                     }
                 }

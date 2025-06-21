@@ -53,7 +53,7 @@ pub fn gcloud_tools() {
         11 => billing_information(),
         12 => monitoring_and_logging(),
         13 => configuration_management(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -104,7 +104,7 @@ fn list_projects() {
         0 => switch_project(),
         1 => project_details(),
         2 => project_billing(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -134,7 +134,7 @@ fn list_compute_instances() {
         1 => instance_details(),
         2 => instance_costs(),
         3 => ssh_to_instance(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -162,7 +162,7 @@ fn list_storage_buckets() {
         1 => bucket_usage(),
         2 => bucket_permissions(),
         3 => storage_costs(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -190,7 +190,7 @@ fn list_vpcs() {
         0 => network_details(),
         1 => list_subnets(),
         2 => firewall_rules(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -220,7 +220,7 @@ fn list_gke_clusters() {
         1 => get_cluster_credentials(),
         2 => node_pool_info(),
         3 => cluster_costs(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -282,7 +282,7 @@ fn billing_information() {
         1 => billing_accounts(),
         2 => cost_trends(),
         3 => budget_alerts(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -309,7 +309,7 @@ fn monitoring_and_logging() {
         1 => cloud_logging(),
         2 => alerting_policies(),
         3 => dashboards(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -336,7 +336,7 @@ fn configuration_management() {
         1 => set_default_region(),
         2 => set_default_zone(),
         3 => component_manager(),
-        _ => (),
+        _ => return,
     }
 }
 

@@ -121,7 +121,7 @@ fn install_paru() {
     if Command::new("which").arg("cargo").status().is_err() {
         println!("📦 Installing Rust toolchain...");
         let _ = Command::new("sudo")
-            .args(&["pacman", "-S", "--noconfirm", "rust"])
+            .args(["pacman", "-S", "--noconfirm", "rust"])
             .status();
     }
 
@@ -138,12 +138,12 @@ fn install_paru() {
         let _ = std::fs::remove_dir_all(build_dir);
 
         let status = Command::new("git")
-            .args(&["clone", "https://aur.archlinux.org/paru.git", build_dir])
+            .args(["clone", "https://aur.archlinux.org/paru.git", build_dir])
             .status();
 
         if status.is_ok() && status.unwrap().success() {
             let build_status = Command::new("makepkg")
-                .args(&["-si", "--noconfirm"])
+                .args(["-si", "--noconfirm"])
                 .current_dir(build_dir)
                 .status();
 
@@ -177,12 +177,12 @@ fn install_yay() {
         let _ = std::fs::remove_dir_all(build_dir);
 
         let status = Command::new("git")
-            .args(&["clone", "https://aur.archlinux.org/yay.git", build_dir])
+            .args(["clone", "https://aur.archlinux.org/yay.git", build_dir])
             .status();
 
         if status.is_ok() && status.unwrap().success() {
             let build_status = Command::new("makepkg")
-                .args(&["-si", "--noconfirm"])
+                .args(["-si", "--noconfirm"])
                 .current_dir(build_dir)
                 .status();
 

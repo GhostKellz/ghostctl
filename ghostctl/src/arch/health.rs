@@ -42,12 +42,12 @@ pub fn check_disk_space() {
 
     // Show disk usage
     let _ = Command::new("df")
-        .args(&["-h", "-x", "tmpfs", "-x", "devtmpfs"])
+        .args(["-h", "-x", "tmpfs", "-x", "devtmpfs"])
         .status();
 
     println!("\n📊 Largest directories in /:");
     let _ = Command::new("du")
-        .args(&[
+        .args([
             "-h",
             "/",
             "-d",
@@ -60,7 +60,7 @@ pub fn check_disk_space() {
         .status();
 
     // Check if any partition is over 90% full
-    let output = Command::new("df").args(&["-P"]).output();
+    let output = Command::new("df").args(["-P"]).output();
 
     if let Ok(output) = output {
         let content = String::from_utf8_lossy(&output.stdout);
@@ -107,14 +107,14 @@ fn clean_package_cache() {
 
     // Show current cache size
     let _ = Command::new("du")
-        .args(&["-sh", "/var/cache/pacman/pkg"])
+        .args(["-sh", "/var/cache/pacman/pkg"])
         .status();
 
     // Clean all but last 3 versions
-    let _ = Command::new("sudo").args(&["paccache", "-r"]).status();
+    let _ = Command::new("sudo").args(["paccache", "-r"]).status();
 
     // Remove uninstalled packages
-    let _ = Command::new("sudo").args(&["paccache", "-ruk0"]).status();
+    let _ = Command::new("sudo").args(["paccache", "-ruk0"]).status();
 
     println!("✅ Package cache cleaned");
 }
@@ -501,7 +501,7 @@ pub fn full_health_report() {
 
     println!("=== DISK SPACE ===");
     let _ = Command::new("df")
-        .args(&["-h", "-x", "tmpfs", "-x", "devtmpfs"])
+        .args(["-h", "-x", "tmpfs", "-x", "devtmpfs"])
         .status();
 
     println!("\n=== FAILED SERVICES ===");

@@ -73,7 +73,7 @@ pub fn aws_cli_tools() {
         9 => manage_ecs_clusters(),
         10 => manage_autoscaling_groups(),
         11 => manage_iam(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -122,7 +122,7 @@ fn list_ec2_instances() {
         1 => instance_types_summary(),
         2 => instance_cost_analysis(),
         3 => start_stop_instances(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -150,7 +150,7 @@ fn list_s3_buckets() {
         1 => bucket_policies(),
         2 => list_bucket_contents(),
         3 => storage_costs(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -184,7 +184,7 @@ fn aws_cost_estimation() {
         1 => cost_trend(),
         2 => costs_by_service(),
         3 => cost_explorer(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -213,7 +213,7 @@ fn cloudwatch_metrics() {
         2 => lambda_metrics(),
         3 => rds_metrics(),
         4 => custom_metrics(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -285,7 +285,7 @@ fn manage_iam() {
         1 => list_iam_roles(),
         2 => list_iam_policies(),
         3 => manage_access_keys(),
-        _ => (),
+        _ => return,
     }
 }
 

@@ -91,7 +91,7 @@ pub fn azure_cli_tools() {
         13 => azure_resource_search(),
         14 => show_resource_usage(),
         15 => azure_configuration(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -137,7 +137,7 @@ fn list_resource_groups() {
         0 => resource_group_details(),
         1 => cost_by_resource_group(),
         2 => delete_resource_group(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -179,7 +179,7 @@ fn list_virtual_machines() {
         1 => vm_performance_metrics(),
         2 => vm_cost_analysis(),
         3 => vm_configuration(),
-        _ => (),
+        _ => return,
     }
 }
 
@@ -209,7 +209,7 @@ fn list_storage_accounts() {
         1 => storage_access_keys(),
         2 => list_storage_containers(),
         3 => storage_costs(),
-        _ => (),
+        _ => return,
     }
 }
 

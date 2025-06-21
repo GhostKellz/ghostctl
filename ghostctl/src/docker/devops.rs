@@ -13,6 +13,7 @@ pub fn docker_management() {
         "🚀 CI/CD Tools",
         "🧹 System Cleanup",
         "🏗️  Registry Management",
+        "🌍 Environment Manager",
         "☸️  Kubernetes Tools",
         "⬅️  Back",
     ];
@@ -25,16 +26,33 @@ pub fn docker_management() {
         .unwrap();
 
     match choice {
-        0 => docker_health_comprehensive(),
+        0 => {
+            docker_health_comprehensive();
+            let image = "nginx:latest";
+            scan_local_image_with_name(image);
+            let query = "nginx";
+            search_registry_with_query(query);
+        },
         1 => crate::docker::container::container_management(),
         2 => crate::docker::security::container_security(),
-        3 => compose_stack_manager(),
+        3 => {
+            println!("📦 Stack Management");
+            println!("==================");
+            let stack_dir = "/opt/docker/stacks";
+            list_compose_stacks(stack_dir);
+            deploy_new_stack(stack_dir);
+        },
         4 => docker_resource_report(),
         5 => monitoring_tools(),
-        6 => cicd_helpers(),
+        6 => {
+            println!("🚀 CI/CD Tools");
+            println!("==============");
+            generate_github_workflow();
+        },
         7 => docker_system_cleanup(),
-        8 => registry_tools(),
-        9 => kubernetes_tools(),
+        8 => crate::docker::registry::registry_management(),
+        9 => environment_manager(),
+        10 => kubernetes_tools(),
         _ => return,
     }
 }
@@ -184,7 +202,7 @@ pub fn docker_system_cleanup() {
     println!("✅ Cleanup operations completed");
 }
 
-fn registry_management() {
+pub fn registry_management() {
     println!("🏗️  Docker Registry Management");
     println!("==============================");
 
@@ -192,6 +210,7 @@ fn registry_management() {
         "📋 List Registry Images",
         "📤 Push Image to Registry",
         "📥 Pull Image from Registry",
+        "🔍 Search Registry",
         "🔑 Registry Authentication",
         "🗑️  Delete Registry Image",
         "📊 Registry Statistics",
@@ -209,14 +228,15 @@ fn registry_management() {
         0 => list_registry_images(),
         1 => push_to_registry(),
         2 => pull_from_registry(),
-        3 => registry_authentication(),
-        4 => delete_registry_image(),
-        5 => registry_statistics(),
+        3 => search_registry(),
+        4 => registry_authentication(),
+        5 => delete_registry_image(),
+        6 => registry_statistics(),
         _ => return,
     }
 }
 
-fn list_registry_images() {
+pub fn list_registry_images() {
     println!("📋 Registry Images");
     println!("==================");
 
@@ -232,7 +252,7 @@ fn list_registry_images() {
     println!("💡 Use: docker search {} or registry API", registry);
 }
 
-fn push_to_registry() {
+pub fn push_to_registry() {
     println!("📤 Push Image to Registry");
     println!("========================");
 
@@ -264,7 +284,7 @@ fn push_to_registry() {
     let _ = Command::new("docker").args(&["push", &full_name]).status();
 }
 
-fn pull_from_registry() {
+pub fn pull_from_registry() {
     println!("📥 Pull Image from Registry");
     println!("===========================");
 
@@ -277,7 +297,7 @@ fn pull_from_registry() {
     let _ = Command::new("docker").args(&["pull", &image]).status();
 }
 
-fn registry_authentication() {
+pub fn registry_authentication() {
     println!("🔑 Registry Authentication");
     println!("==========================");
 
@@ -298,7 +318,7 @@ fn registry_authentication() {
         .status();
 }
 
-fn delete_registry_image() {
+pub fn delete_registry_image() {
     println!("🗑️  Delete Registry Image");
     println!("========================");
 
@@ -318,7 +338,7 @@ fn delete_registry_image() {
     }
 }
 
-fn registry_statistics() {
+pub fn registry_statistics() {
     println!("📊 Registry Statistics");
     println!("======================");
 
@@ -337,6 +357,7 @@ pub fn cicd_helpers() {
         "🦀 Rust CI/CD Template",
         "⚡ Zig CI/CD Template",
         "🐳 Docker Multi-arch Build",
+        "⚡ Docker Build Optimizer",
         "🚀 Release Automation",
         "🧪 Test Coverage Setup",
         "🛡️  Security Scanning",
@@ -354,9 +375,10 @@ pub fn cicd_helpers() {
         0 => rust_cicd_template(),
         1 => zig_cicd_template(),
         2 => docker_multiarch_build(),
-        3 => release_automation(),
-        4 => test_coverage_setup(),
-        5 => security_scanning_setup(),
+        3 => docker_build_optimizer(),
+        4 => release_automation(),
+        5 => test_coverage_setup(),
+        6 => security_scanning_setup(),
         _ => return,
     }
 }
@@ -630,23 +652,41 @@ pub fn container_security_scanning() {
     println!("🔍 Container Security Scanning");
     println!("==============================");
 
-    if !Command::new("which")
-        .arg("trivy")
-        .status()
-        .unwrap()
-        .success()
-    {
-        println!("❌ Trivy not found. Installing...");
-        let _ = Command::new("bash")
-            .arg("-c")
-            .arg("curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin")
-            .status();
-    }
+    let options = [
+        "🔍 Scan specific image",
+        "📊 Scan all local images",
+        "🔧 Install/Update Trivy",
+        "⬅️  Back",
+    ];
 
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Security Scanning Options")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    match choice {
+        0 => scan_local_image(),
+        1 => scan_all_local_images(),
+        2 => install_trivy(),
+        _ => return,
+    }
+}
+
+fn scan_all_local_images() {
     println!("🚀 Scanning all local images...");
     let _ = Command::new("bash")
         .arg("-c")
         .arg("docker images --format '{{.Repository}}:{{.Tag}}' | xargs -I {} trivy image {}")
+        .status();
+}
+
+fn install_trivy() {
+    println!("🔧 Installing Trivy...");
+    let _ = Command::new("bash")
+        .arg("-c")
+        .arg("curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin")
         .status();
 }
 
@@ -690,8 +730,7 @@ pub fn deploy_new_stack(stack_dir: &str) {
 }
 
 pub fn registry_tools() {
-    println!("🏗️ Registry Tools");
-    crate::docker::registry::registry_management();
+    registry_management();
 }
 
 pub fn kubernetes_tools() {

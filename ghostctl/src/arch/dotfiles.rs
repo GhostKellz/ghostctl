@@ -137,7 +137,7 @@ fn backup_selected_dotfiles(dotfiles: Vec<String>) {
 
         if PathBuf::from(dotfile).is_dir() {
             let _ = Command::new("cp")
-                .args(&["-r", dotfile, &dest.to_string_lossy()])
+                .args(["-r", dotfile, &dest.to_string_lossy()])
                 .status();
         } else {
             let _ = fs::copy(dotfile, &dest);
@@ -160,7 +160,7 @@ fn track_selected_dotfiles(dotfiles: Vec<String>) {
         let _ = fs::create_dir_all(&dotfiles_dir);
         let _ = Command::new("git")
             .current_dir(&dotfiles_dir)
-            .args(&["init"])
+            .args(["init"])
             .status();
     }
 
@@ -179,13 +179,13 @@ fn track_selected_dotfiles(dotfiles: Vec<String>) {
         // Move file and create symlink
         println!("  Tracking {}", dotfile);
         let _ = Command::new("cp")
-            .args(&["-r", dotfile, &dest.to_string_lossy()])
+            .args(["-r", dotfile, &dest.to_string_lossy()])
             .status();
 
         // Add to git
         let _ = Command::new("git")
             .current_dir(&dotfiles_dir)
-            .args(&["add", &filename.to_string_lossy()])
+            .args(["add", &filename.to_string_lossy()])
             .status();
     }
 
@@ -246,7 +246,7 @@ pub fn init_dotfiles_repo() {
 
     let status = Command::new("git")
         .current_dir(&dotfiles_dir)
-        .args(&["init"])
+        .args(["init"])
         .status();
 
     match status {
@@ -290,7 +290,7 @@ pub fn sync_dotfiles() {
     // Check for remote
     let output = Command::new("git")
         .current_dir(&dotfiles_dir)
-        .args(&["remote", "-v"])
+        .args(["remote", "-v"])
         .output();
 
     if let Ok(output) = output {
@@ -309,7 +309,7 @@ pub fn sync_dotfiles() {
 
                 let _ = Command::new("git")
                     .current_dir(&dotfiles_dir)
-                    .args(&["remote", "add", "origin", &remote_url])
+                    .args(["remote", "add", "origin", &remote_url])
                     .status();
             }
         }
@@ -319,14 +319,14 @@ pub fn sync_dotfiles() {
     println!("⬇️  Pulling latest changes...");
     let _ = Command::new("git")
         .current_dir(&dotfiles_dir)
-        .args(&["pull"])
+        .args(["pull"])
         .status();
 
     // Push changes
     println!("⬆️  Pushing local changes...");
     let _ = Command::new("git")
         .current_dir(&dotfiles_dir)
-        .args(&["push"])
+        .args(["push"])
         .status();
 
     println!("✅ Sync completed");
@@ -375,7 +375,7 @@ pub fn restore_dotfiles() {
 
         if src.is_dir() {
             let _ = Command::new("cp")
-                .args(&["-r", &src.to_string_lossy(), &dest.to_string_lossy()])
+                .args(["-r", &src.to_string_lossy(), &dest.to_string_lossy()])
                 .status();
         } else {
             let _ = fs::copy(&src, &dest);

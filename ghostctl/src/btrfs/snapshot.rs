@@ -165,6 +165,6 @@ pub fn snapper_menu() {
             snapper_edit(&config)
         }
         2 => snapper_list(),
-        _ => (),
+        _ => return,
     }
 }

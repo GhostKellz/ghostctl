@@ -61,7 +61,7 @@ fn create_systemd_timer() {
                 .interact_text()
                 .unwrap()
         }
-        _ => return,
+        _ => "daily".to_string(),
     };
 
     let backup_paths: String = Input::new()

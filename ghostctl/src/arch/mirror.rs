@@ -38,7 +38,7 @@ fn auto_update_mirrors() {
     if Command::new("which").arg("reflector").output().is_ok() {
         println!("📡 Fetching fastest mirrors...");
         let status = Command::new("sudo")
-            .args(&[
+            .args([
                 "reflector",
                 "--latest",
                 "20",
@@ -67,7 +67,7 @@ fn auto_update_mirrors() {
 
         if input.trim().to_lowercase() == "y" {
             let _ = Command::new("sudo")
-                .args(&["pacman", "-S", "--noconfirm", "reflector"])
+                .args(["pacman", "-S", "--noconfirm", "reflector"])
                 .status();
             auto_update_mirrors(); // Retry after installation
         }
@@ -84,7 +84,7 @@ fn update_mirrors_by_country() {
     println!("🌍 Updating mirrors for country: {}", country);
 
     let status = Command::new("sudo")
-        .args(&[
+        .args([
             "reflector",
             "--country",
             &country,
@@ -149,7 +149,7 @@ fn view_current_mirrors() {
     println!("======================");
 
     let _ = Command::new("grep")
-        .args(&["-E", "^Server", "/etc/pacman.d/mirrorlist"])
+        .args(["-E", "^Server", "/etc/pacman.d/mirrorlist"])
         .status();
 }
 
@@ -158,6 +158,6 @@ fn manual_edit_mirrors() {
 
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
     let _ = Command::new("sudo")
-        .args(&[&editor, "/etc/pacman.d/mirrorlist"])
+        .args([&editor, "/etc/pacman.d/mirrorlist"])
         .status();
 }

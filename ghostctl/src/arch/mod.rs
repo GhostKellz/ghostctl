@@ -8,12 +8,13 @@ pub mod perf;
 pub mod pkgfix;
 pub mod swap;
 
-use dialoguer::{Select, theme::ColorfulTheme};
+use dialoguer::{Input, Select, theme::ColorfulTheme};
 
 pub fn arch_menu() {
     loop {
         let options = [
             "🔧 Quick System Fixes",
+            "🎯 Fix Specific Target",
             "🛠️  Arch Maintenance (Fix/Optimize/Clean)",
             "🏥 System Health & Maintenance",
             "💾 Swap & Zram Management",
@@ -33,15 +34,22 @@ pub fn arch_menu() {
             .unwrap();
         match choice {
             0 => quick_system_fixes(),
-            1 => archfix::tui_menu(),
-            2 => health::health_menu(),
-            3 => swap::swap_menu(),
-            4 => dotfiles::dotfiles_menu(),
-            5 => aur::aur_helper_management(),
-            6 => mirror::update_mirror_list(),
-            7 => boot::boot_management(),
-            8 => crate::security::gpg::gpg_key_management(),
-            9 => perf::tune(),
+            1 => {
+                let target: String = dialoguer::Input::new()
+                    .with_prompt("Enter target to fix (pacman/orphans/mirrors/all)")
+                    .interact_text()
+                    .unwrap();
+                fix_target(&target);
+            },
+            2 => archfix::tui_menu(),
+            3 => health::health_menu(),
+            4 => swap::swap_menu(),
+            5 => dotfiles::dotfiles_menu(),
+            6 => aur::aur_helper_management(),
+            7 => mirror::update_mirror_list(),
+            8 => boot::boot_management(),
+            9 => crate::security::gpg::gpg_key_management(),
+            10 => perf::tune(),
             _ => break,
         }
     }
@@ -118,7 +126,7 @@ pub fn quick_system_fixes() {
     println!("🚀 Applying selected fixes...");
     for fix in fixes {
         match fix {
-            _ => (),
+            _ => return,
         }
     }
     println!("✅ Quick fixes completed!");

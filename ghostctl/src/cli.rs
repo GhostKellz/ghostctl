@@ -662,7 +662,7 @@ fn handle_ct_commands(matches: &ArgMatches) {
 
 fn handle_docker_commands(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("menu", _)) => crate::docker::devops::docker_management(),
+        Some(("menu", _)) => crate::docker::docker_menu(),
         Some(("install", _)) => install_docker(),
         Some(("status", _)) => show_docker_status(),
         Some(("homelab", _)) => docker_homelab_menu(),
@@ -956,7 +956,7 @@ fn handle_tools_commands(matches: &ArgMatches) {
         }
         Some(("configure", _)) => {
             println!("⚙️  Configuring tools...");
-            tools::acme_sh_management();
+            crate::nginx::acme::acme_management();
         }
         Some(("update", _)) => {
             println!("🔄 Updating tools...");
@@ -1236,7 +1236,7 @@ fn homelab_management_menu() {
         3 => setup_homelab_monitoring(),
         4 => setup_homelab_backup(),
         5 => setup_homelab_network(),
-        _ => (),
+        _ => return,
     }
 }
 
