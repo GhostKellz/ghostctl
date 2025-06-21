@@ -1,5 +1,5 @@
+use dialoguer::{Input, Select, theme::ColorfulTheme};
 use std::process::Command;
-use dialoguer::{Select, theme::ColorfulTheme, Input};
 
 pub fn update_mirror_list() {
     println!("🌐 Updating Arch Mirror List");
@@ -33,17 +33,21 @@ pub fn update_mirror_list() {
 
 fn auto_update_mirrors() {
     println!("🔄 Auto-updating mirrors with reflector...");
-    
+
     // Check if reflector is installed
     if Command::new("which").arg("reflector").output().is_ok() {
         println!("📡 Fetching fastest mirrors...");
         let status = Command::new("sudo")
             .args(&[
                 "reflector",
-                "--latest", "20",
-                "--protocol", "https",
-                "--sort", "rate",
-                "--save", "/etc/pacman.d/mirrorlist"
+                "--latest",
+                "20",
+                "--protocol",
+                "https",
+                "--sort",
+                "rate",
+                "--save",
+                "/etc/pacman.d/mirrorlist",
             ])
             .status();
 
@@ -57,10 +61,10 @@ fn auto_update_mirrors() {
     } else {
         println!("⚠️  Reflector is not installed.");
         println!("Would you like to install it? (y/n)");
-        
+
         let mut input = String::new();
         std::io::stdin().read_line(&mut input).unwrap();
-        
+
         if input.trim().to_lowercase() == "y" {
             let _ = Command::new("sudo")
                 .args(&["pacman", "-S", "--noconfirm", "reflector"])
@@ -78,15 +82,20 @@ fn update_mirrors_by_country() {
         .unwrap();
 
     println!("🌍 Updating mirrors for country: {}", country);
-    
+
     let status = Command::new("sudo")
         .args(&[
             "reflector",
-            "--country", &country,
-            "--latest", "10",
-            "--protocol", "https",
-            "--sort", "rate",
-            "--save", "/etc/pacman.d/mirrorlist"
+            "--country",
+            &country,
+            "--latest",
+            "10",
+            "--protocol",
+            "https",
+            "--sort",
+            "rate",
+            "--save",
+            "/etc/pacman.d/mirrorlist",
         ])
         .status();
 
@@ -102,18 +111,27 @@ fn rank_mirrors_by_speed() {
 
     // Backup current mirrorlist
     let _ = Command::new("sudo")
-        .args(&["cp", "/etc/pacman.d/mirrorlist", "/etc/pacman.d/mirrorlist.backup"])
+        .args(&[
+            "cp",
+            "/etc/pacman.d/mirrorlist",
+            "/etc/pacman.d/mirrorlist.backup",
+        ])
         .status();
 
     let status = Command::new("sudo")
         .args(&[
             "reflector",
             "--verbose",
-            "--latest", "50",
-            "--protocol", "https",
-            "--sort", "rate",
-            "--threads", "5",
-            "--save", "/etc/pacman.d/mirrorlist"
+            "--latest",
+            "50",
+            "--protocol",
+            "https",
+            "--sort",
+            "rate",
+            "--threads",
+            "5",
+            "--save",
+            "/etc/pacman.d/mirrorlist",
         ])
         .status();
 
@@ -129,7 +147,7 @@ fn rank_mirrors_by_speed() {
 fn view_current_mirrors() {
     println!("📋 Current Mirror List:");
     println!("======================");
-    
+
     let _ = Command::new("grep")
         .args(&["-E", "^Server", "/etc/pacman.d/mirrorlist"])
         .status();
@@ -137,7 +155,7 @@ fn view_current_mirrors() {
 
 fn manual_edit_mirrors() {
     println!("🔧 Opening mirrorlist in editor...");
-    
+
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
     let _ = Command::new("sudo")
         .args(&[&editor, "/etc/pacman.d/mirrorlist"])

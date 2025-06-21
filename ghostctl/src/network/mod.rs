@@ -37,11 +37,7 @@ fn dns_menu() {
     println!("🔍 DNS Tools");
     println!("============");
 
-    let options = [
-        "🔍 DNS Lookup",
-        "🔒 DNSSEC Check",
-        "⬅️  Back",
-    ];
+    let options = ["🔍 DNS Lookup", "🔒 DNSSEC Check", "⬅️  Back"];
 
     let choice = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("DNS Tools")
@@ -67,11 +63,7 @@ fn scan_menu() {
     println!("📡 Network Scanning");
     println!("===================");
 
-    let options = [
-        "🎯 Target Scan",
-        "🔍 Interactive Scan",
-        "⬅️  Back",
-    ];
+    let options = ["🎯 Target Scan", "🔍 Interactive Scan", "⬅️  Back"];
 
     let choice = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Scanning Options")
@@ -100,7 +92,7 @@ fn netcat_menu() {
 
     let options = [
         "📤 Send a file",
-        "📥 Receive a file", 
+        "📥 Receive a file",
         "💬 Chat session",
         "🔍 Check port connectivity",
         "⬅️  Back",
@@ -116,28 +108,54 @@ fn netcat_menu() {
     match choice {
         0 => {
             use dialoguer::Input;
-            let file: String = Input::new().with_prompt("File to send").interact_text().unwrap();
-            let host: String = Input::new().with_prompt("Target host").interact_text().unwrap();
+            let file: String = Input::new()
+                .with_prompt("File to send")
+                .interact_text()
+                .unwrap();
+            let host: String = Input::new()
+                .with_prompt("Target host")
+                .interact_text()
+                .unwrap();
             let port: u16 = Input::new().with_prompt("Target port").interact().unwrap();
             netcat::send_file(&file, &host, port);
         }
         1 => {
             use dialoguer::Input;
-            let file: String = Input::new().with_prompt("File to save as").interact_text().unwrap();
-            let port: u16 = Input::new().with_prompt("Port to listen on").interact().unwrap();
+            let file: String = Input::new()
+                .with_prompt("File to save as")
+                .interact_text()
+                .unwrap();
+            let port: u16 = Input::new()
+                .with_prompt("Port to listen on")
+                .interact()
+                .unwrap();
             netcat::receive_file(&file, port);
         }
         2 => {
             use dialoguer::Input;
             let port: u16 = Input::new().with_prompt("Port to use").interact().unwrap();
-            let host = Input::<String>::new().with_prompt("Host to connect to (leave empty to start server)").allow_empty(true).interact_text().unwrap();
-            let host_opt = if host.is_empty() { None } else { Some(host.as_str()) };
+            let host = Input::<String>::new()
+                .with_prompt("Host to connect to (leave empty to start server)")
+                .allow_empty(true)
+                .interact_text()
+                .unwrap();
+            let host_opt = if host.is_empty() {
+                None
+            } else {
+                Some(host.as_str())
+            };
             netcat::chat(host_opt, port);
         }
         3 => {
             use dialoguer::Input;
-            let host: String = Input::new().with_prompt("Host to check").interact_text().unwrap();
-            let port: u16 = Input::new().with_prompt("Port to check").interact().unwrap();
+            let host: String = Input::new()
+                .with_prompt("Host to check")
+                .interact_text()
+                .unwrap();
+            let port: u16 = Input::new()
+                .with_prompt("Port to check")
+                .interact()
+                .unwrap();
             netcat::check_port(&host, port);
         }
         _ => return,

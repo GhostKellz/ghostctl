@@ -35,7 +35,7 @@ pub fn container_management() {
             if !id.is_empty() {
                 stop_container(id);
             }
-        },
+        }
         3 => restart_container(),
         4 => remove_container(),
         5 => container_stats(),
@@ -52,7 +52,7 @@ pub fn list_containers() {
 
 fn run_container() {
     use dialoguer::Input;
-    
+
     let image: String = Input::new()
         .with_prompt("Image name")
         .interact_text()
@@ -65,17 +65,15 @@ fn run_container() {
         .unwrap();
 
     let mut args = vec!["run", "-d"];
-    
+
     if !name.is_empty() {
         args.extend_from_slice(&["--name", &name]);
     }
-    
+
     args.push(&image);
 
     println!("🚀 Running container from image: {}", image);
-    let status = Command::new("docker")
-        .args(&args)
-        .status();
+    let status = Command::new("docker").args(&args).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Container started successfully"),
@@ -92,7 +90,7 @@ pub fn stop_container(id: String) {
 
 fn restart_container() {
     use dialoguer::Input;
-    
+
     let container: String = Input::new()
         .with_prompt("Container name or ID")
         .interact_text()
@@ -110,8 +108,8 @@ fn restart_container() {
 }
 
 fn remove_container() {
-    use dialoguer::{Input, Confirm};
-    
+    use dialoguer::{Confirm, Input};
+
     let container: String = Input::new()
         .with_prompt("Container name or ID")
         .interact_text()
@@ -130,9 +128,7 @@ fn remove_container() {
     args.push(&container);
 
     println!("🗑️  Removing container: {}", container);
-    let status = Command::new("docker")
-        .args(&args)
-        .status();
+    let status = Command::new("docker").args(&args).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Container removed successfully"),
@@ -148,8 +144,8 @@ fn container_stats() {
 }
 
 fn container_logs() {
-    use dialoguer::{Input, Confirm};
-    
+    use dialoguer::{Confirm, Input};
+
     let container: String = Input::new()
         .with_prompt("Container name or ID")
         .interact_text()
@@ -169,14 +165,12 @@ fn container_logs() {
     args.push(&container);
 
     println!("📜 Container logs for: {}", container);
-    let _ = Command::new("docker")
-        .args(&args)
-        .status();
+    let _ = Command::new("docker").args(&args).status();
 }
 
 fn inspect_container() {
     use dialoguer::Input;
-    
+
     let container: String = Input::new()
         .with_prompt("Container name or ID")
         .interact_text()

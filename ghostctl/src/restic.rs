@@ -1,11 +1,10 @@
-use std::process::Command;
 use dialoguer::{Input, Select, theme::ColorfulTheme};
+use std::process::Command;
 
 /// Pure restic CLI wrapper functions
 /// For automated workflows, use src/backup/
 /// For emergency recovery, use src/restore/
 pub fn setup() {
-    
     println!("🔧 Restic CLI Tools");
     println!("===================");
 
@@ -78,7 +77,7 @@ fn restic_list_interactive() {
 
     println!("📋 Listing snapshots...");
     match list_snapshots(&repo) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => println!("❌ Failed to list snapshots: {}", e),
     }
 }

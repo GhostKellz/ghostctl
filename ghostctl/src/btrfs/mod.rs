@@ -351,7 +351,10 @@ pub fn show_quota_info(mountpoint: &str) {
         }
         _ => {
             println!("❌ Quotas are not enabled on this filesystem");
-            println!("💡 To enable quotas, run: sudo btrfs quota enable {}", mountpoint);
+            println!(
+                "💡 To enable quotas, run: sudo btrfs quota enable {}",
+                mountpoint
+            );
             println!("⚠️  Note: Enabling quotas can impact performance on large filesystems");
         }
     }

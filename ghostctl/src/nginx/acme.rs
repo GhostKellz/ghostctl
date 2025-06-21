@@ -37,7 +37,7 @@ pub fn acme_management() {
 
 pub fn install_acme_sh() {
     println!("📥 Installing acme.sh...");
-    
+
     // Check if already installed
     if Command::new("which").arg("acme.sh").output().is_ok() {
         println!("✅ acme.sh is already installed");
@@ -54,7 +54,7 @@ pub fn install_acme_sh() {
         Ok(s) if s.success() => {
             println!("✅ acme.sh installed successfully!");
             println!("📁 Installation directory: ~/.acme.sh/");
-            
+
             // Set up alias
             let _ = Command::new("sh")
                 .arg("-c")
@@ -121,7 +121,7 @@ pub fn issue_certificate() {
 
 pub fn renew_all_certificates() {
     println!("🔄 Renewing all certificates...");
-    
+
     let status = Command::new("sh")
         .arg("-c")
         .arg("~/.acme.sh/acme.sh --renew-all")
@@ -136,7 +136,7 @@ pub fn renew_all_certificates() {
 pub fn list_certificates() {
     println!("📋 Installed Certificates:");
     println!("=========================");
-    
+
     let _ = Command::new("sh")
         .arg("-c")
         .arg("~/.acme.sh/acme.sh --list")
@@ -150,7 +150,7 @@ fn remove_certificate() {
         .unwrap();
 
     println!("🗑️  Removing certificate for: {}", domain);
-    
+
     let status = Command::new("sh")
         .arg("-c")
         .arg(&format!("~/.acme.sh/acme.sh --remove -d {}", domain))
@@ -159,7 +159,7 @@ fn remove_certificate() {
     match status {
         Ok(s) if s.success() => {
             println!("✅ Certificate removed from acme.sh");
-            
+
             // Also remove from nginx directory
             let cert_dir = format!("/etc/nginx/certs/{}", domain);
             let _ = Command::new("sudo")
@@ -220,12 +220,18 @@ fn configure_cloudflare() {
     // Export environment variables
     let _ = Command::new("sh")
         .arg("-c")
-        .arg(&format!("echo 'export CF_Email=\"{}\"' >> ~/.bashrc", email))
+        .arg(&format!(
+            "echo 'export CF_Email=\"{}\"' >> ~/.bashrc",
+            email
+        ))
         .status();
 
     let _ = Command::new("sh")
         .arg("-c")
-        .arg(&format!("echo 'export CF_Key=\"{}\"' >> ~/.bashrc", api_key))
+        .arg(&format!(
+            "echo 'export CF_Key=\"{}\"' >> ~/.bashrc",
+            api_key
+        ))
         .status();
 
     println!("✅ Cloudflare DNS API configured!");
@@ -263,22 +269,34 @@ fn configure_azure_dns() {
     // Export environment variables for acme.sh Azure DNS hook
     let _ = Command::new("sh")
         .arg("-c")
-        .arg(&format!("echo 'export AZUREDNS_SUBSCRIPTIONID=\"{}\"' >> ~/.bashrc", subscription_id))
+        .arg(&format!(
+            "echo 'export AZUREDNS_SUBSCRIPTIONID=\"{}\"' >> ~/.bashrc",
+            subscription_id
+        ))
         .status();
 
     let _ = Command::new("sh")
         .arg("-c")
-        .arg(&format!("echo 'export AZUREDNS_TENANTID=\"{}\"' >> ~/.bashrc", tenant_id))
+        .arg(&format!(
+            "echo 'export AZUREDNS_TENANTID=\"{}\"' >> ~/.bashrc",
+            tenant_id
+        ))
         .status();
 
     let _ = Command::new("sh")
         .arg("-c")
-        .arg(&format!("echo 'export AZUREDNS_APPID=\"{}\"' >> ~/.bashrc", client_id))
+        .arg(&format!(
+            "echo 'export AZUREDNS_APPID=\"{}\"' >> ~/.bashrc",
+            client_id
+        ))
         .status();
 
     let _ = Command::new("sh")
         .arg("-c")
-        .arg(&format!("echo 'export AZUREDNS_CLIENTSECRET=\"{}\"' >> ~/.bashrc", client_secret))
+        .arg(&format!(
+            "echo 'export AZUREDNS_CLIENTSECRET=\"{}\"' >> ~/.bashrc",
+            client_secret
+        ))
         .status();
 
     println!("✅ Azure DNS API configured!");
@@ -294,7 +312,10 @@ fn configure_digitalocean() {
 
     let _ = Command::new("sh")
         .arg("-c")
-        .arg(&format!("echo 'export DO_API_TOKEN=\"{}\"' >> ~/.bashrc", token))
+        .arg(&format!(
+            "echo 'export DO_API_TOKEN=\"{}\"' >> ~/.bashrc",
+            token
+        ))
         .status();
 
     println!("✅ DigitalOcean DNS API configured!");
@@ -323,17 +344,26 @@ fn configure_powerdns() {
     // Export environment variables for acme.sh PowerDNS hook
     let _ = Command::new("sh")
         .arg("-c")
-        .arg(&format!("echo 'export PDNS_Url=\"{}\"' >> ~/.bashrc", api_url))
+        .arg(&format!(
+            "echo 'export PDNS_Url=\"{}\"' >> ~/.bashrc",
+            api_url
+        ))
         .status();
 
     let _ = Command::new("sh")
         .arg("-c")
-        .arg(&format!("echo 'export PDNS_ApiKey=\"{}\"' >> ~/.bashrc", api_key))
+        .arg(&format!(
+            "echo 'export PDNS_ApiKey=\"{}\"' >> ~/.bashrc",
+            api_key
+        ))
         .status();
 
     let _ = Command::new("sh")
         .arg("-c")
-        .arg(&format!("echo 'export PDNS_ServerId=\"{}\"' >> ~/.bashrc", server_id))
+        .arg(&format!(
+            "echo 'export PDNS_ServerId=\"{}\"' >> ~/.bashrc",
+            server_id
+        ))
         .status();
 
     println!("✅ PowerDNS API configured!");
@@ -359,7 +389,10 @@ fn configure_godaddy() {
 
     let _ = Command::new("sh")
         .arg("-c")
-        .arg(&format!("echo 'export GD_Secret=\"{}\"' >> ~/.bashrc", secret))
+        .arg(&format!(
+            "echo 'export GD_Secret=\"{}\"' >> ~/.bashrc",
+            secret
+        ))
         .status();
 
     println!("✅ GoDaddy DNS API configured!");
@@ -378,12 +411,18 @@ fn configure_namecheap() {
 
     let _ = Command::new("sh")
         .arg("-c")
-        .arg(&format!("echo 'export NAMECHEAP_USERNAME=\"{}\"' >> ~/.bashrc", user))
+        .arg(&format!(
+            "echo 'export NAMECHEAP_USERNAME=\"{}\"' >> ~/.bashrc",
+            user
+        ))
         .status();
 
     let _ = Command::new("sh")
         .arg("-c")
-        .arg(&format!("echo 'export NAMECHEAP_API_KEY=\"{}\"' >> ~/.bashrc", api_key))
+        .arg(&format!(
+            "echo 'export NAMECHEAP_API_KEY=\"{}\"' >> ~/.bashrc",
+            api_key
+        ))
         .status();
 
     println!("✅ Namecheap DNS API configured!");
@@ -398,13 +437,11 @@ fn manual_dns_config() {
 fn certificate_status() {
     println!("📊 Certificate Status");
     println!("====================");
-    
+
     // Show cron job
     println!("\n⏰ Auto-renewal cron job:");
-    let _ = Command::new("crontab")
-        .arg("-l")
-        .status();
-    
+    let _ = Command::new("crontab").arg("-l").status();
+
     // Show certificate details
     println!("\n📋 Certificate details:");
     let _ = Command::new("sh")

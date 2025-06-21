@@ -1,6 +1,5 @@
 use std::process::Command;
 
-
 pub fn lookup(domain: &str) {
     println!("Resolving DNS for {}", domain);
     let _ = Command::new("dig")
@@ -8,7 +7,6 @@ pub fn lookup(domain: &str) {
         .status()
         .expect("Failed to execute dig");
 }
-
 
 pub fn check_dnssec(domain: &str) {
     println!("Checking DNSSEC for {}", domain);

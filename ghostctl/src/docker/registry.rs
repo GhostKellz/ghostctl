@@ -9,7 +9,7 @@ pub fn registry_management() {
         "🏗️  Registry Selection & Auth",
         "🔍 Search images",
         "📥 Pull image",
-        "📤 Push image", 
+        "📤 Push image",
         "📋 List local images",
         "🗑️  Remove image",
         "🏷️  Tag image",
@@ -44,7 +44,7 @@ fn registry_selection() {
     let registries = [
         "🏗️  docker.cktechx.io (Default - GhostKellz)",
         "🐳 Docker Hub (docker.io)",
-        "📦 GitHub Container Registry (ghcr.io)", 
+        "📦 GitHub Container Registry (ghcr.io)",
         "🔴 Red Hat Quay (quay.io)",
         "📊 Google Container Registry (gcr.io)",
         "🌐 Amazon ECR",
@@ -76,9 +76,9 @@ fn registry_selection() {
 fn setup_cktech_registry() {
     println!("🏗️  CKTech Registry (docker.cktechx.io)");
     println!("======================================");
-    
+
     println!("This is the default GhostKellz self-hosted registry.");
-    
+
     let login = Confirm::new()
         .with_prompt("Login to docker.cktechx.io?")
         .default(true)
@@ -109,7 +109,7 @@ fn setup_cktech_registry() {
 fn setup_docker_hub() {
     println!("🐳 Docker Hub Registry");
     println!("======================");
-    
+
     let login = Confirm::new()
         .with_prompt("Login to Docker Hub?")
         .default(true)
@@ -140,9 +140,9 @@ fn setup_docker_hub() {
 fn setup_github_registry() {
     println!("📦 GitHub Container Registry");
     println!("============================");
-    
+
     println!("💡 Use a Personal Access Token with 'read:packages' and 'write:packages' scopes");
-    
+
     let login = Confirm::new()
         .with_prompt("Login to GitHub Container Registry?")
         .default(true)
@@ -173,7 +173,7 @@ fn setup_github_registry() {
 fn setup_quay_registry() {
     println!("🔴 Red Hat Quay Registry");
     println!("========================");
-    
+
     let login = Confirm::new()
         .with_prompt("Login to Quay.io?")
         .default(true)
@@ -205,7 +205,7 @@ fn setup_gcr_registry() {
     println!("📊 Google Container Registry");
     println!("============================");
     println!("💡 Use 'gcloud auth configure-docker' for authentication");
-    
+
     let status = Command::new("gcloud")
         .args(["auth", "configure-docker"])
         .status();
@@ -223,7 +223,7 @@ fn setup_ecr_registry() {
     println!("🌐 Amazon Elastic Container Registry");
     println!("====================================");
     println!("💡 Use 'aws ecr get-login-password' for authentication");
-    
+
     let region: String = Input::new()
         .with_prompt("AWS region")
         .default("us-east-1".to_string())
@@ -251,7 +251,7 @@ fn setup_ecr_registry() {
 fn setup_azure_registry() {
     println!("💙 Azure Container Registry");
     println!("===========================");
-    
+
     let registry_name: String = Input::new()
         .with_prompt("ACR registry name (without .azurecr.io)")
         .interact_text()
@@ -265,7 +265,10 @@ fn setup_azure_registry() {
     match status {
         Ok(s) if s.success() => {
             println!("✅ Successfully logged into {}.azurecr.io", registry_name);
-            println!("💡 You can now push/pull from {}.azurecr.io/image", registry_name);
+            println!(
+                "💡 You can now push/pull from {}.azurecr.io/image",
+                registry_name
+            );
         }
         _ => println!("❌ Failed to login to ACR (Azure CLI required)"),
     }
@@ -274,7 +277,7 @@ fn setup_azure_registry() {
 fn setup_custom_registry() {
     println!("🔧 Custom Registry Setup");
     println!("========================");
-    
+
     let registry_url: String = Input::new()
         .with_prompt("Registry URL (e.g., registry.example.com)")
         .interact_text()
@@ -293,7 +296,10 @@ fn setup_custom_registry() {
     match status {
         Ok(s) if s.success() => {
             println!("✅ Successfully logged into {}", registry_url);
-            println!("💡 You can now push/pull from {}/namespace/image", registry_url);
+            println!(
+                "💡 You can now push/pull from {}/namespace/image",
+                registry_url
+            );
         }
         _ => println!("❌ Failed to login to {}", registry_url),
     }
@@ -318,9 +324,7 @@ fn pull_image() {
         .unwrap();
 
     println!("📥 Pulling image: {}", image);
-    let status = Command::new("docker")
-        .args(["pull", &image])
-        .status();
+    let status = Command::new("docker").args(["pull", &image]).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Successfully pulled {}", image),
@@ -331,38 +335,40 @@ fn pull_image() {
 fn push_image() {
     println!("📤 Push Image to Registry");
     println!("========================");
-    
+
     println!("💡 Examples:");
     println!("  docker.cktechx.io/namespace/image:tag (GhostKellz default)");
     println!("  docker.io/username/image:tag (Docker Hub)");
     println!("  ghcr.io/username/image:tag (GitHub)");
-    
+
     let image: String = Input::new()
         .with_prompt("Image name to push")
         .interact_text()
         .unwrap();
 
     // If no registry specified, suggest the default
-    let final_image = if !image.contains('/') || (!image.contains('.') && !image.starts_with("docker.io")) {
-        let suggest_default = Confirm::new()
-            .with_prompt(&format!("Use GhostKellz registry? (docker.cktechx.io/{})", image))
-            .default(true)
-            .interact()
-            .unwrap();
-            
-        if suggest_default {
-            format!("docker.cktechx.io/{}", image)
+    let final_image =
+        if !image.contains('/') || (!image.contains('.') && !image.starts_with("docker.io")) {
+            let suggest_default = Confirm::new()
+                .with_prompt(&format!(
+                    "Use GhostKellz registry? (docker.cktechx.io/{})",
+                    image
+                ))
+                .default(true)
+                .interact()
+                .unwrap();
+
+            if suggest_default {
+                format!("docker.cktechx.io/{}", image)
+            } else {
+                image
+            }
         } else {
             image
-        }
-    } else {
-        image
-    };
+        };
 
     println!("📤 Pushing image: {}", final_image);
-    let status = Command::new("docker")
-        .args(["push", &final_image])
-        .status();
+    let status = Command::new("docker").args(["push", &final_image]).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -390,9 +396,7 @@ fn remove_image() {
         .unwrap();
 
     println!("🗑️  Removing image: {}", image);
-    let status = Command::new("docker")
-        .args(["rmi", &image])
-        .status();
+    let status = Command::new("docker").args(["rmi", &image]).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Successfully removed {}", image),
@@ -429,7 +433,5 @@ fn image_history() {
         .unwrap();
 
     println!("📊 Image History for: {}", image);
-    let _ = Command::new("docker")
-        .args(["history", &image])
-        .status();
+    let _ = Command::new("docker").args(["history", &image]).status();
 }

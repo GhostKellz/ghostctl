@@ -10,7 +10,7 @@ pub fn security_menu() {
 
     let options = [
         "🔑 SSH Key Management",
-        "🔐 GPG Key Management", 
+        "🔐 GPG Key Management",
         "🗂️  Credential Management",
         "⬅️  Back",
     ];

@@ -202,13 +202,13 @@ fn simple_decrypt(ciphertext: &str, key: &str) -> Result<String, String> {
 
 pub fn credential_management() {
     use dialoguer::{Select, theme::ColorfulTheme};
-    
+
     println!("🔐 Secure Credential Management");
     println!("===============================");
 
     let options = [
         "📝 Store credential",
-        "🔍 Retrieve credential", 
+        "🔍 Retrieve credential",
         "📋 List credentials",
         "🗑️  Delete credential",
         "🔧 Setup master key",

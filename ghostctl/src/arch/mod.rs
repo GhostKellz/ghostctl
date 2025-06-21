@@ -148,4 +148,3 @@ pub fn reset_pacman_locks() {
         .status();
     println!("  ✅ Pacman locks cleared");
 }
-

@@ -153,50 +153,60 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("btrfs")
                 .about("Btrfs filesystem management")
-                .subcommand(
-                    Command::new("list")
-                        .about("List snapshots")
-                )
+                .subcommand(Command::new("list").about("List snapshots"))
                 .subcommand(
                     Command::new("create")
                         .about("Create snapshot")
                         .arg(Arg::new("name").required(true).help("Snapshot name"))
-                        .arg(Arg::new("subvolume").short('s').long("subvolume").default_value("/").help("Source subvolume"))
+                        .arg(
+                            Arg::new("subvolume")
+                                .short('s')
+                                .long("subvolume")
+                                .default_value("/")
+                                .help("Source subvolume"),
+                        ),
                 )
                 .subcommand(
                     Command::new("delete")
                         .about("Delete snapshot")
-                        .arg(Arg::new("name").required(true).help("Snapshot name"))
+                        .arg(Arg::new("name").required(true).help("Snapshot name")),
                 )
                 .subcommand(
                     Command::new("restore")
                         .about("Restore snapshot")
                         .arg(Arg::new("name").required(true).help("Snapshot name"))
-                        .arg(Arg::new("target").required(true).help("Target path"))
+                        .arg(Arg::new("target").required(true).help("Target path")),
                 )
+                .subcommand(Command::new("status").about("Show filesystem status and health"))
                 .subcommand(
-                    Command::new("status")
-                        .about("Show filesystem status and health")
-                )
-                .subcommand(
-                    Command::new("scrub")
-                        .about("Start filesystem scrub")
-                        .arg(Arg::new("mountpoint").default_value("/").help("Mountpoint to scrub"))
+                    Command::new("scrub").about("Start filesystem scrub").arg(
+                        Arg::new("mountpoint")
+                            .default_value("/")
+                            .help("Mountpoint to scrub"),
+                    ),
                 )
                 .subcommand(
                     Command::new("balance")
                         .about("Start filesystem balance")
-                        .arg(Arg::new("mountpoint").default_value("/").help("Mountpoint to balance"))
+                        .arg(
+                            Arg::new("mountpoint")
+                                .default_value("/")
+                                .help("Mountpoint to balance"),
+                        ),
                 )
                 .subcommand(
-                    Command::new("usage")
-                        .about("Show filesystem usage")
-                        .arg(Arg::new("mountpoint").default_value("/").help("Mountpoint to analyze"))
+                    Command::new("usage").about("Show filesystem usage").arg(
+                        Arg::new("mountpoint")
+                            .default_value("/")
+                            .help("Mountpoint to analyze"),
+                    ),
                 )
                 .subcommand(
-                    Command::new("quota")
-                        .about("Manage quotas")
-                        .arg(Arg::new("mountpoint").default_value("/").help("Mountpoint for quota management"))
+                    Command::new("quota").about("Manage quotas").arg(
+                        Arg::new("mountpoint")
+                            .default_value("/")
+                            .help("Mountpoint for quota management"),
+                    ),
                 )
                 .subcommand(
                     Command::new("snapper")
@@ -205,10 +215,10 @@ pub fn build_cli() -> Command {
                         .subcommand(
                             Command::new("edit")
                                 .about("Edit snapper config")
-                                .arg(Arg::new("config").required(true).help("Config name"))
+                                .arg(Arg::new("config").required(true).help("Config name")),
                         )
-                        .subcommand(Command::new("list").about("List snapper configs"))
-                )
+                        .subcommand(Command::new("list").about("List snapper configs")),
+                ),
         )
         .subcommand(
             Command::new("nvidia")
@@ -271,14 +281,20 @@ pub fn build_cli() -> Command {
                 .about("Arch Linux management")
                 .subcommand(Command::new("fix").about("Fix common Arch issues"))
                 .subcommand(
-                    Command::new("clean")
-                        .about("Clean specific target")
-                        .arg(Arg::new("target").required(true).help("Target to clean (orphans, mirrors, pkgfix, gpg, locks, all)"))
+                    Command::new("clean").about("Clean specific target").arg(
+                        Arg::new("target")
+                            .required(true)
+                            .help("Target to clean (orphans, mirrors, pkgfix, gpg, locks, all)"),
+                    ),
                 )
                 .subcommand(
                     Command::new("bouncer")
                         .about("Fix and bounce back from issues")
-                        .arg(Arg::new("target").required(true).help("Target to fix (pacman, keyring, mirrors, all)"))
+                        .arg(
+                            Arg::new("target")
+                                .required(true)
+                                .help("Target to fix (pacman, keyring, mirrors, all)"),
+                        ),
                 )
                 .subcommand(Command::new("aur").about("AUR package management"))
                 .subcommand(Command::new("boot").about("Boot configuration"))
@@ -293,18 +309,37 @@ pub fn build_cli() -> Command {
                 .about("Network management")
                 .subcommand(Command::new("menu").about("Network management menu"))
                 .subcommand(
-                    Command::new("dns")
-                        .about("DNS configuration")
-                        .arg(Arg::new("domain").required(true).help("Domain name to lookup"))
+                    Command::new("dns").about("DNS configuration").arg(
+                        Arg::new("domain")
+                            .required(true)
+                            .help("Domain name to lookup"),
+                    ),
                 )
                 .subcommand(Command::new("mesh").about("Mesh networking"))
                 .subcommand(
                     Command::new("scan")
                         .about("Network port scanning (using gscan)")
-                        .arg(Arg::new("target").required(true).help("Target IP, CIDR, or range (e.g. 192.168.1.1, 192.168.1.0/24)"))
-                        .arg(Arg::new("start-port").short('s').help("Start port [default: 1]"))
-                        .arg(Arg::new("end-port").short('e').help("End port [default: 1024]"))
-                        .arg(Arg::new("banner").long("banner").action(clap::ArgAction::SetTrue).help("Enable banner grabbing"))
+                        .arg(
+                            Arg::new("target").required(true).help(
+                                "Target IP, CIDR, or range (e.g. 192.168.1.1, 192.168.1.0/24)",
+                            ),
+                        )
+                        .arg(
+                            Arg::new("start-port")
+                                .short('s')
+                                .help("Start port [default: 1]"),
+                        )
+                        .arg(
+                            Arg::new("end-port")
+                                .short('e')
+                                .help("End port [default: 1024]"),
+                        )
+                        .arg(
+                            Arg::new("banner")
+                                .long("banner")
+                                .action(clap::ArgAction::SetTrue)
+                                .help("Enable banner grabbing"),
+                        ),
                 )
                 .subcommand(
                     Command::new("netcat")
@@ -314,26 +349,30 @@ pub fn build_cli() -> Command {
                                 .about("Send a file")
                                 .arg(Arg::new("file").required(true).help("File to send"))
                                 .arg(Arg::new("host").required(true).help("Target host"))
-                                .arg(Arg::new("port").required(true).help("Target port"))
+                                .arg(Arg::new("port").required(true).help("Target port")),
                         )
                         .subcommand(
                             Command::new("receive")
                                 .about("Receive a file")
                                 .arg(Arg::new("file").required(true).help("File to save as"))
-                                .arg(Arg::new("port").required(true).help("Port to listen on"))
+                                .arg(Arg::new("port").required(true).help("Port to listen on")),
                         )
                         .subcommand(
                             Command::new("chat")
                                 .about("Start or join a chat session")
-                                .arg(Arg::new("host").help("Host to connect to (if not provided, starts server)"))
-                                .arg(Arg::new("port").required(true).help("Port to use"))
+                                .arg(
+                                    Arg::new("host").help(
+                                        "Host to connect to (if not provided, starts server)",
+                                    ),
+                                )
+                                .arg(Arg::new("port").required(true).help("Port to use")),
                         )
                         .subcommand(
                             Command::new("check")
                                 .about("Check port connectivity")
                                 .arg(Arg::new("host").required(true).help("Host to check"))
-                                .arg(Arg::new("port").required(true).help("Port to check"))
-                        )
+                                .arg(Arg::new("port").required(true).help("Port to check")),
+                        ),
                 ),
         )
         .subcommand(
@@ -356,18 +395,29 @@ pub fn build_cli() -> Command {
                 .about("Network management (short alias)")
                 .subcommand(Command::new("menu").about("Network management menu"))
                 .subcommand(
-                    Command::new("dns")
-                        .about("DNS configuration")
-                        .arg(Arg::new("domain").required(true).help("Domain name to lookup"))
+                    Command::new("dns").about("DNS configuration").arg(
+                        Arg::new("domain")
+                            .required(true)
+                            .help("Domain name to lookup"),
+                    ),
                 )
                 .subcommand(Command::new("mesh").about("Mesh networking"))
                 .subcommand(
                     Command::new("scan")
                         .about("Network port scanning")
-                        .arg(Arg::new("target").required(true).help("Target IP, CIDR, or range"))
+                        .arg(
+                            Arg::new("target")
+                                .required(true)
+                                .help("Target IP, CIDR, or range"),
+                        )
                         .arg(Arg::new("start-port").short('s').help("Start port"))
                         .arg(Arg::new("end-port").short('e').help("End port"))
-                        .arg(Arg::new("banner").long("banner").action(clap::ArgAction::SetTrue).help("Enable banner grabbing"))
+                        .arg(
+                            Arg::new("banner")
+                                .long("banner")
+                                .action(clap::ArgAction::SetTrue)
+                                .help("Enable banner grabbing"),
+                        ),
                 )
                 .subcommand(
                     Command::new("netcat")
@@ -377,28 +427,28 @@ pub fn build_cli() -> Command {
                                 .about("Send a file")
                                 .arg(Arg::new("file").required(true).help("File to send"))
                                 .arg(Arg::new("host").required(true).help("Target host"))
-                                .arg(Arg::new("port").required(true).help("Target port"))
+                                .arg(Arg::new("port").required(true).help("Target port")),
                         )
                         .subcommand(
                             Command::new("receive")
                                 .about("Receive a file")
                                 .arg(Arg::new("file").required(true).help("File to save as"))
-                                .arg(Arg::new("port").required(true).help("Port to listen on"))
+                                .arg(Arg::new("port").required(true).help("Port to listen on")),
                         )
                         .subcommand(
                             Command::new("chat")
                                 .about("Start or join a chat session")
                                 .arg(Arg::new("host").help("Host to connect to"))
-                                .arg(Arg::new("port").required(true).help("Port to use"))
+                                .arg(Arg::new("port").required(true).help("Port to use")),
                         )
                         .subcommand(
                             Command::new("check")
                                 .about("Check port connectivity")
                                 .arg(Arg::new("host").required(true).help("Host to check"))
-                                .arg(Arg::new("port").required(true).help("Port to check"))
-                        )
+                                .arg(Arg::new("port").required(true).help("Port to check")),
+                        ),
                 )
-                .hide(true)
+                .hide(true),
         )
         .subcommand(
             Command::new("sec")
@@ -407,7 +457,7 @@ pub fn build_cli() -> Command {
                 .subcommand(Command::new("ssh").about("SSH configuration"))
                 .subcommand(Command::new("gpg").about("GPG management"))
                 .subcommand(Command::new("credentials").about("Credential management"))
-                .hide(true)
+                .hide(true),
         )
         .subcommand(
             Command::new("ssh")
@@ -418,24 +468,36 @@ pub fn build_cli() -> Command {
                 .subcommand(
                     Command::new("copy-id")
                         .about("Copy SSH key to remote host")
-                        .arg(Arg::new("target").required(true).help("user@hostname"))
+                        .arg(Arg::new("target").required(true).help("user@hostname")),
                 )
                 .subcommand(Command::new("config").about("SSH configuration management"))
-                .hide(true)
+                .hide(true),
         )
-        .subcommand(
-            Command::new("gpg")
-                .about("GPG key management")
-                .hide(true)
-        )
+        .subcommand(Command::new("gpg").about("GPG key management").hide(true))
         .subcommand(
             Command::new("dns")
                 .about("DNS lookup and management")
                 .arg(Arg::new("domain").help("Domain name to lookup"))
-                .arg(Arg::new("type").long("type").short('t').help("DNS record type (A, AAAA, MX, NS, TXT, etc.)"))
-                .arg(Arg::new("reverse").long("reverse").short('r').action(clap::ArgAction::SetTrue).help("Perform reverse DNS lookup"))
-                .arg(Arg::new("server").long("server").short('s').help("DNS server to use"))
-                .hide(true)
+                .arg(
+                    Arg::new("type")
+                        .long("type")
+                        .short('t')
+                        .help("DNS record type (A, AAAA, MX, NS, TXT, etc.)"),
+                )
+                .arg(
+                    Arg::new("reverse")
+                        .long("reverse")
+                        .short('r')
+                        .action(clap::ArgAction::SetTrue)
+                        .help("Perform reverse DNS lookup"),
+                )
+                .arg(
+                    Arg::new("server")
+                        .long("server")
+                        .short('s')
+                        .help("DNS server to use"),
+                )
+                .hide(true),
         )
         .subcommand(
             Command::new("nc")
@@ -445,27 +507,27 @@ pub fn build_cli() -> Command {
                         .about("Send file to host")
                         .arg(Arg::new("file").required(true).help("File to send"))
                         .arg(Arg::new("host").required(true).help("Target host"))
-                        .arg(Arg::new("port").required(true).help("Target port"))
+                        .arg(Arg::new("port").required(true).help("Target port")),
                 )
                 .subcommand(
                     Command::new("receive")
                         .about("Receive file on port")
                         .arg(Arg::new("file").required(true).help("Output file"))
-                        .arg(Arg::new("port").required(true).help("Listen port"))
+                        .arg(Arg::new("port").required(true).help("Listen port")),
                 )
                 .subcommand(
                     Command::new("chat")
                         .about("Start chat session")
                         .arg(Arg::new("host").help("Host to connect to (omit for server mode)"))
-                        .arg(Arg::new("port").required(true).help("Port"))
+                        .arg(Arg::new("port").required(true).help("Port")),
                 )
                 .subcommand(
                     Command::new("check")
                         .about("Check port connectivity")
                         .arg(Arg::new("host").required(true).help("Target host"))
-                        .arg(Arg::new("port").required(true).help("Target port"))
+                        .arg(Arg::new("port").required(true).help("Target port")),
                 )
-                .hide(true)
+                .hide(true),
         )
         .subcommand(Command::new("version").about("Show version information"))
         .subcommand(Command::new("list").about("List available commands"))
@@ -790,80 +852,82 @@ fn handle_network_commands(matches: &ArgMatches) {
                 println!("❌ Please provide a target. Usage: ghostctl network scan <target>");
             }
         }
-        Some(("netcat", sub_matches)) => {
-            match sub_matches.subcommand() {
-                Some(("send", send_matches)) => {
-                    if let (Some(file), Some(host), Some(port_str)) = (
-                        send_matches.get_one::<String>("file"),
-                        send_matches.get_one::<String>("host"),
-                        send_matches.get_one::<String>("port")
-                    ) {
-                        if let Ok(port) = port_str.parse::<u16>() {
-                            network::netcat::send_file(file, host, port);
-                        } else {
-                            println!("❌ Invalid port number: {}", port_str);
-                        }
+        Some(("netcat", sub_matches)) => match sub_matches.subcommand() {
+            Some(("send", send_matches)) => {
+                if let (Some(file), Some(host), Some(port_str)) = (
+                    send_matches.get_one::<String>("file"),
+                    send_matches.get_one::<String>("host"),
+                    send_matches.get_one::<String>("port"),
+                ) {
+                    if let Ok(port) = port_str.parse::<u16>() {
+                        network::netcat::send_file(file, host, port);
                     } else {
-                        println!("❌ Usage: ghostctl network netcat send <file> <host> <port>");
+                        println!("❌ Invalid port number: {}", port_str);
                     }
-                }
-                Some(("receive", receive_matches)) => {
-                    if let (Some(file), Some(port_str)) = (
-                        receive_matches.get_one::<String>("file"),
-                        receive_matches.get_one::<String>("port")
-                    ) {
-                        if let Ok(port) = port_str.parse::<u16>() {
-                            network::netcat::receive_file(file, port);
-                        } else {
-                            println!("❌ Invalid port number: {}", port_str);
-                        }
-                    } else {
-                        println!("❌ Usage: ghostctl network netcat receive <file> <port>");
-                    }
-                }
-                Some(("chat", chat_matches)) => {
-                    if let Some(port_str) = chat_matches.get_one::<String>("port") {
-                        if let Ok(port) = port_str.parse::<u16>() {
-                            let host = chat_matches.get_one::<String>("host");
-                            network::netcat::chat(host.map(|s| s.as_str()), port);
-                        } else {
-                            println!("❌ Invalid port number: {}", port_str);
-                        }
-                    } else {
-                        println!("❌ Usage: ghostctl network netcat chat [host] <port>");
-                    }
-                }
-                Some(("check", check_matches)) => {
-                    if let (Some(host), Some(port_str)) = (
-                        check_matches.get_one::<String>("host"),
-                        check_matches.get_one::<String>("port")
-                    ) {
-                        if let Ok(port) = port_str.parse::<u16>() {
-                            network::netcat::check_port(host, port);
-                        } else {
-                            println!("❌ Invalid port number: {}", port_str);
-                        }
-                    } else {
-                        println!("❌ Usage: ghostctl network netcat check <host> <port>");
-                    }
-                }
-                None => {
-                    println!("🌐 Netcat utilities available:");
-                    println!("  send     - Send a file to a remote host");
-                    println!("  receive  - Receive a file from a remote host");
-                    println!("  chat     - Start or join a chat session");
-                    println!("  check    - Check port connectivity");
-                    println!();
-                    println!("Use 'ghostctl nc help' for more details");
-                }
-                _ => {
-                    println!("❌ Unknown netcat subcommand. Use 'ghostctl network netcat help' for available options.");
+                } else {
+                    println!("❌ Usage: ghostctl network netcat send <file> <host> <port>");
                 }
             }
-        }
+            Some(("receive", receive_matches)) => {
+                if let (Some(file), Some(port_str)) = (
+                    receive_matches.get_one::<String>("file"),
+                    receive_matches.get_one::<String>("port"),
+                ) {
+                    if let Ok(port) = port_str.parse::<u16>() {
+                        network::netcat::receive_file(file, port);
+                    } else {
+                        println!("❌ Invalid port number: {}", port_str);
+                    }
+                } else {
+                    println!("❌ Usage: ghostctl network netcat receive <file> <port>");
+                }
+            }
+            Some(("chat", chat_matches)) => {
+                if let Some(port_str) = chat_matches.get_one::<String>("port") {
+                    if let Ok(port) = port_str.parse::<u16>() {
+                        let host = chat_matches.get_one::<String>("host");
+                        network::netcat::chat(host.map(|s| s.as_str()), port);
+                    } else {
+                        println!("❌ Invalid port number: {}", port_str);
+                    }
+                } else {
+                    println!("❌ Usage: ghostctl network netcat chat [host] <port>");
+                }
+            }
+            Some(("check", check_matches)) => {
+                if let (Some(host), Some(port_str)) = (
+                    check_matches.get_one::<String>("host"),
+                    check_matches.get_one::<String>("port"),
+                ) {
+                    if let Ok(port) = port_str.parse::<u16>() {
+                        network::netcat::check_port(host, port);
+                    } else {
+                        println!("❌ Invalid port number: {}", port_str);
+                    }
+                } else {
+                    println!("❌ Usage: ghostctl network netcat check <host> <port>");
+                }
+            }
+            None => {
+                println!("🌐 Netcat utilities available:");
+                println!("  send     - Send a file to a remote host");
+                println!("  receive  - Receive a file from a remote host");
+                println!("  chat     - Start or join a chat session");
+                println!("  check    - Check port connectivity");
+                println!();
+                println!("Use 'ghostctl nc help' for more details");
+            }
+            _ => {
+                println!(
+                    "❌ Unknown netcat subcommand. Use 'ghostctl network netcat help' for available options."
+                );
+            }
+        },
         None => network::network_menu(),
         _ => {
-            println!("❌ Unknown network subcommand. Use 'ghostctl network help' for available options.");
+            println!(
+                "❌ Unknown network subcommand. Use 'ghostctl network help' for available options."
+            );
             network::network_menu();
         }
     }
@@ -876,7 +940,9 @@ fn handle_cloud_commands(matches: &ArgMatches) {
         Some(("gcp", _)) => cloud::gcp::gcloud_tools(),
         None => cloud::infrastructure_menu(),
         _ => {
-            println!("❌ Unknown cloud subcommand. Use 'ghostctl cloud help' for available options.");
+            println!(
+                "❌ Unknown cloud subcommand. Use 'ghostctl cloud help' for available options."
+            );
             cloud::infrastructure_menu();
         }
     }
@@ -898,7 +964,9 @@ fn handle_tools_commands(matches: &ArgMatches) {
         }
         None => tools::external_tools_menu(),
         _ => {
-            println!("❌ Unknown tools subcommand. Use 'ghostctl tools help' for available options.");
+            println!(
+                "❌ Unknown tools subcommand. Use 'ghostctl tools help' for available options."
+            );
             tools::external_tools_menu();
         }
     }
@@ -912,7 +980,9 @@ fn handle_btrfs_commands(matches: &ArgMatches) {
         Some(("create", sub_matches)) => {
             if let Some(name) = sub_matches.get_one::<String>("name") {
                 let default_subvolume = String::from("/");
-                let subvolume = sub_matches.get_one::<String>("subvolume").unwrap_or(&default_subvolume);
+                let subvolume = sub_matches
+                    .get_one::<String>("subvolume")
+                    .unwrap_or(&default_subvolume);
                 btrfs::handle_btrfs_action(crate::BtrfsAction::Create {
                     name: name.clone(),
                     subvolume: subvolume.clone(),
@@ -921,15 +991,13 @@ fn handle_btrfs_commands(matches: &ArgMatches) {
         }
         Some(("delete", sub_matches)) => {
             if let Some(name) = sub_matches.get_one::<String>("name") {
-                btrfs::handle_btrfs_action(crate::BtrfsAction::Delete {
-                    name: name.clone(),
-                });
+                btrfs::handle_btrfs_action(crate::BtrfsAction::Delete { name: name.clone() });
             }
         }
         Some(("restore", sub_matches)) => {
             if let (Some(name), Some(target)) = (
                 sub_matches.get_one::<String>("name"),
-                sub_matches.get_one::<String>("target")
+                sub_matches.get_one::<String>("target"),
             ) {
                 btrfs::handle_btrfs_action(crate::BtrfsAction::Restore {
                     name: name.clone(),
@@ -942,53 +1010,61 @@ fn handle_btrfs_commands(matches: &ArgMatches) {
         }
         Some(("scrub", sub_matches)) => {
             let default_mountpoint = String::from("/");
-            let mountpoint = sub_matches.get_one::<String>("mountpoint").unwrap_or(&default_mountpoint);
+            let mountpoint = sub_matches
+                .get_one::<String>("mountpoint")
+                .unwrap_or(&default_mountpoint);
             btrfs::handle_btrfs_action(crate::BtrfsAction::Scrub {
                 mountpoint: mountpoint.clone(),
             });
         }
         Some(("balance", sub_matches)) => {
             let default_mountpoint = String::from("/");
-            let mountpoint = sub_matches.get_one::<String>("mountpoint").unwrap_or(&default_mountpoint);
+            let mountpoint = sub_matches
+                .get_one::<String>("mountpoint")
+                .unwrap_or(&default_mountpoint);
             btrfs::handle_btrfs_action(crate::BtrfsAction::Balance {
                 mountpoint: mountpoint.clone(),
             });
         }
         Some(("usage", sub_matches)) => {
             let default_mountpoint = String::from("/");
-            let mountpoint = sub_matches.get_one::<String>("mountpoint").unwrap_or(&default_mountpoint);
+            let mountpoint = sub_matches
+                .get_one::<String>("mountpoint")
+                .unwrap_or(&default_mountpoint);
             btrfs::handle_btrfs_action(crate::BtrfsAction::Usage {
                 mountpoint: mountpoint.clone(),
             });
         }
         Some(("quota", sub_matches)) => {
             let default_mountpoint = String::from("/");
-            let mountpoint = sub_matches.get_one::<String>("mountpoint").unwrap_or(&default_mountpoint);
+            let mountpoint = sub_matches
+                .get_one::<String>("mountpoint")
+                .unwrap_or(&default_mountpoint);
             btrfs::handle_btrfs_action(crate::BtrfsAction::Quota {
                 mountpoint: mountpoint.clone(),
             });
         }
-        Some(("snapper", snapper_matches)) => {
-            match snapper_matches.subcommand() {
-                Some(("setup", _)) => {
-                    btrfs::handle_btrfs_action(crate::BtrfsAction::SnapperSetup);
-                }
-                Some(("edit", sub_matches)) => {
-                    if let Some(config) = sub_matches.get_one::<String>("config") {
-                        btrfs::handle_btrfs_action(crate::BtrfsAction::SnapperEdit {
-                            config: config.clone(),
-                        });
-                    }
-                }
-                Some(("list", _)) => {
-                    btrfs::handle_btrfs_action(crate::BtrfsAction::SnapperList);
-                }
-                _ => btrfs::btrfs_menu(),
+        Some(("snapper", snapper_matches)) => match snapper_matches.subcommand() {
+            Some(("setup", _)) => {
+                btrfs::handle_btrfs_action(crate::BtrfsAction::SnapperSetup);
             }
-        }
+            Some(("edit", sub_matches)) => {
+                if let Some(config) = sub_matches.get_one::<String>("config") {
+                    btrfs::handle_btrfs_action(crate::BtrfsAction::SnapperEdit {
+                        config: config.clone(),
+                    });
+                }
+            }
+            Some(("list", _)) => {
+                btrfs::handle_btrfs_action(crate::BtrfsAction::SnapperList);
+            }
+            _ => btrfs::btrfs_menu(),
+        },
         None => btrfs::btrfs_menu(),
         _ => {
-            println!("❌ Unknown btrfs subcommand. Use 'ghostctl btrfs help' for available options.");
+            println!(
+                "❌ Unknown btrfs subcommand. Use 'ghostctl btrfs help' for available options."
+            );
             btrfs::btrfs_menu();
         }
     }
@@ -1227,7 +1303,6 @@ fn setup_homelab_network() {
     println!("🌐 Network setup - Coming soon!");
 }
 
-
 // PVE CLI functions placeholder
 // TODO: Add PVE module back when implemented
 fn pve_management_menu() {
@@ -1269,7 +1344,6 @@ fn start_container(_id: String) {
 fn container_management_menu() {
     println!("Container Management Menu - Coming Soon!");
 }
-
 
 fn show_command_list() {
     println!("ghostctl Available Commands");
@@ -1385,7 +1459,9 @@ fn handle_ssh_management(matches: &ArgMatches) {
             println!("  ghostctl ssh help    - Show this help message");
             println!("  ghostctl ssh menu    - Launch interactive SSH management menu");
             println!();
-            println!("� Use 'ghostctl ssh menu' to access the full interactive SSH management interface");
+            println!(
+                "� Use 'ghostctl ssh menu' to access the full interactive SSH management interface"
+            );
         }
         Some(("menu", _)) => security::ssh::ssh_management(),
         _ => {
@@ -1405,7 +1481,9 @@ fn handle_gpg_management(matches: &ArgMatches) {
             println!("  ghostctl gpg help    - Show this help message");
             println!("  ghostctl gpg menu    - Launch interactive GPG management menu");
             println!();
-            println!("� Use 'ghostctl gpg menu' to access the full interactive GPG management interface");
+            println!(
+                "� Use 'ghostctl gpg menu' to access the full interactive GPG management interface"
+            );
         }
         Some(("menu", _)) => security::gpg::gpg_key_management(),
         _ => {
@@ -1438,10 +1516,13 @@ fn handle_dnslookup_commands(matches: &ArgMatches) {
             return;
         }
 
-        let record_type = matches.get_one::<String>("type").map(|s| s.as_str()).unwrap_or("A");
+        let record_type = matches
+            .get_one::<String>("type")
+            .map(|s| s.as_str())
+            .unwrap_or("A");
         let dns_server = matches.get_one::<String>("server");
         let is_reverse = matches.get_flag("reverse");
-        
+
         println!("🌐 DNS Lookup for: {}", domain);
         if is_reverse {
             println!("🔄 Performing reverse DNS lookup...");
@@ -1451,7 +1532,7 @@ fn handle_dnslookup_commands(matches: &ArgMatches) {
         if let Some(server) = dns_server {
             println!("🎯 Using DNS server: {}", server);
         }
-        
+
         // Call DNS lookup function
         network::dns::lookup(domain);
     } else {
@@ -1481,7 +1562,7 @@ fn handle_netcat_commands(matches: &ArgMatches) {
             let file = sub_matches.get_one::<String>("file").unwrap();
             let host = sub_matches.get_one::<String>("host").unwrap();
             let port_str = sub_matches.get_one::<String>("port").unwrap();
-            
+
             if let Ok(port) = port_str.parse::<u16>() {
                 println!("📤 Sending file '{}' to {}:{}", file, host, port);
                 network::netcat::send_file(file, host, port);
@@ -1492,7 +1573,7 @@ fn handle_netcat_commands(matches: &ArgMatches) {
         Some(("receive", sub_matches)) => {
             let file = sub_matches.get_one::<String>("file").unwrap();
             let port_str = sub_matches.get_one::<String>("port").unwrap();
-            
+
             if let Ok(port) = port_str.parse::<u16>() {
                 println!("📥 Receiving file '{}' on port {}", file, port);
                 network::netcat::receive_file(file, port);
@@ -1517,7 +1598,7 @@ fn handle_netcat_commands(matches: &ArgMatches) {
         Some(("check", sub_matches)) => {
             let host = sub_matches.get_one::<String>("host").unwrap();
             let port_str = sub_matches.get_one::<String>("port").unwrap();
-            
+
             if let Ok(port) = port_str.parse::<u16>() {
                 println!("🔍 Checking connectivity to {}:{}", host, port);
                 network::netcat::check_port(host, port);

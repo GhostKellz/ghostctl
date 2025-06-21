@@ -248,7 +248,11 @@ fn set_preferred_aur_helper() {
 
     // Check which helpers are installed
     let helpers = [
-        ("reaper (reap command)", "reap", "GhostKellz's modern AUR helper"),
+        (
+            "reaper (reap command)",
+            "reap",
+            "GhostKellz's modern AUR helper",
+        ),
         ("paru", "paru", "Feature packed AUR helper"),
         ("yay", "yay", "Yet another Yogurt AUR helper"),
     ];
@@ -286,7 +290,7 @@ fn set_preferred_aur_helper() {
     if choice < available_helpers.len() {
         let selected = available_helpers[choice];
         println!("✅ Set {} as preferred AUR helper", selected);
-        
+
         // Save preference to config file
         save_aur_helper_preference(selected);
     }
@@ -294,11 +298,11 @@ fn set_preferred_aur_helper() {
 
 fn save_aur_helper_preference(helper: &str) {
     use std::fs;
-    
+
     if let Some(config_dir) = dirs::config_dir() {
         let ghostctl_dir = config_dir.join("ghostctl");
         let _ = fs::create_dir_all(&ghostctl_dir);
-        
+
         let config_file = ghostctl_dir.join("aur_helper");
         if let Err(e) = fs::write(config_file, helper) {
             println!("⚠️  Warning: Could not save preference: {}", e);
@@ -308,7 +312,7 @@ fn save_aur_helper_preference(helper: &str) {
 
 pub fn get_preferred_aur_helper() -> Option<String> {
     use std::fs;
-    
+
     // First check saved preference
     if let Some(config_dir) = dirs::config_dir() {
         let config_file = config_dir.join("ghostctl").join("aur_helper");
@@ -319,7 +323,7 @@ pub fn get_preferred_aur_helper() -> Option<String> {
             }
         }
     }
-    
+
     // Fallback to priority order: reap, paru, yay, others
     let helpers = ["reap", "paru", "yay", "trizen", "pikaur"];
 
