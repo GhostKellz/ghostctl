@@ -13,8 +13,8 @@ pub fn build_cli() -> Command {
         .about("Ghost Infrastructure Control - Complete system and homelab management")
         .subcommand_required(false)
         .arg_required_else_help(false)
-        .disable_version_flag(true)
-        .disable_help_flag(true)
+        .disable_version_flag(false)
+        .disable_help_flag(false)
         .subcommand(
             Command::new("system")
                 .about("System management")
