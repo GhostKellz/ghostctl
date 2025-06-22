@@ -26,29 +26,13 @@ pub fn docker_management() {
         .unwrap();
 
     match choice {
-        0 => {
-            docker_health_comprehensive();
-            let image = "nginx:latest";
-            scan_local_image_with_name(image);
-            let query = "nginx";
-            search_registry_with_query(query);
-        }
+        0 => docker_health_comprehensive(),
         1 => crate::docker::container::container_management(),
         2 => crate::docker::security::container_security(),
-        3 => {
-            println!("📦 Stack Management");
-            println!("==================");
-            let stack_dir = "/opt/docker/stacks";
-            list_compose_stacks(stack_dir);
-            deploy_new_stack(stack_dir);
-        }
+        3 => compose_stack_manager(),
         4 => docker_resource_report(),
         5 => monitoring_tools(),
-        6 => {
-            println!("🚀 CI/CD Tools");
-            println!("==============");
-            generate_github_workflow();
-        }
+        6 => cicd_helpers(),
         7 => docker_system_cleanup(),
         8 => crate::docker::registry::registry_management(),
         9 => environment_manager(),
@@ -61,6 +45,35 @@ pub fn docker_health_comprehensive() {
     println!("🔍 Comprehensive Docker Health Check");
     println!("====================================");
 
+    let options = [
+        "📊 System Health Report",
+        "🔍 Scan Specific Image",
+        "🔍 Search Registry Images",
+        "⬅️  Back",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Docker Health Options")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    match choice {
+        0 => show_system_health(),
+        1 => {
+            let image = "nginx:latest";
+            scan_local_image_with_name(image);
+        }
+        2 => {
+            let query = "nginx";
+            search_registry_with_query(query);
+        }
+        _ => return,
+    }
+}
+
+fn show_system_health() {
     // Check Docker daemon
     print!("🐳 Docker Daemon: ");
     match Command::new("docker").arg("info").output() {
@@ -202,40 +215,8 @@ pub fn docker_system_cleanup() {
     println!("✅ Cleanup operations completed");
 }
 
-pub fn registry_management() {
-    println!("🏗️  Docker Registry Management");
-    println!("==============================");
-
-    let options = [
-        "📋 List Registry Images",
-        "📤 Push Image to Registry",
-        "📥 Pull Image from Registry",
-        "🔍 Search Registry",
-        "🔑 Registry Authentication",
-        "🗑️  Delete Registry Image",
-        "📊 Registry Statistics",
-        "⬅️  Back",
-    ];
-
-    let choice = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Registry Operations")
-        .items(&options)
-        .default(0)
-        .interact()
-        .unwrap();
-
-    match choice {
-        0 => list_registry_images(),
-        1 => push_to_registry(),
-        2 => pull_from_registry(),
-        3 => search_registry(),
-        4 => registry_authentication(),
-        5 => delete_registry_image(),
-        6 => registry_statistics(),
-        _ => return,
-    }
-}
-
+#[allow(dead_code)]
+#[allow(dead_code)]
 pub fn list_registry_images() {
     println!("📋 Registry Images");
     println!("==================");
@@ -252,6 +233,7 @@ pub fn list_registry_images() {
     println!("💡 Use: docker search {} or registry API", registry);
 }
 
+#[allow(dead_code)]
 pub fn push_to_registry() {
     println!("📤 Push Image to Registry");
     println!("========================");
@@ -284,6 +266,7 @@ pub fn push_to_registry() {
     let _ = Command::new("docker").args(&["push", &full_name]).status();
 }
 
+#[allow(dead_code)]
 pub fn pull_from_registry() {
     println!("📥 Pull Image from Registry");
     println!("===========================");
@@ -297,6 +280,7 @@ pub fn pull_from_registry() {
     let _ = Command::new("docker").args(&["pull", &image]).status();
 }
 
+#[allow(dead_code)]
 pub fn registry_authentication() {
     println!("🔑 Registry Authentication");
     println!("==========================");
@@ -318,6 +302,23 @@ pub fn registry_authentication() {
         .status();
 }
 
+#[allow(dead_code)]
+pub fn dockerhub_signin() {
+    println!("🐳 DockerHub Sign-in");
+    println!("===================");
+
+    let username: String = Input::new()
+        .with_prompt("DockerHub Username")
+        .interact_text()
+        .unwrap();
+
+    println!("🔑 Logging into DockerHub...");
+    let _ = Command::new("docker")
+        .args(&["login", "-u", &username])
+        .status();
+}
+
+#[allow(dead_code)]
 pub fn delete_registry_image() {
     println!("🗑️  Delete Registry Image");
     println!("========================");
@@ -338,6 +339,7 @@ pub fn delete_registry_image() {
     }
 }
 
+#[allow(dead_code)]
 pub fn registry_statistics() {
     println!("📊 Registry Statistics");
     println!("======================");
@@ -704,6 +706,7 @@ pub fn compose_stack_manager() {
     crate::docker::compose::compose_stack_manager();
 }
 
+#[allow(dead_code)]
 pub fn list_compose_stacks(stack_dir: &str) {
     println!("📋 Compose stacks in: {}", stack_dir);
     if let Ok(entries) = std::fs::read_dir(stack_dir) {
@@ -717,6 +720,7 @@ pub fn list_compose_stacks(stack_dir: &str) {
     }
 }
 
+#[allow(dead_code)]
 pub fn deploy_new_stack(stack_dir: &str) {
     println!("🚀 Deploying new stack in: {}", stack_dir);
     let _ = Command::new("docker-compose")
@@ -729,8 +733,9 @@ pub fn deploy_new_stack(stack_dir: &str) {
         .status();
 }
 
+#[allow(dead_code)]
 pub fn registry_tools() {
-    registry_management();
+    crate::docker::registry::registry_management();
 }
 
 pub fn kubernetes_tools() {
@@ -739,6 +744,7 @@ pub fn kubernetes_tools() {
     println!("Feature not yet implemented");
 }
 
+#[allow(dead_code)]
 pub fn generate_github_workflow() {
     println!("🔄 Generating GitHub workflow...");
     rust_cicd_template();
@@ -770,6 +776,7 @@ pub fn environment_manager() {
     }
 }
 
+#[allow(dead_code)]
 pub fn search_registry() {
     let query: String = Input::new()
         .with_prompt("Search query")

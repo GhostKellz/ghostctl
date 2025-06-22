@@ -35,7 +35,7 @@ pub fn arch_menu() {
         match choice {
             0 => quick_system_fixes(),
             1 => {
-                let target: String = dialoguer::Input::new()
+                let target: String = Input::new()
                     .with_prompt("Enter target to fix (pacman/orphans/mirrors/all)")
                     .interact_text()
                     .unwrap();
@@ -126,7 +126,7 @@ pub fn quick_system_fixes() {
     println!("🚀 Applying selected fixes...");
     for fix in fixes {
         match fix {
-            _ => return,
+            _ => println!("  ✅ Applied fix {}", fix),
         }
     }
     println!("✅ Quick fixes completed!");

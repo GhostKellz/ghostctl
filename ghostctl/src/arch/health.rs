@@ -15,6 +15,8 @@ pub fn health_menu() {
         "✓ Check system file integrity",
         "🧹 Clean system",
         "📊 Full health report",
+        "📝 Show recent logs",
+        "🔧 System diagnostics",
         "⬅️  Back",
     ];
 
@@ -33,6 +35,8 @@ pub fn health_menu() {
         4 => check_system_integrity(),
         5 => clean_system(),
         6 => full_health_report(),
+        7 => crate::logging::GhostLogger::show_recent_logs(),
+        8 => system_diagnostics(),
         _ => return,
     }
 }
@@ -528,4 +532,44 @@ pub fn full_health_report() {
         .status();
 
     println!("\n📊 Health report complete");
+}
+
+fn system_diagnostics() {
+    println!("🔧 System Diagnostics");
+    println!("=====================");
+
+    let options = [
+        "📝 Execute command with logging",
+        "🔒 Safe command execution",
+        "📊 Show system information",
+        "⬅️  Back",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Diagnostics Options")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    match choice {
+        0 => {
+            crate::logging::execute_with_logging("System Check", || {
+                println!("Running system diagnostics...");
+                let _ = Command::new("uname").arg("-a").status();
+                Ok(())
+            })
+            .unwrap_or_else(|e| println!("Error: {}", e));
+        }
+        1 => {
+            crate::logging::safe_command("systemctl", &["status", "docker"], "Check Docker Status")
+                .unwrap_or_else(|e| println!("Error: {}", e));
+        }
+        2 => {
+            println!("🔍 System Information:");
+            let _ = Command::new("hostnamectl").status();
+            let _ = Command::new("uptime").status();
+        }
+        _ => return,
+    }
 }
