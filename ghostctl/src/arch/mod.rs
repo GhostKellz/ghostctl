@@ -40,7 +40,7 @@ pub fn arch_menu() {
                     .interact_text()
                     .unwrap();
                 fix_target(&target);
-            },
+            }
             2 => archfix::tui_menu(),
             3 => health::health_menu(),
             4 => swap::swap_menu(),

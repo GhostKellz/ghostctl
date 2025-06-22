@@ -30,9 +30,6 @@ pub fn external_tools_menu() {
     }
 }
 
-
-
-
 // Placeholder functions for other external tools
 fn additional_package_managers() {
     println!("📦 Additional Package Managers");

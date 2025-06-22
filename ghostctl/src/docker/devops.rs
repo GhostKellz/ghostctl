@@ -32,7 +32,7 @@ pub fn docker_management() {
             scan_local_image_with_name(image);
             let query = "nginx";
             search_registry_with_query(query);
-        },
+        }
         1 => crate::docker::container::container_management(),
         2 => crate::docker::security::container_security(),
         3 => {
@@ -41,14 +41,14 @@ pub fn docker_management() {
             let stack_dir = "/opt/docker/stacks";
             list_compose_stacks(stack_dir);
             deploy_new_stack(stack_dir);
-        },
+        }
         4 => docker_resource_report(),
         5 => monitoring_tools(),
         6 => {
             println!("🚀 CI/CD Tools");
             println!("==============");
             generate_github_workflow();
-        },
+        }
         7 => docker_system_cleanup(),
         8 => crate::docker::registry::registry_management(),
         9 => environment_manager(),
