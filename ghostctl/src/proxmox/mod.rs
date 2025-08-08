@@ -4,6 +4,13 @@ use std::process::Command;
 
 pub mod enhanced;
 pub mod helper;
+pub mod storage_migration;
+pub mod template_management;
+pub mod backup_rotation;
+pub mod firewall_automation;
+// pub mod vfio;
+// pub mod upgrade;
+// pub mod pbs;
 
 // Popular scripts from the community-scripts repo
 const POPULAR_COMMUNITY_SCRIPTS: &[(&str, &str)] = &[
@@ -49,25 +56,42 @@ const COMMUNITY_SCRIPTS_REPO: &str =
 const CKTECH_REPO: &str = "https://api.github.com/repos/GhostKellz/proxmox/contents/helper-scripts";
 
 pub fn proxmox_menu() {
-    let menu_type = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("🏥 Proxmox VE Tools")
-        .items(&[
-            "🚀 Quick Access (Popular Scripts)",
-            "📂 Enhanced Categories & Management",
-            "🏢 CKTech Helper Scripts",
-            "🌐 All Community Scripts",
-            "⬅️  Back",
-        ])
-        .default(1)
-        .interact()
-        .unwrap();
+    loop {
+        let menu_type = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("🏥 Proxmox VE Tools")
+            .items(&[
+                "🚀 Quick Access (Popular Scripts)",
+                "📂 Enhanced Categories & Management",
+                "🎮 VFIO GPU Passthrough",
+                "🚀 PVE Upgrade (8→9)",
+                "🔐 Proxmox Backup Server (PBS)",
+                "🏢 CKTech Helper Scripts", 
+                "🌐 All Community Scripts",
+                "⬅️  Back",
+            ])
+            .default(1)
+            .interact()
+            .unwrap();
 
-    match menu_type {
-        0 => quick_access_menu(),
-        1 => enhanced::enhanced_proxmox_menu(),
-        2 => helper::cktech_helper_scripts(),
-        3 => helper::community_scripts_enhanced(),
-        _ => return,
+        match menu_type {
+            0 => quick_access_menu(),
+            1 => enhanced::enhanced_proxmox_menu(),
+            2 => {
+                println!("🎮 VFIO GPU Passthrough - Coming in next build!");
+                println!("Features: GPU passthrough, vendor reset, diagnostics");
+            }
+            3 => {
+                println!("🚀 PVE Upgrade (8→9) - Coming in next build!");  
+                println!("Features: Cluster upgrades, repo management, node draining");
+            }
+            4 => {
+                println!("🔐 PBS Management - Coming in next build!");
+                println!("Features: Datastore management, maintenance tasks, tuning");
+            }
+            5 => helper::cktech_helper_scripts(),
+            6 => helper::community_scripts_enhanced(),
+            _ => break,
+        }
     }
 }
 

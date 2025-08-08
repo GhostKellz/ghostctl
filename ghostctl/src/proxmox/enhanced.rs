@@ -135,6 +135,8 @@ pub fn enhanced_proxmox_menu() {
             "🌐 Browse All Scripts Online".to_string(),
             "📋 Proxmox System Info".to_string(),
             "🛠️  Proxmox Management Tools".to_string(),
+            "📦 Template Management".to_string(),
+            "🔥 Firewall Automation".to_string(),
             "⬅️  Back".to_string(),
         ]);
 
@@ -148,12 +150,16 @@ pub fn enhanced_proxmox_menu() {
         if choice == menu_options.len() - 1 {
             break; // Back
         } else if choice == menu_options.len() - 2 {
-            proxmox_management_tools();
+            super::firewall_automation::firewall_automation_menu();
         } else if choice == menu_options.len() - 3 {
-            proxmox_system_info();
+            super::template_management::template_management_menu();
         } else if choice == menu_options.len() - 4 {
-            super::browse_all_scripts();
+            proxmox_management_tools();
         } else if choice == menu_options.len() - 5 {
+            proxmox_system_info();
+        } else if choice == menu_options.len() - 6 {
+            super::browse_all_scripts();
+        } else if choice == menu_options.len() - 7 {
             search_scripts();
         } else {
             // Show category scripts
@@ -535,9 +541,59 @@ fn network_configuration() {
 }
 
 fn storage_management() {
-    println!("💿 Proxmox Storage Management");
-    println!("=============================");
-    println!("💡 Feature coming soon");
+    loop {
+        let options = vec![
+            "🔄 Storage Migration",
+            "📊 Storage Status & Usage",
+            "➕ Add Storage Pool",
+            "🗑️  Remove Storage Pool",
+            "⚙️  Storage Configuration",
+            "🔍 Storage Performance Analysis",
+            "⬅️  Back",
+        ];
+
+        let selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("💾 Proxmox Storage Management")
+            .items(&options)
+            .default(0)
+            .interact()
+            .unwrap();
+
+        match selection {
+            0 => super::storage_migration::storage_migration_menu(),
+            1 => storage_status_usage(),
+            2 => add_storage_pool(),
+            3 => remove_storage_pool(),
+            4 => storage_configuration(),
+            5 => storage_performance_analysis(),
+            _ => break,
+        }
+    }
+}
+
+fn storage_status_usage() {
+    println!("📊 Storage Status & Usage\n");
+    let _ = Command::new("pvesm").args(&["status"]).status();
+}
+
+fn add_storage_pool() {
+    println!("➕ Add Storage Pool\n");
+    println!("💡 Use the Storage Migration menu for comprehensive storage pool management");
+}
+
+fn remove_storage_pool() {
+    println!("🗑️  Remove Storage Pool\n");
+    println!("💡 Use the Storage Migration menu for comprehensive storage pool management");
+}
+
+fn storage_configuration() {
+    println!("⚙️  Storage Configuration\n");
+    let _ = Command::new("cat").args(&["/etc/pve/storage.cfg"]).status();
+}
+
+fn storage_performance_analysis() {
+    println!("🔍 Storage Performance Analysis\n");
+    let _ = Command::new("iostat").args(&["-x", "1", "3"]).status();
 }
 
 fn cleanup_unused_resources() {

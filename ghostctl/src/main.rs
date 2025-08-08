@@ -21,9 +21,11 @@ mod restore;
 mod scripts;
 mod security;
 mod shell;
+mod storage;
 mod systemd;
 mod terminal;
 mod tools;
+mod utils;
 
 use cli::{build_cli, handle_cli_args};
 

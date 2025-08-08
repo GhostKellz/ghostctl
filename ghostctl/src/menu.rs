@@ -1,6 +1,6 @@
 use crate::{
     arch, backup, btrfs, cloud, dev, docker, network, nvidia, nvim, proxmox, restore, scripts,
-    security, shell, systemd, terminal,
+    security, shell, storage, systemd, terminal,
 };
 use dialoguer::{Select, theme::ColorfulTheme};
 
@@ -17,6 +17,7 @@ pub fn show() {
             "🔧 Ghost Tools (Install/Uninstall)",
             "💾 Backup Management",
             "🚨 System Recovery & Restore",
+            "☁️  Storage Management (S3, Local, Network)",
             "🐳 DevOps & Container Tools",
             "🏗️  Infrastructure as Code",
             "🌐 Nginx Configuration",
@@ -58,16 +59,17 @@ pub fn show() {
                             7 => dev::gtools::ghost_ecosystem_menu(),
                             8 => backup::backup_menu(),
                             9 => restore::restore_menu(),
-                            10 => docker::devops::docker_management(),
-                            11 => cloud::infrastructure_menu(),
-                            12 => crate::nginx::nginx_menu(),
-                            13 => crate::nix::nixos_menu(),
-                            14 => proxmox::proxmox_menu(),
-                            15 => systemd_management(),
-                            16 => scripts::scripts_menu(),
-                            17 => network_mesh_menu(),
-                            18 => security_key_management(),
-                            19 => show_diagnostics(),
+                            10 => storage::storage_menu(),
+                            11 => docker::devops::docker_management(),
+                            12 => cloud::infrastructure_menu(),
+                            13 => crate::nginx::nginx_menu(),
+                            14 => crate::nix::nixos_menu(),
+                            15 => proxmox::proxmox_menu(),
+                            16 => systemd_management(),
+                            17 => scripts::scripts_menu(),
+                            18 => network_mesh_menu(),
+                            19 => security_key_management(),
+                            20 => show_diagnostics(),
                             _ => {
                                 println!("👋 Goodbye!");
                                 break;

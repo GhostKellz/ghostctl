@@ -48,13 +48,27 @@ GhostCTL is a comprehensive system administration platform that transforms compl
 - **Restic CLI Tools**: Interactive restic backup management with repository initialization, snapshot browsing, restoration workflows, and integrity checking
 - **Automated Workflows**: Custom backup scripts with systemd timer integration
 
-### 🐳 **DevOps & Container Management**
+### ☁️ **Object Storage & S3 Management** (New in v1.0.0)
+- **MinIO Cluster Management**: Distributed cluster setup, node management, and health monitoring
+- **Erasure Code Configuration**: Automated EC setup with performance vs storage optimization
+- **Performance Tuning**: System-level optimization for storage, network, and memory usage
+- **Multi-Tenant Setup**: User management, policy configuration, and access control
+- **Backup & Replication**: Cross-cluster replication and disaster recovery planning
+- **S3 Compatible Operations**: Bucket management, file operations, and AWS CLI integration
+
+### 🐳 **DevOps & Container Management** (Enhanced in v1.0.0)
+- **Docker Registry Mirror Setup**: Local registry deployment with corporate proxy support and authentication
+- **Container Cleanup Tools**: Automated cleanup for images, volumes, networks, and containers with safety checks
 - **Docker Registry**: Private registry management (`docker.cktechx.io` integration)
 - **Container Orchestration**: Docker Compose, Swarm, and deployment automation
 - **GitHub Templates**: Direct deployment from repository templates
 - **Environment Management**: Multi-environment project isolation
 
-### 🏥 **Proxmox VE Management** (Enhanced in v0.8.0)
+### 🏥 **Proxmox VE Management** (Major v1.0.0 Update)
+- **Template Management**: Complete lifecycle management for LXC containers, VM ISOs, and appliance templates with upload/download/customization capabilities
+- **Storage Migration**: VM/container storage migration tools with bulk operations and storage pool management
+- **Backup Rotation & Pruning**: Automated backup job management, retention policies, verification, and pruning with comprehensive analytics
+- **Firewall Automation**: Advanced firewall rule management with security profiles, network scanning (gscan integration), and automated policy enforcement
 - **Enhanced Script Categories**: Container templates, VMs, system administration, monitoring tools, and development environments
 - **Cluster Management**: Join/leave cluster operations, node management, and cluster status monitoring
 - **Bulk Operations**: Mass VM/container start/stop/restart with confirmation prompts
@@ -138,8 +152,13 @@ ghostctl btrfs menu            # Btrfs operations
 
 # DevOps & Infrastructure  
 ghostctl docker menu           # Docker/container management
-ghostctl proxmox menu          # Proxmox VE management
+ghostctl proxmox menu          # Proxmox VE management (enhanced v1.0.0)
 ghostctl cloud menu            # Cloud provider tools
+
+# Storage Management
+ghostctl storage s3            # MinIO/S3 cluster management
+ghostctl storage local         # Local storage tools
+ghostctl storage network       # Network storage (NFS/CIFS)
 
 # Development & Configuration
 ghostctl dev menu              # Development environment
@@ -168,8 +187,19 @@ ghostctl version              # Show detailed version info
 ghostctl backup menu             # Backup management system
 ghostctl restic menu             # Interactive restic CLI tools
 
-# Infrastructure  
-ghostctl proxmox menu            # Enhanced Proxmox VE management
+# Infrastructure & Virtualization
+ghostctl proxmox menu            # Enhanced Proxmox VE management (v1.0.0)
+ghostctl pve templates           # PVE template management
+ghostctl pve firewall            # PVE firewall automation with gscan
+ghostctl pve storage             # PVE storage migration tools
+ghostctl pve backup              # PVE backup rotation & pruning
+
+# Object Storage & MinIO
+ghostctl storage s3              # MinIO cluster management
+ghostctl s3 cluster              # MinIO distributed setup
+ghostctl s3 performance         # MinIO performance tuning
+
+# Infrastructure as Code  
 ghostctl infrastructure ansible  # Ansible management
 ghostctl infrastructure terraform # Terraform operations
 
@@ -196,12 +226,21 @@ GhostCTL/
 ├── 💾 Data Management
 │   ├── Btrfs Operations
 │   ├── Snapshot Management
-│   └── Backup Automation
+│   ├── Backup Automation
+│   └── Object Storage (S3/MinIO)
 │
 ├── 🐳 DevOps Platform
 │   ├── Container Management
 │   ├── Registry Operations
+│   ├── Registry Mirroring
 │   └── CI/CD Integration
+│
+├── 🏥 Virtualization Platform
+│   ├── Proxmox VE Management
+│   ├── Template Lifecycle
+│   ├── Storage Migration
+│   ├── Backup & Pruning
+│   └── Firewall Automation
 │
 ├── 🏗️ Infrastructure Tools
 │   ├── Ansible Automation
