@@ -1,5 +1,5 @@
 use crate::{
-    arch, backup, btrfs, cloud, dev, docker, network, nvidia, nvim, proxmox, restore, scripts,
+    arch, backup, btrfs, cloud, dev, docker, gaming, network, nvidia, nvim, proxmox, restore, scripts,
     security, shell, storage, systemd, terminal,
 };
 use dialoguer::{Select, theme::ColorfulTheme};
@@ -27,6 +27,7 @@ pub fn show() {
             "📋 Plugin & Script Management",
             "🌐 Mesh (Tailscale/Headscale)",
             "🔐 Security & Key Management",
+            "🎮 Gaming & Performance Management",
             "📊 Diagnostics/Status",
             "🚪 Exit",
         ];
@@ -69,7 +70,8 @@ pub fn show() {
                             17 => scripts::scripts_menu(),
                             18 => network_mesh_menu(),
                             19 => security_key_management(),
-                            20 => show_diagnostics(),
+                            20 => gaming::gaming_menu(),
+                            21 => show_diagnostics(),
                             _ => {
                                 println!("👋 Goodbye!");
                                 break;

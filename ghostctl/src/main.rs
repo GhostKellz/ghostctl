@@ -6,6 +6,7 @@ mod cloud;
 mod config;
 mod dev;
 mod docker;
+mod gaming;
 mod logging;
 mod menu;
 mod network;

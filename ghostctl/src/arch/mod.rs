@@ -7,6 +7,7 @@ pub mod mirror;
 pub mod perf;
 pub mod pkgfix;
 pub mod swap;
+pub mod sysadmin;
 
 use dialoguer::{Input, Select, theme::ColorfulTheme};
 
@@ -24,6 +25,7 @@ pub fn arch_menu() {
             "🥾 Boot & Kernel Management",
             "🔑 GPG Key Management",
             "⚡ Performance Tuning",
+            "🛠️  Advanced System Administration",
             "⬅️  Back",
         ];
         let choice = Select::with_theme(&ColorfulTheme::default())
@@ -50,6 +52,7 @@ pub fn arch_menu() {
             8 => boot::boot_management(),
             9 => crate::security::gpg::gpg_key_management(),
             10 => perf::tune(),
+            11 => sysadmin::sysadmin_menu(),
             _ => break,
         }
     }
