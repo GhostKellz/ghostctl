@@ -10,6 +10,7 @@ mod gaming;
 mod logging;
 mod menu;
 mod network;
+mod networking;
 mod nginx;
 mod nix;
 mod nvidia;

@@ -1,5 +1,15 @@
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use std::process::Command;
+use std::sync::OnceLock;
+
+// Cache for commonly accessed paths
+static HOME_DIR: OnceLock<String> = OnceLock::new();
+
+fn get_home_dir() -> &'static str {
+    HOME_DIR.get_or_init(|| {
+        std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string())
+    })
+}
 
 pub fn platforms_menu() {
     loop {
@@ -174,7 +184,7 @@ fn install_lutris_runners() {
     ];
 
     println!("Available runners:");
-    for (i, (name, pkg, desc)) in runners.iter().enumerate() {
+    for (i, (name, _pkg, desc)) in runners.iter().enumerate() {
         println!("{}. {} - {}", i + 1, name, desc);
     }
 
@@ -242,12 +252,15 @@ fn list_wine_versions() {
     // System Wine
     let wine_check = Command::new("wine").arg("--version").output();
     match wine_check {
-        Ok(out) => println!("🍷 System Wine: {}", String::from_utf8_lossy(&out.stdout).trim()),
+        Ok(out) => {
+            let output_string = String::from_utf8_lossy(&out.stdout);
+            println!("🍷 System Wine: {}", output_string.trim());
+        }
         _ => println!("❌ System Wine not found"),
     }
 
     // Lutris Wine runners
-    let lutris_runners_dir = std::env::home_dir()
+    let lutris_runners_dir = Some(std::path::PathBuf::from(get_home_dir()))
         .map(|h| h.join(".local/share/lutris/runners/wine"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/.local/share/lutris/runners/wine"));
 
@@ -381,7 +394,7 @@ fn clean_wine_prefixes() {
     println!("🧹 Clean Wine Prefixes");
     println!("======================");
     
-    let wineprefix_dir = std::env::home_dir()
+    let wineprefix_dir = Some(std::path::PathBuf::from(get_home_dir()))
         .map(|h| h.join("Games"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/Games"));
 
@@ -410,7 +423,7 @@ fn clean_wine_prefixes() {
         ];
 
         for cache_dir in &cache_dirs {
-            let full_path = std::env::home_dir()
+            let full_path = Some(std::path::PathBuf::from(get_home_dir()))
                 .map(|h| h.join(cache_dir))
                 .unwrap_or_else(|| std::path::PathBuf::from(&format!("~/{}", cache_dir)));
 
@@ -525,7 +538,7 @@ fn lutris_directories() {
     println!("📁 Lutris Default Directories");
     println!("=============================");
     
-    let lutris_dir = std::env::home_dir()
+    let lutris_dir = Some(std::path::PathBuf::from(get_home_dir()))
         .map(|h| h.join(".local/share/lutris"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/.local/share/lutris"));
 
@@ -602,7 +615,7 @@ fn clean_lutris_prefixes() {
     println!("🧹 Clean Lutris Prefixes");
     println!("========================");
     
-    let lutris_prefixes = std::env::home_dir()
+    let lutris_prefixes = Some(std::path::PathBuf::from(get_home_dir()))
         .map(|h| h.join("Games"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/Games"));
 
@@ -648,7 +661,10 @@ fn lutris_status() {
             
             let version_output = Command::new("lutris").arg("--version").output();
             match version_output {
-                Ok(out) => println!("📋 Version: {}", String::from_utf8_lossy(&out.stdout).trim()),
+                Ok(out) => {
+                    let output_string = String::from_utf8_lossy(&out.stdout);
+                    println!("📋 Version: {}", output_string.trim());
+                }
                 _ => {},
             }
         }
@@ -666,7 +682,7 @@ fn lutris_status() {
     }
 
     // Check Lutris directories
-    let lutris_config = std::env::home_dir()
+    let lutris_config = Some(std::path::PathBuf::from(get_home_dir()))
         .map(|h| h.join(".config/lutris"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/.config/lutris"));
 
@@ -674,7 +690,7 @@ fn lutris_status() {
         println!("📁 Lutris config found: {}", lutris_config.display());
     }
 
-    let lutris_data = std::env::home_dir()
+    let lutris_data = Some(std::path::PathBuf::from(get_home_dir()))
         .map(|h| h.join(".local/share/lutris"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/.local/share/lutris"));
 
@@ -1505,7 +1521,7 @@ fn clean_wine_data() {
     println!("🧹 Clean Wine Data");
     println!("==================");
     
-    let wine_dir = std::env::home_dir()
+    let wine_dir = Some(std::path::PathBuf::from(get_home_dir()))
         .map(|h| h.join(".wine"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/.wine"));
 
@@ -1528,7 +1544,7 @@ fn clean_wine_data() {
         for &index in &selections {
             match index {
                 0 => {
-                    let cache_dir = wine_dir.join("drive_c/users/*/AppData/Local/Temp");
+                    let _cache_dir = wine_dir.join("drive_c/users/*/AppData/Local/Temp");
                     println!("🗑️  Clearing Wine cache...");
                 }
                 1 => {
@@ -1564,7 +1580,8 @@ fn wine_status() {
     let wine_check = Command::new("wine").arg("--version").output();
     match wine_check {
         Ok(out) => {
-            println!("✅ Wine version: {}", String::from_utf8_lossy(&out.stdout).trim());
+            let output_string = String::from_utf8_lossy(&out.stdout);
+            println!("✅ Wine version: {}", output_string.trim());
         }
         _ => {
             println!("❌ Wine not found");
@@ -1573,7 +1590,7 @@ fn wine_status() {
     }
 
     // Check Wine prefix
-    let wine_dir = std::env::home_dir()
+    let wine_dir = Some(std::path::PathBuf::from(get_home_dir()))
         .map(|h| h.join(".wine"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/.wine"));
 

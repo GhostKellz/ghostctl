@@ -30,7 +30,7 @@ pub fn firewall_automation_menu() {
         let options = vec![
             "🔥 Firewall Rule Management",
             "📋 Firewall Profiles & Templates", 
-            "🔍 Network Security Scanning (gscan)",
+            "🔍 Network Security Scanning",
             "🛡️  Security Policy Enforcement",
             "📊 Firewall Monitoring & Analytics",
             "🚨 Threat Detection & Response",
@@ -50,7 +50,7 @@ pub fn firewall_automation_menu() {
         match selection {
             0 => firewall_rule_management(),
             1 => firewall_profiles_templates(),
-            2 => network_security_scanning(),
+            2 => crate::network::scan::network_security_scanning(),
             3 => security_policy_enforcement(),
             4 => firewall_monitoring_analytics(),
             5 => threat_detection_response(),

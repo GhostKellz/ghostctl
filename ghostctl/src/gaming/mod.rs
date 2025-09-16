@@ -5,6 +5,11 @@ pub mod performance;
 pub mod platforms;
 pub mod setup;
 pub mod steam;
+pub mod proton;
+pub mod management;
+pub mod wine_prefix;
+pub mod lutris;
+pub mod wine_tools;
 
 use dialoguer::{Select, theme::ColorfulTheme};
 
@@ -12,8 +17,11 @@ pub fn gaming_menu() {
     loop {
         let options = [
             "🚀 Steam & Proton Management",
+            "🍷 Wine Prefix Management",
+            "🎮 Lutris Integration",
+            "🔧 Advanced Wine Tools",
             "🎯 Gaming Platforms (Lutris/Heroic/Bottles)",
-            "⚡ Performance Optimization", 
+            "⚡ Performance Optimization",
             "📊 Gaming Monitoring & Overlays",
             "🎨 Graphics & Compatibility",
             "🔧 Gaming Environment Setup",
@@ -30,14 +38,37 @@ pub fn gaming_menu() {
             .unwrap();
 
         match choice {
-            0 => steam::steam_menu(),
-            1 => platforms::platforms_menu(),
-            2 => performance::performance_menu(),
-            3 => monitoring::monitoring_menu(),
-            4 => graphics::graphics_menu(),
-            5 => environment::environment_menu(),
-            6 => setup::automated_setup(),
-            7 => gaming_status(),
+            0 => {
+                println!("🚀 Steam & Proton Management");
+                let steam_options = [
+                    "🚀 Steam Management",
+                    "🎮 Proton & Wine Advanced",
+                    "⬅️ Back",
+                ];
+
+                let steam_choice = Select::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Steam & Proton Options")
+                    .items(&steam_options)
+                    .default(0)
+                    .interact()
+                    .unwrap();
+
+                match steam_choice {
+                    0 => steam::steam_menu(),
+                    1 => proton::proton_menu(),
+                    _ => {}
+                }
+            },
+            1 => wine_prefix::wine_prefix_menu(),
+            2 => lutris::lutris_menu(),
+            3 => wine_tools::wine_tools_menu(),
+            4 => platforms::platforms_menu(),
+            5 => performance::performance_menu(),
+            6 => monitoring::monitoring_menu(),
+            7 => graphics::graphics_menu(),
+            8 => environment::environment_menu(),
+            9 => setup::automated_setup(),
+            10 => gaming_status(),
             _ => break,
         }
     }
@@ -89,7 +120,10 @@ pub fn gaming_status() {
             println!("  ✅ Wine installed");
             let output = std::process::Command::new("wine").arg("--version").output();
             match output {
-                Ok(out) => println!("  📋 Version: {}", String::from_utf8_lossy(&out.stdout).trim()),
+                Ok(out) => {
+                    let output_string = String::from_utf8_lossy(&out.stdout);
+                    println!("  📋 Version: {}", output_string.trim());
+                }
                 _ => {},
             }
         }

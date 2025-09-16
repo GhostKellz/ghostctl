@@ -1,8 +1,8 @@
 # 📋 GhostCTL Commands Reference v1 
 
-Complete command documentation for GhostCTL v0.8.2 - The ultimate system and homelab management tool.
+Complete command documentation for GhostCTL v1.0.1 - The ultimate system and homelab management tool.
 
-⚠️ **Version Note**: This documentation covers the latest v0.8.2 features including enhanced Docker ecosystem, multi-registry support, enhanced Proxmox VE management, Restic CLI integration, AUR helper preference system, and improved network/DNS tools.
+⚠️ **Version Note**: This documentation covers the latest v1.0.1 features including the new native network scanner with TUI, enhanced gaming module, complete PVE automation, and all v0.8.2 features (Docker ecosystem, multi-registry support, Restic CLI integration, AUR helper preference system).
 
 ## 🚀 Core Commands
 
@@ -272,8 +272,8 @@ ghostctl dns DOMAIN               # DNS lookup and configuration
 ghostctl nc                       # Netcat utilities
 ghostctl network mesh             # Mesh networking (Tailscale/Headscale)
 ghostctl net mesh                 # Mesh networking (short alias)
-ghostctl network scan TARGET      # Network port scanning with gscan
-ghostctl net scan TARGET          # Network port scanning (short alias)
+ghostctl scan TARGET              # Network port scanning with TUI
+ghostctl network scan TARGET      # Legacy alias (deprecated)
 ```
 
 ### DNS Operations (Enhanced in v0.8.0)
@@ -290,27 +290,53 @@ ghostctl dns --reverse 8.8.8.8    # Reverse DNS lookup
 # - DNS performance testing
 ```
 
-### Network Scanning with gscan (Enhanced in v0.8.0)
+### Network Scanning with Native TUI Scanner (New in v1.0.1)
 ```bash
-# Basic scan
-ghostctl network scan 192.168.1.1
-ghostctl net scan 192.168.1.1     # Short form
+# Basic scan with beautiful TUI
+ghostctl scan 192.168.1.1
 
-# Network range scan
-ghostctl network scan 192.168.1.0/24
-ghostctl net scan 192.168.1.0/24  # Short form
+# Scan specific ports
+ghostctl scan 192.168.1.1 -p 80,443,8080
+ghostctl scan 192.168.1.1 -p 1-1000
 
-# Custom port range
-ghostctl network scan TARGET -s START_PORT -e END_PORT
-ghostctl net scan TARGET -s START_PORT -e END_PORT
+# Full port scan (all 65535 ports)
+ghostctl scan 192.168.1.1 --full
 
-# Scan with banner grabbing
-ghostctl network scan TARGET --banner
-ghostctl net scan TARGET --banner
+# Scan with service detection
+ghostctl scan 192.168.1.1 --service
 
-# Through network menu:
-# - Target-based scanning with custom parameters
-# - Interactive scan mode with real-time results
+# Scan with custom thread count
+ghostctl scan 192.168.1.1 -t 200
+
+# Network range scan (CIDR)
+ghostctl scan 192.168.1.0/24
+
+# Output formats (disable TUI)
+ghostctl scan 192.168.1.1 --json      # JSON output
+ghostctl scan 192.168.1.1 --quiet     # Minimal output
+
+# Combined options
+ghostctl scan 192.168.1.1 -p 1-10000 --service -t 150
+```
+
+**✨ Scanner Features:**
+- 🎨 **Beautiful TUI** - Real-time progress with ratatui interface
+- ⚡ **Async Performance** - Concurrent scanning with configurable threads
+- 🔍 **Service Detection** - Identify services running on open ports
+- 🌐 **CIDR Support** - Scan entire network ranges
+- 📊 **Real-time Stats** - Live progress, ETA, and port statistics
+- 🎛️ **Interactive Controls** - Navigate results with keyboard shortcuts
+- 📈 **Multiple Views** - Overview, results, statistics, and settings tabs
+- 🚀 **Zero Dependencies** - Native Rust implementation (replaces gscan)
+
+**🎮 TUI Controls:**
+- `←` `→` : Switch between tabs
+- `↑` `↓` : Navigate scan results
+- `q` : Quit scanner
+
+```bash
+# Legacy network menu access (still available):
+# ghostctl network menu → Network Scanner & Discovery
 # - Service detection and banner grabbing
 # - Network discovery and host enumeration
 ```

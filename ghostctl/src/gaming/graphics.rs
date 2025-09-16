@@ -269,7 +269,7 @@ fn install_amd_vulkan() {
 fn install_amd_performance_tools() {
     println!("⚡ Installing AMD Performance Tools");
     
-    let tools = ["radeontop", "corectrl"];
+    let _tools = ["radeontop", "corectrl"];
     
     // Install from repos
     let status = Command::new("sudo")

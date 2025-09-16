@@ -3212,7 +3212,8 @@ fn generate_performance_recommendations() {
         .output();
     
     if let Ok(output) = governor_output {
-        let governor = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let output_string = String::from_utf8_lossy(&output.stdout);
+        let governor = output_string.trim().to_string();
         match governor.as_str() {
             "powersave" => println!("  ⚡ Consider switching to 'performance' or 'schedutil' governor for gaming"),
             "performance" => println!("  ✅ CPU governor optimized for performance"),

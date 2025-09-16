@@ -1730,7 +1730,7 @@ fn setup_power_management() {
     println!("🔋 Power management configuration for gaming:");
     
     // Disable CPU power saving for gaming
-    let power_config = r#"# Disable CPU idle states for gaming performance
+    let _power_config = r#"# Disable CPU idle states for gaming performance
 for state in /sys/devices/system/cpu/cpu*/cpuidle/state*/disable; do
     if [[ -w "$state" ]]; then
         echo 1 > "$state"

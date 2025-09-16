@@ -79,9 +79,14 @@ fn scan_menu() {
                 .with_prompt("Target IP, CIDR, or range")
                 .interact_text()
                 .unwrap();
-            scan::gscan_port_scan(&target, None, None, false);
+            // Launch new scanner with default settings
+            println!("🔍 Launching scanner for {}...", target);
+            let _ = scan::scan_cli(vec![target], None, None);
         }
-        1 => scan::gscan_interactive(),
+        1 => {
+            // Interactive mode - launch scanner menu
+            scan::network_security_scanning();
+        }
         _ => return,
     }
 }

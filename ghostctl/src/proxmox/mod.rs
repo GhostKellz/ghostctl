@@ -8,6 +8,7 @@ pub mod storage_migration;
 pub mod template_management;
 pub mod backup_rotation;
 pub mod firewall_automation;
+pub mod advanced_security;
 // pub mod vfio;
 // pub mod upgrade;
 // pub mod pbs;

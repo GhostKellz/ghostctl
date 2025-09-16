@@ -68,24 +68,6 @@ const GHOST_ECOSYSTEM: &[(&str, &str, &str, &str)] = &[
         "system",
     ),
     // Network & Security
-    (
-        "ghostscan",
-        "ghostkellz/ghostscan",
-        "Network scanner and security tool",
-        "network",
-    ),
-    (
-        "zendns",
-        "ghostkellz/zendns",
-        "High-performance DNS server in Rust",
-        "network",
-    ),
-    (
-        "zigdns",
-        "ghostkellz/zigdns",
-        "Lightweight DNS server in Zig",
-        "network",
-    ),
     // AI & Automation
     (
         "jarvis",
