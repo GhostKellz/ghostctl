@@ -50,6 +50,10 @@ package() {
     install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
     install -Dm644 DOCS.md "$pkgdir/usr/share/doc/$pkgname/DOCS.md"
     install -Dm644 COMMANDS.md "$pkgdir/usr/share/doc/$pkgname/COMMANDS.md"
+
+    # Install desktop entry and icon
+    install -Dm644 packaging/ghostctl.desktop "$pkgdir/usr/share/applications/ghostctl.desktop"
+    install -Dm644 assets/icons/png/ghostctl-icon-48.png "$pkgdir/usr/share/pixmaps/ghostctl.png"
     
     # Install scripts directory (optional)
     if [ -d "scripts" ]; then

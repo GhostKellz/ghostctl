@@ -1,0 +1,31 @@
+Source: ghostctl
+Section: admin
+Priority: optional
+Maintainer: Christopher Kelley <ckelley@ghostctl.sh>
+Build-Depends: debhelper-compat (= 13), cargo (>= 1.70), rustc (>= 1.70), git, pkg-config, libssl-dev
+Standards-Version: 4.6.2
+Homepage: https://github.com/ghostkellz/ghostctl
+Vcs-Git: https://github.com/ghostkellz/ghostctl.git
+Vcs-Browser: https://github.com/ghostkellz/ghostctl
+Rules-Requires-Root: no
+
+Package: ghostctl
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: docker.io, nginx, restic, btrfs-progs
+Suggests: proxmox-ve
+Description: Universal system administration toolkit
+ GhostCTL is a comprehensive command-line toolkit designed for Linux
+ system administrators, homelabbers, and power users. It provides
+ modular functionality for:
+ .
+  * System monitoring and optimization
+  * Docker and container management
+  * Network configuration and diagnostics
+  * Backup and storage management
+  * Security hardening and auditing
+  * Development environment setup
+ .
+ The tool features an interactive menu system and supports both
+ automated scripting and manual operations across multiple Linux
+ distributions.

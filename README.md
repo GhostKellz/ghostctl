@@ -1,6 +1,10 @@
-# 🚀 GhostCTL - Professional System Administration Toolkit
+<div align="center">
+  <img src="assets/ghostctl-logo.png" alt="GhostCTL Logo" width="200" height="200" />
 
-**The Ultimate Linux Management Suite for Power Users, DevOps Engineers & Homelabbers**
+  # 🚀 GhostCTL - Professional System Administration Toolkit
+
+  **The Ultimate Linux Management Suite for Power Users, DevOps Engineers & Homelabbers**
+</div>
 
 
 [![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org)
@@ -18,6 +22,18 @@
 
 
 GhostCTL is a comprehensive system administration platform that transforms complex Linux operations into intuitive, interactive workflows. Built in Rust for performance and reliability, it provides enterprise-grade tools through a user-friendly interface.
+
+## 🚀 Quick Install
+
+```bash
+# One-line installation for all Linux distributions
+curl -sSL https://ghostctl.sh | bash
+```
+
+**Supports:** Arch Linux, Ubuntu/Debian, Fedora/RHEL, openSUSE, Alpine, macOS
+**Auto-detects:** Your OS and installs via package manager, binary, or source build
+
+[📋 **Detailed Installation Guide**](INSTALL.md) • [🎯 **All Installation Options**](INSTALL.md#installation-options)
 
 ## 🎯 Why GhostCTL?
 

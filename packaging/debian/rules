@@ -1,0 +1,47 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+export CARGO_HOME = $(CURDIR)/debian/cargo
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	# Setup Cargo home directory
+	mkdir -p $(CARGO_HOME)
+
+override_dh_auto_build:
+	cd ghostctl && cargo build --release --locked
+
+override_dh_auto_test:
+	cd ghostctl && cargo test --release --locked
+
+override_dh_auto_install:
+	# Install main binary
+	install -Dm755 ghostctl/target/release/ghostctl debian/ghostctl/usr/bin/ghostctl
+
+	# Install documentation
+	install -Dm644 README.md debian/ghostctl/usr/share/doc/ghostctl/README.md
+	install -Dm644 LICENSE debian/ghostctl/usr/share/doc/ghostctl/copyright
+
+	# Install man page if available
+	if [ -f ghostctl.1 ]; then \
+		install -Dm644 ghostctl.1 debian/ghostctl/usr/share/man/man1/ghostctl.1; \
+	fi
+
+	# Install desktop entry
+	install -Dm644 packaging/ghostctl.desktop debian/ghostctl/usr/share/applications/ghostctl.desktop
+
+	# Install icon
+	install -Dm644 assets/icons/png/ghostctl-icon-48.png debian/ghostctl/usr/share/pixmaps/ghostctl.png
+
+	# Install example scripts if available
+	if [ -d scripts ]; then \
+		cp -r scripts debian/ghostctl/usr/share/doc/ghostctl/; \
+	fi
+
+override_dh_auto_clean:
+	cd ghostctl && cargo clean || true
+	rm -rf $(CARGO_HOME)
+
+.PHONY: override_dh_auto_configure override_dh_auto_build override_dh_auto_test override_dh_auto_install override_dh_auto_clean

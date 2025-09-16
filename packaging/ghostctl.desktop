@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=GhostCTL
+Comment=Universal System Administration Toolkit
+GenericName=System Administration Tool
+Exec=ghostctl menu
+Icon=ghostctl
+Terminal=true
+Type=Application
+Categories=System;Settings;Administration;Monitor;
+Keywords=system;admin;terminal;homelab;automation;docker;network;security;
+StartupNotify=false
+StartupWMClass=ghostctl

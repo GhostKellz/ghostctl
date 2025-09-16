@@ -1,0 +1,52 @@
+ghostctl (1.0.1-1) unstable; urgency=medium
+
+  * New upstream release v1.0.1
+  * Gaming Module Completion
+    - Fully implemented all missing gaming components
+    - Added comprehensive gaming optimization features
+    - Integrated into main GhostCTL menu system
+  * Arch Module Major Enhancement
+    - Dramatically expanded performance tuning system
+    - Added advanced system administration module
+    - Enterprise-level features
+  * Code Quality & Compilation
+    - Fixed all compilation errors
+    - Resolved borrow checker issues
+    - Built successfully with minimal warnings
+  * Native scanner implemented - replaced gscan with native Rust
+  * Enterprise features integrated
+  * All modules accessible through menu system
+  * No system-breaking changes
+
+ -- Christopher Kelley <ckelley@ghostctl.sh>  Mon, 16 Sep 2025 12:00:00 +0000
+
+ghostctl (1.0.0-1) unstable; urgency=medium
+
+  * Major release v1.0.0
+  * PVE Storage Migration features
+  * MinIO/S3 Management integration
+  * Docker Registry Mirror support
+  * PVE Backup Rotation system
+  * PVE Template Management
+  * PVE Firewall Automation
+  * Advanced Container Cleanup tools
+  * Network Storage management (NFS/CIFS)
+
+ -- Christopher Kelley <ckelley@ghostctl.sh>  Sun, 15 Sep 2025 12:00:00 +0000
+
+ghostctl (0.9.4-1) unstable; urgency=medium
+
+  * Remove musl target and fix help command
+  * OpenSSL cross-compilation fixes
+
+ -- Christopher Kelley <ckelley@ghostctl.sh>  Sat, 14 Sep 2025 12:00:00 +0000
+
+ghostctl (0.9.3-1) unstable; urgency=medium
+
+  * Initial Debian package release
+  * Cross-platform system administration toolkit
+  * Modular architecture with multiple subsystems
+  * Interactive menu-driven interface
+  * Support for Docker, networking, storage, and development tools
+
+ -- Christopher Kelley <ckelley@ghostctl.sh>  Fri, 13 Sep 2025 12:00:00 +0000
