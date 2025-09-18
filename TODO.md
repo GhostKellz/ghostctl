@@ -1,4 +1,15 @@
 - Podman support and features for managing podman 
 - NixOS support for managing nix configurations and all in one containerazation platforms
 - Cgroup and other userspace functionality and features/tooling 
+- github.com/CK-Technology/bolt --> my rust Docker/podman clone that's gonna be better needs to work 
+- Better/more Arch Linux Performance optimizations - makepkg, pacman config, hooks etc. More Typical arch fixes to broken updates etc
+- WSL support and WSL2 support and features
+- Support for SMB/CIFS mounts ande other network filesystems for troubleshooting those connections
+- systemd Kernel helpers for leveraging cachyos-lto and linux-tkg bore kernels 
+- Managing nvidia container runtime and nvbind support (nvbind is my custom nvidia container runtime) github.com/ghostkellz/nvbind 
+- Nvidia Container runtime download and install optimization and configuring the json for nvidia for the docker runtime? 
+- Also Let's integrate with nvbind - my rust based replacement for Bolt + nvidia container runtime - github.com/ghostkellz/nvbind go there to see if theres any integration you think we could use
+- Mainly a quick way to automate installing nvbind on systems via ghostctl
+- We'll want BOLT to follow our docker integration so ghostctl bolt install etc. just like docker
+- We'll also want a podman menu so ghostctl podman install etc. too 
 

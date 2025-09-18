@@ -2,10 +2,13 @@ pub mod archfix;
 pub mod aur;
 pub mod boot;
 pub mod dotfiles;
+pub mod hardware;
 pub mod health;
 pub mod mirror;
 pub mod perf;
 pub mod pkgfix;
+pub mod recovery;
+pub mod services;
 pub mod swap;
 pub mod sysadmin;
 
@@ -17,10 +20,14 @@ pub fn arch_menu() {
             "🔧 Quick System Fixes",
             "🎯 Fix Specific Target",
             "🛠️  Arch Maintenance (Fix/Optimize/Clean)",
+            "🚨 Emergency Recovery & Rescue Tools",
             "🏥 System Health & Maintenance",
+            "⚙️  SystemD Service Management",
+            "🖥️  Hardware Detection & Drivers",
             "💾 Swap & Zram Management",
             "📁 Dotfiles Management",
             "📦 AUR Helper Management",
+            "📋 PKGBUILD Management & Validation",
             "🌐 Mirror List Management",
             "🥾 Boot & Kernel Management",
             "🔑 GPG Key Management",
@@ -44,15 +51,19 @@ pub fn arch_menu() {
                 fix_target(&target);
             }
             2 => archfix::tui_menu(),
-            3 => health::health_menu(),
-            4 => swap::swap_menu(),
-            5 => dotfiles::dotfiles_menu(),
-            6 => aur::aur_helper_management(),
-            7 => mirror::update_mirror_list(),
-            8 => boot::boot_management(),
-            9 => crate::security::gpg::gpg_key_management(),
-            10 => perf::tune(),
-            11 => sysadmin::sysadmin_menu(),
+            3 => recovery::recovery_menu(),
+            4 => health::health_menu(),
+            5 => services::systemd_service_management(),
+            6 => hardware::hardware_management(),
+            7 => swap::swap_menu(),
+            8 => dotfiles::dotfiles_menu(),
+            9 => aur::aur_helper_management(),
+            10 => pkgfix::pkgbuild_management(),
+            11 => mirror::update_mirror_list(),
+            12 => boot::boot_management(),
+            13 => crate::security::gpg::gpg_key_management(),
+            14 => perf::tune(),
+            15 => sysadmin::sysadmin_menu(),
             _ => break,
         }
     }
@@ -63,7 +74,7 @@ pub fn fix_target(target: &str) {
         "pacman" | "keyring" => archfix::fix(),
         "orphans" => archfix::orphans(),
         "mirrors" => archfix::mirrors(),
-        "pkgfix" => archfix::pkgfix(),
+        "pkgfix" => pkgfix::pkgbuild_management(),
         "optimize" => archfix::optimize(),
         "gpg" => fix_gpg_keys(),
         "locks" => reset_pacman_locks(),

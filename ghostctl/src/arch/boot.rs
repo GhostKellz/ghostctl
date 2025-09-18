@@ -369,7 +369,7 @@ fn list_boot_entries() {
     let _ = Command::new("bootctl").arg("list").status();
 }
 
-fn regenerate_boot_entries() {
+pub fn regenerate_boot_entries() {
     println!("🔄 Regenerating Boot Entries");
     println!("============================");
 
