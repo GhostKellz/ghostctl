@@ -16,11 +16,20 @@ pub fn handle_btrfs_action(action: crate::BtrfsAction) {
         crate::BtrfsAction::SnapperSetup => snapshot::snapper_setup(),
         crate::BtrfsAction::SnapperEdit { config } => snapshot::snapper_edit(&config),
         crate::BtrfsAction::SnapperList => snapshot::snapper_list(),
+        crate::BtrfsAction::SnapperCleanup => snapshot::bulk_cleanup_snapshots(),
         crate::BtrfsAction::Status => show_filesystem_status(),
         crate::BtrfsAction::Scrub { mountpoint } => snapshot::scrub(&mountpoint),
         crate::BtrfsAction::Balance { mountpoint } => snapshot::balance(&mountpoint),
         crate::BtrfsAction::Usage { mountpoint } => show_filesystem_usage(&mountpoint),
         crate::BtrfsAction::Quota { mountpoint } => show_quota_info(&mountpoint),
+        crate::BtrfsAction::EmergencyCleanup => snapshot::emergency_cleanup_all_snapshots(),
+        crate::BtrfsAction::CleanupByAge { days } => {
+            snapshot::cleanup_snapshots_by_age(&days);
+        }
+        crate::BtrfsAction::CleanupByRange { range } => {
+            snapshot::cleanup_snapshots_by_range(&range);
+        }
+        crate::BtrfsAction::DiskSpace => snapshot::check_disk_space(),
     }
 }
 

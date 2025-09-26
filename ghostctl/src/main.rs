@@ -41,11 +41,16 @@ pub enum BtrfsAction {
     SnapperSetup,
     SnapperEdit { config: String },
     SnapperList,
+    SnapperCleanup,
     Status,
     Scrub { mountpoint: String },
     Balance { mountpoint: String },
     Usage { mountpoint: String },
     Quota { mountpoint: String },
+    EmergencyCleanup,
+    CleanupByAge { days: String },
+    CleanupByRange { range: String },
+    DiskSpace,
 }
 
 #[derive(Debug)]

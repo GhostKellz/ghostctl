@@ -217,7 +217,30 @@ pub fn build_cli() -> Command {
                                 .about("Edit snapper config")
                                 .arg(Arg::new("config").required(true).help("Config name")),
                         )
-                        .subcommand(Command::new("list").about("List snapper configs")),
+                        .subcommand(Command::new("list").about("List snapper configs"))
+                        .subcommand(Command::new("cleanup").about("Cleanup old snapshots")),
+                )
+                .subcommand(
+                    Command::new("cleanup")
+                        .about("Emergency cleanup snapshots")
+                        .arg(
+                            Arg::new("emergency")
+                                .long("emergency")
+                                .action(clap::ArgAction::SetTrue)
+                                .help("Remove ALL snapshots (DANGEROUS)"),
+                        )
+                        .arg(
+                            Arg::new("days")
+                                .long("days")
+                                .value_name("DAYS")
+                                .help("Remove snapshots older than X days"),
+                        )
+                        .arg(
+                            Arg::new("range")
+                                .long("range")
+                                .value_name("RANGE")
+                                .help("Remove snapshot range (e.g., 1-100)"),
+                        ),
                 ),
         )
         .subcommand(
@@ -318,7 +341,7 @@ pub fn build_cli() -> Command {
                 .subcommand(Command::new("mesh").about("Mesh networking"))
                 .subcommand(
                     Command::new("scan")
-                        .about("Network port scanning (using gscan)")
+                        .about("Network port scanning with native Rust implementation")
                         .arg(
                             Arg::new("target").required(true).help(
                                 "Target IP, CIDR, or range (e.g. 192.168.1.1, 192.168.1.0/24)",
@@ -1097,8 +1120,27 @@ fn handle_btrfs_commands(matches: &ArgMatches) {
             Some(("list", _)) => {
                 btrfs::handle_btrfs_action(crate::BtrfsAction::SnapperList);
             }
+            Some(("cleanup", _)) => {
+                btrfs::handle_btrfs_action(crate::BtrfsAction::SnapperCleanup);
+            }
             _ => btrfs::btrfs_menu(),
         },
+        Some(("cleanup", sub_matches)) => {
+            if sub_matches.get_flag("emergency") {
+                btrfs::handle_btrfs_action(crate::BtrfsAction::EmergencyCleanup);
+            } else if let Some(days) = sub_matches.get_one::<String>("days") {
+                btrfs::handle_btrfs_action(crate::BtrfsAction::CleanupByAge {
+                    days: days.clone()
+                });
+            } else if let Some(range) = sub_matches.get_one::<String>("range") {
+                btrfs::handle_btrfs_action(crate::BtrfsAction::CleanupByRange {
+                    range: range.clone()
+                });
+            } else {
+                // Show disk space and cleanup menu
+                btrfs::handle_btrfs_action(crate::BtrfsAction::DiskSpace);
+            }
+        }
         None => btrfs::btrfs_menu(),
         _ => {
             println!(

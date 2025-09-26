@@ -1066,7 +1066,7 @@ fn community_templates() {
 fn network_security_scanning() {
     loop {
         let options = vec![
-            "🔍 Quick Network Scan (gscan)",
+            "🔍 Quick Network Scan (Native Scanner)",
             "🛡️  Comprehensive Security Scan",
             "📊 Port Scan Analysis",
             "🚨 Vulnerability Assessment",
@@ -1078,7 +1078,7 @@ fn network_security_scanning() {
         ];
 
         let selection = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("🔍 Network Security Scanning (gscan)")
+            .with_prompt("🔍 Network Security Scanning (Native Scanner)")
             .items(&options)
             .default(0)
             .interact()
@@ -1099,125 +1099,80 @@ fn network_security_scanning() {
 }
 
 fn quick_network_scan() {
-    println!("🔍 Quick Network Scan with gscan\n");
-    
-    // Check if gscan is available
-    if !Command::new("gscan").arg("--help").output().map(|o| o.status.success()).unwrap_or(false) {
-        println!("❌ gscan (ghostscan) not found in PATH");
-        println!("📋 Please ensure ghostscan is installed and available");
-        
-        if Confirm::new()
-            .with_prompt("Install gscan from GitHub?")
-            .default(false)
-            .interact()
-            .unwrap()
-        {
-            install_gscan();
-            return;
-        } else {
-            return;
-        }
-    }
-    
+    println!("🔍 Quick Network Scan with Native Scanner\n");
+
     let target: String = Input::new()
-        .with_prompt("Enter target IP/hostname to scan")
+        .with_prompt("Enter target IP/hostname/CIDR to scan")
         .interact_text()
         .unwrap();
-    
+
     let scan_options = vec![
         "🚀 Quick Scan (Top 1000 ports)",
         "🔍 Full Scan (All 65535 ports)",
+        "⚡ Common Services (22,80,443,3389,5432,3306)",
         "🎯 Custom Port Range",
-        "🌐 Network Range Scan",
     ];
-    
+
     let scan_type = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select scan type")
         .items(&scan_options)
         .default(0)
         .interact()
         .unwrap();
-    
-    let mut cmd = Command::new("gscan");
-    cmd.arg(&target);
-    
-    match scan_type {
-        0 => {
-            cmd.args(&["--ports", "1-1000"]);
-        },
-        1 => {
-            cmd.args(&["--ports", "1-65535"]);
-        },
-        2 => {
-            let port_range: String = Input::new()
-                .with_prompt("Enter port range (e.g., 1-1000, 80,443,8080)")
-                .interact_text()
-                .unwrap();
-            cmd.args(&["--ports", &port_range]);
-        },
+
+    let port_spec = match scan_type {
+        0 => "1-1000".to_string(),
+        1 => "1-65535".to_string(),
+        2 => "22,80,443,3389,5432,3306".to_string(),
         3 => {
-            let threads: String = Input::new()
-                .with_prompt("Number of threads")
-                .default("100".to_string())
+            Input::new()
+                .with_prompt("Enter port range (e.g., 80-443 or 80,443,8080)")
                 .interact_text()
-                .unwrap();
-            cmd.args(&["--threads", &threads]);
+                .unwrap()
         },
-        _ => {}
-    }
-    
-    println!("🔍 Starting network scan of {}...", target);
-    let status = cmd.status();
-    
-    if status.map(|s| s.success()).unwrap_or(false) {
-        println!("✅ Scan completed successfully!");
-        
-        if Confirm::new()
-            .with_prompt("Generate firewall rules based on scan results?")
-            .default(true)
-            .interact()
-            .unwrap()
-        {
-            generate_rules_from_scan(&target);
+        _ => "1-1000".to_string(),
+    };
+
+    let threads: u32 = Input::new()
+        .with_prompt("Number of scan threads")
+        .default(100u32)
+        .interact()
+        .unwrap();
+
+    println!("🔄 Starting native scan...");
+    println!("📊 Target: {}", target);
+    println!("🚪 Ports: {}", port_spec);
+    println!("⚙️  Threads: {}", threads);
+    println!("");
+
+    // Use the native scanner
+    let targets = vec![target.clone()];
+    let result = crate::network::scan::scan_cli(
+        targets,
+        Some(port_spec.clone()),
+        Some(threads as usize)
+    );
+
+    match result {
+        Ok(_) => {
+            println!("✅ Scan completed successfully!");
+
+            if Confirm::new()
+                .with_prompt("Generate firewall rules based on scan results?")
+                .default(true)
+                .interact()
+                .unwrap()
+            {
+                generate_rules_from_scan(&target);
+            }
+        },
+        Err(e) => {
+            println!("❌ Scan failed: {}", e);
         }
-    } else {
-        println!("❌ Scan failed");
     }
 }
 
-fn install_gscan() {
-    println!("📦 Installing gscan (ghostscan)...\n");
-    
-    if Confirm::new()
-        .with_prompt("Clone and build ghostscan from GitHub?")
-        .default(true)
-        .interact()
-        .unwrap()
-    {
-        println!("📥 Cloning ghostscan repository...");
-        let status = Command::new("git")
-            .args(&["clone", "https://github.com/ghostkellz/ghostscan", "/tmp/ghostscan"])
-            .status();
-        
-        if status.map(|s| s.success()).unwrap_or(false) {
-            println!("🔨 Building ghostscan...");
-            let status = Command::new("cargo")
-                .args(&["build", "--release"])
-                .current_dir("/tmp/ghostscan")
-                .status();
-            
-            if status.map(|s| s.success()).unwrap_or(false) {
-                println!("📋 To complete installation, add to PATH:");
-                println!("   cp /tmp/ghostscan/target/release/gscan /usr/local/bin/");
-                println!("   # or add to your PATH manually");
-            } else {
-                println!("❌ Build failed");
-            }
-        } else {
-            println!("❌ Clone failed");
-        }
-    }
-}
+// install_gscan function removed - using native scanner implementation
 
 fn generate_rules_from_scan(target: &str) {
     println!("🛡️  Generating Firewall Rules from Scan Results\n");
