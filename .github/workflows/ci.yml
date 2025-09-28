@@ -1,9 +1,8 @@
-name: CI/CD
+name: CI
 
 on:
   push:
     branches: [main]
-    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -39,26 +38,6 @@ jobs:
       - name: Run clippy
         run: cd ghostctl && cargo clippy --all-targets --all-features -- -W clippy::all -A dead_code -A unused_imports -A clippy::needless_borrows_for_generic_args
 
-      - name: Security audit
-        run: |
-          cd ghostctl
-          # Install cargo-audit if not present
-          if ! cargo audit --version &> /dev/null; then
-            cargo install cargo-audit
-          fi
-          # Run security audit
-          cargo audit
-
-      - name: Check for outdated crates
-        run: |
-          cd ghostctl
-          # Install cargo-outdated if not present
-          if ! cargo outdated --version &> /dev/null; then
-            cargo install cargo-outdated
-          fi
-          # Check for outdated dependencies
-          cargo outdated --exit-code 1
-
       - name: Run tests
         run: cd ghostctl && cargo test
 
@@ -70,128 +49,3 @@ jobs:
           cd ghostctl
           ./target/release/ghostctl version
           ./target/release/ghostctl help
-
-  detect-version:
-    name: Detect Version Change
-    runs-on: self-hosted
-    outputs:
-      version-changed: ${{ steps.version.outputs.changed }}
-      new-version: ${{ steps.version.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-      
-      - name: Check if version changed
-        id: version
-        run: |
-          OLD_VERSION=$(git show HEAD~1:ghostctl/Cargo.toml | grep '^version = ' | sed 's/version = "\(.*\)"/\1/')
-          NEW_VERSION=$(grep '^version = ' ghostctl/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
-          echo "Old version: $OLD_VERSION"
-          echo "New version: $NEW_VERSION"
-          if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "version=v$NEW_VERSION" >> $GITHUB_OUTPUT
-            echo "Version changed from $OLD_VERSION to $NEW_VERSION"
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-            echo "Version unchanged: $NEW_VERSION"
-          fi
-
-  release:
-    name: Create Release
-    needs: [test, detect-version]
-    if: needs.detect-version.outputs.version-changed == 'true' || startsWith(github.ref, 'refs/tags/v')
-    runs-on: self-hosted
-    strategy:
-      matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-
-      - name: Build release
-        run: cd ghostctl && cargo build --release --target ${{ matrix.target }}
-
-      - name: Create archive
-        run: |
-          VERSION=${{ needs.detect-version.outputs.new-version || github.ref_name }}
-          cd ghostctl/target/${{ matrix.target }}/release
-          tar -czf ghostctl-${VERSION}-${{ matrix.target }}.tar.gz ghostctl
-          mv ghostctl-${VERSION}-${{ matrix.target }}.tar.gz ../../../../
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ghostctl-${{ matrix.target }}
-          path: ghostctl-${{ needs.detect-version.outputs.new-version || github.ref_name }}-${{ matrix.target }}.tar.gz
-
-  auto-tag:
-    name: Auto Tag Version
-    needs: [test, detect-version]
-    if: needs.detect-version.outputs.version-changed == 'true' && github.ref == 'refs/heads/main'
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Create and push tag
-        run: |
-          VERSION=${{ needs.detect-version.outputs.new-version }}
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag $VERSION
-          git push origin $VERSION
-
-  github-release:
-    name: GitHub Release
-    needs: [release, detect-version]
-    if: needs.detect-version.outputs.version-changed == 'true' || startsWith(github.ref, 'refs/tags/v')
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.detect-version.outputs.new-version || github.ref_name }}
-          files: |
-            ghostctl-x86_64-unknown-linux-gnu/ghostctl-${{ needs.detect-version.outputs.new-version || github.ref_name }}-x86_64-unknown-linux-gnu.tar.gz
-          generate_release_notes: true
-          body: |
-            ## 🚀 GhostCTL ${{ needs.detect-version.outputs.new-version || github.ref_name }}
-            
-            ### 🐳 What's New
-            - Enhanced Docker ecosystem with multi-registry support
-            - docker.cktechx.io as default registry + Docker Hub/GitHub/Quay/GCR/ECR/ACR
-            - Smart push logic with registry suggestions  
-            - Compose stack management and Kubernetes tools
-            - Reduced warnings and improved code quality
-            
-            ### 📥 Installation
-            ```bash
-            # Quick install (recommended)
-            curl -sSL https://raw.githubusercontent.com/ghostkellz/ghostctl/main/install/install.sh | bash
-            
-            # Manual install
-            curl -L https://github.com/ghostkellz/ghostctl/releases/download/${{ needs.detect-version.outputs.new-version || github.ref_name }}/ghostctl-${{ needs.detect-version.outputs.new-version || github.ref_name }}-x86_64-unknown-linux-gnu.tar.gz | tar xz
-            sudo mv ghostctl /usr/local/bin/
-            ```
-            
-            ### 🔧 Quick Start
-            ```bash
-            ghostctl --help          # Show all commands
-            ghostctl docker menu     # Docker ecosystem with multi-registry
-            ghostctl arch aur        # AUR helper management
-            ghostctl restic menu     # Backup management
-            ```
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
