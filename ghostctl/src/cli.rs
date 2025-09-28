@@ -10,7 +10,7 @@ pub fn build_cli() -> Command {
     Command::new("ghostctl")
         .version(env!("CARGO_PKG_VERSION"))
         .author("Christopher Kelley <ckelley@ghostkellz.sh>")
-        .about("Ghost Infrastructure Control - Complete system and homelab management")
+        .about("👻 GhostCTL")
         .subcommand_required(false)
         .arg_required_else_help(false)
         .disable_version_flag(false)
@@ -605,9 +605,8 @@ pub fn handle_cli_args(matches: &ArgMatches) {
     match matches.subcommand() {
         Some(("version", _)) => {
             println!("ghostctl v{}", env!("CARGO_PKG_VERSION"));
-            println!("Ghost Infrastructure Control - Complete system and homelab management");
-            println!("Author: Christopher Kelley <ckelley@ghostctl.sh>");
-            println!("Repository: https://github.com/ghostkellz/ghostctl");
+            println!("👻 GhostCTL");
+            println!("Author: Christopher Kelley <ckelley@ghostkellz.sh>");
         }
         Some(("list", _)) => {
             show_command_list();

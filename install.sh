@@ -27,14 +27,19 @@ NC='\033[0m' # No Color
 print_header() {
     echo -e "${PURPLE}${BOLD}"
     cat << 'EOF'
-   ______ __               __   ______ _______ __
-  / ____// /_   ____   ___/ /_ / ____//_  __/ / /
- / / __ / __ \ / __ \ / ___/ __// /     / /  / /
-/ /_/ // / / // /_/ /(__  ) /_ / /___  / /  / /___
-\____//_/ /_/ \____//____/ \__/ \____//_/  /_____/
-
+   ______ __               __   ______ _______
+  / ____// /_   ____   ___/ /_ / ____//_  __/
+ / / __ / __ \ / __ \ / ___/ __// /     / /
+/ /_/ // / / // /_/ /(__  ) /_ / /___  / /
+\____//_/ /_/ \____//____/ \__/ \____//_/
 EOF
-    echo -e "${NC}${CYAN}👻 GhostCTL - Universal System Administration Toolkit${NC}"
+    echo -e "${NC}${CYAN} __${NC}"
+    echo -e "${CYAN}/ /${NC}"
+    echo -e "${CYAN}/ /${NC}"
+    echo -e "${CYAN}/ /___${NC}"
+    echo -e "${CYAN}/_____/${NC}"
+    echo
+    echo -e "${CYAN}👻 GhostCTL - Universal System Administration Toolkit${NC}"
     echo -e "${BLUE}🔗 https://github.com/$REPO${NC}"
     echo -e "${YELLOW}🌐 https://ghostctl.io${NC}"
     echo

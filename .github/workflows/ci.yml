@@ -39,6 +39,26 @@ jobs:
       - name: Run clippy
         run: cd ghostctl && cargo clippy --all-targets --all-features -- -W clippy::all -A dead_code -A unused_imports -A clippy::needless_borrows_for_generic_args
 
+      - name: Security audit
+        run: |
+          cd ghostctl
+          # Install cargo-audit if not present
+          if ! cargo audit --version &> /dev/null; then
+            cargo install cargo-audit
+          fi
+          # Run security audit
+          cargo audit
+
+      - name: Check for outdated crates
+        run: |
+          cd ghostctl
+          # Install cargo-outdated if not present
+          if ! cargo outdated --version &> /dev/null; then
+            cargo install cargo-outdated
+          fi
+          # Check for outdated dependencies
+          cargo outdated --exit-code 1
+
       - name: Run tests
         run: cd ghostctl && cargo test
 
