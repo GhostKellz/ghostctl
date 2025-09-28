@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Select};
 use std::process::Command;
 
 pub fn automated_setup() {
@@ -101,7 +101,7 @@ fn complete_gaming_setup() {
 
     println!("\n✅ Complete gaming setup finished!");
     println!("🎮 Your system is now ready for gaming!");
-    
+
     final_setup_summary();
 }
 
@@ -118,9 +118,13 @@ fn setup_system_prerequisites() {
         Ok(out) if out.stdout.is_empty() => {
             let status = Command::new("sudo")
                 .arg("sed")
-                .args(&["-i", "/^#\\[multilib\\]/,/^#Include = \\/etc\\/pacman.d\\/mirrorlist/ s/^#//", "/etc/pacman.conf"])
+                .args(&[
+                    "-i",
+                    "/^#\\[multilib\\]/,/^#Include = \\/etc\\/pacman.d\\/mirrorlist/ s/^#//",
+                    "/etc/pacman.conf",
+                ])
                 .status();
-            
+
             match status {
                 Ok(s) if s.success() => {
                     println!("  ✅ Multilib repository enabled");
@@ -166,7 +170,7 @@ fn auto_setup_graphics() {
     // Detect GPU vendor
     let lspci_output = Command::new("lspci").args(&["-k"]).output();
     let mut gpu_vendor = "Unknown";
-    
+
     if let Ok(output) = lspci_output {
         let lspci = String::from_utf8_lossy(&output.stdout);
         if lspci.contains("NVIDIA") {
@@ -243,11 +247,7 @@ fn auto_setup_graphics() {
         }
         "Intel" => {
             println!("  🔵 Installing Intel drivers...");
-            let intel_packages = [
-                "vulkan-intel",
-                "lib32-vulkan-intel",
-                "intel-media-driver",
-            ];
+            let intel_packages = ["vulkan-intel", "lib32-vulkan-intel", "intel-media-driver"];
 
             let status = Command::new("sudo")
                 .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -290,10 +290,7 @@ fn auto_setup_audio() {
         }
     } else if pulse_check.map(|s| s.success()).unwrap_or(false) {
         println!("  ✅ PulseAudio detected - installing gaming audio packages");
-        let pulse_packages = [
-            "lib32-libpulse",
-            "lib32-alsa-plugins",
-        ];
+        let pulse_packages = ["lib32-libpulse", "lib32-alsa-plugins"];
 
         let status = Command::new("sudo")
             .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -330,10 +327,7 @@ fn auto_setup_audio() {
     }
 
     // Install additional audio packages
-    let audio_packages = [
-        "lib32-openal",
-        "lib32-gst-plugins-base-libs",
-    ];
+    let audio_packages = ["lib32-openal", "lib32-gst-plugins-base-libs"];
 
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -370,13 +364,7 @@ fn auto_setup_gaming_platforms() {
 
     // Install Lutris
     println!("  🎯 Installing Lutris...");
-    let lutris_packages = [
-        "lutris",
-        "wine",
-        "winetricks",
-        "dxvk",
-        "vkd3d",
-    ];
+    let lutris_packages = ["lutris", "wine", "winetricks", "dxvk", "vkd3d"];
 
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -402,7 +390,7 @@ fn install_heroic_if_possible() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "heroic-games-launcher-bin"])
                     .status();
-                
+
                 match install_status {
                     Ok(s) if s.success() => {
                         println!("    ✅ Heroic Games Launcher installed");
@@ -428,7 +416,7 @@ fn auto_setup_performance_tools() {
     match gamemode_status {
         Ok(s) if s.success() => {
             println!("    ✅ GameMode installed");
-            
+
             // Add user to gamemode group
             let username = std::env::var("USER").unwrap_or_else(|_| "user".to_string());
             let _ = Command::new("sudo")
@@ -440,10 +428,7 @@ fn auto_setup_performance_tools() {
 
     // Install CPU frequency utilities
     println!("  ⚡ Installing CPU performance tools...");
-    let cpu_tools = [
-        "cpupower",
-        "stress",
-    ];
+    let cpu_tools = ["cpupower", "stress"];
 
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -488,13 +473,15 @@ echo "✅ Gaming optimizations applied!"
 
     if let Ok(()) = std::fs::create_dir_all(&profiles_dir) {
         let profile_path = profiles_dir.join("gaming.sh");
-        
+
         use std::fs::File;
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&profile_path) {
             if file.write_all(profile_content.as_bytes()).is_ok() {
-                let _ = Command::new("chmod").args(&["+x", &profile_path.to_string_lossy()]).status();
+                let _ = Command::new("chmod")
+                    .args(&["+x", &profile_path.to_string_lossy()])
+                    .status();
                 println!("    ✅ Gaming performance profile created");
             }
         }
@@ -506,10 +493,7 @@ fn auto_setup_monitoring() {
 
     // Install MangoHud
     println!("  🥭 Installing MangoHud...");
-    let mangohud_packages = [
-        "mangohud",
-        "lib32-mangohud",
-    ];
+    let mangohud_packages = ["mangohud", "lib32-mangohud"];
 
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -526,12 +510,7 @@ fn auto_setup_monitoring() {
 
     // Install system monitoring tools
     println!("  📈 Installing system monitoring tools...");
-    let monitoring_tools = [
-        "htop",
-        "nvtop",
-        "iotop",
-        "lm_sensors",
-    ];
+    let monitoring_tools = ["htop", "nvtop", "iotop", "lm_sensors"];
 
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -596,11 +575,7 @@ fn auto_setup_controllers() {
     println!("🎛️  Setting up controller support...");
 
     // Install controller packages
-    let controller_packages = [
-        "lib32-libusb",
-        "jstest-gtk",
-        "linuxconsole",
-    ];
+    let controller_packages = ["lib32-libusb", "jstest-gtk", "linuxconsole"];
 
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -616,9 +591,12 @@ fn auto_setup_controllers() {
     println!("  🔍 Checking for connected controllers...");
     let js_count = std::fs::read_dir("/dev/input/")
         .map(|entries| {
-            entries.filter_map(|entry| entry.ok())
+            entries
+                .filter_map(|entry| entry.ok())
                 .filter(|entry| {
-                    entry.file_name().to_str()
+                    entry
+                        .file_name()
+                        .to_str()
                         .map_or(false, |name| name.starts_with("js"))
                 })
                 .count()
@@ -647,14 +625,17 @@ fn auto_apply_optimizations() {
     let _ = Command::new("sudo")
         .arg("sh")
         .arg("-c")
-        .arg(&format!("echo '{}' > /etc/sysctl.d/99-gaming.conf", sysctl_config))
+        .arg(&format!(
+            "echo '{}' > /etc/sysctl.d/99-gaming.conf",
+            sysctl_config
+        ))
         .status();
 
     println!("    ✅ Memory management optimized");
 
     // Enable services
     println!("  🔄 Configuring services...");
-    
+
     // Enable gamemode user service
     let _ = Command::new("systemctl")
         .args(&["--user", "enable", "gamemode"])
@@ -698,7 +679,7 @@ Categories=Game;
 fn final_setup_summary() {
     println!("\n🎉 Gaming Setup Complete!");
     println!("========================");
-    
+
     println!("✅ Installed components:");
     println!("  • Graphics drivers and libraries");
     println!("  • Steam with Proton support");
@@ -742,10 +723,10 @@ fn quick_gaming_essentials() {
     println!("==========================");
 
     println!("🚀 Installing essential gaming packages...");
-    
+
     let essential_packages = [
         "steam",
-        "lutris", 
+        "lutris",
         "wine",
         "gamemode",
         "mangohud",
@@ -767,11 +748,11 @@ fn quick_gaming_essentials() {
     match status {
         Ok(s) if s.success() => {
             println!("✅ Essential gaming packages installed!");
-            
+
             // Quick setup
             quick_setup_gamemode();
             quick_setup_mangohud();
-            
+
             println!("\n🎮 Quick setup complete!");
             println!("💡 You can now launch Steam and start gaming");
         }
@@ -789,7 +770,11 @@ fn enable_multilib_quick() {
             println!("🔧 Enabling multilib repository...");
             let _ = Command::new("sudo")
                 .arg("sed")
-                .args(&["-i", "/^#\\[multilib\\]/,/^#Include = \\/etc\\/pacman.d\\/mirrorlist/ s/^#//", "/etc/pacman.conf"])
+                .args(&[
+                    "-i",
+                    "/^#\\[multilib\\]/,/^#Include = \\/etc\\/pacman.d\\/mirrorlist/ s/^#//",
+                    "/etc/pacman.conf",
+                ])
                 .status();
             let _ = Command::new("sudo").args(&["pacman", "-Sy"]).status();
         }
@@ -801,7 +786,7 @@ fn quick_setup_gamemode() {
     let _ = Command::new("sudo")
         .args(&["usermod", "-a", "-G", "gamemode", &username])
         .status();
-    
+
     let _ = Command::new("systemctl")
         .args(&["--user", "enable", "gamemode"])
         .status();
@@ -869,7 +854,7 @@ fn install_gaming_platforms() {
         ("Steam", vec!["steam", "lib32-libva", "lib32-libxss"]),
         ("Lutris", vec!["lutris", "wine", "winetricks"]),
         ("Heroic (Epic/GOG)", vec!["flatpak"]), // Special case
-        ("Bottles (Wine)", vec!["flatpak"]), // Special case
+        ("Bottles (Wine)", vec!["flatpak"]),    // Special case
         ("RetroArch", vec!["retroarch", "libretro-core-info"]),
         ("ScummVM", vec!["scummvm"]),
         ("DOSBox", vec!["dosbox"]),
@@ -932,7 +917,7 @@ fn install_graphics_drivers() {
     // Detect GPU
     let lspci_output = Command::new("lspci").args(&["-k"]).output();
     let mut detected_gpus = Vec::new();
-    
+
     if let Ok(output) = lspci_output {
         let lspci = String::from_utf8_lossy(&output.stdout);
         if lspci.contains("NVIDIA") {
@@ -949,15 +934,37 @@ fn install_graphics_drivers() {
     println!("🔍 Detected GPUs: {:?}", detected_gpus);
 
     let driver_options = [
-        ("NVIDIA Drivers", vec!["nvidia", "nvidia-utils", "lib32-nvidia-utils", "nvidia-settings"]),
-        ("AMD Drivers", vec!["vulkan-radeon", "lib32-vulkan-radeon", "libva-mesa-driver"]),
-        ("Intel Drivers", vec!["vulkan-intel", "lib32-vulkan-intel", "intel-media-driver"]),
-        ("Common Graphics Libraries", vec!["mesa", "lib32-mesa", "vulkan-tools", "glxinfo"]),
+        (
+            "NVIDIA Drivers",
+            vec![
+                "nvidia",
+                "nvidia-utils",
+                "lib32-nvidia-utils",
+                "nvidia-settings",
+            ],
+        ),
+        (
+            "AMD Drivers",
+            vec!["vulkan-radeon", "lib32-vulkan-radeon", "libva-mesa-driver"],
+        ),
+        (
+            "Intel Drivers",
+            vec!["vulkan-intel", "lib32-vulkan-intel", "intel-media-driver"],
+        ),
+        (
+            "Common Graphics Libraries",
+            vec!["mesa", "lib32-mesa", "vulkan-tools", "glxinfo"],
+        ),
     ];
 
     let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select drivers to install")
-        .items(&driver_options.iter().map(|(name, _)| *name).collect::<Vec<_>>())
+        .items(
+            &driver_options
+                .iter()
+                .map(|(name, _)| *name)
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
@@ -982,15 +989,39 @@ fn install_audio_systems() {
     println!("=============================");
 
     let audio_systems = [
-        ("PipeWire (Modern)", vec!["pipewire", "pipewire-pulse", "pipewire-alsa", "wireplumber", "lib32-pipewire"]),
-        ("PulseAudio (Traditional)", vec!["pulseaudio", "pulseaudio-alsa", "lib32-libpulse"]),
+        (
+            "PipeWire (Modern)",
+            vec![
+                "pipewire",
+                "pipewire-pulse",
+                "pipewire-alsa",
+                "wireplumber",
+                "lib32-pipewire",
+            ],
+        ),
+        (
+            "PulseAudio (Traditional)",
+            vec!["pulseaudio", "pulseaudio-alsa", "lib32-libpulse"],
+        ),
         ("JACK (Professional)", vec!["jack2", "qjackctl"]),
-        ("Gaming Audio Libraries", vec!["lib32-openal", "lib32-alsa-plugins", "lib32-gst-plugins-base-libs"]),
+        (
+            "Gaming Audio Libraries",
+            vec![
+                "lib32-openal",
+                "lib32-alsa-plugins",
+                "lib32-gst-plugins-base-libs",
+            ],
+        ),
     ];
 
     let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select audio systems to install")
-        .items(&audio_systems.iter().map(|(name, _)| *name).collect::<Vec<_>>())
+        .items(
+            &audio_systems
+                .iter()
+                .map(|(name, _)| *name)
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
@@ -1025,7 +1056,12 @@ fn install_performance_tools() {
 
     let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select performance tools to install")
-        .items(&performance_tools.iter().map(|(name, _)| *name).collect::<Vec<_>>())
+        .items(
+            &performance_tools
+                .iter()
+                .map(|(name, _)| *name)
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
@@ -1041,7 +1077,7 @@ fn install_performance_tools() {
         match status {
             Ok(s) if s.success() => {
                 println!("  ✅ {} installed", name);
-                
+
                 // Special setup for GameMode
                 if *name == "GameMode" {
                     let username = std::env::var("USER").unwrap_or_else(|_| "user".to_string());
@@ -1062,15 +1098,26 @@ fn install_monitoring_overlays() {
 
     let monitoring_tools = [
         ("MangoHud", vec!["mangohud", "lib32-mangohud"]),
-        ("GPU Monitoring", vec!["nvtop", "radeontop", "intel-gpu-tools"]),
-        ("System Monitoring", vec!["htop", "btop", "iotop", "nethogs"]),
+        (
+            "GPU Monitoring",
+            vec!["nvtop", "radeontop", "intel-gpu-tools"],
+        ),
+        (
+            "System Monitoring",
+            vec!["htop", "btop", "iotop", "nethogs"],
+        ),
         ("Temperature Monitoring", vec!["lm_sensors", "hddtemp"]),
         ("Network Monitoring", vec!["iftop", "bandwhich", "nload"]),
     ];
 
     let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select monitoring tools to install")
-        .items(&monitoring_tools.iter().map(|(name, _)| *name).collect::<Vec<_>>())
+        .items(
+            &monitoring_tools
+                .iter()
+                .map(|(name, _)| *name)
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
@@ -1086,7 +1133,7 @@ fn install_monitoring_overlays() {
         match status {
             Ok(s) if s.success() => {
                 println!("  ✅ {} installed", name);
-                
+
                 // Special setup for MangoHud
                 if *name == "MangoHud" {
                     create_mangohud_config();
@@ -1102,7 +1149,10 @@ fn install_controllers_input() {
     println!("====================================");
 
     let controller_tools = [
-        ("Controller Support", vec!["lib32-libusb", "jstest-gtk", "linuxconsole"]),
+        (
+            "Controller Support",
+            vec!["lib32-libusb", "jstest-gtk", "linuxconsole"],
+        ),
         ("Input Mapping", vec!["antimicrox", "xboxdrv"]),
         ("Steam Controller", vec!["steam-native-runtime"]),
         ("Bluetooth Support", vec!["bluez", "bluez-utils"]),
@@ -1110,7 +1160,12 @@ fn install_controllers_input() {
 
     let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select controller tools to install")
-        .items(&controller_tools.iter().map(|(name, _)| *name).collect::<Vec<_>>())
+        .items(
+            &controller_tools
+                .iter()
+                .map(|(name, _)| *name)
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
@@ -1138,13 +1193,21 @@ fn install_wine_compatibility() {
         ("Wine Base", vec!["wine", "winetricks"]),
         ("DirectX Translation", vec!["dxvk", "vkd3d"]),
         ("Windows Libraries", vec!["wine-mono", "wine-gecko"]),
-        ("Font Support", vec!["ttf-liberation", "ttf-dejavu", "noto-fonts"]),
+        (
+            "Font Support",
+            vec!["ttf-liberation", "ttf-dejavu", "noto-fonts"],
+        ),
         ("Additional Tools", vec!["zenity", "kdialog"]),
     ];
 
     let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Wine components to install")
-        .items(&wine_components.iter().map(|(name, _)| *name).collect::<Vec<_>>())
+        .items(
+            &wine_components
+                .iter()
+                .map(|(name, _)| *name)
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
@@ -1172,7 +1235,10 @@ fn install_development_tools() {
         ("Build Tools", vec!["base-devel", "git", "cmake", "ninja"]),
         ("Game Development", vec!["godot", "blender", "krita"]),
         ("Debugging Tools", vec!["gdb", "valgrind", "strace"]),
-        ("Performance Profiling", vec!["perf", "gperftools", "massif-visualizer"]),
+        (
+            "Performance Profiling",
+            vec!["perf", "gperftools", "massif-visualizer"],
+        ),
         ("Version Control", vec!["git", "git-lfs", "mercurial"]),
     ];
 
@@ -1205,7 +1271,7 @@ fn gaming_platform_setup() {
     let platform_setups = [
         "🚀 Steam Complete Setup",
         "🎯 Lutris Configuration",
-        "🏛️  Heroic Games Launcher Setup", 
+        "🏛️  Heroic Games Launcher Setup",
         "🍷 Bottles Configuration",
         "🕹️  RetroArch Setup",
         "⬅️  Back",
@@ -1239,7 +1305,7 @@ fn steam_complete_setup() {
         let steam_packages = [
             "steam",
             "lib32-libva",
-            "lib32-libxss", 
+            "lib32-libxss",
             "lib32-gst-plugins-base-libs",
         ];
 
@@ -1296,7 +1362,7 @@ fn install_protonup_qt() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "protonup-qt"])
                     .status();
-                
+
                 match install_status {
                     Ok(s) if s.success() => {
                         println!("  ✅ ProtonUp-Qt installed");
@@ -1341,13 +1407,15 @@ steam "$@"
 
     if std::fs::create_dir_all(&bin_dir).is_ok() {
         let script_path = bin_dir.join("steam-optimized");
-        
+
         use std::fs::File;
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&script_path) {
             if file.write_all(script_content.as_bytes()).is_ok() {
-                let _ = Command::new("chmod").args(&["+x", &script_path.to_string_lossy()]).status();
+                let _ = Command::new("chmod")
+                    .args(&["+x", &script_path.to_string_lossy()])
+                    .status();
                 println!("  ✅ Steam optimization script created");
                 println!("  💡 Use: ~/bin/steam-optimized to launch Steam with optimizations");
             }
@@ -1491,7 +1559,7 @@ fn bottles_configuration_setup() {
         match status {
             Ok(s) if s.success() => {
                 println!("✅ Bottles installed via Flatpak");
-                
+
                 println!("\n🍷 Bottles usage tips:");
                 println!("  • Create separate bottles for different games/apps");
                 println!("  • Use Gaming environment for games");
@@ -1528,7 +1596,7 @@ fn retroarch_setup() {
     match status {
         Ok(s) if s.success() => {
             println!("✅ RetroArch and cores installed");
-            
+
             println!("\n🕹️  RetroArch setup tips:");
             println!("  • Configure controllers in Settings > Input");
             println!("  • Set up directories for ROMs in Settings > Directory");
@@ -1595,7 +1663,10 @@ fn setup_cpu_performance() {
     let _ = Command::new("sudo")
         .arg("sh")
         .arg("-c")
-        .arg(&format!("echo '{}' > /etc/default/cpupower", cpupower_config))
+        .arg(&format!(
+            "echo '{}' > /etc/default/cpupower",
+            cpupower_config
+        ))
         .status();
 
     let _ = Command::new("sudo")
@@ -1621,7 +1692,10 @@ fn setup_memory_management() {
     let _ = Command::new("sudo")
         .arg("sh")
         .arg("-c")
-        .arg(&format!("echo '{}' > /etc/sysctl.d/99-gaming.conf", sysctl_config))
+        .arg(&format!(
+            "echo '{}' > /etc/sysctl.d/99-gaming.conf",
+            sysctl_config
+        ))
         .status();
 
     // Install zram if wanted
@@ -1635,12 +1709,15 @@ fn setup_memory_management() {
         let _ = Command::new("sudo")
             .args(&["pacman", "-S", "--needed", "--noconfirm", "zram-generator"])
             .status();
-        
+
         let zram_config = "[zram0]\nzram-size = ram / 2\ncompression-algorithm = lz4\n";
         let _ = Command::new("sudo")
             .arg("sh")
             .arg("-c")
-            .arg(&format!("echo '{}' > /etc/systemd/zram-generator.conf", zram_config))
+            .arg(&format!(
+                "echo '{}' > /etc/systemd/zram-generator.conf",
+                zram_config
+            ))
             .status();
     }
 
@@ -1653,7 +1730,7 @@ fn setup_storage_optimization() {
 
     // Set I/O scheduler
     println!("🚀 Configuring I/O scheduler for gaming...");
-    
+
     // For NVMe drives, use none; for others, use kyber
     let scheduler_script = r#"#!/bin/bash
 for dev in /sys/block/*/queue/scheduler; do
@@ -1668,7 +1745,8 @@ done
 "#;
 
     let script_path = "/etc/systemd/system/gaming-io-scheduler.service";
-    let service_content = format!(r#"[Unit]
+    let service_content = format!(
+        r#"[Unit]
 Description=Gaming I/O Scheduler
 After=multi-user.target
 
@@ -1679,7 +1757,9 @@ RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
-"#, scheduler_script.replace('\n', "\\n"));
+"#,
+        scheduler_script.replace('\n', "\\n")
+    );
 
     let _ = Command::new("sudo")
         .arg("sh")
@@ -1707,7 +1787,7 @@ fn setup_thermal_management() {
         .status();
 
     println!("🔧 Run 'sudo sensors-detect' to configure sensors");
-    
+
     // Install fan control if wanted
     let install_fancontrol = Confirm::new()
         .with_prompt("Setup fancontrol for custom fan curves?")
@@ -1728,7 +1808,7 @@ fn setup_power_management() {
     println!("========================");
 
     println!("🔋 Power management configuration for gaming:");
-    
+
     // Disable CPU power saving for gaming
     let _power_config = r#"# Disable CPU idle states for gaming performance
 for state in /sys/devices/system/cpu/cpu*/cpuidle/state*/disable; do
@@ -1823,13 +1903,15 @@ echo "💡 Start your games now for best performance"
 
     if std::fs::create_dir_all(&profiles_dir).is_ok() {
         let script_path = profiles_dir.join("gaming-ultimate.sh");
-        
+
         use std::fs::File;
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&script_path) {
             if file.write_all(gaming_script.as_bytes()).is_ok() {
-                let _ = Command::new("chmod").args(&["+x", &script_path.to_string_lossy()]).status();
+                let _ = Command::new("chmod")
+                    .args(&["+x", &script_path.to_string_lossy()])
+                    .status();
                 println!("✅ Ultimate gaming optimization script created");
                 println!("💡 Run: ~/.config/ghostctl/profiles/gaming-ultimate.sh");
             }
@@ -1892,13 +1974,15 @@ echo "💡 Remember to re-enable compositor after gaming"
 
     if std::fs::create_dir_all(&profiles_dir).is_ok() {
         let script_path = profiles_dir.join("display-gaming.sh");
-        
+
         use std::fs::File;
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&script_path) {
             if file.write_all(display_script.as_bytes()).is_ok() {
-                let _ = Command::new("chmod").args(&["+x", &script_path.to_string_lossy()]).status();
+                let _ = Command::new("chmod")
+                    .args(&["+x", &script_path.to_string_lossy()])
+                    .status();
                 println!("✅ Display gaming optimization script created");
             }
         }
@@ -1947,13 +2031,15 @@ echo "✅ Audio optimized for gaming!"
 
     if std::fs::create_dir_all(&profiles_dir).is_ok() {
         let script_path = profiles_dir.join("audio-gaming.sh");
-        
+
         use std::fs::File;
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&script_path) {
             if file.write_all(audio_script.as_bytes()).is_ok() {
-                let _ = Command::new("chmod").args(&["+x", &script_path.to_string_lossy()]).status();
+                let _ = Command::new("chmod")
+                    .args(&["+x", &script_path.to_string_lossy()])
+                    .status();
                 println!("✅ Gaming audio optimization script created");
             }
         }
@@ -1990,7 +2076,7 @@ fn test_controller_setup() {
     // List connected controllers
     println!("🔍 Detecting connected controllers...");
     let js_output = Command::new("ls").arg("/dev/input/js*").output();
-    
+
     match js_output {
         Ok(output) if !output.stdout.is_empty() => {
             let controllers = String::from_utf8_lossy(&output.stdout);
@@ -2054,13 +2140,15 @@ fi
 
     if std::fs::create_dir_all(&bin_dir).is_ok() {
         let script_path = bin_dir.join("gaming-monitor");
-        
+
         use std::fs::File;
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&script_path) {
             if file.write_all(monitoring_script.as_bytes()).is_ok() {
-                let _ = Command::new("chmod").args(&["+x", &script_path.to_string_lossy()]).status();
+                let _ = Command::new("chmod")
+                    .args(&["+x", &script_path.to_string_lossy()])
+                    .status();
                 println!("✅ Gaming monitoring dashboard script created");
                 println!("💡 Run: ~/bin/gaming-monitor");
             }
@@ -2105,27 +2193,29 @@ fn system_diagnostics() {
     println!("=====================");
 
     println!("🔍 Running system diagnostics...");
-    
+
     // System information
     println!("\n💻 System Information:");
     let _ = Command::new("uname").arg("-a").status();
-    
+
     // Memory status
     println!("\n💾 Memory Status:");
     let _ = Command::new("free").arg("-h").status();
-    
+
     // Disk space
     println!("\n💿 Disk Space:");
     let _ = Command::new("df").arg("-h").status();
-    
+
     // CPU information
     println!("\n🖥️  CPU Information:");
     let _ = Command::new("lscpu").status();
-    
+
     // Graphics information
     println!("\n🎨 Graphics Information:");
-    let _ = Command::new("lspci").args(&["|", "grep", "-i", "vga"]).status();
-    
+    let _ = Command::new("lspci")
+        .args(&["|", "grep", "-i", "vga"])
+        .status();
+
     println!("\n✅ System diagnostics complete");
 }
 
@@ -2135,7 +2225,7 @@ fn gaming_platform_repair() {
 
     let repair_options = [
         "🚀 Steam Issues",
-        "🎯 Lutris Problems", 
+        "🎯 Lutris Problems",
         "🍷 Wine/Proton Issues",
         "🏛️  Heroic Launcher Problems",
         "⬅️  Back",
@@ -2182,7 +2272,9 @@ fn repair_steam_issues() {
             let cache_path = std::env::home_dir()
                 .map(|h| h.join(".steam/steam/appcache"))
                 .unwrap_or_else(|| std::path::PathBuf::from("~/.steam/steam/appcache"));
-            let _ = Command::new("rm").args(&["-rf", &cache_path.to_string_lossy()]).status();
+            let _ = Command::new("rm")
+                .args(&["-rf", &cache_path.to_string_lossy()])
+                .status();
             println!("✅ Steam cache cleared");
         }
         1 => {
@@ -2190,7 +2282,9 @@ fn repair_steam_issues() {
             let runtime_path = std::env::home_dir()
                 .map(|h| h.join(".steam/steam/ubuntu12_32"))
                 .unwrap_or_else(|| std::path::PathBuf::from("~/.steam/steam/ubuntu12_32"));
-            let _ = Command::new("rm").args(&["-rf", &runtime_path.to_string_lossy()]).status();
+            let _ = Command::new("rm")
+                .args(&["-rf", &runtime_path.to_string_lossy()])
+                .status();
             println!("✅ Steam runtime reset - restart Steam to rebuild");
         }
         2 => {
@@ -2198,7 +2292,9 @@ fn repair_steam_issues() {
             let steam_path = std::env::home_dir()
                 .map(|h| h.join(".steam"))
                 .unwrap_or_else(|| std::path::PathBuf::from("~/.steam"));
-            let _ = Command::new("chmod").args(&["-R", "755", &steam_path.to_string_lossy()]).status();
+            let _ = Command::new("chmod")
+                .args(&["-R", "755", &steam_path.to_string_lossy()])
+                .status();
             println!("✅ Steam permissions fixed");
         }
         _ => return,
@@ -2226,7 +2322,9 @@ fn repair_lutris_problems() {
         let lutris_cache = std::env::home_dir()
             .map(|h| h.join(".cache/lutris"))
             .unwrap_or_else(|| std::path::PathBuf::from("~/.cache/lutris"));
-        let _ = Command::new("rm").args(&["-rf", &lutris_cache.to_string_lossy()]).status();
+        let _ = Command::new("rm")
+            .args(&["-rf", &lutris_cache.to_string_lossy()])
+            .status();
 
         println!("✅ Lutris common fixes applied");
     }
@@ -2268,7 +2366,9 @@ fn repair_wine_proton() {
                 let wine_prefix = std::env::home_dir()
                     .map(|h| h.join(".wine"))
                     .unwrap_or_else(|| std::path::PathBuf::from("~/.wine"));
-                let _ = Command::new("rm").args(&["-rf", &wine_prefix.to_string_lossy()]).status();
+                let _ = Command::new("rm")
+                    .args(&["-rf", &wine_prefix.to_string_lossy()])
+                    .status();
                 println!("✅ Wine prefix reset");
             }
         }
@@ -2276,7 +2376,9 @@ fn repair_wine_proton() {
             let wine_cache = std::env::home_dir()
                 .map(|h| h.join(".cache/wine"))
                 .unwrap_or_else(|| std::path::PathBuf::from("~/.cache/wine"));
-            let _ = Command::new("rm").args(&["-rf", &wine_cache.to_string_lossy()]).status();
+            let _ = Command::new("rm")
+                .args(&["-rf", &wine_cache.to_string_lossy()])
+                .status();
             println!("✅ Wine cache cleared");
         }
         2 => {
@@ -2311,7 +2413,7 @@ fn graphics_driver_issues() {
     let lspci_output = Command::new("lspci").output();
     if let Ok(output) = lspci_output {
         let lspci = String::from_utf8_lossy(&output.stdout);
-        
+
         if lspci.contains("NVIDIA") {
             println!("🟢 NVIDIA GPU detected");
             diagnose_nvidia_issues();
@@ -2348,7 +2450,14 @@ fn diagnose_nvidia_issues() {
 
             if reinstall {
                 let _ = Command::new("sudo")
-                    .args(&["pacman", "-S", "--needed", "--noconfirm", "nvidia", "nvidia-utils"])
+                    .args(&[
+                        "pacman",
+                        "-S",
+                        "--needed",
+                        "--noconfirm",
+                        "nvidia",
+                        "nvidia-utils",
+                    ])
                     .status();
                 println!("🔄 Reboot required after driver installation");
             }
@@ -2377,7 +2486,7 @@ fn diagnose_intel_issues() {
 
     println!("💡 Intel graphics are usually well-supported");
     println!("🔧 Ensure mesa and vulkan-intel are installed");
-    
+
     let install_intel = Confirm::new()
         .with_prompt("Install Intel graphics packages?")
         .default(true)
@@ -2386,7 +2495,15 @@ fn diagnose_intel_issues() {
 
     if install_intel {
         let _ = Command::new("sudo")
-            .args(&["pacman", "-S", "--needed", "--noconfirm", "mesa", "vulkan-intel", "intel-media-driver"])
+            .args(&[
+                "pacman",
+                "-S",
+                "--needed",
+                "--noconfirm",
+                "mesa",
+                "vulkan-intel",
+                "intel-media-driver",
+            ])
             .status();
     }
 }
@@ -2396,10 +2513,16 @@ fn audio_problems() {
     println!("===========================");
 
     // Check audio system
-    let pipewire_running = Command::new("pgrep").arg("pipewire").status()
-        .map(|s| s.success()).unwrap_or(false);
-    let pulse_running = Command::new("pgrep").arg("pulseaudio").status()
-        .map(|s| s.success()).unwrap_or(false);
+    let pipewire_running = Command::new("pgrep")
+        .arg("pipewire")
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    let pulse_running = Command::new("pgrep")
+        .arg("pulseaudio")
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
 
     if pipewire_running {
         println!("🎵 PipeWire detected");
@@ -2418,8 +2541,10 @@ fn diagnose_pipewire_issues() {
     println!("=======================");
 
     // Check PipeWire status
-    let _ = Command::new("systemctl").args(&["--user", "status", "pipewire"]).status();
-    
+    let _ = Command::new("systemctl")
+        .args(&["--user", "status", "pipewire"])
+        .status();
+
     println!("\n🔧 Common PipeWire fixes:");
     println!("  • Restart PipeWire services");
     println!("  • Install lib32-pipewire for 32-bit games");
@@ -2432,8 +2557,12 @@ fn diagnose_pipewire_issues() {
         .unwrap();
 
     if restart_pipewire {
-        let _ = Command::new("systemctl").args(&["--user", "restart", "pipewire"]).status();
-        let _ = Command::new("systemctl").args(&["--user", "restart", "pipewire-pulse"]).status();
+        let _ = Command::new("systemctl")
+            .args(&["--user", "restart", "pipewire"])
+            .status();
+        let _ = Command::new("systemctl")
+            .args(&["--user", "restart", "pipewire-pulse"])
+            .status();
         println!("✅ PipeWire services restarted");
     }
 }
@@ -2444,7 +2573,7 @@ fn diagnose_pulseaudio_issues() {
 
     // Check PulseAudio status
     let _ = Command::new("pulseaudio").arg("--check").status();
-    
+
     println!("\n🔧 Common PulseAudio fixes:");
     println!("  • Restart PulseAudio");
     println!("  • Install lib32-libpulse for 32-bit games");
@@ -2477,8 +2606,11 @@ fn install_audio_system() {
     match audio_choice {
         0 => {
             let pipewire_packages = [
-                "pipewire", "pipewire-pulse", "pipewire-alsa", 
-                "wireplumber", "lib32-pipewire"
+                "pipewire",
+                "pipewire-pulse",
+                "pipewire-alsa",
+                "wireplumber",
+                "lib32-pipewire",
             ];
             let _ = Command::new("sudo")
                 .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -2506,9 +2638,12 @@ fn controller_issues() {
     println!("🔍 Checking for controller devices...");
     let js_devices = std::fs::read_dir("/dev/input/")
         .map(|entries| {
-            entries.filter_map(|entry| entry.ok())
+            entries
+                .filter_map(|entry| entry.ok())
                 .filter(|entry| {
-                    entry.file_name().to_str()
+                    entry
+                        .file_name()
+                        .to_str()
                         .map_or(false, |name| name.starts_with("js"))
                 })
                 .count()
@@ -2517,7 +2652,7 @@ fn controller_issues() {
 
     if js_devices > 0 {
         println!("✅ Found {} controller device(s)", js_devices);
-        
+
         let test_controller = Confirm::new()
             .with_prompt("Test controller input?")
             .default(true)
@@ -2562,12 +2697,12 @@ fn performance_problems() {
     let governor_output = Command::new("cat")
         .arg("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
         .output();
-    
+
     if let Ok(output) = governor_output {
         let governor_text = String::from_utf8_lossy(&output.stdout);
         let governor = governor_text.trim();
         println!("⚡ CPU governor: {}", governor);
-        
+
         if governor != "performance" {
             println!("💡 Consider switching to 'performance' governor for gaming");
         }
@@ -2618,7 +2753,7 @@ fn gaming_setup_status() {
     println!("======================");
 
     println!("🎮 Gaming Platform Status:");
-    
+
     // Check Steam
     let steam_check = Command::new("which").arg("steam").status();
     match steam_check {
@@ -2641,7 +2776,7 @@ fn gaming_setup_status() {
     }
 
     println!("\n⚡ Performance Tools Status:");
-    
+
     // Check GameMode
     let gamemode_check = Command::new("which").arg("gamemoderun").status();
     match gamemode_check {
@@ -2657,7 +2792,7 @@ fn gaming_setup_status() {
     }
 
     println!("\n🎨 Graphics Status:");
-    
+
     // Check graphics drivers
     let lspci_output = Command::new("lspci").output();
     if let Ok(output) = lspci_output {
@@ -2685,12 +2820,18 @@ fn gaming_setup_status() {
     }
 
     println!("\n🔊 Audio Status:");
-    
+
     // Check audio system
-    let pipewire_running = Command::new("pgrep").arg("pipewire").status()
-        .map(|s| s.success()).unwrap_or(false);
-    let pulse_running = Command::new("pgrep").arg("pulseaudio").status()
-        .map(|s| s.success()).unwrap_or(false);
+    let pipewire_running = Command::new("pgrep")
+        .arg("pipewire")
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    let pulse_running = Command::new("pgrep")
+        .arg("pulseaudio")
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
 
     if pipewire_running {
         println!("  ✅ PipeWire running");
@@ -2701,13 +2842,16 @@ fn gaming_setup_status() {
     }
 
     println!("\n🎛️  Controller Status:");
-    
+
     // Check controller support
     let js_devices = std::fs::read_dir("/dev/input/")
         .map(|entries| {
-            entries.filter_map(|entry| entry.ok())
+            entries
+                .filter_map(|entry| entry.ok())
                 .filter(|entry| {
-                    entry.file_name().to_str()
+                    entry
+                        .file_name()
+                        .to_str()
                         .map_or(false, |name| name.starts_with("js"))
                 })
                 .count()
@@ -2721,12 +2865,12 @@ fn gaming_setup_status() {
     }
 
     println!("\n📊 System Optimization Status:");
-    
+
     // Check CPU governor
     let governor_output = Command::new("cat")
         .arg("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
         .output();
-    
+
     if let Ok(output) = governor_output {
         let governor_text = String::from_utf8_lossy(&output.stdout);
         let governor = governor_text.trim();

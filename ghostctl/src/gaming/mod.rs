@@ -1,17 +1,17 @@
 pub mod environment;
 pub mod graphics;
+pub mod lutris;
+pub mod management;
 pub mod monitoring;
 pub mod performance;
 pub mod platforms;
+pub mod proton;
 pub mod setup;
 pub mod steam;
-pub mod proton;
-pub mod management;
 pub mod wine_prefix;
-pub mod lutris;
 pub mod wine_tools;
 
-use dialoguer::{Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Select};
 
 pub fn gaming_menu() {
     loop {
@@ -58,7 +58,7 @@ pub fn gaming_menu() {
                     1 => proton::proton_menu(),
                     _ => {}
                 }
-            },
+            }
             1 => wine_prefix::wine_prefix_menu(),
             2 => lutris::lutris_menu(),
             3 => wine_tools::wine_tools_menu(),
@@ -77,7 +77,7 @@ pub fn gaming_menu() {
 pub fn gaming_status() {
     println!("🎮 Gaming System Status");
     println!("======================");
-    
+
     // Check multilib
     println!("📦 Checking multilib repository...");
     let output = std::process::Command::new("grep")
@@ -124,7 +124,7 @@ pub fn gaming_status() {
                     let output_string = String::from_utf8_lossy(&out.stdout);
                     println!("  📋 Version: {}", output_string.trim());
                 }
-                _ => {},
+                _ => {}
             }
         }
         _ => println!("  ❌ Wine not installed"),
@@ -132,7 +132,9 @@ pub fn gaming_status() {
 
     // Check GameMode
     println!("\n⚡ GameMode Status:");
-    let status = std::process::Command::new("which").arg("gamemoderun").status();
+    let status = std::process::Command::new("which")
+        .arg("gamemoderun")
+        .status();
     match status {
         Ok(s) if s.success() => {
             println!("  ✅ GameMode installed");
@@ -169,7 +171,9 @@ pub fn gaming_status() {
             }
             if lspci.contains("AMD") || lspci.contains("Radeon") {
                 println!("  🔴 AMD GPU detected");
-                let amd_status = std::process::Command::new("glxinfo").args(&["|", "grep", "Radeon"]).status();
+                let amd_status = std::process::Command::new("glxinfo")
+                    .args(&["|", "grep", "Radeon"])
+                    .status();
                 match amd_status {
                     Ok(s) if s.success() => println!("  ✅ AMD drivers working"),
                     _ => println!("  ⚠️  AMD driver status unclear"),
@@ -184,7 +188,9 @@ pub fn gaming_status() {
 
     // Check Vulkan
     println!("\n🌋 Vulkan Status:");
-    let status = std::process::Command::new("vulkaninfo").args(&["--summary"]).status();
+    let status = std::process::Command::new("vulkaninfo")
+        .args(&["--summary"])
+        .status();
     match status {
         Ok(s) if s.success() => println!("  ✅ Vulkan working"),
         _ => println!("  ❌ Vulkan not working or not installed"),

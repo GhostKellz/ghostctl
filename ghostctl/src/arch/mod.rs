@@ -12,7 +12,7 @@ pub mod services;
 pub mod swap;
 pub mod sysadmin;
 
-use dialoguer::{Input, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Input, Select};
 
 pub fn arch_menu() {
     loop {

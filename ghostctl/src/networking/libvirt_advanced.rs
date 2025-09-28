@@ -1,8 +1,8 @@
-use dialoguer::{Select, Input, Confirm, theme::ColorfulTheme, MultiSelect};
-use std::process::Command;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use serde_json;
 use std::fs;
 use std::path::Path;
-use serde_json;
+use std::process::Command;
 
 pub fn libvirt_advanced_menu() {
     loop {
@@ -79,9 +79,7 @@ fn list_vm_interfaces() {
     println!("========================");
 
     // Get list of all VMs
-    let output = Command::new("virsh")
-        .args(&["list", "--all"])
-        .output();
+    let output = Command::new("virsh").args(&["list", "--all"]).output();
 
     match output {
         Ok(out) => {
@@ -89,7 +87,8 @@ fn list_vm_interfaces() {
 
             // Parse VM names
             let mut vms = Vec::new();
-            for line in vm_list.lines().skip(2) { // Skip header lines
+            for line in vm_list.lines().skip(2) {
+                // Skip header lines
                 if !line.trim().is_empty() && !line.contains("---") {
                     let parts: Vec<&str> = line.split_whitespace().collect();
                     if parts.len() >= 2 {
@@ -107,9 +106,7 @@ fn list_vm_interfaces() {
                 println!("\n🖥️ VM: {}", vm);
 
                 // Get network interfaces for this VM
-                let domiflist_output = Command::new("virsh")
-                    .args(&["domiflist", vm])
-                    .output();
+                let domiflist_output = Command::new("virsh").args(&["domiflist", vm]).output();
 
                 match domiflist_output {
                     Ok(iface_out) => {
@@ -154,9 +151,7 @@ fn list_vm_interfaces() {
 
 fn get_interface_details(vm: &str, interface: &str) {
     // Get detailed interface information
-    let output = Command::new("virsh")
-        .args(&["domifaddr", vm])
-        .output();
+    let output = Command::new("virsh").args(&["domifaddr", vm]).output();
 
     if let Ok(out) = output {
         let addr_info = String::from_utf8_lossy(&out.stdout);
@@ -194,9 +189,7 @@ fn get_interface_details(vm: &str, interface: &str) {
 
 fn show_bridge_networks() {
     // Show system bridge interfaces
-    let output = Command::new("brctl")
-        .arg("show")
-        .output();
+    let output = Command::new("brctl").arg("show").output();
 
     if let Ok(out) = output {
         let bridges = String::from_utf8_lossy(&out.stdout);
@@ -208,9 +201,7 @@ fn show_bridge_networks() {
     }
 
     // Show libvirt networks
-    let libvirt_nets = Command::new("virsh")
-        .args(&["net-list", "--all"])
-        .output();
+    let libvirt_nets = Command::new("virsh").args(&["net-list", "--all"]).output();
 
     if let Ok(net_out) = libvirt_nets {
         let networks = String::from_utf8_lossy(&net_out.stdout);
@@ -232,12 +223,12 @@ fn attach_network_interface() {
         .unwrap();
 
     // Verify VM exists
-    let vm_check = Command::new("virsh")
-        .args(&["domstate", &vm_name])
-        .output();
+    let vm_check = Command::new("virsh").args(&["domstate", &vm_name]).output();
 
     if let Ok(state_out) = vm_check {
-        let state = String::from_utf8_lossy(&state_out.stdout).trim().to_string();
+        let state = String::from_utf8_lossy(&state_out.stdout)
+            .trim()
+            .to_string();
         println!("VM State: {}", state);
 
         if state.contains("error") {
@@ -356,12 +347,12 @@ fn attach_network_interface() {
         }
 
         // Check if VM is running for live attach
-        let vm_state = Command::new("virsh")
-            .args(&["domstate", &vm_name])
-            .output();
+        let vm_state = Command::new("virsh").args(&["domstate", &vm_name]).output();
 
         let is_running = if let Ok(state_out) = vm_state {
-            String::from_utf8_lossy(&state_out.stdout).trim().contains("running")
+            String::from_utf8_lossy(&state_out.stdout)
+                .trim()
+                .contains("running")
         } else {
             false
         };
@@ -396,9 +387,7 @@ fn attach_network_interface() {
 fn get_available_bridges() -> Vec<String> {
     let mut bridges = Vec::new();
 
-    let output = Command::new("brctl")
-        .arg("show")
-        .output();
+    let output = Command::new("brctl").arg("show").output();
 
     if let Ok(out) = output {
         let bridge_output = String::from_utf8_lossy(&out.stdout);
@@ -437,9 +426,7 @@ fn get_available_bridges() -> Vec<String> {
 fn get_libvirt_networks() -> Vec<String> {
     let mut networks = Vec::new();
 
-    let output = Command::new("virsh")
-        .args(&["net-list", "--all"])
-        .output();
+    let output = Command::new("virsh").args(&["net-list", "--all"]).output();
 
     if let Ok(out) = output {
         let network_output = String::from_utf8_lossy(&out.stdout);
@@ -466,7 +453,8 @@ fn generate_random_mac() -> String {
         .as_nanos() as u64;
 
     // Generate MAC with libvirt prefix 52:54:00
-    format!("52:54:00:{:02x}:{:02x}:{:02x}",
+    format!(
+        "52:54:00:{:02x}:{:02x}:{:02x}",
         (now >> 16) & 0xff,
         (now >> 8) & 0xff,
         now & 0xff
@@ -475,30 +463,45 @@ fn generate_random_mac() -> String {
 
 fn build_interface_xml(iface_type: &str, source: &str, model: &str, mac: &str) -> String {
     match iface_type {
-        "bridge" => format!(r#"<interface type='bridge'>
+        "bridge" => format!(
+            r#"<interface type='bridge'>
   <mac address='{}'/>
   <source bridge='{}'/>
   <model type='{}'/>
-</interface>"#, mac, source, model),
-        "network" => format!(r#"<interface type='network'>
+</interface>"#,
+            mac, source, model
+        ),
+        "network" => format!(
+            r#"<interface type='network'>
   <mac address='{}'/>
   <source network='{}'/>
   <model type='{}'/>
-</interface>"#, mac, source, model),
-        "direct" => format!(r#"<interface type='direct'>
+</interface>"#,
+            mac, source, model
+        ),
+        "direct" => format!(
+            r#"<interface type='direct'>
   <mac address='{}'/>
   <source dev='{}' mode='bridge'/>
   <model type='{}'/>
-</interface>"#, mac, source, model),
-        "user" => format!(r#"<interface type='user'>
+</interface>"#,
+            mac, source, model
+        ),
+        "user" => format!(
+            r#"<interface type='user'>
   <mac address='{}'/>
   <model type='{}'/>
-</interface>"#, mac, model),
-        _ => format!(r#"<interface type='bridge'>
+</interface>"#,
+            mac, model
+        ),
+        _ => format!(
+            r#"<interface type='bridge'>
   <mac address='{}'/>
   <source bridge='virbr0'/>
   <model type='{}'/>
-</interface>"#, mac, model),
+</interface>"#,
+            mac, model
+        ),
     }
 }
 
@@ -557,16 +560,22 @@ fn detach_network_interface() {
     }
 
     let confirm = Confirm::with_theme(&ColorfulTheme::default())
-        .with_prompt(format!("Detach interface {} (MAC: {})?", interface_name, mac_addr))
+        .with_prompt(format!(
+            "Detach interface {} (MAC: {})?",
+            interface_name, mac_addr
+        ))
         .default(false)
         .interact()
         .unwrap();
 
     if confirm {
         // Create minimal XML for detach
-        let detach_xml = format!(r#"<interface type='bridge'>
+        let detach_xml = format!(
+            r#"<interface type='bridge'>
   <mac address='{}'/>
-</interface>"#, mac_addr);
+</interface>"#,
+            mac_addr
+        );
 
         let temp_file = "/tmp/detach_interface.xml";
         if let Err(_) = fs::write(temp_file, &detach_xml) {
@@ -575,12 +584,12 @@ fn detach_network_interface() {
         }
 
         // Check if VM is running
-        let vm_state = Command::new("virsh")
-            .args(&["domstate", &vm_name])
-            .output();
+        let vm_state = Command::new("virsh").args(&["domstate", &vm_name]).output();
 
         let is_running = if let Ok(state_out) = vm_state {
-            String::from_utf8_lossy(&state_out.stdout).trim().contains("running")
+            String::from_utf8_lossy(&state_out.stdout)
+                .trim()
+                .contains("running")
         } else {
             false
         };
@@ -605,9 +614,7 @@ fn detach_network_interface() {
 }
 
 fn get_interface_mac(vm_name: &str, interface: &str) -> String {
-    let output = Command::new("virsh")
-        .args(&["domifaddr", vm_name])
-        .output();
+    let output = Command::new("virsh").args(&["domifaddr", vm_name]).output();
 
     if let Ok(out) = output {
         let addr_info = String::from_utf8_lossy(&out.stdout);
@@ -696,9 +703,7 @@ fn modify_bandwidth_limits(vm_name: &str) {
 fn get_vm_interfaces(vm_name: &str) -> Vec<String> {
     let mut interfaces = Vec::new();
 
-    let output = Command::new("virsh")
-        .args(&["domiflist", vm_name])
-        .output();
+    let output = Command::new("virsh").args(&["domiflist", vm_name]).output();
 
     if let Ok(out) = output {
         let interface_list = String::from_utf8_lossy(&out.stdout);
@@ -852,12 +857,12 @@ fn interface_troubleshooting() {
     println!("\n🔍 Running diagnostics for VM: {}", vm_name);
 
     // Check VM state
-    let state_output = Command::new("virsh")
-        .args(&["domstate", &vm_name])
-        .output();
+    let state_output = Command::new("virsh").args(&["domstate", &vm_name]).output();
 
     if let Ok(state_out) = state_output {
-        let state = String::from_utf8_lossy(&state_out.stdout).trim().to_string();
+        let state = String::from_utf8_lossy(&state_out.stdout)
+            .trim()
+            .to_string();
         println!("📊 VM State: {}", state);
 
         if state.contains("shut off") {
@@ -895,13 +900,13 @@ fn interface_troubleshooting() {
                         // Check source availability
                         match iface_type {
                             "bridge" => {
-                                let bridge_check = Command::new("brctl")
-                                    .args(&["show", source])
-                                    .output();
+                                let bridge_check =
+                                    Command::new("brctl").args(&["show", source]).output();
 
                                 match bridge_check {
                                     Ok(bridge_out) => {
-                                        let bridge_info = String::from_utf8_lossy(&bridge_out.stdout);
+                                        let bridge_info =
+                                            String::from_utf8_lossy(&bridge_out.stdout);
                                         if !bridge_info.contains("No such device") {
                                             println!("    ✅ Bridge {} exists", source);
                                         } else {
@@ -928,9 +933,8 @@ fn interface_troubleshooting() {
                                 }
                             }
                             "network" => {
-                                let net_check = Command::new("virsh")
-                                    .args(&["net-info", source])
-                                    .output();
+                                let net_check =
+                                    Command::new("virsh").args(&["net-info", source]).output();
 
                                 match net_check {
                                     Ok(net_out) => {
@@ -948,7 +952,10 @@ fn interface_troubleshooting() {
                                     Err(_) => println!("    ❓ Cannot verify network status"),
                                 }
                             }
-                            _ => println!("    ℹ️ Interface type {} - manual verification needed", iface_type),
+                            _ => println!(
+                                "    ℹ️ Interface type {} - manual verification needed",
+                                iface_type
+                            ),
                         }
 
                         // Check for IP address
@@ -962,7 +969,8 @@ fn interface_troubleshooting() {
 
                             for addr_line in addr_info.lines() {
                                 if addr_line.contains(interface) {
-                                    let addr_parts: Vec<&str> = addr_line.split_whitespace().collect();
+                                    let addr_parts: Vec<&str> =
+                                        addr_line.split_whitespace().collect();
                                     if addr_parts.len() >= 4 {
                                         println!("    📍 IP Address: {}", addr_parts[3]);
                                         found_ip = true;
@@ -983,7 +991,10 @@ fn interface_troubleshooting() {
 
     // Check general network connectivity if VM is running
     println!("\n🌐 Network Connectivity Test:");
-    println!("ℹ️ Use 'virsh console {}' to access VM and test connectivity", vm_name);
+    println!(
+        "ℹ️ Use 'virsh console {}' to access VM and test connectivity",
+        vm_name
+    );
 }
 
 fn mac_address_management() {
@@ -1017,9 +1028,7 @@ fn mac_address_management() {
 fn view_mac_addresses() {
     println!("📋 View MAC Addresses");
 
-    let output = Command::new("virsh")
-        .args(&["list", "--all"])
-        .output();
+    let output = Command::new("virsh").args(&["list", "--all"]).output();
 
     if let Ok(out) = output {
         let vm_list = String::from_utf8_lossy(&out.stdout);
@@ -1031,9 +1040,7 @@ fn view_mac_addresses() {
                     let vm_name = parts[1];
                     println!("\n🖥️ VM: {}", vm_name);
 
-                    let addr_output = Command::new("virsh")
-                        .args(&["domifaddr", vm_name])
-                        .output();
+                    let addr_output = Command::new("virsh").args(&["domifaddr", vm_name]).output();
 
                     if let Ok(addr_out) = addr_output {
                         let addr_info = String::from_utf8_lossy(&addr_out.stdout);
@@ -1042,8 +1049,10 @@ fn view_mac_addresses() {
                             if !addr_line.trim().is_empty() && !addr_line.contains("---") {
                                 let addr_parts: Vec<&str> = addr_line.split_whitespace().collect();
                                 if addr_parts.len() >= 2 {
-                                    println!("  🔌 Interface: {} - MAC: {}",
-                                        addr_parts[0], addr_parts[1]);
+                                    println!(
+                                        "  🔌 Interface: {} - MAC: {}",
+                                        addr_parts[0], addr_parts[1]
+                                    );
                                 }
                             }
                         }
@@ -1108,9 +1117,7 @@ fn generate_new_mac() {
                         .args(&["--clipboard"])
                         .arg(&mac)
                         .status(),
-                    "wl-copy" => Command::new("wl-copy")
-                        .arg(&mac)
-                        .status(),
+                    "wl-copy" => Command::new("wl-copy").arg(&mac).status(),
                     _ => continue,
                 };
 
@@ -1133,7 +1140,8 @@ fn generate_vmware_mac() -> String {
         .unwrap()
         .as_nanos() as u64;
 
-    format!("00:50:56:{:02x}:{:02x}:{:02x}",
+    format!(
+        "00:50:56:{:02x}:{:02x}:{:02x}",
         (now >> 16) & 0xff,
         (now >> 8) & 0xff,
         now & 0xff
@@ -1148,7 +1156,8 @@ fn generate_virtualbox_mac() -> String {
         .unwrap()
         .as_nanos() as u64;
 
-    format!("08:00:27:{:02x}:{:02x}:{:02x}",
+    format!(
+        "08:00:27:{:02x}:{:02x}:{:02x}",
         (now >> 16) & 0xff,
         (now >> 8) & 0xff,
         now & 0xff
@@ -1165,7 +1174,8 @@ fn generate_custom_mac(prefix: &str) -> String {
 
     let parts: Vec<&str> = prefix.split(':').collect();
     if parts.len() >= 3 {
-        format!("{}:{:02x}:{:02x}:{:02x}",
+        format!(
+            "{}:{:02x}:{:02x}:{:02x}",
             prefix,
             (now >> 16) & 0xff,
             (now >> 8) & 0xff,
@@ -1188,9 +1198,7 @@ fn find_mac_conflicts() {
     let mut mac_addresses = Vec::new();
 
     // Collect all MAC addresses from all VMs
-    let output = Command::new("virsh")
-        .args(&["list", "--all"])
-        .output();
+    let output = Command::new("virsh").args(&["list", "--all"]).output();
 
     if let Ok(out) = output {
         let vm_list = String::from_utf8_lossy(&out.stdout);
@@ -1201,9 +1209,7 @@ fn find_mac_conflicts() {
                 if parts.len() >= 2 {
                     let vm_name = parts[1];
 
-                    let addr_output = Command::new("virsh")
-                        .args(&["domifaddr", vm_name])
-                        .output();
+                    let addr_output = Command::new("virsh").args(&["domifaddr", vm_name]).output();
 
                     if let Ok(addr_out) = addr_output {
                         let addr_info = String::from_utf8_lossy(&addr_out.stdout);
@@ -1215,7 +1221,7 @@ fn find_mac_conflicts() {
                                     mac_addresses.push((
                                         vm_name.to_string(),
                                         addr_parts[0].to_string(),
-                                        addr_parts[1].to_string()
+                                        addr_parts[1].to_string(),
                                     ));
                                 }
                             }
@@ -1237,7 +1243,8 @@ fn find_mac_conflicts() {
                     println!("⚠️ MAC Address Conflicts Found:");
                     conflicts_found = true;
                 }
-                println!("  💥 Conflict: {} vs {}",
+                println!(
+                    "  💥 Conflict: {} vs {}",
                     format!("{}:{}", mac_addresses[i].0, mac_addresses[i].1),
                     format!("{}:{}", mac_addresses[j].0, mac_addresses[j].1)
                 );
@@ -1254,12 +1261,11 @@ fn find_mac_conflicts() {
 fn mac_statistics() {
     println!("📊 MAC Address Statistics");
 
-    let mut vendor_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut vendor_counts: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
     let mut total_macs = 0;
 
-    let output = Command::new("virsh")
-        .args(&["list", "--all"])
-        .output();
+    let output = Command::new("virsh").args(&["list", "--all"]).output();
 
     if let Ok(out) = output {
         let vm_list = String::from_utf8_lossy(&out.stdout);
@@ -1270,9 +1276,7 @@ fn mac_statistics() {
                 if parts.len() >= 2 {
                     let vm_name = parts[1];
 
-                    let addr_output = Command::new("virsh")
-                        .args(&["domifaddr", vm_name])
-                        .output();
+                    let addr_output = Command::new("virsh").args(&["domifaddr", vm_name]).output();
 
                     if let Ok(addr_out) = addr_output {
                         let addr_info = String::from_utf8_lossy(&addr_out.stdout);
@@ -1325,12 +1329,12 @@ fn live_interface_migration() {
         .unwrap();
 
     // Check if VM is running
-    let state_output = Command::new("virsh")
-        .args(&["domstate", &vm_name])
-        .output();
+    let state_output = Command::new("virsh").args(&["domstate", &vm_name]).output();
 
     if let Ok(state_out) = state_output {
-        let state = String::from_utf8_lossy(&state_out.stdout).trim().to_string();
+        let state = String::from_utf8_lossy(&state_out.stdout)
+            .trim()
+            .to_string();
         if !state.contains("running") {
             println!("❌ VM must be running for live migration");
             return;

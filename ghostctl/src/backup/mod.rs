@@ -3,7 +3,7 @@ pub mod schedule;
 pub mod setup;
 pub mod verify;
 
-use dialoguer::{Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Select};
 
 pub fn backup_menu() {
     println!("💾 Backup Management");

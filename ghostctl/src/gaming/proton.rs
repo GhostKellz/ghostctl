@@ -1,16 +1,14 @@
-use dialoguer::{Select, Input, Confirm, theme::ColorfulTheme, MultiSelect};
-use std::process::Command;
-use std::path::Path;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::fs;
+use std::path::Path;
+use std::process::Command;
 use std::sync::OnceLock;
 
 // Cache for commonly accessed paths
 static HOME_DIR: OnceLock<String> = OnceLock::new();
 
 fn get_home_dir() -> &'static str {
-    HOME_DIR.get_or_init(|| {
-        std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string())
-    })
+    HOME_DIR.get_or_init(|| std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string()))
 }
 
 pub fn proton_menu() {
@@ -108,10 +106,7 @@ fn install_dxvk() {
         version_str, version_str
     );
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&download_cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&download_cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -125,10 +120,7 @@ fn install_dxvk() {
                 version_str, wine_prefix
             );
 
-            let install_status = Command::new("sh")
-                .arg("-c")
-                .arg(&install_cmd)
-                .status();
+            let install_status = Command::new("sh").arg("-c").arg(&install_cmd).status();
 
             match install_status {
                 Ok(s) if s.success() => println!("✅ DXVK {} installed successfully!", version_str),
@@ -158,10 +150,7 @@ fn install_vkd3d() {
     println!("⬇️ Downloading VKD3D-Proton...");
     let download_cmd = "cd /tmp && wget -q https://github.com/HansKristian-Work/vkd3d-proton/releases/download/v2.11/vkd3d-proton-2.11.tar.zst";
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(download_cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(download_cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -178,10 +167,7 @@ fn install_vkd3d() {
                 wine_prefix
             );
 
-            let install_status = Command::new("sh")
-                .arg("-c")
-                .arg(&install_cmd)
-                .status();
+            let install_status = Command::new("sh").arg("-c").arg(&install_cmd).status();
 
             match install_status {
                 Ok(s) if s.success() => println!("✅ VKD3D-Proton installed successfully!"),
@@ -340,7 +326,11 @@ fn remove_dxvk_vkd3d() {
             "cd {} && rm -f drive_c/windows/system32/d3d12.dll drive_c/windows/syswow64/d3d12.dll",
             wine_prefix
         );
-        Command::new("sh").arg("-c").arg(&remove_vkd3d_cmd).status().ok();
+        Command::new("sh")
+            .arg("-c")
+            .arg(&remove_vkd3d_cmd)
+            .status()
+            .ok();
 
         println!("✅ DXVK/VKD3D removed");
     }
@@ -379,9 +369,18 @@ fn check_dxvk_status() {
     }
 
     println!("\n📋 Environment Variables:");
-    println!("  DXVK_HUD: {:?}", std::env::var("DXVK_HUD").unwrap_or_else(|_| "Not set".to_string()));
-    println!("  DXVK_LOG_LEVEL: {:?}", std::env::var("DXVK_LOG_LEVEL").unwrap_or_else(|_| "Not set".to_string()));
-    println!("  DXVK_ASYNC: {:?}", std::env::var("DXVK_ASYNC").unwrap_or_else(|_| "Not set".to_string()));
+    println!(
+        "  DXVK_HUD: {:?}",
+        std::env::var("DXVK_HUD").unwrap_or_else(|_| "Not set".to_string())
+    );
+    println!(
+        "  DXVK_LOG_LEVEL: {:?}",
+        std::env::var("DXVK_LOG_LEVEL").unwrap_or_else(|_| "Not set".to_string())
+    );
+    println!(
+        "  DXVK_ASYNC: {:?}",
+        std::env::var("DXVK_ASYNC").unwrap_or_else(|_| "Not set".to_string())
+    );
 }
 
 fn compatibility_layers_setup() {
@@ -431,10 +430,7 @@ fn install_gallium_nine() {
         }
     };
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -457,10 +453,7 @@ fn install_d9vk() {
     println!("⬇️ Downloading D9VK...");
     let download_cmd = "cd /tmp && wget -q https://github.com/Joshua-Ashton/d9vk/releases/download/0.40.1/d9vk-0.40.1.tar.gz";
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(download_cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(download_cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -477,10 +470,7 @@ fn install_d9vk() {
                 wine_prefix
             );
 
-            let install_status = Command::new("sh")
-                .arg("-c")
-                .arg(&install_cmd)
-                .status();
+            let install_status = Command::new("sh").arg("-c").arg(&install_cmd).status();
 
             match install_status {
                 Ok(s) if s.success() => println!("✅ D9VK installed successfully!"),
@@ -510,10 +500,7 @@ fn configure_gallium_nine() {
     println!("🔧 Opening Nine configuration...");
     let cmd = format!("WINEPREFIX={} wine ninewinecfg", wine_prefix);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Configuration opened"),
@@ -536,10 +523,7 @@ fn install_wine_ge() {
             println!("⬇️ Downloading Wine-GE...");
             let download_cmd = "cd /tmp && wget -q https://github.com/GloriousEggroll/wine-ge-custom/releases/download/GE-Proton8-26/wine-lutris-GE-Proton8-26-x86_64.tar.xz";
 
-            let status = Command::new("sh")
-                .arg("-c")
-                .arg(download_cmd)
-                .status();
+            let status = Command::new("sh").arg("-c").arg(download_cmd).status();
 
             if let Ok(s) = status {
                 if s.success() {
@@ -579,10 +563,7 @@ fn install_wine_dependencies() {
         }
     };
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Wine dependencies installed"),
@@ -627,8 +608,16 @@ fn winetricks_automation() {
         .unwrap();
 
     let common_packages = vec![
-        "d3dx9", "d3dx10", "d3dx11_43", "vcrun2019", "dotnet48",
-        "physx", "faudio", "xact", "xvid", "openal"
+        "d3dx9",
+        "d3dx10",
+        "d3dx11_43",
+        "vcrun2019",
+        "dotnet48",
+        "physx",
+        "faudio",
+        "xact",
+        "xvid",
+        "openal",
     ];
 
     let selected = MultiSelect::with_theme(&ColorfulTheme::default())
@@ -642,10 +631,7 @@ fn winetricks_automation() {
         println!("📦 Installing {}...", package);
 
         let cmd = format!("WINEPREFIX={} winetricks -q {}", wine_prefix, package);
-        let status = Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .status();
+        let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
         match status {
             Ok(s) if s.success() => println!("  ✅ {} installed", package),
@@ -665,7 +651,12 @@ fn dll_overrides_management() {
 
     let choice = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select action")
-        .items(&["Add DLL override", "Remove DLL override", "List overrides", "Common gaming overrides"])
+        .items(&[
+            "Add DLL override",
+            "Remove DLL override",
+            "List overrides",
+            "Common gaming overrides",
+        ])
         .default(0)
         .interact()
         .unwrap();
@@ -679,7 +670,13 @@ fn dll_overrides_management() {
 
             let mode = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select override mode")
-                .items(&["native", "builtin", "native,builtin", "builtin,native", "disabled"])
+                .items(&[
+                    "native",
+                    "builtin",
+                    "native,builtin",
+                    "builtin,native",
+                    "disabled",
+                ])
                 .default(2)
                 .interact()
                 .unwrap();
@@ -706,7 +703,10 @@ fn dll_overrides_management() {
         }
         2 => {
             println!("📋 Current DLL overrides:");
-            let cmd = format!("WINEPREFIX={} wine reg query 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides'", wine_prefix);
+            let cmd = format!(
+                "WINEPREFIX={} wine reg query 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides'",
+                wine_prefix
+            );
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
         }
         3 => {
@@ -824,7 +824,13 @@ fn display_settings() {
 
     let choice = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select setting to configure")
-        .items(&["Virtual Desktop", "Screen Resolution", "DPI Settings", "Disable Window Manager", "Back"])
+        .items(&[
+            "Virtual Desktop",
+            "Screen Resolution",
+            "DPI Settings",
+            "Disable Window Manager",
+            "Back",
+        ])
         .default(0)
         .interact()
         .unwrap();
@@ -916,10 +922,7 @@ fn apply_protonfixes() {
     println!("📦 Installing protonfixes...");
     let install_cmd = "pip install --user protonfixes";
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(install_cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(install_cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -945,7 +948,12 @@ fn custom_game_scripts() {
 
     let choice = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select action")
-        .items(&["Create launch script", "Edit existing script", "List scripts", "Back"])
+        .items(&[
+            "Create launch script",
+            "Edit existing script",
+            "List scripts",
+            "Back",
+        ])
         .default(0)
         .interact()
         .unwrap();
@@ -961,7 +969,8 @@ fn custom_game_scripts() {
 
             println!("📝 Creating launch script: {}", script_path);
 
-            let script_content = format!(r#"#!/bin/bash
+            let script_content = format!(
+                r#"#!/bin/bash
 # Launch script for {}
 
 # Wine prefix
@@ -985,7 +994,9 @@ GAME_EXE="path/to/game.exe"
 
 # Launch with gamemode and mangohud
 gamemoderun mangohud wine "$GAME_EXE" "$@"
-"#, game_name, game_name);
+"#,
+                game_name, game_name
+            );
 
             fs::create_dir_all(format!("{}/Games/scripts", get_home_dir())).ok();
             fs::write(&script_path, script_content).ok();
@@ -1074,7 +1085,11 @@ fn common_game_fixes() {
         5 => {
             println!("💾 Fixing save game issues...");
             println!("  Creating Documents folders...");
-            let docs_path = format!("{}/drive_c/users/{}/Documents", wine_prefix, std::env::var("USER").unwrap_or_default());
+            let docs_path = format!(
+                "{}/drive_c/users/{}/Documents",
+                wine_prefix,
+                std::env::var("USER").unwrap_or_default()
+            );
             fs::create_dir_all(&docs_path).ok();
             println!("  Setting permissions...");
             Command::new("chmod")
@@ -1117,7 +1132,14 @@ fn game_specific_configs() {
         0 => {
             println!("🚗 Configuring GTA V...");
             println!("  Installing Visual C++ 2019...");
-            Command::new("sh").arg("-c").arg(&format!("WINEPREFIX={} winetricks -q vcrun2019", wine_prefix)).status().ok();
+            Command::new("sh")
+                .arg("-c")
+                .arg(&format!(
+                    "WINEPREFIX={} winetricks -q vcrun2019",
+                    wine_prefix
+                ))
+                .status()
+                .ok();
             println!("  Disabling Esync for stability...");
             std::env::remove_var("WINEESYNC");
             println!("✅ GTA V configuration applied");
@@ -1125,7 +1147,14 @@ fn game_specific_configs() {
         1 => {
             println!("⚔️ Configuring The Witcher 3...");
             println!("  Installing dependencies...");
-            Command::new("sh").arg("-c").arg(&format!("WINEPREFIX={} winetricks -q vcrun2015 d3dx11_43", wine_prefix)).status().ok();
+            Command::new("sh")
+                .arg("-c")
+                .arg(&format!(
+                    "WINEPREFIX={} winetricks -q vcrun2015 d3dx11_43",
+                    wine_prefix
+                ))
+                .status()
+                .ok();
             println!("✅ The Witcher 3 configuration applied");
         }
         2 => {
@@ -1133,7 +1162,14 @@ fn game_specific_configs() {
             println!("  Enabling AVX support...");
             std::env::set_var("WINE_CPU_TOPOLOGY", "4:2");
             println!("  Installing Visual C++ 2019...");
-            Command::new("sh").arg("-c").arg(&format!("WINEPREFIX={} winetricks -q vcrun2019", wine_prefix)).status().ok();
+            Command::new("sh")
+                .arg("-c")
+                .arg(&format!(
+                    "WINEPREFIX={} winetricks -q vcrun2019",
+                    wine_prefix
+                ))
+                .status()
+                .ok();
             println!("✅ Cyberpunk 2077 configuration applied");
         }
         3 => {
@@ -1141,14 +1177,28 @@ fn game_specific_configs() {
             println!("  Setting CPU topology...");
             std::env::set_var("WINE_CPU_TOPOLOGY", "8:4");
             println!("  Installing dependencies...");
-            Command::new("sh").arg("-c").arg(&format!("WINEPREFIX={} winetricks -q vcrun2019", wine_prefix)).status().ok();
+            Command::new("sh")
+                .arg("-c")
+                .arg(&format!(
+                    "WINEPREFIX={} winetricks -q vcrun2019",
+                    wine_prefix
+                ))
+                .status()
+                .ok();
             println!("✅ RDR2 configuration applied");
         }
         4 => {
             println!("⚔️ Configuring Elden Ring...");
             println!("  Disabling EAC for offline play...");
             println!("  Installing Visual C++...");
-            Command::new("sh").arg("-c").arg(&format!("WINEPREFIX={} winetricks -q vcrun2019", wine_prefix)).status().ok();
+            Command::new("sh")
+                .arg("-c")
+                .arg(&format!(
+                    "WINEPREFIX={} winetricks -q vcrun2019",
+                    wine_prefix
+                ))
+                .status()
+                .ok();
             println!("✅ Elden Ring configuration applied");
         }
         _ => {}
@@ -1193,7 +1243,12 @@ fn gamemode_setup() {
 
             let choice = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select action")
-                .items(&["Configure GameMode", "Test GameMode", "Enable for all games", "Back"])
+                .items(&[
+                    "Configure GameMode",
+                    "Test GameMode",
+                    "Enable for all games",
+                    "Back",
+                ])
                 .default(0)
                 .interact()
                 .unwrap();
@@ -1226,10 +1281,7 @@ governor=performance"#;
                 }
                 1 => {
                     println!("🧪 Testing GameMode...");
-                    Command::new("gamemoded")
-                        .arg("-t")
-                        .status()
-                        .ok();
+                    Command::new("gamemoded").arg("-t").status().ok();
                 }
                 2 => {
                     println!("✅ To enable GameMode for all games, add to launch options:");
@@ -1393,10 +1445,7 @@ fn cpu_governor_settings() {
     println!("🔧 Setting CPU governor to: {}", governor);
     let cmd = format!("sudo cpupower frequency-set -g {}", governor);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ CPU governor set to: {}", governor),
@@ -1414,7 +1463,13 @@ fn process_priority() {
 
     let priority = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select priority")
-        .items(&["High (-10)", "Above Normal (-5)", "Normal (0)", "Below Normal (5)", "Low (10)"])
+        .items(&[
+            "High (-10)",
+            "Above Normal (-5)",
+            "Normal (0)",
+            "Below Normal (5)",
+            "Low (10)",
+        ])
         .default(0)
         .interact()
         .unwrap();
@@ -1431,10 +1486,7 @@ fn process_priority() {
     println!("🔧 Setting priority for {}...", game_exe);
     let cmd = format!("renice {} -p $(pgrep {})", nice_value, game_exe);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Priority set"),
@@ -1543,7 +1595,10 @@ fn proton_eac_runtime() {
         println!("✅ Game compatibility data found");
 
         // Create EAC configuration
-        let eac_config = format!("{}/pfx/drive_c/users/steamuser/AppData/Roaming/EasyAntiCheat", compat_path);
+        let eac_config = format!(
+            "{}/pfx/drive_c/users/steamuser/AppData/Roaming/EasyAntiCheat",
+            compat_path
+        );
         fs::create_dir_all(&eac_config).ok();
 
         println!("📝 Creating EAC settings...");
@@ -1589,7 +1644,10 @@ fn check_anticheat_status() {
 
     // Check Proton version
     println!("\n🚀 Proton Status:");
-    let proton_exp = format!("{}/steam/steamapps/common/Proton - Experimental", steam_path);
+    let proton_exp = format!(
+        "{}/steam/steamapps/common/Proton - Experimental",
+        steam_path
+    );
     let proton_8 = format!("{}/steam/steamapps/common/Proton 8.0", steam_path);
 
     if Path::new(&proton_exp).exists() {
@@ -1632,17 +1690,24 @@ fn view_shader_cache() {
     println!("📊 Shader Cache Status");
 
     let cache_dirs = [
-        (format!("{}/.cache/mesa_shader_cache", get_home_dir()), "Mesa"),
+        (
+            format!("{}/.cache/mesa_shader_cache", get_home_dir()),
+            "Mesa",
+        ),
         (format!("{}/.cache/nvidia", get_home_dir()), "NVIDIA"),
-        (format!("{}/.cache/radv_builtin_shaders", get_home_dir()), "RADV"),
-        (format!("{}/.steam/steam/steamapps/shadercache", get_home_dir()), "Steam"),
+        (
+            format!("{}/.cache/radv_builtin_shaders", get_home_dir()),
+            "RADV",
+        ),
+        (
+            format!("{}/.steam/steam/steamapps/shadercache", get_home_dir()),
+            "Steam",
+        ),
     ];
 
     for (path, name) in &cache_dirs {
         if Path::new(path).exists() {
-            let output = Command::new("du")
-                .args(&["-sh", path])
-                .output();
+            let output = Command::new("du").args(&["-sh", path]).output();
 
             match output {
                 Ok(out) => {
@@ -1660,9 +1725,7 @@ fn view_shader_cache() {
 fn clear_shader_cache() {
     println!("🗑️ Clear Shader Cache");
 
-    let caches = vec![
-        "Mesa", "NVIDIA", "RADV", "Steam", "All"
-    ];
+    let caches = vec!["Mesa", "NVIDIA", "RADV", "Steam", "All"];
 
     let selected = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select caches to clear")
@@ -1730,9 +1793,15 @@ fn backup_shader_cache() {
     fs::create_dir_all(&backup_dir).ok();
 
     let caches = [
-        (format!("{}/.cache/mesa_shader_cache", get_home_dir()), "mesa"),
+        (
+            format!("{}/.cache/mesa_shader_cache", get_home_dir()),
+            "mesa",
+        ),
         (format!("{}/.cache/nvidia", get_home_dir()), "nvidia"),
-        (format!("{}/.steam/steam/steamapps/shadercache", get_home_dir()), "steam"),
+        (
+            format!("{}/.steam/steam/steamapps/shadercache", get_home_dir()),
+            "steam",
+        ),
     ];
 
     for (source, name) in &caches {
@@ -1770,9 +1839,18 @@ fn restore_shader_cache() {
 
     if confirm {
         let caches = [
-            (format!("{}/mesa", backup_dir), format!("{}/.cache/mesa_shader_cache", get_home_dir())),
-            (format!("{}/nvidia", backup_dir), format!("{}/.cache/nvidia", get_home_dir())),
-            (format!("{}/steam", backup_dir), format!("{}/.steam/steam/steamapps/shadercache", get_home_dir())),
+            (
+                format!("{}/mesa", backup_dir),
+                format!("{}/.cache/mesa_shader_cache", get_home_dir()),
+            ),
+            (
+                format!("{}/nvidia", backup_dir),
+                format!("{}/.cache/nvidia", get_home_dir()),
+            ),
+            (
+                format!("{}/steam", backup_dir),
+                format!("{}/.steam/steam/steamapps/shadercache", get_home_dir()),
+            ),
         ];
 
         for (source, dest) in &caches {
@@ -1934,7 +2012,11 @@ fn edit_registry_key(wine_prefix: &str) {
 
     let value_type = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select value type")
-        .items(&["REG_SZ (String)", "REG_DWORD (Number)", "REG_BINARY (Binary)"])
+        .items(&[
+            "REG_SZ (String)",
+            "REG_DWORD (Number)",
+            "REG_BINARY (Binary)",
+        ])
         .default(0)
         .interact()
         .unwrap();
@@ -1956,10 +2038,7 @@ fn edit_registry_key(wine_prefix: &str) {
         wine_prefix, key, value_name, type_flag, value_data
     );
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Registry key updated"),
@@ -1996,13 +2075,13 @@ fn delete_registry_entry(wine_prefix: &str) {
         let cmd = if value_name.is_empty() {
             format!("WINEPREFIX={} wine reg delete '{}' /f", wine_prefix, key)
         } else {
-            format!("WINEPREFIX={} wine reg delete '{}' /v {} /f", wine_prefix, key, value_name)
+            format!(
+                "WINEPREFIX={} wine reg delete '{}' /v {} /f",
+                wine_prefix, key, value_name
+            )
         };
 
-        let status = Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .status();
+        let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
         match status {
             Ok(s) if s.success() => println!("✅ Registry entry deleted"),
@@ -2027,15 +2106,18 @@ fn export_registry(wine_prefix: &str) {
         .unwrap();
 
     let cmd = if key.is_empty() {
-        format!("WINEPREFIX={} wine regedit /e '{}'", wine_prefix, export_path)
+        format!(
+            "WINEPREFIX={} wine regedit /e '{}'",
+            wine_prefix, export_path
+        )
     } else {
-        format!("WINEPREFIX={} wine regedit /e '{}' '{}'", wine_prefix, export_path, key)
+        format!(
+            "WINEPREFIX={} wine regedit /e '{}' '{}'",
+            wine_prefix, export_path, key
+        )
     };
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Registry exported to: {}", export_path),
@@ -2065,10 +2147,7 @@ fn import_registry(wine_prefix: &str) {
     if confirm {
         let cmd = format!("WINEPREFIX={} wine regedit '{}'", wine_prefix, import_path);
 
-        let status = Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .status();
+        let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
         match status {
             Ok(s) if s.success() => println!("✅ Registry imported from: {}", import_path),
@@ -2087,12 +2166,12 @@ fn search_registry(wine_prefix: &str) {
 
     println!("🔍 Searching for: {}", search_term);
 
-    let cmd = format!("WINEPREFIX={} wine reg query HKEY_CURRENT_USER /s /f '{}'", wine_prefix, search_term);
+    let cmd = format!(
+        "WINEPREFIX={} wine reg query HKEY_CURRENT_USER /s /f '{}'",
+        wine_prefix, search_term
+    );
 
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .output();
+    let output = Command::new("sh").arg("-c").arg(&cmd).output();
 
     match output {
         Ok(out) => {

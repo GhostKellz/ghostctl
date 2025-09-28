@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Select};
 use std::process::Command;
 
 pub fn steam_menu() {
@@ -65,9 +65,7 @@ pub fn install_steam() {
 
     // Update package database
     println!("🔄 Updating package database...");
-    let update_status = Command::new("sudo")
-        .args(&["pacman", "-Sy"])
-        .status();
+    let update_status = Command::new("sudo").args(&["pacman", "-Sy"]).status();
 
     match update_status {
         Ok(s) if s.success() => println!("✅ Package database updated"),
@@ -99,7 +97,7 @@ pub fn install_steam() {
         Ok(s) if s.success() => {
             println!("✅ Steam and dependencies installed successfully!");
             println!("💡 You can now launch Steam from your application menu or by running 'steam' in the terminal");
-            
+
             let launch_steam = Confirm::new()
                 .with_prompt("Launch Steam now?")
                 .default(false)
@@ -117,7 +115,7 @@ pub fn install_steam() {
 
 fn enable_multilib_repo() {
     println!("🔧 Enabling multilib repository...");
-    
+
     let backup_status = Command::new("sudo")
         .args(&["cp", "/etc/pacman.conf", "/etc/pacman.conf.backup"])
         .status();
@@ -130,7 +128,11 @@ fn enable_multilib_repo() {
     // Uncomment multilib section
     let enable_status = Command::new("sudo")
         .arg("sed")
-        .args(&["-i", "/^#\\[multilib\\]/,/^#Include = \\/etc\\/pacman.d\\/mirrorlist/ s/^#//", "/etc/pacman.conf"])
+        .args(&[
+            "-i",
+            "/^#\\[multilib\\]/,/^#Include = \\/etc\\/pacman.d\\/mirrorlist/ s/^#//",
+            "/etc/pacman.conf",
+        ])
         .status();
 
     match enable_status {
@@ -184,7 +186,9 @@ fn list_proton_versions() {
 
     if steam_dir.exists() {
         println!("📁 Proton installations in: {}", steam_dir.display());
-        let _ = Command::new("ls").args(&["-la", &steam_dir.to_string_lossy()]).status();
+        let _ = Command::new("ls")
+            .args(&["-la", &steam_dir.to_string_lossy()])
+            .status();
     } else {
         println!("❌ Steam compatibility tools directory not found");
         println!("💡 Steam may not be installed or never launched");
@@ -230,7 +234,7 @@ fn install_proton_ge() {
 
 fn install_protonup_qt_aur() {
     println!("📦 Installing ProtonUp-Qt from AUR...");
-    
+
     // Try different AUR helpers
     let aur_helpers = ["yay", "paru", "trizen"];
     let mut installed = false;
@@ -243,7 +247,7 @@ fn install_protonup_qt_aur() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "protonup-qt"])
                     .status();
-                
+
                 match install_status {
                     Ok(s) if s.success() => {
                         println!("✅ ProtonUp-Qt installed successfully!");
@@ -266,14 +270,14 @@ fn install_protonup_qt_aur() {
 pub fn install_protonup_qt() {
     println!("📦 ProtonUp-Qt Installation");
     println!("===========================");
-    
+
     install_protonup_qt_aur();
 }
 
 fn remove_proton_version() {
     println!("🗑️  Remove Proton Version");
     println!("========================");
-    
+
     let steam_dir = std::env::home_dir()
         .map(|h| h.join(".steam/steam/compatibilitytools.d"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/.steam/steam/compatibilitytools.d"));
@@ -284,8 +288,10 @@ fn remove_proton_version() {
     }
 
     println!("📁 Available Proton versions:");
-    let _ = Command::new("ls").args(&["-1", &steam_dir.to_string_lossy()]).status();
-    
+    let _ = Command::new("ls")
+        .args(&["-1", &steam_dir.to_string_lossy()])
+        .status();
+
     println!("\n💡 To remove a version, delete its folder from:");
     println!("   {}", steam_dir.display());
 }
@@ -293,7 +299,7 @@ fn remove_proton_version() {
 fn set_default_proton() {
     println!("🎯 Set Default Proton Version");
     println!("=============================");
-    
+
     println!("💡 Default Proton is set in Steam client:");
     println!("  1. Open Steam");
     println!("  2. Go to Steam > Settings > Steam Play");
@@ -305,7 +311,7 @@ fn set_default_proton() {
 fn update_proton_versions() {
     println!("🔄 Update All Proton Versions");
     println!("=============================");
-    
+
     let protonup_check = Command::new("which").arg("protonup-qt").status();
     match protonup_check {
         Ok(s) if s.success() => {
@@ -325,7 +331,7 @@ fn open_proton_directory() {
         .unwrap_or_else(|| std::path::PathBuf::from("~/.steam/steam/compatibilitytools.d"));
 
     println!("📁 Opening Proton directory: {}", steam_dir.display());
-    
+
     let _ = Command::new("xdg-open").arg(&steam_dir).spawn();
 }
 
@@ -362,7 +368,7 @@ pub fn steam_library_optimization() {
 fn enable_steam_play_all() {
     println!("🚀 Enable Steam Play for All Titles");
     println!("====================================");
-    
+
     println!("💡 To enable Steam Play for all Windows games:");
     println!("  1. Open Steam");
     println!("  2. Steam > Settings > Steam Play");
@@ -370,14 +376,14 @@ fn enable_steam_play_all() {
     println!("  4. ✅ Enable Steam Play for all other titles");
     println!("  5. Select latest Proton version");
     println!("  6. Click OK and restart Steam");
-    
+
     println!("\n🎮 This allows you to play Windows games through Proton!");
 }
 
 fn optimize_launch_options() {
     println!("⚡ Common Steam Launch Options");
     println!("=============================");
-    
+
     println!("💡 Right-click game > Properties > Launch Options");
     println!("\n🎮 Gaming optimizations:");
     println!("  gamemoderun %command%           - Enable GameMode");
@@ -386,12 +392,12 @@ fn optimize_launch_options() {
     println!("  PROTON_NO_ESYNC=1 %command%     - Disable esync (if issues)");
     println!("  PROTON_NO_FSYNC=1 %command%     - Disable fsync (if issues)");
     println!("  PROTON_USE_WINED3D=1 %command%  - Use WineD3D instead of DXVK");
-    
+
     println!("\n⚡ Performance options:");
     println!("  -high                           - High CPU priority");
     println!("  -threads 4                      - Limit CPU threads");
     println!("  -refresh 144                    - Set refresh rate");
-    
+
     println!("\n🔧 Combined example:");
     println!("  gamemoderun mangohud %command%");
 }
@@ -399,14 +405,14 @@ fn optimize_launch_options() {
 fn move_steam_library() {
     println!("📁 Move Steam Library");
     println!("=====================");
-    
+
     println!("💡 To move your Steam library:");
     println!("  1. Open Steam");
     println!("  2. Steam > Settings > Storage");
     println!("  3. Click dropdown arrow next to drive");
     println!("  4. Add Drive > Select new location");
     println!("  5. Move games via right-click > Properties > Local Files > Move Install Folder");
-    
+
     println!("\n🔧 Or use symlinks for existing library:");
     println!("  sudo mv ~/.steam/steam/steamapps /new/location/steamapps");
     println!("  ln -s /new/location/steamapps ~/.steam/steam/steamapps");
@@ -415,7 +421,7 @@ fn move_steam_library() {
 fn clear_download_cache() {
     println!("🧹 Clear Steam Download Cache");
     println!("=============================");
-    
+
     let confirm = Confirm::new()
         .with_prompt("Clear Steam download cache? (Steam must be closed)")
         .default(true)
@@ -431,7 +437,7 @@ fn clear_download_cache() {
             let status = Command::new("rm")
                 .args(&["-rf", &cache_dir.to_string_lossy()])
                 .status();
-            
+
             match status {
                 Ok(s) if s.success() => println!("✅ Steam cache cleared"),
                 _ => println!("❌ Failed to clear cache"),
@@ -445,13 +451,13 @@ fn clear_download_cache() {
 fn repair_steam_library() {
     println!("🔧 Repair Steam Library");
     println!("=======================");
-    
+
     println!("💡 Steam library repair options:");
     println!("  1. Verify game file integrity (in Steam)");
     println!("  2. Clear download cache (above option)");
     println!("  3. Regenerate Steam shortcuts");
     println!("  4. Reset Steam configuration");
-    
+
     let confirm = Confirm::new()
         .with_prompt("Reset Steam configuration? (Will log you out)")
         .default(false)
@@ -468,9 +474,9 @@ fn repair_steam_library() {
             let backup_status = Command::new("cp")
                 .args(&[config_file.to_str().unwrap(), &backup_name])
                 .status();
-            
+
             let _ = Command::new("rm").arg(&config_file).status();
-            
+
             match backup_status {
                 Ok(s) if s.success() => println!("✅ Steam config reset (backup created)"),
                 _ => println!("⚠️  Config reset, no backup created"),
@@ -482,10 +488,10 @@ fn repair_steam_library() {
 pub fn steam_prefix_management() {
     println!("🔄 Steam Prefix Management");
     println!("==========================");
-    
+
     println!("💡 Steam/Proton prefixes are located at:");
     println!("  ~/.steam/steam/steamapps/compatdata/[GAME_ID]/pfx/");
-    
+
     let options = [
         "📁 List all game prefixes",
         "🧹 Clean specific game prefix",
@@ -517,7 +523,9 @@ fn list_game_prefixes() {
 
     if compatdata_dir.exists() {
         println!("📁 Game prefixes:");
-        let _ = Command::new("ls").args(&["-la", &compatdata_dir.to_string_lossy()]).status();
+        let _ = Command::new("ls")
+            .args(&["-la", &compatdata_dir.to_string_lossy()])
+            .status();
     } else {
         println!("❌ No Steam prefixes found");
     }
@@ -582,12 +590,18 @@ pub fn steam_troubleshooting() {
 fn fix_steam_runtime() {
     println!("🔧 Fix Steam Runtime Issues");
     println!("===========================");
-    
+
     println!("🛠️  Common Steam runtime fixes:");
-    
+
     let fixes = [
-        ("Clear Steam runtime cache", "rm -rf ~/.steam/steam/ubuntu12_32/steam-runtime/"),
-        ("Reset Steam client", "rm ~/.steam/steam/clientregistry.blob"),
+        (
+            "Clear Steam runtime cache",
+            "rm -rf ~/.steam/steam/ubuntu12_32/steam-runtime/",
+        ),
+        (
+            "Reset Steam client",
+            "rm ~/.steam/steam/clientregistry.blob",
+        ),
         ("Force Steam runtime update", "steam --reset"),
     ];
 
@@ -611,7 +625,7 @@ fn fix_steam_runtime() {
 fn reinstall_steam_runtime() {
     println!("📦 Reinstall Steam Linux Runtime");
     println!("================================");
-    
+
     let confirm = Confirm::new()
         .with_prompt("Reinstall Steam runtime? (Steam will be closed)")
         .default(true)
@@ -621,14 +635,16 @@ fn reinstall_steam_runtime() {
     if confirm {
         // Kill Steam
         let _ = Command::new("pkill").arg("steam").status();
-        
+
         // Remove Steam runtime
         let runtime_dir = std::env::home_dir()
             .map(|h| h.join(".steam/steam/ubuntu12_32"))
             .unwrap_or_else(|| std::path::PathBuf::from("~/.steam/steam/ubuntu12_32"));
 
         if runtime_dir.exists() {
-            let _ = Command::new("rm").args(&["-rf", &runtime_dir.to_string_lossy()]).status();
+            let _ = Command::new("rm")
+                .args(&["-rf", &runtime_dir.to_string_lossy()])
+                .status();
         }
 
         println!("✅ Steam runtime removed. Launch Steam to reinstall it.");
@@ -638,10 +654,10 @@ fn reinstall_steam_runtime() {
 fn fix_controller_support() {
     println!("🎮 Fix Controller Support");
     println!("=========================");
-    
+
     println!("🔧 Installing controller support packages...");
     let packages = ["lib32-libusb", "steam-native-runtime"];
-    
+
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
         .args(&packages)
@@ -659,10 +675,10 @@ fn fix_controller_support() {
 fn fix_audio_issues() {
     println!("🔊 Fix Audio Issues");
     println!("==================");
-    
+
     println!("🔧 Installing audio libraries...");
     let packages = ["lib32-alsa-plugins", "lib32-libpulse", "lib32-openal"];
-    
+
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
         .args(&packages)
@@ -677,11 +693,11 @@ fn fix_audio_issues() {
 fn reset_steam_native() {
     println!("📱 Reset Steam to Native Runtime");
     println!("================================");
-    
+
     println!("💡 Force Steam to use native system libraries:");
     println!("  export STEAM_RUNTIME=0");
     println!("  steam");
-    
+
     let confirm = Confirm::new()
         .with_prompt("Launch Steam with native runtime now?")
         .default(false)
@@ -698,12 +714,12 @@ fn reset_steam_native() {
 fn fix_display_issues() {
     println!("🖥️  Fix Display/Scaling Issues");
     println!("==============================");
-    
+
     println!("💡 Common display fixes:");
     println!("  GDK_SCALE=1 steam              - Reset Steam UI scaling");
     println!("  steam -cef-disable-gpu         - Disable GPU acceleration");
     println!("  steam -no-dwrite               - Disable DirectWrite");
-    
+
     let confirm = Confirm::new()
         .with_prompt("Launch Steam with scaling fix?")
         .default(false)
@@ -711,16 +727,14 @@ fn fix_display_issues() {
         .unwrap();
 
     if confirm {
-        let _ = Command::new("env")
-            .args(&["GDK_SCALE=1", "steam"])
-            .spawn();
+        let _ = Command::new("env").args(&["GDK_SCALE=1", "steam"]).spawn();
     }
 }
 
 pub fn steam_status() {
     println!("📋 Steam Status & Information");
     println!("=============================");
-    
+
     // Check if Steam is installed
     let steam_check = Command::new("which").arg("steam").status();
     match steam_check {
@@ -745,12 +759,14 @@ pub fn steam_status() {
 
     if steam_dir.exists() {
         println!("📁 Steam directory: {}", steam_dir.display());
-        
+
         // Check library size
         let steamapps_dir = steam_dir.join("steam/steamapps");
         if steamapps_dir.exists() {
             println!("📦 Steam library found");
-            let _ = Command::new("du").args(&["-sh", &steamapps_dir.to_string_lossy()]).status();
+            let _ = Command::new("du")
+                .args(&["-sh", &steamapps_dir.to_string_lossy()])
+                .status();
         }
     }
 

@@ -1,4 +1,4 @@
-use dialoguer::{Select, Input, Confirm, theme::ColorfulTheme, MultiSelect};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::process::Command;
 
 pub fn troubleshoot_menu() {
@@ -83,14 +83,23 @@ fn complete_network_diagnosis() {
     Command::new("ip").args(&["route", "show"]).status().ok();
 
     println!("\n📋 Route Cache:");
-    Command::new("ip").args(&["route", "show", "cache"]).status().ok();
+    Command::new("ip")
+        .args(&["route", "show", "cache"])
+        .status()
+        .ok();
 
     // 3. DNS Configuration
     println!("\n3️⃣ DNS Configuration:");
-    Command::new("cat").args(&["/etc/resolv.conf"]).status().ok();
+    Command::new("cat")
+        .args(&["/etc/resolv.conf"])
+        .status()
+        .ok();
 
     println!("\n🔍 systemd-resolved status:");
-    Command::new("systemctl").args(&["status", "systemd-resolved", "--no-pager"]).status().ok();
+    Command::new("systemctl")
+        .args(&["status", "systemd-resolved", "--no-pager"])
+        .status()
+        .ok();
 
     // 4. ARP Table
     println!("\n4️⃣ ARP Table:");
@@ -102,11 +111,24 @@ fn complete_network_diagnosis() {
 
     // 6. Network Services
     println!("\n6️⃣ Network Services:");
-    Command::new("systemctl").args(&["list-units", "--type=service", "--state=active", "|", "grep", "network"]).status().ok();
+    Command::new("systemctl")
+        .args(&[
+            "list-units",
+            "--type=service",
+            "--state=active",
+            "|",
+            "grep",
+            "network",
+        ])
+        .status()
+        .ok();
 
     // 7. Firewall Status
     println!("\n7️⃣ Firewall Status:");
-    Command::new("sudo").args(&["iptables", "-L", "-n"]).status().ok();
+    Command::new("sudo")
+        .args(&["iptables", "-L", "-n"])
+        .status()
+        .ok();
 
     // 8. Network Performance
     println!("\n8️⃣ Network Interface Performance:");
@@ -152,9 +174,7 @@ fn internet_connectivity_test() {
 
         // DNS resolution test (for domain names)
         if !host.chars().all(|c| c.is_numeric() || c == '.') {
-            let nslookup = Command::new("nslookup")
-                .arg(host)
-                .output();
+            let nslookup = Command::new("nslookup").arg(host).output();
 
             match nslookup {
                 Ok(out) if out.status.success() => println!("  ✅ DNS resolution successful"),
@@ -274,14 +294,24 @@ fn network_interface_analysis() {
             }
 
             // Statistics
-            let stats_cmd = format!("cat /sys/class/net/{}/statistics/rx_bytes /sys/class/net/{}/statistics/tx_bytes", interface, interface);
+            let stats_cmd = format!(
+                "cat /sys/class/net/{}/statistics/rx_bytes /sys/class/net/{}/statistics/tx_bytes",
+                interface, interface
+            );
             let stats = Command::new("sh").arg("-c").arg(&stats_cmd).output();
             if let Ok(s) = stats {
-                let lines: Vec<String> = String::from_utf8_lossy(&s.stdout).lines().map(|s| s.to_string()).collect();
+                let lines: Vec<String> = String::from_utf8_lossy(&s.stdout)
+                    .lines()
+                    .map(|s| s.to_string())
+                    .collect();
                 if lines.len() >= 2 {
                     let rx_bytes: u64 = lines[0].trim().parse().unwrap_or(0);
                     let tx_bytes: u64 = lines[1].trim().parse().unwrap_or(0);
-                    println!("  RX: {} MB, TX: {} MB", rx_bytes / 1024 / 1024, tx_bytes / 1024 / 1024);
+                    println!(
+                        "  RX: {} MB, TX: {} MB",
+                        rx_bytes / 1024 / 1024,
+                        tx_bytes / 1024 / 1024
+                    );
                 }
             }
 
@@ -325,7 +355,10 @@ fn route_table_analysis() {
 
     // All routing tables
     println!("\n📋 All Routing Tables:");
-    Command::new("ip").args(&["route", "show", "table", "all"]).status().ok();
+    Command::new("ip")
+        .args(&["route", "show", "table", "all"])
+        .status()
+        .ok();
 
     // Routing policy
     println!("\n📜 Routing Policy:");
@@ -433,10 +466,16 @@ fn dns_troubleshooting() {
     // Check DNS configuration
     println!("1️⃣ DNS Configuration:");
     println!("\n📋 /etc/resolv.conf:");
-    Command::new("cat").args(&["/etc/resolv.conf"]).status().ok();
+    Command::new("cat")
+        .args(&["/etc/resolv.conf"])
+        .status()
+        .ok();
 
     println!("\n📋 systemd-resolved status:");
-    Command::new("systemd-resolve").args(&["--status"]).status().ok();
+    Command::new("systemd-resolve")
+        .args(&["--status"])
+        .status()
+        .ok();
 
     // Test DNS servers
     println!("\n2️⃣ DNS Server Tests:");
@@ -543,14 +582,23 @@ fn dns_troubleshooting() {
 
     println!("🔍 Testing {} with cache:", test_domain);
     let with_cache = std::time::Instant::now();
-    Command::new("dig").args(&[test_domain, "+short"]).status().ok();
+    Command::new("dig")
+        .args(&[test_domain, "+short"])
+        .status()
+        .ok();
     let cache_time = with_cache.elapsed();
 
     println!("🔄 Flushing DNS cache and testing again:");
-    Command::new("sudo").args(&["systemd-resolve", "--flush-caches"]).status().ok();
+    Command::new("sudo")
+        .args(&["systemd-resolve", "--flush-caches"])
+        .status()
+        .ok();
 
     let without_cache = std::time::Instant::now();
-    Command::new("dig").args(&[test_domain, "+short"]).status().ok();
+    Command::new("dig")
+        .args(&[test_domain, "+short"])
+        .status()
+        .ok();
     let no_cache_time = without_cache.elapsed();
 
     println!("📊 Timing comparison:");
@@ -577,8 +625,11 @@ fn dns_troubleshooting() {
     // Test DNS over HTTPS/TLS
     println!("\n🔐 DNS over HTTPS Test (if configured):");
     let doh_test = Command::new("curl")
-        .args(&["-H", "accept: application/dns-json",
-                "https://1.1.1.1/dns-query?name=google.com&type=A"])
+        .args(&[
+            "-H",
+            "accept: application/dns-json",
+            "https://1.1.1.1/dns-query?name=google.com&type=A",
+        ])
         .output();
 
     if let Ok(doh_out) = doh_test {
@@ -622,9 +673,7 @@ fn internet_speed_test() {
     println!("======================\n");
 
     // Check if speedtest-cli is available
-    let speedtest_check = Command::new("which")
-        .arg("speedtest-cli")
-        .status();
+    let speedtest_check = Command::new("which").arg("speedtest-cli").status();
 
     if let Ok(s) = speedtest_check {
         if s.success() {
@@ -635,9 +684,7 @@ fn internet_speed_test() {
                 .ok();
 
             println!("\n📊 Detailed results:");
-            Command::new("speedtest-cli")
-                .status()
-                .ok();
+            Command::new("speedtest-cli").status().ok();
         } else {
             println!("⚠️ speedtest-cli not found. Installing...");
 
@@ -675,7 +722,13 @@ fn internet_speed_test() {
     for (url, size) in test_urls {
         println!("\n📥 Downloading {} file...", size);
         Command::new("curl")
-            .args(&["-o", "/dev/null", "-w", "Speed: %{speed_download} bytes/sec, Time: %{time_total}s\n", url])
+            .args(&[
+                "-o",
+                "/dev/null",
+                "-w",
+                "Speed: %{speed_download} bytes/sec, Time: %{time_total}s\n",
+                url,
+            ])
             .status()
             .ok();
     }
@@ -691,14 +744,15 @@ fn local_network_test() {
         .unwrap();
 
     // Check if iperf3 is available
-    let iperf_check = Command::new("which")
-        .arg("iperf3")
-        .status();
+    let iperf_check = Command::new("which").arg("iperf3").status();
 
     if let Ok(s) = iperf_check {
         if s.success() {
             println!("🔧 Using iperf3 for bandwidth test");
-            println!("Note: iperf3 server must be running on target ({}) with: iperf3 -s", target);
+            println!(
+                "Note: iperf3 server must be running on target ({}) with: iperf3 -s",
+                target
+            );
 
             let proceed = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Is iperf3 server running on target?")
@@ -736,7 +790,15 @@ fn local_network_test() {
     for mtu in [1500, 1400, 1300, 1200, 1100, 1000].iter() {
         println!("Testing MTU {}...", mtu);
         let result = Command::new("ping")
-            .args(&["-M", "do", "-s", &(mtu - 28).to_string(), "-c", "1", &target])
+            .args(&[
+                "-M",
+                "do",
+                "-s",
+                &(mtu - 28).to_string(),
+                "-c",
+                "1",
+                &target,
+            ])
             .output();
 
         match result {
@@ -760,7 +822,10 @@ fn interface_throughput_test() {
         .output();
 
     if let Ok(out) = interfaces_output {
-        let interfaces: Vec<String> = String::from_utf8_lossy(&out.stdout).lines().map(|s| s.to_string()).collect();
+        let interfaces: Vec<String> = String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .map(|s| s.to_string())
+            .collect();
 
         let selected_interface = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Select interface to monitor")
@@ -808,8 +873,12 @@ fn interface_throughput_test() {
             let rx_rate = (current_rx - initial_rx) / i as u64;
             let tx_rate = (current_tx - initial_tx) / i as u64;
 
-            println!("  [{:02}s] RX: {} KB/s, TX: {} KB/s",
-                    i, rx_rate / 1024, tx_rate / 1024);
+            println!(
+                "  [{:02}s] RX: {} KB/s, TX: {} KB/s",
+                i,
+                rx_rate / 1024,
+                tx_rate / 1024
+            );
         }
 
         println!("\n📊 Final Statistics:");
@@ -830,8 +899,14 @@ fn interface_throughput_test() {
 
         println!("  Total RX: {} MB", (final_rx - initial_rx) / 1024 / 1024);
         println!("  Total TX: {} MB", (final_tx - initial_tx) / 1024 / 1024);
-        println!("  Average RX Rate: {} KB/s", (final_rx - initial_rx) / 30 / 1024);
-        println!("  Average TX Rate: {} KB/s", (final_tx - initial_tx) / 30 / 1024);
+        println!(
+            "  Average RX Rate: {} KB/s",
+            (final_rx - initial_rx) / 30 / 1024
+        );
+        println!(
+            "  Average TX Rate: {} KB/s",
+            (final_tx - initial_tx) / 30 / 1024
+        );
     }
 }
 
@@ -877,9 +952,8 @@ fn latency_jitter_test() {
                 let avg_rtt = rtts.iter().sum::<f64>() / rtts.len() as f64;
 
                 // Calculate jitter (standard deviation)
-                let variance = rtts.iter()
-                    .map(|&rtt| (rtt - avg_rtt).powi(2))
-                    .sum::<f64>() / rtts.len() as f64;
+                let variance = rtts.iter().map(|&rtt| (rtt - avg_rtt).powi(2)).sum::<f64>()
+                    / rtts.len() as f64;
                 let jitter = variance.sqrt();
 
                 println!("\n📊 Latency Analysis:");
@@ -936,7 +1010,7 @@ fn continuous_monitoring() {
             "🌐 Connection Monitoring",
             "📈 Bandwidth Monitoring",
             "🔄 Ping Monitoring",
-            "📋 Complete System Monitor"
+            "📋 Complete System Monitor",
         ])
         .default(0)
         .interact()
@@ -961,7 +1035,10 @@ fn continuous_monitoring() {
 }
 
 fn monitor_interface_stats(duration: u64) {
-    println!("📊 Monitoring Interface Statistics for {} seconds", duration);
+    println!(
+        "📊 Monitoring Interface Statistics for {} seconds",
+        duration
+    );
     println!("Press Ctrl+C to stop early\n");
 
     for i in 0..duration {
@@ -1047,7 +1124,10 @@ fn monitor_ping(duration: u64) {
 }
 
 fn monitor_complete_system(duration: u64) {
-    println!("📋 Complete Network System Monitoring for {} seconds", duration);
+    println!(
+        "📋 Complete Network System Monitoring for {} seconds",
+        duration
+    );
     println!("This will show periodic snapshots of network state\n");
 
     for i in 0..duration {
@@ -1097,7 +1177,10 @@ fn quick_network_fixes() {
     match choice {
         0 => {
             println!("🔄 Restarting NetworkManager...");
-            Command::new("sudo").args(&["systemctl", "restart", "NetworkManager"]).status().ok();
+            Command::new("sudo")
+                .args(&["systemctl", "restart", "NetworkManager"])
+                .status()
+                .ok();
             println!("✅ NetworkManager restarted");
         }
         1 => {
@@ -1112,17 +1195,29 @@ fn quick_network_fixes() {
             if let Ok(out) = interfaces {
                 for interface in String::from_utf8_lossy(&out.stdout).lines() {
                     println!("  Restarting {}...", interface);
-                    Command::new("sudo").args(&["ip", "link", "set", interface, "down"]).status().ok();
+                    Command::new("sudo")
+                        .args(&["ip", "link", "set", interface, "down"])
+                        .status()
+                        .ok();
                     std::thread::sleep(std::time::Duration::from_secs(1));
-                    Command::new("sudo").args(&["ip", "link", "set", interface, "up"]).status().ok();
+                    Command::new("sudo")
+                        .args(&["ip", "link", "set", interface, "up"])
+                        .status()
+                        .ok();
                 }
             }
             println!("✅ Network interfaces restarted");
         }
         2 => {
             println!("🌐 Flushing DNS cache...");
-            Command::new("sudo").args(&["systemd-resolve", "--flush-caches"]).status().ok();
-            Command::new("sudo").args(&["systemctl", "restart", "systemd-resolved"]).status().ok();
+            Command::new("sudo")
+                .args(&["systemd-resolve", "--flush-caches"])
+                .status()
+                .ok();
+            Command::new("sudo")
+                .args(&["systemctl", "restart", "systemd-resolved"])
+                .status()
+                .ok();
             println!("✅ DNS cache flushed");
         }
         3 => {
@@ -1134,8 +1229,14 @@ fn quick_network_fixes() {
                 .unwrap();
 
             if confirm {
-                Command::new("sudo").args(&["ip", "route", "flush", "table", "main"]).status().ok();
-                Command::new("sudo").args(&["systemctl", "restart", "NetworkManager"]).status().ok();
+                Command::new("sudo")
+                    .args(&["ip", "route", "flush", "table", "main"])
+                    .status()
+                    .ok();
+                Command::new("sudo")
+                    .args(&["systemctl", "restart", "NetworkManager"])
+                    .status()
+                    .ok();
                 println!("✅ Routing table reset");
             }
         }
@@ -1143,13 +1244,22 @@ fn quick_network_fixes() {
             println!("🔧 Applying common connectivity fixes...");
 
             // Enable IP forwarding
-            Command::new("sudo").args(&["sysctl", "net.ipv4.ip_forward=1"]).status().ok();
+            Command::new("sudo")
+                .args(&["sysctl", "net.ipv4.ip_forward=1"])
+                .status()
+                .ok();
 
             // Fix MTU issues
-            Command::new("sudo").args(&["ip", "link", "set", "dev", "eth0", "mtu", "1500"]).status().ok();
+            Command::new("sudo")
+                .args(&["ip", "link", "set", "dev", "eth0", "mtu", "1500"])
+                .status()
+                .ok();
 
             // Restart networking
-            Command::new("sudo").args(&["systemctl", "restart", "networking"]).status().ok();
+            Command::new("sudo")
+                .args(&["systemctl", "restart", "networking"])
+                .status()
+                .ok();
 
             println!("✅ Common fixes applied");
         }
@@ -1165,8 +1275,14 @@ fn quick_network_fixes() {
             if let Ok(out) = interfaces {
                 for interface in String::from_utf8_lossy(&out.stdout).lines() {
                     if !interface.trim().is_empty() {
-                        Command::new("sudo").args(&["ip", "link", "set", interface, "down"]).status().ok();
-                        Command::new("sudo").args(&["ip", "link", "set", interface, "up"]).status().ok();
+                        Command::new("sudo")
+                            .args(&["ip", "link", "set", interface, "down"])
+                            .status()
+                            .ok();
+                        Command::new("sudo")
+                            .args(&["ip", "link", "set", interface, "up"])
+                            .status()
+                            .ok();
                     }
                 }
             }
@@ -1184,7 +1300,10 @@ fn quick_network_fixes() {
 
             for service in services {
                 println!("  Restarting {}...", service);
-                Command::new("sudo").args(&["systemctl", "restart", service]).status().ok();
+                Command::new("sudo")
+                    .args(&["systemctl", "restart", service])
+                    .status()
+                    .ok();
             }
             println!("✅ Network services restarted");
         }

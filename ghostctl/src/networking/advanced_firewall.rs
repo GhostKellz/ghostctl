@@ -1,7 +1,7 @@
-use dialoguer::{Select, Input, Confirm, theme::ColorfulTheme, MultiSelect};
-use std::process::Command;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 
 pub fn advanced_firewall_menu() {
     loop {
@@ -283,10 +283,7 @@ fn nftables_rule_builder() {
             .unwrap();
 
         if execute {
-            let status = Command::new("sh")
-                .arg("-c")
-                .arg(&full_command)
-                .status();
+            let status = Command::new("sh").arg("-c").arg(&full_command).status();
 
             match status {
                 Ok(s) if s.success() => println!("✅ Rule added successfully"),
@@ -346,12 +343,26 @@ fn create_nftables_set() {
 
     let set_type = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select set type")
-        .items(&["ipv4_addr", "ipv6_addr", "ether_addr", "inet_proto", "inet_service", "mark"])
+        .items(&[
+            "ipv4_addr",
+            "ipv6_addr",
+            "ether_addr",
+            "inet_proto",
+            "inet_service",
+            "mark",
+        ])
         .default(0)
         .interact()
         .unwrap();
 
-    let type_str = ["ipv4_addr", "ipv6_addr", "ether_addr", "inet_proto", "inet_service", "mark"][set_type];
+    let type_str = [
+        "ipv4_addr",
+        "ipv6_addr",
+        "ether_addr",
+        "inet_proto",
+        "inet_service",
+        "mark",
+    ][set_type];
 
     let flags = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select flags (optional)")
@@ -361,9 +372,10 @@ fn create_nftables_set() {
 
     let mut flags_str = String::new();
     if !flags.is_empty() {
-        let flag_names: Vec<&str> = flags.iter().map(|&i| {
-            ["interval", "timeout", "constant", "dynamic"][i]
-        }).collect();
+        let flag_names: Vec<&str> = flags
+            .iter()
+            .map(|&i| ["interval", "timeout", "constant", "dynamic"][i])
+            .collect();
         flags_str = format!("flags {}", flag_names.join(", "));
     }
 
@@ -374,10 +386,7 @@ fn create_nftables_set() {
 
     println!("📋 Command: {}", cmd);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Set created: {}", set_name),
@@ -412,10 +421,7 @@ fn add_to_set() {
         table, set_name, elements_str
     );
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Elements added to set"),
@@ -450,10 +456,7 @@ fn remove_from_set() {
         table, set_name, elements_str
     );
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Elements removed from set"),
@@ -466,10 +469,7 @@ fn list_sets() {
 
     let cmd = "sudo nft list sets";
 
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(cmd)
-        .output();
+    let output = Command::new("sh").arg("-c").arg(cmd).output();
 
     match output {
         Ok(out) => {
@@ -507,10 +507,7 @@ fn delete_set() {
     if confirm {
         let cmd = format!("sudo nft delete set {} {}", table, set_name);
 
-        let status = Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .status();
+        let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
         match status {
             Ok(s) if s.success() => println!("✅ Set deleted"),
@@ -552,10 +549,7 @@ fn create_dynamic_set() {
 
     println!("📋 Creating dynamic set for rate limiting...");
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -627,10 +621,7 @@ fn import_set() {
             table, set_name, elements_str
         );
 
-        let status = Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .status();
+        let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
         match status {
             Ok(s) if s.success() => println!("✅ {} elements imported", elements.len()),
@@ -655,16 +646,17 @@ fn export_set() {
 
     let export_path = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter export file path")
-        .default(format!("{}/{}_set.txt", std::env::var("HOME").unwrap_or_default(), set_name))
+        .default(format!(
+            "{}/{}_set.txt",
+            std::env::var("HOME").unwrap_or_default(),
+            set_name
+        ))
         .interact()
         .unwrap();
 
     let cmd = format!("sudo nft list set {} {}", table, set_name);
 
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .output();
+    let output = Command::new("sh").arg("-c").arg(&cmd).output();
 
     match output {
         Ok(out) => {
@@ -742,10 +734,7 @@ fn chain_priorities_configuration() {
 
         println!("📋 Command: {}", cmd);
 
-        let status = Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .status();
+        let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
         match status {
             Ok(s) if s.success() => println!("✅ Chain created with priority {}", priority),
@@ -871,10 +860,7 @@ fn syn_flood_protection() {
         table
     );
 
-    let cmd2 = format!(
-        "sudo nft add rule {} input tcp flags syn drop",
-        table
-    );
+    let cmd2 = format!("sudo nft add rule {} input tcp flags syn drop", table);
 
     println!("🔧 Setting up SYN flood protection...");
 
@@ -904,10 +890,7 @@ fn connection_limit_per_ip() {
 
     println!("🔧 Setting connection limit...");
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -1136,8 +1119,10 @@ fn analyze_iptables_rules() {
 fn convert_iptables_to_nftables() {
     println!("🔄 Converting iptables to nftables");
 
-    let backup_path = format!("{}/iptables_backup.rules",
-        std::env::var("HOME").unwrap_or_default());
+    let backup_path = format!(
+        "{}/iptables_backup.rules",
+        std::env::var("HOME").unwrap_or_default()
+    );
 
     // Save iptables rules
     let save_cmd = format!("sudo iptables-save > {}", backup_path);
@@ -1150,10 +1135,7 @@ fn convert_iptables_to_nftables() {
         std::env::var("HOME").unwrap_or_default()
     );
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&convert_cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&convert_cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -1167,7 +1149,10 @@ fn convert_iptables_to_nftables() {
 fn backup_iptables_rules() {
     println!("💾 Backing up iptables rules");
 
-    let backup_dir = format!("{}/firewall_backups", std::env::var("HOME").unwrap_or_default());
+    let backup_dir = format!(
+        "{}/firewall_backups",
+        std::env::var("HOME").unwrap_or_default()
+    );
     fs::create_dir_all(&backup_dir).ok();
 
     let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
@@ -1175,10 +1160,7 @@ fn backup_iptables_rules() {
 
     let cmd = format!("sudo iptables-save > {}", backup_path);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Backup saved to: {}", backup_path),
@@ -1267,7 +1249,10 @@ fn ruleset_backup_restore() {
 fn backup_ruleset() {
     println!("💾 Backing up ruleset");
 
-    let backup_dir = format!("{}/nftables_backups", std::env::var("HOME").unwrap_or_default());
+    let backup_dir = format!(
+        "{}/nftables_backups",
+        std::env::var("HOME").unwrap_or_default()
+    );
     fs::create_dir_all(&backup_dir).ok();
 
     let name = Input::<String>::with_theme(&ColorfulTheme::default())
@@ -1280,10 +1265,7 @@ fn backup_ruleset() {
 
     let cmd = format!("sudo nft list ruleset > {}", backup_path);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -1307,7 +1289,10 @@ fn backup_ruleset() {
 fn restore_ruleset() {
     println!("📥 Restore Ruleset");
 
-    let backup_dir = format!("{}/nftables_backups", std::env::var("HOME").unwrap_or_default());
+    let backup_dir = format!(
+        "{}/nftables_backups",
+        std::env::var("HOME").unwrap_or_default()
+    );
 
     if !Path::new(&backup_dir).exists() {
         println!("❌ No backups found");
@@ -1350,7 +1335,8 @@ fn restore_ruleset() {
     if confirm {
         // Backup current before restore
         println!("📦 Backing up current ruleset...");
-        let temp_backup = format!("{}/pre_restore_{}.nft",
+        let temp_backup = format!(
+            "{}/pre_restore_{}.nft",
             backup_dir,
             chrono::Local::now().format("%Y%m%d_%H%M%S")
         );
@@ -1364,17 +1350,18 @@ fn restore_ruleset() {
 
         Command::new("sh").arg("-c").arg(flush_cmd).status().ok();
 
-        let status = Command::new("sh")
-            .arg("-c")
-            .arg(&restore_cmd)
-            .status();
+        let status = Command::new("sh").arg("-c").arg(&restore_cmd).status();
 
         match status {
             Ok(s) if s.success() => println!("✅ Ruleset restored from: {}", backup),
             _ => {
                 println!("❌ Restore failed, attempting rollback...");
                 let rollback_cmd = format!("sudo nft -f {}", temp_backup);
-                Command::new("sh").arg("-c").arg(&rollback_cmd).status().ok();
+                Command::new("sh")
+                    .arg("-c")
+                    .arg(&rollback_cmd)
+                    .status()
+                    .ok();
             }
         }
     }
@@ -1383,7 +1370,10 @@ fn restore_ruleset() {
 fn list_backups() {
     println!("📋 List Backups");
 
-    let backup_dir = format!("{}/nftables_backups", std::env::var("HOME").unwrap_or_default());
+    let backup_dir = format!(
+        "{}/nftables_backups",
+        std::env::var("HOME").unwrap_or_default()
+    );
 
     if !Path::new(&backup_dir).exists() {
         println!("❌ No backups found");
@@ -1413,7 +1403,10 @@ fn list_backups() {
 fn delete_backup() {
     println!("🗑️ Delete Backup");
 
-    let backup_dir = format!("{}/nftables_backups", std::env::var("HOME").unwrap_or_default());
+    let backup_dir = format!(
+        "{}/nftables_backups",
+        std::env::var("HOME").unwrap_or_default()
+    );
 
     if !Path::new(&backup_dir).exists() {
         println!("❌ No backups found");
@@ -1490,9 +1483,15 @@ ls -t "$BACKUP_DIR"/auto_*.nft | tail -n +31 | xargs -r rm
         std::env::var("HOME").unwrap_or_default()
     );
 
-    let script_path = format!("{}/nftables_backup.sh", std::env::var("HOME").unwrap_or_default());
+    let script_path = format!(
+        "{}/nftables_backup.sh",
+        std::env::var("HOME").unwrap_or_default()
+    );
     fs::write(&script_path, backup_script).ok();
-    Command::new("chmod").args(&["+x", &script_path]).status().ok();
+    Command::new("chmod")
+        .args(&["+x", &script_path])
+        .status()
+        .ok();
 
     let cron_entry = format!("{} {}", frequency_str, script_path);
 
@@ -1506,7 +1505,10 @@ ls -t "$BACKUP_DIR"/auto_*.nft | tail -n +31 | xargs -r rm
         .unwrap();
 
     if add_cron {
-        let cmd = format!("(crontab -l 2>/dev/null; echo '{}') | crontab -", cron_entry);
+        let cmd = format!(
+            "(crontab -l 2>/dev/null; echo '{}') | crontab -",
+            cron_entry
+        );
         Command::new("sh").arg("-c").arg(&cmd).status().ok();
         println!("✅ Automatic backup scheduled");
     }
@@ -1565,10 +1567,7 @@ fn add_test_rule(namespace: &str) {
 
     let cmd = format!("sudo ip netns exec {} nft {}", namespace, rule);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Test rule added"),
@@ -1608,12 +1607,7 @@ fn test_packet_flow(namespace: &str) {
 fn simulate_attack(namespace: &str) {
     println!("⚠️ Simulate attack patterns");
 
-    let attacks = [
-        "SYN flood",
-        "Port scan",
-        "Brute force",
-        "DDoS simulation",
-    ];
+    let attacks = ["SYN flood", "Port scan", "Brute force", "DDoS simulation"];
 
     let choice = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select attack type to simulate")
@@ -1633,10 +1627,7 @@ fn view_test_results(namespace: &str) {
 
     let cmd = format!("sudo ip netns exec {} nft list ruleset", namespace);
 
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .output();
+    let output = Command::new("sh").arg("-c").arg(&cmd).output();
 
     if let Ok(out) = output {
         let result = String::from_utf8_lossy(&out.stdout);
@@ -1649,10 +1640,7 @@ fn cleanup_sandbox(namespace: &str) {
 
     let cmd = format!("sudo ip netns delete {}", namespace);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Sandbox cleaned up"),
@@ -1802,19 +1790,18 @@ fn game_server_template() {
         .unwrap();
 
     let port = match game_type {
-        0 => "25565".to_string(),  // Minecraft
-        1 => "27015".to_string(),  // CS:GO
-        2 => "28015".to_string(),  // Rust
-        3 => "2456-2458".to_string(),   // Valheim
-        _ => {
-            Input::<String>::with_theme(&ColorfulTheme::default())
-                .with_prompt("Enter game port")
-                .interact()
-                .unwrap()
-        }
+        0 => "25565".to_string(),     // Minecraft
+        1 => "27015".to_string(),     // CS:GO
+        2 => "28015".to_string(),     // Rust
+        3 => "2456-2458".to_string(), // Valheim
+        _ => Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Enter game port")
+            .interact()
+            .unwrap(),
     };
 
-    let template = format!(r#"#!/usr/sbin/nft -f
+    let template = format!(
+        r#"#!/usr/sbin/nft -f
 
 table inet gaming {{
     chain input {{
@@ -1852,7 +1839,9 @@ table inet gaming {{
     chain output {{
         type filter hook output priority 0; policy accept;
     }}
-}}"#, port, port, port);
+}}"#,
+        port, port, port
+    );
 
     println!("{}", template);
 

@@ -1,36 +1,36 @@
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
+use ipnet::Ipv4Net;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, VecDeque, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::{Duration, Instant, SystemTime};
 use tokio::net::TcpStream;
 use tokio::time::timeout;
-use regex::Regex;
-use ipnet::Ipv4Net;
 
 /// Advanced scanning techniques beyond basic TCP connect
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ScanTechnique {
-    TcpConnect,          // Current implementation - full TCP handshake
-    TcpSyn,             // Half-open scanning (requires raw sockets)
-    TcpAck,             // ACK scanning for firewall detection
-    TcpWindow,          // Window scanning for OS detection
-    TcpMaimon,          // Maimon scanning technique
-    UdpScan,            // UDP port scanning
-    IcmpScan,           // ICMP ping scanning
-    ArpScan,            // ARP discovery scanning
-    ScriptScan,         // NSE-like script scanning
+    TcpConnect, // Current implementation - full TCP handshake
+    TcpSyn,     // Half-open scanning (requires raw sockets)
+    TcpAck,     // ACK scanning for firewall detection
+    TcpWindow,  // Window scanning for OS detection
+    TcpMaimon,  // Maimon scanning technique
+    UdpScan,    // UDP port scanning
+    IcmpScan,   // ICMP ping scanning
+    ArpScan,    // ARP discovery scanning
+    ScriptScan, // NSE-like script scanning
 }
 
 /// Timing templates for different scanning scenarios
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TimingTemplate {
-    Paranoid,    // T0: Very slow, maximum IDS evasion
-    Sneaky,      // T1: Slow, good IDS evasion
-    Polite,      // T2: Slower, less bandwidth usage
-    Normal,      // T3: Default timing (current implementation)
-    Aggressive,  // T4: Faster, assumes fast reliable network
-    Insane,      // T5: Very fast, assumes extremely fast network
+    Paranoid,   // T0: Very slow, maximum IDS evasion
+    Sneaky,     // T1: Slow, good IDS evasion
+    Polite,     // T2: Slower, less bandwidth usage
+    Normal,     // T3: Default timing (current implementation)
+    Aggressive, // T4: Faster, assumes fast reliable network
+    Insane,     // T5: Very fast, assumes extremely fast network
 }
 
 impl TimingTemplate {
@@ -145,7 +145,7 @@ pub struct ServiceInfo {
     pub hostname: Option<String>,
     pub ostype: Option<String>,
     pub confidence: f32,
-    pub cpe: Vec<String>,  // Common Platform Enumeration
+    pub cpe: Vec<String>, // Common Platform Enumeration
     pub banner: Option<String>,
     pub ssl_info: Option<SslInfo>,
 }
@@ -256,8 +256,7 @@ impl NetworkRange {
         let mut targets = Vec::new();
 
         // Parse main CIDR range
-        let network: Ipv4Net = self.cidr.parse()
-            .context("Invalid CIDR format")?;
+        let network: Ipv4Net = self.cidr.parse().context("Invalid CIDR format")?;
 
         // Generate all hosts in the network
         for ip in network.hosts() {
@@ -268,7 +267,8 @@ impl NetworkRange {
 
         // Add any specifically included ranges
         for include_range in &self.include_ranges {
-            let include_net: Ipv4Net = include_range.parse()
+            let include_net: Ipv4Net = include_range
+                .parse()
                 .context("Invalid include range format")?;
             for ip in include_net.hosts() {
                 if !targets.contains(&ip.into()) {
@@ -329,7 +329,8 @@ impl AdaptiveRateLimiter {
 
         // Update success rate (exponential moving average)
         let alpha = 0.1;
-        self.success_rate = alpha * if success { 1.0 } else { 0.0 } + (1.0 - alpha) * self.success_rate;
+        self.success_rate =
+            alpha * if success { 1.0 } else { 0.0 } + (1.0 - alpha) * self.success_rate;
 
         // Only adjust rate periodically
         if self.last_adjustment.elapsed() < self.adjustment_interval {
@@ -398,7 +399,7 @@ pub struct ServiceMatch {
 pub async fn advanced_service_detection(
     target: &str,
     port: u16,
-    initial_banner: Option<&str>
+    initial_banner: Option<&str>,
 ) -> Option<ServiceInfo> {
     let probes = load_service_probes();
 
@@ -424,23 +425,23 @@ async fn send_probe_and_analyze(
 ) -> Option<ServiceInfo> {
     // Connect to target
     let addr = format!("{}:{}", target, port);
-    let mut stream = timeout(
-        Duration::from_secs(5),
-        TcpStream::connect(&addr)
-    ).await.ok().and_then(|r| r.ok())?;
+    let mut stream = timeout(Duration::from_secs(5), TcpStream::connect(&addr))
+        .await
+        .ok()
+        .and_then(|r| r.ok())?;
 
     // Send probe
-    use tokio::io::{AsyncWriteExt, AsyncReadExt};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
     if stream.write_all(&probe.probe_string).await.is_err() {
         return None;
     }
 
     // Read response
     let mut buffer = vec![0; 4096];
-    let bytes_read = timeout(
-        Duration::from_secs(3),
-        stream.read(&mut buffer)
-    ).await.ok().and_then(|r| r.ok())?;
+    let bytes_read = timeout(Duration::from_secs(3), stream.read(&mut buffer))
+        .await
+        .ok()
+        .and_then(|r| r.ok())?;
 
     let response = String::from_utf8_lossy(&buffer[..bytes_read]);
 
@@ -527,15 +528,13 @@ fn load_service_probes() -> Vec<ServiceProbe> {
             probe_string: b"GET / HTTP/1.0\r\n\r\n".to_vec(),
             ports: vec![80, 8080, 8000, 443],
             protocol: Protocol::Tcp,
-            match_patterns: vec![
-                ServiceMatch {
-                    pattern: Regex::new(r"Server: ([^\r\n]+)").unwrap(),
-                    service: "http".to_string(),
-                    version_extract: Some("$1".to_string()),
-                    product_extract: None,
-                    confidence: 0.9,
-                }
-            ],
+            match_patterns: vec![ServiceMatch {
+                pattern: Regex::new(r"Server: ([^\r\n]+)").unwrap(),
+                service: "http".to_string(),
+                version_extract: Some("$1".to_string()),
+                product_extract: None,
+                confidence: 0.9,
+            }],
             fallback: None,
         },
         ServiceProbe {
@@ -543,15 +542,13 @@ fn load_service_probes() -> Vec<ServiceProbe> {
             probe_string: b"SSH-2.0-GhostCTL_Scanner\r\n".to_vec(),
             ports: vec![22],
             protocol: Protocol::Tcp,
-            match_patterns: vec![
-                ServiceMatch {
-                    pattern: Regex::new(r"SSH-([0-9.]+)-([^\r\n]+)").unwrap(),
-                    service: "ssh".to_string(),
-                    version_extract: Some("$1".to_string()),
-                    product_extract: Some("$2".to_string()),
-                    confidence: 0.95,
-                }
-            ],
+            match_patterns: vec![ServiceMatch {
+                pattern: Regex::new(r"SSH-([0-9.]+)-([^\r\n]+)").unwrap(),
+                service: "ssh".to_string(),
+                version_extract: Some("$1".to_string()),
+                product_extract: Some("$2".to_string()),
+                confidence: 0.95,
+            }],
             fallback: None,
         },
     ]

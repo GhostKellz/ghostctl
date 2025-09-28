@@ -1,15 +1,15 @@
+pub mod advanced_firewall;
+pub mod advanced_scanner;
+pub mod bridge_management;
+pub mod enterprise_networking;
 pub mod firewall;
+pub mod libvirt_advanced;
+pub mod nftables_enterprise;
+pub mod scanner;
 pub mod troubleshoot;
 pub mod virtualization;
-pub mod advanced_firewall;
-pub mod libvirt_advanced;
-pub mod bridge_management;
-pub mod scanner;
-pub mod advanced_scanner;
-pub mod enterprise_networking;
-pub mod nftables_enterprise;
 
-use dialoguer::{Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Select};
 
 pub fn networking_menu() {
     loop {
@@ -61,7 +61,7 @@ fn network_status() {
         .status();
 
     match status {
-        Ok(s) if s.success() => {},
+        Ok(s) if s.success() => {}
         _ => println!("  ❌ Failed to get interface status"),
     }
 

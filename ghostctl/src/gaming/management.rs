@@ -1,7 +1,7 @@
-use dialoguer::{Select, Input, Confirm, theme::ColorfulTheme, MultiSelect};
-use std::process::Command;
-use std::path::Path;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::fs;
+use std::path::Path;
+use std::process::Command;
 use std::sync::OnceLock;
 
 // Cache for commonly accessed paths and values
@@ -10,21 +10,15 @@ static GAMES_DIR: OnceLock<String> = OnceLock::new();
 static USER_NAME: OnceLock<String> = OnceLock::new();
 
 fn get_home_dir() -> &'static str {
-    HOME_DIR.get_or_init(|| {
-        std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string())
-    })
+    HOME_DIR.get_or_init(|| std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string()))
 }
 
 fn get_games_dir() -> &'static str {
-    GAMES_DIR.get_or_init(|| {
-        format!("{}/Games", get_home_dir())
-    })
+    GAMES_DIR.get_or_init(|| format!("{}/Games", get_home_dir()))
 }
 
 fn get_user_name() -> &'static str {
-    USER_NAME.get_or_init(|| {
-        std::env::var("USER").unwrap_or_else(|_| "user".to_string())
-    })
+    USER_NAME.get_or_init(|| std::env::var("USER").unwrap_or_else(|_| "user".to_string()))
 }
 
 pub fn game_management_menu() {
@@ -104,7 +98,10 @@ fn scan_game_libraries() {
         ("Lutris", format!("{}/.local/share/lutris/prefixes", home)),
         ("Bottles", format!("{}/.local/share/bottles/bottles", home)),
         ("Wine", format!("{}/.wine/drive_c/Program Files", home)),
-        ("Wine x86", format!("{}/.wine/drive_c/Program Files (x86)", home)),
+        (
+            "Wine x86",
+            format!("{}/.wine/drive_c/Program Files (x86)", home),
+        ),
         ("Games", get_games_dir().to_string()),
     ]);
 
@@ -130,10 +127,7 @@ fn scan_game_libraries() {
                         total_games += game_count;
 
                         // Calculate size
-                        if let Ok(size_out) = Command::new("du")
-                            .args(&["-sb", path])
-                            .output()
-                        {
+                        if let Ok(size_out) = Command::new("du").args(&["-sb", path]).output() {
                             if let Ok(size_str) = String::from_utf8(size_out.stdout) {
                                 if let Some(size_part) = size_str.split_whitespace().next() {
                                     if let Ok(size) = size_part.parse::<u64>() {
@@ -179,7 +173,10 @@ fn scan_game_libraries() {
 
     println!("📊 Summary:");
     println!("  Total Games/Prefixes: {}", total_games);
-    println!("  Total Storage Used: {} GB", total_size / 1024 / 1024 / 1024);
+    println!(
+        "  Total Storage Used: {} GB",
+        total_size / 1024 / 1024 / 1024
+    );
 
     // Custom directory scan
     let custom_scan = Confirm::with_theme(&ColorfulTheme::default())
@@ -198,13 +195,26 @@ fn scan_game_libraries() {
             println!("\n🔍 Scanning custom path: {}", custom_path);
 
             let find_result = Command::new("find")
-                .args(&[&custom_path, "-name", "*.exe", "-o", "-name", "*.msi", "-o", "-name", "setup*"])
+                .args(&[
+                    &custom_path,
+                    "-name",
+                    "*.exe",
+                    "-o",
+                    "-name",
+                    "*.msi",
+                    "-o",
+                    "-name",
+                    "setup*",
+                ])
                 .output();
 
             if let Ok(out) = find_result {
                 let output_string = String::from_utf8_lossy(&out.stdout);
                 let executables: Vec<&str> = output_string.lines().collect();
-                println!("  🎮 Found {} potential game executables", executables.len());
+                println!(
+                    "  🎮 Found {} potential game executables",
+                    executables.len()
+                );
 
                 for (i, exe) in executables.iter().take(10).enumerate() {
                     println!("    {}. {}", i + 1, exe);
@@ -228,7 +238,7 @@ fn find_duplicate_games() {
             "📝 By name similarity",
             "🗂️ By file size",
             "🔗 By executable hash",
-            "📊 Comprehensive scan"
+            "📊 Comprehensive scan",
         ])
         .default(0)
         .interact()
@@ -277,9 +287,10 @@ fn find_duplicates_by_name(paths: &[String]) {
     // Simple duplicate detection by exact name match
     let mut duplicates = Vec::with_capacity(10); // Most users don't have many duplicates
     for i in 0..all_games.len() {
-        for j in (i+1)..all_games.len() {
+        for j in (i + 1)..all_games.len() {
             let similarity = calculate_similarity(&all_games[i].0, &all_games[j].0);
-            if similarity > 0.8 { // 80% similarity threshold
+            if similarity > 0.8 {
+                // 80% similarity threshold
                 duplicates.push((all_games[i].1.clone(), all_games[j].1.clone(), similarity));
             }
         }
@@ -297,7 +308,11 @@ fn find_duplicates_by_name(paths: &[String]) {
             // Show sizes
             let size1 = get_directory_size(path1);
             let size2 = get_directory_size(path2);
-            println!("   📊 Sizes: {} MB vs {} MB", size1 / 1024 / 1024, size2 / 1024 / 1024);
+            println!(
+                "   📊 Sizes: {} MB vs {} MB",
+                size1 / 1024 / 1024,
+                size2 / 1024 / 1024
+            );
         }
 
         let cleanup = Confirm::with_theme(&ColorfulTheme::default())
@@ -325,9 +340,7 @@ fn calculate_similarity(s1: &str, s2: &str) -> f64 {
     }
 
     // Simple Levenshtein-like comparison
-    let common_chars = s1_clean.chars()
-        .filter(|c| s2_clean.contains(*c))
-        .count();
+    let common_chars = s1_clean.chars().filter(|c| s2_clean.contains(*c)).count();
 
     let max_len = s1_clean.len().max(s2_clean.len());
     if max_len == 0 {
@@ -338,9 +351,7 @@ fn calculate_similarity(s1: &str, s2: &str) -> f64 {
 }
 
 fn get_directory_size(path: &str) -> u64 {
-    let du_result = Command::new("du")
-        .args(&["-sb", path])
-        .output();
+    let du_result = Command::new("du").args(&["-sb", path]).output();
 
     if let Ok(out) = du_result {
         if let Ok(output_str) = String::from_utf8(out.stdout) {
@@ -355,7 +366,8 @@ fn get_directory_size(path: &str) -> u64 {
 fn find_duplicates_by_size(paths: &[String]) {
     println!("🗂️ Finding duplicates by file size...\n");
 
-    let mut size_map: std::collections::HashMap<u64, Vec<String>> = std::collections::HashMap::new();
+    let mut size_map: std::collections::HashMap<u64, Vec<String>> =
+        std::collections::HashMap::new();
 
     for path in paths {
         if Path::new(path).exists() {
@@ -367,8 +379,12 @@ fn find_duplicates_by_size(paths: &[String]) {
                 for line in String::from_utf8_lossy(&out.stdout).lines() {
                     if line != *path {
                         let size = get_directory_size(line);
-                        if size > 100 * 1024 * 1024 { // Only consider directories > 100MB
-                            size_map.entry(size).or_insert_with(Vec::new).push(line.to_string());
+                        if size > 100 * 1024 * 1024 {
+                            // Only consider directories > 100MB
+                            size_map
+                                .entry(size)
+                                .or_insert_with(Vec::new)
+                                .push(line.to_string());
                         }
                     }
                 }
@@ -380,7 +396,11 @@ fn find_duplicates_by_size(paths: &[String]) {
     for (size, paths) in size_map {
         if paths.len() > 1 {
             duplicates_found = true;
-            println!("📊 {} directories with identical size {} MB:", paths.len(), size / 1024 / 1024);
+            println!(
+                "📊 {} directories with identical size {} MB:",
+                paths.len(),
+                size / 1024 / 1024
+            );
             for path in paths {
                 println!("  📁 {}", path);
             }
@@ -397,7 +417,8 @@ fn find_duplicates_by_hash(paths: &[String]) {
     println!("🔗 Finding duplicates by executable hash...\n");
     println!("⏱️ This may take a while for large game libraries...\n");
 
-    let mut hash_map: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+    let mut hash_map: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
 
     for path in paths {
         if Path::new(path).exists() {
@@ -417,13 +438,17 @@ fn find_duplicates_by_hash(paths: &[String]) {
                         println!("  Progress: {}/{}", i, executables.len());
                     }
 
-                    let hash_result = Command::new("sha256sum")
-                        .arg(exe_path)
-                        .output();
+                    let hash_result = Command::new("sha256sum").arg(exe_path).output();
 
                     if let Ok(hash_out) = hash_result {
-                        if let Some(hash) = String::from_utf8_lossy(&hash_out.stdout).split_whitespace().next() {
-                            hash_map.entry(hash.to_string()).or_insert_with(Vec::new).push(exe_path.to_string());
+                        if let Some(hash) = String::from_utf8_lossy(&hash_out.stdout)
+                            .split_whitespace()
+                            .next()
+                        {
+                            hash_map
+                                .entry(hash.to_string())
+                                .or_insert_with(Vec::new)
+                                .push(exe_path.to_string());
                         }
                     }
                 }
@@ -435,7 +460,11 @@ fn find_duplicates_by_hash(paths: &[String]) {
     for (hash, paths) in hash_map {
         if paths.len() > 1 {
             duplicates_found = true;
-            println!("🔗 {} identical executables (hash: {}):", paths.len(), &hash[..16]);
+            println!(
+                "🔗 {} identical executables (hash: {}):",
+                paths.len(),
+                &hash[..16]
+            );
             for path in paths {
                 println!("  🎮 {}", path);
             }
@@ -467,11 +496,20 @@ fn analyze_game_content(paths: &[String]) {
     println!("📂 Analyzing game content patterns...\n");
 
     let common_game_files = vec![
-        "*.dll", "*.exe", "Data", "data", "assets", "Assets",
-        "config.ini", "settings.cfg", "save", "saves"
+        "*.dll",
+        "*.exe",
+        "Data",
+        "data",
+        "assets",
+        "Assets",
+        "config.ini",
+        "settings.cfg",
+        "save",
+        "saves",
     ];
 
-    let mut content_signatures: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+    let mut content_signatures: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
 
     for path in paths {
         if Path::new(path).exists() {
@@ -497,7 +535,10 @@ fn analyze_game_content(paths: &[String]) {
                         }
 
                         if !signature.is_empty() {
-                            content_signatures.entry(signature).or_insert_with(Vec::new).push(line.to_string());
+                            content_signatures
+                                .entry(signature)
+                                .or_insert_with(Vec::new)
+                                .push(line.to_string());
                         }
                     }
                 }
@@ -509,7 +550,10 @@ fn analyze_game_content(paths: &[String]) {
     for (signature, dirs) in content_signatures {
         if dirs.len() > 1 {
             found_content_duplicates = true;
-            println!("📂 {} directories with similar content pattern:", dirs.len());
+            println!(
+                "📂 {} directories with similar content pattern:",
+                dirs.len()
+            );
             for dir in dirs {
                 println!("  📁 {}", dir);
             }
@@ -534,7 +578,11 @@ fn cleanup_duplicate_games(duplicates: Vec<(String, String, f64)>) {
 
         let size1 = get_directory_size(path1);
         let size2 = get_directory_size(path2);
-        println!("Sizes: {} MB vs {} MB", size1 / 1024 / 1024, size2 / 1024 / 1024);
+        println!(
+            "Sizes: {} MB vs {} MB",
+            size1 / 1024 / 1024,
+            size2 / 1024 / 1024
+        );
 
         let action = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Choose action")
@@ -584,25 +632,24 @@ fn remove_game_directory(path: &str) {
             .unwrap();
 
         if backup {
-            let backup_path = format!("{}.backup.{}", path,
+            let backup_path = format!(
+                "{}.backup.{}",
+                path,
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap()
-                    .as_secs());
+                    .as_secs()
+            );
 
             println!("📦 Creating backup: {}", backup_path);
-            let backup_result = Command::new("mv")
-                .args(&[path, &backup_path])
-                .status();
+            let backup_result = Command::new("mv").args(&[path, &backup_path]).status();
 
             match backup_result {
                 Ok(s) if s.success() => println!("✅ Backed up and removed"),
                 _ => println!("❌ Backup failed"),
             }
         } else {
-            let remove_result = Command::new("rm")
-                .args(&["-rf", path])
-                .status();
+            let remove_result = Command::new("rm").args(&["-rf", path]).status();
 
             match remove_result {
                 Ok(s) if s.success() => println!("✅ Directory removed"),
@@ -638,9 +685,7 @@ fn show_detailed_comparison(path1: &str, path2: &str) {
 }
 
 fn count_files(path: &str) -> usize {
-    let find_result = Command::new("find")
-        .args(&[path, "-type", "f"])
-        .output();
+    let find_result = Command::new("find").args(&[path, "-type", "f"]).output();
 
     if let Ok(out) = find_result {
         String::from_utf8_lossy(&out.stdout).lines().count()
@@ -650,9 +695,7 @@ fn count_files(path: &str) -> usize {
 }
 
 fn show_last_modified(path: &str) {
-    let stat_result = Command::new("stat")
-        .args(&["-c", "%Y %n", path])
-        .output();
+    let stat_result = Command::new("stat").args(&["-c", "%Y %n", path]).output();
 
     if let Ok(out) = stat_result {
         let output_string = String::from_utf8_lossy(&out.stdout);
@@ -662,9 +705,7 @@ fn show_last_modified(path: &str) {
 
 fn show_directory_structure(path: &str, label: &str) {
     println!("\n{} structure:", label);
-    let tree_result = Command::new("ls")
-        .args(&["-la", path])
-        .output();
+    let tree_result = Command::new("ls").args(&["-la", path]).output();
 
     if let Ok(out) = tree_result {
         let output_string = String::from_utf8_lossy(&out.stdout);
@@ -682,7 +723,10 @@ fn storage_usage_analysis() {
     let platforms = vec![
         ("Steam", format!("{}/.steam", get_home_dir())),
         ("Lutris", format!("{}/.local/share/lutris", get_home_dir())),
-        ("Bottles", format!("{}/.local/share/bottles", get_home_dir())),
+        (
+            "Bottles",
+            format!("{}/.local/share/bottles", get_home_dir()),
+        ),
         ("Wine", format!("{}/.wine", get_home_dir())),
         ("Games", format!("{}/Games", get_home_dir())),
     ];
@@ -735,7 +779,10 @@ fn storage_usage_analysis() {
     }
 
     println!("📊 Summary:");
-    println!("  Total gaming storage: {} GB", total_usage / 1024 / 1024 / 1024);
+    println!(
+        "  Total gaming storage: {} GB",
+        total_usage / 1024 / 1024 / 1024
+    );
 
     // Cleanup suggestions
     suggest_cleanup_opportunities(&platforms);
@@ -772,28 +819,38 @@ fn suggest_cleanup_opportunities(_platforms: &[(&str, String)]) {
     for path in &shader_paths {
         if Path::new(path).exists() {
             let size = get_directory_size(path);
-            if size > 100 * 1024 * 1024 { // > 100MB
+            if size > 100 * 1024 * 1024 {
+                // > 100MB
                 shader_total += size;
                 println!("  📁 {}: {} MB", path, size / 1024 / 1024);
             }
         }
     }
 
-    if shader_total > 500 * 1024 * 1024 { // > 500MB
-        println!("  💡 Consider clearing shader caches: {} MB total", shader_total / 1024 / 1024);
+    if shader_total > 500 * 1024 * 1024 {
+        // > 500MB
+        println!(
+            "  💡 Consider clearing shader caches: {} MB total",
+            shader_total / 1024 / 1024
+        );
     }
 
     // Check for temp files
     println!("\n🗑️ Temporary Files:");
     let temp_paths = vec![
-        format!("{}/.wine/drive_c/users/{}/Temp", get_home_dir(), get_user_name()),
+        format!(
+            "{}/.wine/drive_c/users/{}/Temp",
+            get_home_dir(),
+            get_user_name()
+        ),
         format!("{}/.local/share/Steam/logs", get_home_dir()),
     ];
 
     for path in &temp_paths {
         if Path::new(path).exists() {
             let size = get_directory_size(path);
-            if size > 50 * 1024 * 1024 { // > 50MB
+            if size > 50 * 1024 * 1024 {
+                // > 50MB
                 println!("  📁 {}: {} MB", path, size / 1024 / 1024);
             }
         }
@@ -804,14 +861,25 @@ fn suggest_cleanup_opportunities(_platforms: &[(&str, String)]) {
     let wine_prefixes_path = format!("{}/.local/share/wineprefixes", get_home_dir());
     if Path::new(&wine_prefixes_path).exists() {
         let find_result = Command::new("find")
-            .args(&[&wine_prefixes_path, "-maxdepth", "1", "-type", "d", "-mtime", "+30"])
+            .args(&[
+                &wine_prefixes_path,
+                "-maxdepth",
+                "1",
+                "-type",
+                "d",
+                "-mtime",
+                "+30",
+            ])
             .output();
 
         if let Ok(out) = find_result {
             let output_string = String::from_utf8_lossy(&out.stdout);
             let old_prefixes: Vec<&str> = output_string.lines().collect();
             if !old_prefixes.is_empty() {
-                println!("  📦 Found {} prefixes not used in 30+ days", old_prefixes.len());
+                println!(
+                    "  📦 Found {} prefixes not used in 30+ days",
+                    old_prefixes.len()
+                );
                 for prefix in old_prefixes.iter().take(5) {
                     let size = get_directory_size(prefix);
                     println!("    📁 {}: {} MB", prefix, size / 1024 / 1024);
@@ -866,9 +934,7 @@ fn wine_health_check() {
 
     // Check Wine installation
     println!("1️⃣ Wine Installation Status:");
-    let wine_version = Command::new("wine")
-        .arg("--version")
-        .output();
+    let wine_version = Command::new("wine").arg("--version").output();
 
     match wine_version {
         Ok(out) if out.status.success() => {
@@ -883,9 +949,7 @@ fn wine_health_check() {
 
     // Check Wine architecture support
     println!("\n2️⃣ Architecture Support:");
-    let arch_check = Command::new("wine")
-        .args(&["--help"])
-        .output();
+    let arch_check = Command::new("wine").args(&["--help"]).output();
 
     if let Ok(out) = arch_check {
         let help_text = String::from_utf8_lossy(&out.stdout);
@@ -941,9 +1005,7 @@ fn check_wine_dependencies() {
     ];
 
     for (package, desc) in deps {
-        let check = Command::new("pacman")
-            .args(&["-Q", package])
-            .output();
+        let check = Command::new("pacman").args(&["-Q", package]).output();
 
         match check {
             Ok(out) if out.status.success() => {
@@ -1000,9 +1062,7 @@ fn check_wine_prefixes() {
 fn check_common_wine_issues() {
     // Check for ntlm_auth issues
     println!("🔍 Checking ntlm_auth...");
-    let ntlm_check = Command::new("which")
-        .arg("ntlm_auth")
-        .status();
+    let ntlm_check = Command::new("which").arg("ntlm_auth").status();
 
     match ntlm_check {
         Ok(s) if s.success() => println!("  ✅ ntlm_auth found"),
@@ -1031,9 +1091,7 @@ fn check_common_wine_issues() {
 
     // Check for audio issues
     println!("\n🔍 Checking audio configuration...");
-    let pulse_check = Command::new("pactl")
-        .args(&["info"])
-        .status();
+    let pulse_check = Command::new("pactl").args(&["info"]).status();
 
     match pulse_check {
         Ok(s) if s.success() => println!("  ✅ PulseAudio working"),
@@ -1082,9 +1140,7 @@ fn fix_ntlm_auth() {
     println!("===================================\n");
 
     // Check if samba is installed
-    let samba_check = Command::new("which")
-        .arg("ntlm_auth")
-        .status();
+    let samba_check = Command::new("which").arg("ntlm_auth").status();
 
     if samba_check.is_err() || !samba_check.unwrap().success() {
         println!("📦 Installing samba for ntlm_auth...");
@@ -1113,11 +1169,7 @@ fn fix_ntlm_auth() {
         wine_prefix
     );
 
-    Command::new("sh")
-        .arg("-c")
-        .arg(&reg_cmd)
-        .status()
-        .ok();
+    Command::new("sh").arg("-c").arg(&reg_cmd).status().ok();
 
     println!("✅ ntlm_auth configuration completed");
 }
@@ -1130,18 +1182,13 @@ fn install_wine_fonts() {
 
     println!("📥 Installing core fonts with winetricks...");
 
-    let core_fonts = vec![
-        "corefonts", "tahoma", "liberation", "dejavu"
-    ];
+    let core_fonts = vec!["corefonts", "tahoma", "liberation", "dejavu"];
 
     for font in &core_fonts {
         println!("  Installing {}...", font);
 
         let cmd = format!("WINEPREFIX={} winetricks -q {}", wine_prefix, font);
-        let result = Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .status();
+        let result = Command::new("sh").arg("-c").arg(&cmd).status();
 
         match result {
             Ok(s) if s.success() => println!("    ✅ {} installed", font),
@@ -1166,14 +1213,11 @@ fn install_wine_fonts() {
             println!("📁 Copying Windows fonts...");
             let copy_cmd = format!(
                 "cp -r {}/* {}/.wine/drive_c/windows/Fonts/",
-                windows_fonts_path, get_home_dir()
+                windows_fonts_path,
+                get_home_dir()
             );
 
-            Command::new("sh")
-                .arg("-c")
-                .arg(&copy_cmd)
-                .status()
-                .ok();
+            Command::new("sh").arg("-c").arg(&copy_cmd).status().ok();
 
             println!("✅ Windows fonts copied");
         }
@@ -1233,7 +1277,8 @@ fn recreate_wine_prefix() {
             .unwrap();
 
         if backup {
-            let backup_path = format!("{}.backup.{}",
+            let backup_path = format!(
+                "{}.backup.{}",
                 wine_prefix,
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
@@ -1256,8 +1301,7 @@ fn recreate_wine_prefix() {
     }
 
     println!("🔧 Creating new Wine prefix...");
-    let result = Command::new("winecfg")
-        .status();
+    let result = Command::new("winecfg").status();
 
     match result {
         Ok(s) if s.success() => {
@@ -1285,7 +1329,11 @@ fn apply_gaming_wine_config() {
 
     // Set Windows version to Windows 10
     let win_version_cmd = format!("WINEPREFIX={} winecfg /v win10", wine_prefix);
-    Command::new("sh").arg("-c").arg(&win_version_cmd).status().ok();
+    Command::new("sh")
+        .arg("-c")
+        .arg(&win_version_cmd)
+        .status()
+        .ok();
 
     // Enable CSMT
     let csmt_cmd = format!(
@@ -1330,9 +1378,11 @@ fn clean_wine_temp() {
     println!("=================================\n");
 
     let cleanup_paths = vec![
-        format!("{}/.wine/drive_c/users/{}/Temp/*",
-                get_home_dir(),
-                get_user_name()),
+        format!(
+            "{}/.wine/drive_c/users/{}/Temp/*",
+            get_home_dir(),
+            get_user_name()
+        ),
         format!("{}/.wine/drive_c/windows/temp/*", get_home_dir()),
         format!("{}/tmp/wine*", get_home_dir()),
     ];
@@ -1342,11 +1392,7 @@ fn clean_wine_temp() {
             println!("🧹 Cleaning: {}", path);
 
             let clean_cmd = format!("rm -rf {}", path);
-            Command::new("sh")
-                .arg("-c")
-                .arg(&clean_cmd)
-                .status()
-                .ok();
+            Command::new("sh").arg("-c").arg(&clean_cmd).status().ok();
         }
     }
 
@@ -1472,7 +1518,10 @@ fn update_proton_ge() {
 
     // Get latest release info from GitHub API
     let api_result = Command::new("curl")
-        .args(&["-s", "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest"])
+        .args(&[
+            "-s",
+            "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest",
+        ])
         .output();
 
     let download_url = match api_result {
@@ -1537,7 +1586,10 @@ fn update_proton_ge() {
     fs::create_dir_all(&steam_compat_path).ok();
 
     let install_result = Command::new("mv")
-        .args(&[&extracted_path, &format!("{}/{}", steam_compat_path, extracted_name)])
+        .args(&[
+            &extracted_path,
+            &format!("{}/{}", steam_compat_path, extracted_name),
+        ])
         .status();
 
     match install_result {
@@ -1571,7 +1623,11 @@ fn update_proton_tkg() {
         println!("📥 Cloning Proton-TKG repository...");
 
         let clone_result = Command::new("git")
-            .args(&["clone", "https://github.com/Frogging-Family/wine-tkg-git.git", "/tmp/wine-tkg-git"])
+            .args(&[
+                "clone",
+                "https://github.com/Frogging-Family/wine-tkg-git.git",
+                "/tmp/wine-tkg-git",
+            ])
             .status();
 
         match clone_result {
@@ -1598,7 +1654,10 @@ fn install_wine_ge() {
     println!("📥 Fetching latest Wine-GE for Lutris...");
 
     let api_result = Command::new("curl")
-        .args(&["-s", "https://api.github.com/repos/GloriousEggroll/wine-ge-custom/releases/latest"])
+        .args(&[
+            "-s",
+            "https://api.github.com/repos/GloriousEggroll/wine-ge-custom/releases/latest",
+        ])
         .output();
 
     // Similar process to Proton-GE but for Lutris
@@ -1625,7 +1684,15 @@ fn check_proton_versions() {
         println!("🚀 Steam Proton Versions:");
 
         let find_result = Command::new("find")
-            .args(&[&steam_path, "-maxdepth", "1", "-type", "d", "-name", "*roton*"])
+            .args(&[
+                &steam_path,
+                "-maxdepth",
+                "1",
+                "-type",
+                "d",
+                "-name",
+                "*roton*",
+            ])
             .output();
 
         if let Ok(out) = find_result {
@@ -1688,7 +1755,15 @@ fn cleanup_old_proton() {
         println!("📊 Steam Proton Versions and Sizes:");
 
         let find_result = Command::new("find")
-            .args(&[&steam_path, "-maxdepth", "1", "-type", "d", "-name", "*roton*"])
+            .args(&[
+                &steam_path,
+                "-maxdepth",
+                "1",
+                "-type",
+                "d",
+                "-name",
+                "*roton*",
+            ])
             .output();
 
         if let Ok(out) = find_result {
@@ -1700,15 +1775,23 @@ fn cleanup_old_proton() {
                 let size = get_directory_size(dir);
                 if let Some(name) = Path::new(dir).file_name() {
                     version_info.push((name.to_string_lossy().to_string(), dir.to_string(), size));
-                    println!("  📦 {} - {} MB", name.to_string_lossy(), size / 1024 / 1024);
+                    println!(
+                        "  📦 {} - {} MB",
+                        name.to_string_lossy(),
+                        size / 1024 / 1024
+                    );
                 }
             }
 
             if !version_info.is_empty() {
                 let versions_to_remove = MultiSelect::with_theme(&ColorfulTheme::default())
                     .with_prompt("Select Proton versions to remove")
-                    .items(&version_info.iter().map(|(name, _, size)|
-                        format!("{} ({} MB)", name, size / 1024 / 1024)).collect::<Vec<_>>())
+                    .items(
+                        &version_info
+                            .iter()
+                            .map(|(name, _, size)| format!("{} ({} MB)", name, size / 1024 / 1024))
+                            .collect::<Vec<_>>(),
+                    )
                     .interact()
                     .unwrap();
 
@@ -1722,9 +1805,7 @@ fn cleanup_old_proton() {
                         .unwrap();
 
                     if confirm {
-                        let result = Command::new("rm")
-                            .args(&["-rf", path])
-                            .status();
+                        let result = Command::new("rm").args(&["-rf", path]).status();
 
                         match result {
                             Ok(s) if s.success() => println!("  ✅ {} removed", name),
@@ -1810,10 +1891,12 @@ fn analyze_prefix_usage() {
                             let modified = get_last_access_time(dir);
 
                             if let Some(name) = Path::new(dir).file_name() {
-                                println!("  📦 {}: {} MB, Last accessed: {}",
-                                        name.to_string_lossy(),
-                                        size / 1024 / 1024,
-                                        modified);
+                                println!(
+                                    "  📦 {}: {} MB, Last accessed: {}",
+                                    name.to_string_lossy(),
+                                    size / 1024 / 1024,
+                                    modified
+                                );
 
                                 total_prefixes += 1;
                                 total_size += size;
@@ -1835,9 +1918,7 @@ fn analyze_prefix_usage() {
 }
 
 fn get_last_access_time(path: &str) -> String {
-    let stat_result = Command::new("stat")
-        .args(&["-c", "%x", path])
-        .output();
+    let stat_result = Command::new("stat").args(&["-c", "%x", path]).output();
 
     if let Ok(out) = stat_result {
         let output_string = String::from_utf8_lossy(&out.stdout);
@@ -1862,9 +1943,11 @@ fn identify_old_prefixes(locations: &[String]) {
                     if dir != *location {
                         let size = get_directory_size(dir);
                         if let Some(name) = Path::new(dir).file_name() {
-                            println!("  ⏰ {}: {} MB (not used in 30+ days)",
-                                    name.to_string_lossy(),
-                                    size / 1024 / 1024);
+                            println!(
+                                "  ⏰ {}: {} MB (not used in 30+ days)",
+                                name.to_string_lossy(),
+                                size / 1024 / 1024
+                            );
                         }
                     }
                 }
@@ -1896,12 +1979,17 @@ fn remove_unused_prefixes() {
                 for dir in String::from_utf8_lossy(&out.stdout).lines() {
                     if dir != *location && !dir.is_empty() {
                         let size = get_directory_size(dir);
-                        let name = Path::new(dir).file_name()
+                        let name = Path::new(dir)
+                            .file_name()
                             .map(|n| n.to_string_lossy().to_string())
                             .unwrap_or_else(|| "Unknown".to_string());
 
                         prefixes_to_remove.push((name.clone(), dir.to_string(), size));
-                        println!("  📦 {}: {} MB (unused for 60+ days)", name, size / 1024 / 1024);
+                        println!(
+                            "  📦 {}: {} MB (unused for 60+ days)",
+                            name,
+                            size / 1024 / 1024
+                        );
                     }
                 }
             }
@@ -1915,8 +2003,12 @@ fn remove_unused_prefixes() {
 
     let selected = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select prefixes to remove")
-        .items(&prefixes_to_remove.iter().map(|(name, _, size)|
-            format!("{} ({} MB)", name, size / 1024 / 1024)).collect::<Vec<_>>())
+        .items(
+            &prefixes_to_remove
+                .iter()
+                .map(|(name, _, size)| format!("{} ({} MB)", name, size / 1024 / 1024))
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
@@ -1932,9 +2024,7 @@ fn remove_unused_prefixes() {
             .unwrap();
 
         if confirm {
-            let result = Command::new("rm")
-                .args(&["-rf", path])
-                .status();
+            let result = Command::new("rm").args(&["-rf", path]).status();
 
             match result {
                 Ok(s) if s.success() => println!("  ✅ {} removed", name),
@@ -1963,9 +2053,7 @@ fn clean_all_prefix_temps() {
             // Find all Wine prefixes
             let find_result = if location.ends_with(".wine") {
                 // Single prefix - use echo command instead of manually constructing Output
-                Command::new("echo")
-                    .arg(location)
-                    .output()
+                Command::new("echo").arg(location).output()
             } else {
                 // Multiple prefixes
                 Command::new("find")
@@ -1978,11 +2066,14 @@ fn clean_all_prefix_temps() {
                     if dir != *location || location.ends_with(".wine") {
                         let cleaned = clean_prefix_temp_files(dir);
                         if cleaned > 0 {
-                            println!("  🧹 {}: cleaned {} MB",
-                                    Path::new(dir).file_name()
-                                        .map(|n| n.to_string_lossy().to_string())
-                                        .unwrap_or_else(|| "Default".to_string()),
-                                    cleaned / 1024 / 1024);
+                            println!(
+                                "  🧹 {}: cleaned {} MB",
+                                Path::new(dir)
+                                    .file_name()
+                                    .map(|n| n.to_string_lossy().to_string())
+                                    .unwrap_or_else(|| "Default".to_string()),
+                                cleaned / 1024 / 1024
+                            );
                             total_cleaned += cleaned;
                         }
                     }
@@ -2019,11 +2110,7 @@ fn clean_prefix_temp_files(prefix_path: &str) -> u64 {
 
             // Clean temp files
             let clean_cmd = format!("find {} -name 'tmp*' -o -name '*.tmp' -o -name '*.temp' | head -100 | xargs rm -f 2>/dev/null || true", parent_dir);
-            Command::new("sh")
-                .arg("-c")
-                .arg(&clean_cmd)
-                .status()
-                .ok();
+            Command::new("sh").arg("-c").arg(&clean_cmd).status().ok();
 
             // Get size after cleaning
             let after_size = get_directory_size(parent_dir);
@@ -2045,11 +2132,7 @@ fn compact_prefix_registries() {
     let wine_prefix = format!("{}/.wine", get_home_dir());
 
     if Path::new(&wine_prefix).exists() {
-        let registry_files = vec![
-            "system.reg",
-            "user.reg",
-            "userdef.reg",
-        ];
+        let registry_files = vec!["system.reg", "user.reg", "userdef.reg"];
 
         println!("\n📋 Current registry file sizes:");
         for reg_file in registry_files {
@@ -2088,7 +2171,8 @@ fn reset_specific_prefix() {
                     for dir in String::from_utf8_lossy(&out.stdout).lines() {
                         if dir != *location {
                             if let Some(name) = Path::new(dir).file_name() {
-                                available_prefixes.push((name.to_string_lossy().to_string(), dir.to_string()));
+                                available_prefixes
+                                    .push((name.to_string_lossy().to_string(), dir.to_string()));
                             }
                         }
                     }
@@ -2104,7 +2188,12 @@ fn reset_specific_prefix() {
 
     let choice = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select prefix to reset")
-        .items(&available_prefixes.iter().map(|(name, _)| name).collect::<Vec<_>>())
+        .items(
+            &available_prefixes
+                .iter()
+                .map(|(name, _)| name)
+                .collect::<Vec<_>>(),
+        )
         .default(0)
         .interact()
         .unwrap();
@@ -2122,7 +2211,8 @@ fn reset_specific_prefix() {
 
     if confirm {
         // Create backup first
-        let backup_path = format!("{}.backup.{}",
+        let backup_path = format!(
+            "{}.backup.{}",
             path,
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -2137,10 +2227,7 @@ fn reset_specific_prefix() {
             .ok();
 
         // Remove current prefix
-        Command::new("rm")
-            .args(&["-rf", path])
-            .status()
-            .ok();
+        Command::new("rm").args(&["-rf", path]).status().ok();
 
         // Recreate prefix
         println!("🔧 Recreating prefix...");
@@ -2161,9 +2248,7 @@ fn bottles_management() {
     println!("=====================\n");
 
     // Check if Bottles is installed
-    let bottles_check = Command::new("which")
-        .arg("bottles")
-        .status();
+    let bottles_check = Command::new("which").arg("bottles").status();
 
     if bottles_check.is_err() || !bottles_check.unwrap().success() {
         println!("❌ Bottles not found");
@@ -2176,10 +2261,7 @@ fn bottles_management() {
 
         if install {
             println!("📦 Installing Bottles...");
-            Command::new("yay")
-                .args(&["-S", "bottles"])
-                .status()
-                .ok();
+            Command::new("yay").args(&["-S", "bottles"]).status().ok();
         }
         return;
     }
@@ -2252,7 +2334,10 @@ fn list_bottles() {
                         // Try to read some basic info from config
                         if let Ok(config_content) = std::fs::read_to_string(&config_path) {
                             for line in config_content.lines().take(10) {
-                                if line.contains("name:") || line.contains("runner:") || line.contains("arch:") {
+                                if line.contains("name:")
+                                    || line.contains("runner:")
+                                    || line.contains("arch:")
+                                {
                                     println!("  📋 {}", line.trim());
                                 }
                             }
@@ -2280,9 +2365,7 @@ fn create_new_bottle() {
         .unwrap();
 
     if launch {
-        Command::new("bottles")
-            .spawn()
-            .ok();
+        Command::new("bottles").spawn().ok();
 
         println!("✅ Bottles launched");
         println!("💡 Use the GUI to create and configure your new bottle");
@@ -2314,7 +2397,7 @@ fn remove_bottle() {
                     available_bottles.push((
                         name.to_string_lossy().to_string(),
                         bottle.to_string(),
-                        size
+                        size,
                     ));
                 }
             }
@@ -2328,8 +2411,12 @@ fn remove_bottle() {
 
     let choice = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select bottle to remove")
-        .items(&available_bottles.iter().map(|(name, _, size)|
-            format!("{} ({} MB)", name, size / 1024 / 1024)).collect::<Vec<_>>())
+        .items(
+            &available_bottles
+                .iter()
+                .map(|(name, _, size)| format!("{} ({} MB)", name, size / 1024 / 1024))
+                .collect::<Vec<_>>(),
+        )
         .default(0)
         .interact()
         .unwrap();
@@ -2347,9 +2434,7 @@ fn remove_bottle() {
         .unwrap();
 
     if confirm {
-        let result = Command::new("rm")
-            .args(&["-rf", path])
-            .status();
+        let result = Command::new("rm").args(&["-rf", path]).status();
 
         match result {
             Ok(s) if s.success() => println!("✅ Bottle '{}' removed successfully", name),
@@ -2373,7 +2458,10 @@ fn bottles_storage_analysis() {
 
     // Total bottles storage
     let total_size = get_directory_size(&bottles_path);
-    println!("  📦 Total Bottles storage: {} MB", total_size / 1024 / 1024);
+    println!(
+        "  📦 Total Bottles storage: {} MB",
+        total_size / 1024 / 1024
+    );
 
     // Individual bottle sizes
     let bottles_dir = format!("{}/bottles", bottles_path);
@@ -2416,8 +2504,12 @@ fn bottles_storage_analysis() {
     let temp_dir = format!("{}/temp", bottles_path);
     if Path::new(&temp_dir).exists() {
         let temp_size = get_directory_size(&temp_dir);
-        if temp_size > 10 * 1024 * 1024 {  // > 10MB
-            println!("\n🗑️ Temporary files: {} MB (consider cleaning)", temp_size / 1024 / 1024);
+        if temp_size > 10 * 1024 * 1024 {
+            // > 10MB
+            println!(
+                "\n🗑️ Temporary files: {} MB (consider cleaning)",
+                temp_size / 1024 / 1024
+            );
         }
     }
 }
@@ -2532,9 +2624,7 @@ fn update_bottle_runners() {
         .unwrap();
 
     if launch {
-        Command::new("bottles")
-            .spawn()
-            .ok();
+        Command::new("bottles").spawn().ok();
     }
 }
 
@@ -2587,7 +2677,8 @@ fn check_bottle_health() {
             }
         }
     }
-}fn lutris_management() {
+}
+fn lutris_management() {
     loop {
         let options = [
             "📦 Install/Update Lutris",
@@ -2624,17 +2715,13 @@ fn install_update_lutris() {
     println!("📦 Install/Update Lutris");
     println!("========================\n");
 
-    let lutris_check = Command::new("which")
-        .arg("lutris")
-        .output();
+    let lutris_check = Command::new("which").arg("lutris").output();
 
     match lutris_check {
         Ok(out) if !out.stdout.is_empty() => {
             println!("✅ Lutris is installed");
 
-            let version_check = Command::new("lutris")
-                .arg("--version")
-                .output();
+            let version_check = Command::new("lutris").arg("--version").output();
 
             if let Ok(ver_out) = version_check {
                 let output_string = String::from_utf8_lossy(&ver_out.stdout);
@@ -2650,7 +2737,7 @@ fn install_update_lutris() {
             if update {
                 update_lutris();
             }
-        },
+        }
         _ => {
             println!("❌ Lutris not found");
 
@@ -2702,7 +2789,7 @@ fn install_lutris_fresh() {
                     println!("✅ Lutris installed successfully");
                     installed = true;
                     break;
-                },
+                }
                 _ => println!("❌ Installation failed with {}", pm),
             }
         }
@@ -2747,7 +2834,7 @@ fn update_lutris() {
                 Ok(s) if s.success() => {
                     println!("✅ Lutris updated successfully");
                     return;
-                },
+                }
                 _ => println!("❌ Update failed with {}", pm),
             }
         }
@@ -2819,9 +2906,7 @@ fn list_lutris_games() {
     println!("📋 Lutris Installed Games");
     println!("=========================\n");
 
-    let list_result = Command::new("lutris")
-        .args(&["--list-games"])
-        .output();
+    let list_result = Command::new("lutris").args(&["--list-games"]).output();
 
     match list_result {
         Ok(out) => {
@@ -2837,7 +2922,7 @@ fn list_lutris_games() {
                     }
                 }
             }
-        },
+        }
         Err(_) => {
             println!("❌ Failed to list games");
             println!("💡 Make sure Lutris is installed and in PATH");
@@ -2848,7 +2933,10 @@ fn list_lutris_games() {
     if Path::new(&games_dir).exists() {
         println!("\n📁 Games Directory Analysis:");
         let dir_size = get_directory_size(&games_dir);
-        println!("  📊 Total games storage: {} GB", dir_size / 1024 / 1024 / 1024);
+        println!(
+            "  📊 Total games storage: {} GB",
+            dir_size / 1024 / 1024 / 1024
+        );
     }
 }
 
@@ -2904,9 +2992,7 @@ fn add_local_game() {
 
     println!("🔧 Adding game to Lutris...");
 
-    let add_result = Command::new("lutris")
-        .args(&["-i", &game_path])
-        .status();
+    let add_result = Command::new("lutris").args(&["-i", &game_path]).status();
 
     match add_result {
         Ok(s) if s.success() => println!("✅ Game '{}' added to Lutris", game_name),
@@ -2925,14 +3011,15 @@ fn remove_lutris_game() {
     println!("🗑️ Remove Game from Lutris");
     println!("============================\n");
 
-    let list_result = Command::new("lutris")
-        .args(&["--list-games"])
-        .output();
+    let list_result = Command::new("lutris").args(&["--list-games"]).output();
 
     match list_result {
         Ok(out) => {
             let games_output = String::from_utf8_lossy(&out.stdout);
-            let games: Vec<&str> = games_output.lines().filter(|line| !line.trim().is_empty()).collect();
+            let games: Vec<&str> = games_output
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .collect();
 
             if games.is_empty() {
                 println!("📭 No games found to remove");
@@ -2970,7 +3057,7 @@ fn remove_lutris_game() {
                     Command::new("lutris").spawn().ok();
                 }
             }
-        },
+        }
         Err(_) => println!("❌ Failed to get games list"),
     }
 }
@@ -3003,14 +3090,15 @@ fn launch_lutris_game() {
     println!("🏃 Launch Game via Lutris");
     println!("=========================\n");
 
-    let list_result = Command::new("lutris")
-        .args(&["--list-games"])
-        .output();
+    let list_result = Command::new("lutris").args(&["--list-games"]).output();
 
     match list_result {
         Ok(out) => {
             let games_output = String::from_utf8_lossy(&out.stdout);
-            let games: Vec<&str> = games_output.lines().filter(|line| !line.trim().is_empty()).collect();
+            let games: Vec<&str> = games_output
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .collect();
 
             if games.is_empty() {
                 println!("📭 No games found to launch");
@@ -3029,7 +3117,10 @@ fn launch_lutris_game() {
             println!("🚀 Launching '{}'...", selected_game);
 
             let launch_result = Command::new("lutris")
-                .args(&["lutris:rungame", &selected_game.to_lowercase().replace(" ", "-")])
+                .args(&[
+                    "lutris:rungame",
+                    &selected_game.to_lowercase().replace(" ", "-"),
+                ])
                 .spawn();
 
             match launch_result {
@@ -3039,7 +3130,7 @@ fn launch_lutris_game() {
                     Command::new("lutris").spawn().ok();
                 }
             }
-        },
+        }
         Err(_) => println!("❌ Failed to get games list"),
     }
 }
@@ -3049,9 +3140,18 @@ fn lutris_games_storage() {
     println!("=================================\n");
 
     let lutris_dirs = [
-        ("Games", format!("{}/.local/share/lutris/games", get_home_dir())),
-        ("Prefixes", format!("{}/.local/share/lutris/prefixes", get_home_dir())),
-        ("Runners", format!("{}/.local/share/lutris/runners", get_home_dir())),
+        (
+            "Games",
+            format!("{}/.local/share/lutris/games", get_home_dir()),
+        ),
+        (
+            "Prefixes",
+            format!("{}/.local/share/lutris/prefixes", get_home_dir()),
+        ),
+        (
+            "Runners",
+            format!("{}/.local/share/lutris/runners", get_home_dir()),
+        ),
         ("Cache", format!("{}/.cache/lutris", get_home_dir())),
     ];
 
@@ -3075,7 +3175,11 @@ fn lutris_games_storage() {
                             if let Some(game_name) = Path::new(game_dir).file_name() {
                                 let game_size = get_directory_size(game_dir);
                                 if game_size > 100 * 1024 * 1024 {
-                                    println!("  🎮 {}: {} MB", game_name.to_string_lossy(), game_size / 1024 / 1024);
+                                    println!(
+                                        "  🎮 {}: {} MB",
+                                        game_name.to_string_lossy(),
+                                        game_size / 1024 / 1024
+                                    );
                                 }
                             }
                         }
@@ -3087,7 +3191,10 @@ fn lutris_games_storage() {
         }
     }
 
-    println!("\n📊 Total Lutris Storage: {} GB", total_size / 1024 / 1024 / 1024);
+    println!(
+        "\n📊 Total Lutris Storage: {} GB",
+        total_size / 1024 / 1024 / 1024
+    );
 
     if total_size > 50 * 1024 * 1024 * 1024 {
         println!("💡 Consider cleaning up old games and prefixes");
@@ -3155,9 +3262,8 @@ fn list_lutris_runners() {
 
                             let wine_bin = format!("{}/bin/wine", runner);
                             if Path::new(&wine_bin).exists() {
-                                let version_check = Command::new(&wine_bin)
-                                    .arg("--version")
-                                    .output();
+                                let version_check =
+                                    Command::new(&wine_bin).arg("--version").output();
 
                                 if let Ok(ver_out) = version_check {
                                     let version = String::from_utf8_lossy(&ver_out.stdout);
@@ -3168,7 +3274,7 @@ fn list_lutris_runners() {
                     }
                 }
             }
-        },
+        }
         Err(_) => println!("❌ Failed to list runners"),
     }
 
@@ -3217,7 +3323,10 @@ fn install_wine_ge_lutris() {
     println!("📥 Fetching latest Wine-GE release...");
 
     let api_result = Command::new("curl")
-        .args(&["-s", "https://api.github.com/repos/GloriousEggroll/wine-ge-custom/releases/latest"])
+        .args(&[
+            "-s",
+            "https://api.github.com/repos/GloriousEggroll/wine-ge-custom/releases/latest",
+        ])
         .output();
 
     match api_result {
@@ -3245,7 +3354,7 @@ fn install_wine_ge_lutris() {
                     }
                 }
             }
-        },
+        }
         Err(_) => {
             println!("❌ Failed to fetch release info");
             println!("💡 Manual installation:");
@@ -3296,7 +3405,11 @@ fn install_wine_tkg_lutris() {
 
         println!("📥 Cloning Wine-TKG...");
         let clone_result = Command::new("git")
-            .args(&["clone", "https://github.com/Frogging-Family/wine-tkg-git.git", temp_dir])
+            .args(&[
+                "clone",
+                "https://github.com/Frogging-Family/wine-tkg-git.git",
+                temp_dir,
+            ])
             .status();
 
         match clone_result {
@@ -3307,7 +3420,7 @@ fn install_wine_tkg_lutris() {
                 println!("   2. Edit customization.cfg as needed");
                 println!("   3. ./non-makepkg-build.sh");
                 println!("   4. Copy built Wine to ~/.local/share/lutris/runners/wine/");
-            },
+            }
             _ => println!("❌ Failed to clone repository"),
         }
     }
@@ -3325,9 +3438,7 @@ fn setup_system_wine() {
             let wine_path = output_string.trim().to_string();
             println!("✅ System Wine found: {}", wine_path);
 
-            let version_check = Command::new("wine")
-                .arg("--version")
-                .output();
+            let version_check = Command::new("wine").arg("--version").output();
 
             if let Ok(ver_out) = version_check {
                 let output_string = String::from_utf8_lossy(&ver_out.stdout);
@@ -3336,7 +3447,7 @@ fn setup_system_wine() {
 
             println!("\n💡 Lutris will automatically detect system Wine");
             println!("🔧 No additional setup required");
-        },
+        }
         _ => {
             println!("❌ System Wine not found");
 
@@ -3370,15 +3481,13 @@ fn install_system_wine() {
         if check.is_ok() && check.unwrap().success() {
             println!("🔧 Installing Wine with {}", pm);
 
-            let install_result = Command::new(cmd[0])
-                .args(&cmd[1..])
-                .status();
+            let install_result = Command::new(cmd[0]).args(&cmd[1..]).status();
 
             match install_result {
                 Ok(s) if s.success() => {
                     println!("✅ Wine installed successfully");
                     return;
-                },
+                }
                 _ => println!("❌ Installation failed with {}", pm),
             }
         }
@@ -3433,7 +3542,15 @@ fn download_and_install_runner(url: &str, runners_path: &str) {
                     fs::remove_file(&temp_path).ok();
 
                     let find_result = Command::new("find")
-                        .args(&[runners_path, "-maxdepth", "1", "-type", "d", "-newer", "/tmp"])
+                        .args(&[
+                            runners_path,
+                            "-maxdepth",
+                            "1",
+                            "-type",
+                            "d",
+                            "-newer",
+                            "/tmp",
+                        ])
                         .output();
 
                     if let Ok(out) = find_result {
@@ -3445,10 +3562,10 @@ fn download_and_install_runner(url: &str, runners_path: &str) {
                             }
                         }
                     }
-                },
+                }
                 _ => println!("❌ Extraction failed"),
             }
-        },
+        }
         _ => println!("❌ Download failed"),
     }
 }
@@ -3504,7 +3621,7 @@ fn remove_old_runners() {
                     available_runners.push((
                         name.to_string_lossy().to_string(),
                         runner.to_string(),
-                        size
+                        size,
                     ));
                 }
             }
@@ -3523,8 +3640,12 @@ fn remove_old_runners() {
 
     let runners_to_remove = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select runners to remove")
-        .items(&available_runners.iter().map(|(name, _, size)|
-            format!("{} ({} MB)", name, size / 1024 / 1024)).collect::<Vec<_>>())
+        .items(
+            &available_runners
+                .iter()
+                .map(|(name, _, size)| format!("{} ({} MB)", name, size / 1024 / 1024))
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
@@ -3538,9 +3659,7 @@ fn remove_old_runners() {
             .unwrap();
 
         if confirm {
-            let result = Command::new("rm")
-                .args(&["-rf", path])
-                .status();
+            let result = Command::new("rm").args(&["-rf", path]).status();
 
             match result {
                 Ok(s) if s.success() => println!("✅ {} removed", name),
@@ -3592,7 +3711,9 @@ fn setup_wow_complete() {
         .interact()
         .unwrap();
 
-    if !proceed { return; }
+    if !proceed {
+        return;
+    }
 
     ensure_lutris_ready_for_wow();
     install_battlenet_for_wow();
@@ -3645,7 +3766,7 @@ fn check_wow_system_requirements() {
         Ok(out) => {
             let output_string = String::from_utf8_lossy(&out.stdout);
             println!("  ✅ Wine: {}", output_string.trim());
-        },
+        }
         Err(_) => println!("  ❌ Wine: Not installed"),
     }
 
@@ -3670,15 +3791,51 @@ fn ensure_lutris_ready_for_wow() {
     }
 
     let wow_deps = [
-        "wine", "winetricks", "dxvk", "lib32-vulkan-icd-loader", "lib32-mesa", "lib32-nvidia-utils",
-        "giflib", "lib32-giflib", "libpng", "lib32-libpng", "libldap", "lib32-libldap",
-        "gnutls", "lib32-gnutls", "mpg123", "lib32-mpg123", "openal", "lib32-openal",
-        "v4l-utils", "lib32-v4l-utils", "libpulse", "lib32-libpulse", "alsa-plugins",
-        "lib32-alsa-plugins", "alsa-lib", "lib32-alsa-lib", "libjpeg-turbo", "lib32-libjpeg-turbo",
-        "libxcomposite", "lib32-libxcomposite", "libxinerama", "lib32-libxinerama",
-        "ncurses", "lib32-ncurses", "opencl-icd-loader", "lib32-opencl-icd-loader",
-        "libxslt", "lib32-libxslt", "libva", "lib32-libva", "gtk3", "lib32-gtk3",
-        "gst-plugins-base-libs", "lib32-gst-plugins-base-libs", "vulkan-icd-loader"
+        "wine",
+        "winetricks",
+        "dxvk",
+        "lib32-vulkan-icd-loader",
+        "lib32-mesa",
+        "lib32-nvidia-utils",
+        "giflib",
+        "lib32-giflib",
+        "libpng",
+        "lib32-libpng",
+        "libldap",
+        "lib32-libldap",
+        "gnutls",
+        "lib32-gnutls",
+        "mpg123",
+        "lib32-mpg123",
+        "openal",
+        "lib32-openal",
+        "v4l-utils",
+        "lib32-v4l-utils",
+        "libpulse",
+        "lib32-libpulse",
+        "alsa-plugins",
+        "lib32-alsa-plugins",
+        "alsa-lib",
+        "lib32-alsa-lib",
+        "libjpeg-turbo",
+        "lib32-libjpeg-turbo",
+        "libxcomposite",
+        "lib32-libxcomposite",
+        "libxinerama",
+        "lib32-libxinerama",
+        "ncurses",
+        "lib32-ncurses",
+        "opencl-icd-loader",
+        "lib32-opencl-icd-loader",
+        "libxslt",
+        "lib32-libxslt",
+        "libva",
+        "lib32-libva",
+        "gtk3",
+        "lib32-gtk3",
+        "gst-plugins-base-libs",
+        "lib32-gst-plugins-base-libs",
+        "vulkan-icd-loader",
     ];
 
     println!("📦 Installing WoW dependencies...");
@@ -3773,15 +3930,13 @@ fn install_battlenet_for_wow() {
     std::fs::write(script_path, lutris_script).ok();
 
     println!("🎮 Installing Battle.net via Lutris...");
-    let install_result = Command::new("lutris")
-        .args(&["-i", script_path])
-        .status();
+    let install_result = Command::new("lutris").args(&["-i", script_path]).status();
 
     match install_result {
         Ok(_) => {
             println!("✅ Battle.net installation initiated");
             println!("💡 Follow the Lutris installer prompts");
-        },
+        }
         Err(_) => {
             println!("⚠️ Automatic installation failed");
             println!("💡 Manual setup required:");
@@ -3842,7 +3997,11 @@ fn optimize_system_for_wow() {
             let scheduler_path = format!("/sys/block/{}/queue/scheduler", device);
             if Path::new(&scheduler_path).exists() {
                 Command::new("sudo")
-                    .args(&["bash", "-c", &format!("echo {} > {}", scheduler, scheduler_path)])
+                    .args(&[
+                        "bash",
+                        "-c",
+                        &format!("echo {} > {}", scheduler, scheduler_path),
+                    ])
                     .status()
                     .ok();
             }
@@ -3877,17 +4036,19 @@ fn configure_wow_wine_prefix() {
                 wow_prefix, setting, value
             );
 
-            Command::new("bash")
-                .arg("-c")
-                .arg(&reg_cmd)
-                .status()
-                .ok();
+            Command::new("bash").arg("-c").arg(&reg_cmd).status().ok();
         }
 
         println!("📦 Installing essential Windows components...");
         let winetricks_apps = [
-            "corefonts", "vcrun2019", "vcrun2017", "vcrun2015",
-            "d3dx9", "d3dx10", "d3dx11_43", "dxvk",
+            "corefonts",
+            "vcrun2019",
+            "vcrun2017",
+            "vcrun2015",
+            "d3dx9",
+            "d3dx10",
+            "d3dx11_43",
+            "dxvk",
         ];
 
         for app in &winetricks_apps {
@@ -3921,7 +4082,10 @@ fn setup_wow_graphics_layers() {
             .ok();
     }
 
-    let dxvk_config = format!("{}/.local/share/lutris/prefixes/battlenet/dxvk.conf", get_home_dir());
+    let dxvk_config = format!(
+        "{}/.local/share/lutris/prefixes/battlenet/dxvk.conf",
+        get_home_dir()
+    );
     let dxvk_settings = r#"
 # DXVK Configuration for World of Warcraft
 # Optimized for performance and stability
@@ -4036,7 +4200,10 @@ exec gamemoderun mangohud lutris lutris:rungame/battlenet
 "#;
 
     std::fs::write(&launch_script, script_content).ok();
-    Command::new("chmod").args(&["+x", &launch_script]).status().ok();
+    Command::new("chmod")
+        .args(&["+x", &launch_script])
+        .status()
+        .ok();
 
     println!("✅ WoW launch script created: {}", launch_script);
 
@@ -4066,7 +4233,10 @@ echo "WoW Wine tweaks applied successfully"
 
     let tweaks_script = "/tmp/wow-wine-tweaks.sh";
     std::fs::write(tweaks_script, wow_tweaks_script).ok();
-    Command::new("chmod").args(&["+x", tweaks_script]).status().ok();
+    Command::new("chmod")
+        .args(&["+x", tweaks_script])
+        .status()
+        .ok();
     Command::new("bash").arg(tweaks_script).status().ok();
     fs::remove_file(tweaks_script).ok();
 
@@ -4088,7 +4258,9 @@ fn setup_diablo4_complete() {
         .interact()
         .unwrap();
 
-    if !proceed { return; }
+    if !proceed {
+        return;
+    }
 
     ensure_battlenet_ready_for_d4();
     optimize_system_for_d4();
@@ -4182,9 +4354,12 @@ fn ensure_battlenet_ready_for_d4() {
     install_battlenet_for_wow();
 
     let d4_deps = [
-        "lib32-vulkan-mesa-layers", "vulkan-mesa-layers",
-        "lib32-opencl-mesa", "opencl-mesa",
-        "lib32-libva-mesa-driver", "libva-mesa-driver",
+        "lib32-vulkan-mesa-layers",
+        "vulkan-mesa-layers",
+        "lib32-opencl-mesa",
+        "opencl-mesa",
+        "lib32-libva-mesa-driver",
+        "libva-mesa-driver",
     ];
 
     for dep in &d4_deps {
@@ -4216,7 +4391,9 @@ fn optimize_system_for_d4() {
 
     if disable_mitigations {
         println!("⚠️ Adding mitigations=off to kernel parameters");
-        println!("💡 Edit /etc/default/grub and add 'mitigations=off' to GRUB_CMDLINE_LINUX_DEFAULT");
+        println!(
+            "💡 Edit /etc/default/grub and add 'mitigations=off' to GRUB_CMDLINE_LINUX_DEFAULT"
+        );
         println!("💡 Run 'sudo grub-mkconfig -o /boot/grub/grub.cfg' after editing");
     }
 
@@ -4261,8 +4438,17 @@ fn configure_d4_wine_prefix() {
     }
 
     let d4_winetricks = [
-        "vcrun2022", "vcrun2019", "dxvk", "vkd3d", "corefonts",
-        "d3dx9", "d3dx10", "d3dx11_43", "d3dx12", "xinput", "xaudio2_9",
+        "vcrun2022",
+        "vcrun2019",
+        "dxvk",
+        "vkd3d",
+        "corefonts",
+        "d3dx9",
+        "d3dx10",
+        "d3dx11_43",
+        "d3dx12",
+        "xinput",
+        "xaudio2_9",
     ];
 
     for app in &d4_winetricks {
@@ -4287,11 +4473,7 @@ fn configure_d4_wine_prefix() {
             d4_prefix, key, value
         );
 
-        Command::new("bash")
-            .arg("-c")
-            .arg(&reg_cmd)
-            .status()
-            .ok();
+        Command::new("bash").arg("-c").arg(&reg_cmd).status().ok();
     }
 
     println!("✅ D4 Wine prefix configured");
@@ -4429,7 +4611,10 @@ exec gamemoderun mangohud --dlsym --config Diablo4 lutris lutris:rungame/diablo-
 "#;
 
     std::fs::write(&d4_launch_script, launch_script).ok();
-    Command::new("chmod").args(&["+x", &d4_launch_script]).status().ok();
+    Command::new("chmod")
+        .args(&["+x", &d4_launch_script])
+        .status()
+        .ok();
 
     println!("✅ D4 launch script created: {}", d4_launch_script);
 }
@@ -4444,10 +4629,26 @@ fn setup_d4_anticheat() {
     let d4_prefix = format!("{}/.local/share/lutris/prefixes/diablo4", get_home_dir());
 
     let anticheat_regs = [
-        ("HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides", "winebus.sys", "disabled"),
-        ("HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides", "winehid.sys", "disabled"),
-        ("HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides", "kernel32", "native,builtin"),
-        ("HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides", "ntdll", "native,builtin"),
+        (
+            "HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides",
+            "winebus.sys",
+            "disabled",
+        ),
+        (
+            "HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides",
+            "winehid.sys",
+            "disabled",
+        ),
+        (
+            "HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides",
+            "kernel32",
+            "native,builtin",
+        ),
+        (
+            "HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides",
+            "ntdll",
+            "native,builtin",
+        ),
     ];
 
     for (hive, key, value) in &anticheat_regs {
@@ -4456,17 +4657,11 @@ fn setup_d4_anticheat() {
             d4_prefix, hive, key, value
         );
 
-        Command::new("bash")
-            .arg("-c")
-            .arg(&reg_cmd)
-            .status()
-            .ok();
+        Command::new("bash").arg("-c").arg(&reg_cmd).status().ok();
     }
 
     println!("📦 Installing anti-cheat compatibility components...");
-    let anticheat_components = [
-        "vcrun2022", "dotnetdesktop6", "msxml3", "msxml6", "crypt32",
-    ];
+    let anticheat_components = ["vcrun2022", "dotnetdesktop6", "msxml3", "msxml6", "crypt32"];
 
     for component in &anticheat_components {
         Command::new("env")
@@ -4532,9 +4727,7 @@ fn configure_general_lutris() {
         .unwrap();
 
     if open_lutris {
-        let pref_result = Command::new("lutris")
-            .args(&["--preferences"])
-            .spawn();
+        let pref_result = Command::new("lutris").args(&["--preferences"]).spawn();
 
         match pref_result {
             Ok(_) => println!("✅ Lutris preferences opened"),
@@ -4647,7 +4840,10 @@ echo "Default Wine configuration completed"
 
     let config_script = "/tmp/configure-default-wine.sh";
     std::fs::write(config_script, wine_config_script).ok();
-    Command::new("chmod").args(&["+x", config_script]).status().ok();
+    Command::new("chmod")
+        .args(&["+x", config_script])
+        .status()
+        .ok();
 
     let apply_config = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Apply default Wine gaming configuration?")
@@ -4685,14 +4881,15 @@ fn configure_lutris_directories() {
             0
         };
 
-        println!("  📁 {}: {} ({})",
-                name,
-                path,
-                if exists {
-                    format!("{} GB", size)
-                } else {
-                    "Not found".to_string()
-                }
+        println!(
+            "  📁 {}: {} ({})",
+            name,
+            path,
+            if exists {
+                format!("{} GB", size)
+            } else {
+                "Not found".to_string()
+            }
         );
     }
 
@@ -4771,29 +4968,29 @@ fn configure_online_services() {
             println!("   • Already configured in WoW/D4 setup");
             println!("   • Access via Lutris game library");
             println!("   • Ensure latest Wine-GE for compatibility");
-        },
+        }
         1 => {
             println!("🎮 Steam compatibility:");
             println!("   • Install Steam via Lutris or natively");
             println!("   • Use Proton for Windows games");
             println!("   • Enable Steam Play for all titles");
-        },
+        }
         2 => {
             println!("📦 GOG integration:");
             println!("   • Connect GOG account in Lutris Sources");
             println!("   • Download games directly through Lutris");
             println!("   • Use Wine for Windows GOG games");
-        },
+        }
         3 => {
             println!("🏪 Epic Games configuration:");
             println!("   • Install via Lutris script");
             println!("   • Claim free games regularly");
             println!("   • Use latest Wine-GE for compatibility");
-        },
+        }
         4 => {
             Command::new("lutris").spawn().ok();
             println!("✅ Lutris opened for manual service setup");
-        },
+        }
         _ => {}
     }
 }
@@ -4834,7 +5031,10 @@ fn clean_lutris_cache() {
     let cache_dirs = [
         ("Main Cache", format!("{}/.cache/lutris", get_home_dir())),
         ("Wine Cache", format!("{}/.cache/wine", get_home_dir())),
-        ("DXVK Cache", format!("{}/.cache/dxvk-state-cache", get_home_dir())),
+        (
+            "DXVK Cache",
+            format!("{}/.cache/dxvk-state-cache", get_home_dir()),
+        ),
         ("VKD3D Cache", format!("{}/.cache/vkd3d", get_home_dir())),
         ("Temp Files", "/tmp/lutris*".to_string()),
     ];
@@ -4895,7 +5095,15 @@ fn clean_unused_lutris_prefixes() {
     }
 
     let find_result = Command::new("find")
-        .args(&[&prefixes_dir, "-maxdepth", "1", "-type", "d", "-atime", "+60"])
+        .args(&[
+            &prefixes_dir,
+            "-maxdepth",
+            "1",
+            "-type",
+            "d",
+            "-atime",
+            "+60",
+        ])
         .output();
 
     let mut old_prefixes = Vec::new();
@@ -4908,7 +5116,7 @@ fn clean_unused_lutris_prefixes() {
                     old_prefixes.push((
                         name.to_string_lossy().to_string(),
                         prefix.to_string(),
-                        size
+                        size,
                     ));
                 }
             }
@@ -4920,15 +5128,26 @@ fn clean_unused_lutris_prefixes() {
         return;
     }
 
-    println!("🔍 Found {} potentially unused prefixes:", old_prefixes.len());
+    println!(
+        "🔍 Found {} potentially unused prefixes:",
+        old_prefixes.len()
+    );
     for (name, _, size) in &old_prefixes {
-        println!("  📦 {}: {} MB (not accessed in 60+ days)", name, size / 1024 / 1024);
+        println!(
+            "  📦 {}: {} MB (not accessed in 60+ days)",
+            name,
+            size / 1024 / 1024
+        );
     }
 
     let selected = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select prefixes to remove")
-        .items(&old_prefixes.iter().map(|(name, _, size)|
-            format!("{} ({} MB)", name, size / 1024 / 1024)).collect::<Vec<_>>())
+        .items(
+            &old_prefixes
+                .iter()
+                .map(|(name, _, size)| format!("{} ({} MB)", name, size / 1024 / 1024))
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
@@ -4936,15 +5155,17 @@ fn clean_unused_lutris_prefixes() {
         let (name, path, size) = &old_prefixes[idx];
 
         let confirm = Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt(&format!("Remove prefix '{}' ({} MB)?", name, size / 1024 / 1024))
+            .with_prompt(&format!(
+                "Remove prefix '{}' ({} MB)?",
+                name,
+                size / 1024 / 1024
+            ))
             .default(false)
             .interact()
             .unwrap();
 
         if confirm {
-            let result = Command::new("rm")
-                .args(&["-rf", path])
-                .status();
+            let result = Command::new("rm").args(&["-rf", path]).status();
 
             match result {
                 Ok(s) if s.success() => println!("✅ {} removed", name),
@@ -4981,7 +5202,7 @@ fn clean_old_lutris_runners() {
                         name.to_string_lossy().to_string(),
                         runner.to_string(),
                         size,
-                        modified_time
+                        modified_time,
                     ));
                 }
             }
@@ -4997,7 +5218,12 @@ fn clean_old_lutris_runners() {
 
     println!("📋 Installed Wine Runners:");
     for (name, _, size, modified) in &all_runners {
-        println!("  📦 {}: {} MB (modified: {})", name, size / 1024 / 1024, modified);
+        println!(
+            "  📦 {}: {} MB (modified: {})",
+            name,
+            size / 1024 / 1024,
+            modified
+        );
     }
 
     let cleanup_options = [
@@ -5018,8 +5244,12 @@ fn clean_old_lutris_runners() {
         0 => {
             let selected = MultiSelect::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select runners to remove")
-                .items(&all_runners.iter().map(|(name, _, size, _)|
-                    format!("{} ({} MB)", name, size / 1024 / 1024)).collect::<Vec<_>>())
+                .items(
+                    &all_runners
+                        .iter()
+                        .map(|(name, _, size, _)| format!("{} ({} MB)", name, size / 1024 / 1024))
+                        .collect::<Vec<_>>(),
+                )
                 .interact()
                 .unwrap();
 
@@ -5033,9 +5263,7 @@ fn clean_old_lutris_runners() {
                     .unwrap();
 
                 if confirm {
-                    let result = Command::new("rm")
-                        .args(&["-rf", path])
-                        .status();
+                    let result = Command::new("rm").args(&["-rf", path]).status();
 
                     match result {
                         Ok(s) if s.success() => println!("✅ {} removed", name),
@@ -5043,11 +5271,14 @@ fn clean_old_lutris_runners() {
                     }
                 }
             }
-        },
+        }
         1 => {
             println!("🧹 Auto-cleanup: Keeping only 2 most recent versions of each runner type");
 
-            let mut runner_groups: std::collections::HashMap<String, Vec<&(String, String, u64, String)>> = std::collections::HashMap::new();
+            let mut runner_groups: std::collections::HashMap<
+                String,
+                Vec<&(String, String, u64, String)>,
+            > = std::collections::HashMap::new();
 
             for runner in &all_runners {
                 let base_name = if runner.0.contains("lutris") {
@@ -5060,7 +5291,10 @@ fn clean_old_lutris_runners() {
                     "other"
                 };
 
-                runner_groups.entry(base_name.to_string()).or_insert(Vec::new()).push(runner);
+                runner_groups
+                    .entry(base_name.to_string())
+                    .or_insert(Vec::new())
+                    .push(runner);
             }
 
             for (group_name, mut group_runners) in runner_groups {
@@ -5069,18 +5303,18 @@ fn clean_old_lutris_runners() {
 
                     for runner in group_runners.iter().skip(2) {
                         println!("🗑️ Removing old {} runner: {}", group_name, runner.0);
-                        Command::new("rm")
-                            .args(&["-rf", &runner.1])
-                            .status()
-                            .ok();
+                        Command::new("rm").args(&["-rf", &runner.1]).status().ok();
                     }
                 }
             }
-        },
+        }
         2 => {
             let total_size: u64 = all_runners.iter().map(|(_, _, size, _)| size).sum();
-            println!("📊 Total Wine runners storage: {} GB", total_size / 1024 / 1024 / 1024);
-        },
+            println!(
+                "📊 Total Wine runners storage: {} GB",
+                total_size / 1024 / 1024 / 1024
+            );
+        }
         _ => {}
     }
 }
@@ -5101,7 +5335,7 @@ fn check_lutris_health() {
                 let output_string = String::from_utf8_lossy(&ver_out.stdout);
                 println!("  📋 Version: {}", output_string.trim());
             }
-        },
+        }
         _ => {
             println!("❌ Lutris executable: Not found");
             issues_found += 1;
@@ -5110,9 +5344,18 @@ fn check_lutris_health() {
 
     let essential_dirs = [
         ("Config", format!("{}/.config/lutris", get_home_dir())),
-        ("Games", format!("{}/.local/share/lutris/games", get_home_dir())),
-        ("Prefixes", format!("{}/.local/share/lutris/prefixes", get_home_dir())),
-        ("Runners", format!("{}/.local/share/lutris/runners", get_home_dir())),
+        (
+            "Games",
+            format!("{}/.local/share/lutris/games", get_home_dir()),
+        ),
+        (
+            "Prefixes",
+            format!("{}/.local/share/lutris/prefixes", get_home_dir()),
+        ),
+        (
+            "Runners",
+            format!("{}/.local/share/lutris/runners", get_home_dir()),
+        ),
     ];
 
     for (name, path) in &essential_dirs {
@@ -5129,7 +5372,7 @@ fn check_lutris_health() {
         Ok(out) => {
             let output_string = String::from_utf8_lossy(&out.stdout);
             println!("✅ Wine: {}", output_string.trim());
-        },
+        }
         Err(_) => {
             println!("❌ Wine: Not installed");
             issues_found += 1;
@@ -5160,7 +5403,10 @@ fn check_lutris_health() {
             .output();
 
         if let Ok(out) = find_result {
-            let runner_count = String::from_utf8_lossy(&out.stdout).lines().count().saturating_sub(1);
+            let runner_count = String::from_utf8_lossy(&out.stdout)
+                .lines()
+                .count()
+                .saturating_sub(1);
             if runner_count > 0 {
                 println!("✅ Wine runners: {} installed", runner_count);
             } else {
@@ -5174,9 +5420,12 @@ fn check_lutris_health() {
     match games_result {
         Ok(out) => {
             let output_string = String::from_utf8_lossy(&out.stdout);
-            let game_count = output_string.lines().filter(|line| !line.trim().is_empty()).count();
+            let game_count = output_string
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .count();
             println!("📊 Games: {} installed", game_count);
-        },
+        }
         Err(_) => {
             println!("⚠️ Games: Unable to list (Lutris may have issues)");
             issues_found += 1;
@@ -5187,7 +5436,10 @@ fn check_lutris_health() {
     if issues_found == 0 {
         println!("✅ All systems healthy - Lutris is ready for gaming!");
     } else {
-        println!("⚠️ {} issues found - consider addressing them for optimal performance", issues_found);
+        println!(
+            "⚠️ {} issues found - consider addressing them for optimal performance",
+            issues_found
+        );
 
         if issues_found > 3 {
             let reinstall = Confirm::with_theme(&ColorfulTheme::default())
@@ -5239,7 +5491,10 @@ fn lutris_storage_analysis() {
     category_sizes.sort_by(|a, b| b.1.cmp(&a.1));
 
     println!("\n📊 Storage Summary:");
-    println!("  💾 Total Lutris storage: {} GB", total_size / 1024 / 1024 / 1024);
+    println!(
+        "  💾 Total Lutris storage: {} GB",
+        total_size / 1024 / 1024 / 1024
+    );
 
     if total_size > 100 * 1024 * 1024 * 1024 {
         println!("  ⚠️ Large storage usage detected");
@@ -5298,17 +5553,26 @@ fn show_cleanup_recommendations(category_sizes: &[(&&str, u64)]) {
 
         match **category {
             "Games" if size_gb > 50 => {
-                println!("  🎮 Games ({}GB): Remove finished or unused games", size_gb);
-            },
+                println!(
+                    "  🎮 Games ({}GB): Remove finished or unused games",
+                    size_gb
+                );
+            }
             "Prefixes" if size_gb > 20 => {
                 println!("  🍷 Prefixes ({}GB): Clean old Wine prefixes", size_gb);
-            },
+            }
             "Runners" if size_gb > 10 => {
-                println!("  🏃 Runners ({}GB): Remove old Wine runner versions", size_gb);
-            },
+                println!(
+                    "  🏃 Runners ({}GB): Remove old Wine runner versions",
+                    size_gb
+                );
+            }
             "Cache" if size_gb > 5 => {
-                println!("  💾 Cache ({}GB): Clear temporary files and caches", size_gb);
-            },
+                println!(
+                    "  💾 Cache ({}GB): Clear temporary files and caches",
+                    size_gb
+                );
+            }
             _ => {}
         }
     }
@@ -5337,10 +5601,13 @@ fn reset_lutris_config() {
         .interact()
         .unwrap();
 
-    if !confirm_reset { return; }
+    if !confirm_reset {
+        return;
+    }
 
     let config_dir = format!("{}/.config/lutris", get_home_dir());
-    let backup_dir = format!("{}.backup.{}",
+    let backup_dir = format!(
+        "{}.backup.{}",
         config_dir,
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -5358,10 +5625,7 @@ fn reset_lutris_config() {
 
     if Path::new(&config_dir).exists() {
         println!("🗑️ Removing old configuration...");
-        Command::new("rm")
-            .args(&["-rf", &config_dir])
-            .status()
-            .ok();
+        Command::new("rm").args(&["-rf", &config_dir]).status().ok();
     }
 
     let cache_dir = format!("{}/.cache/lutris", get_home_dir());

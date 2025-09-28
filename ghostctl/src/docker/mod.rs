@@ -1,11 +1,11 @@
+pub mod cleanup;
 pub mod compose;
 pub mod container;
 pub mod devops;
 pub mod registry;
 pub mod security;
-pub mod cleanup;
 
-use dialoguer::{Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Select};
 
 pub fn docker_menu() {
     loop {

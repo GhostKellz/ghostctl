@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Select};
 use std::process::Command;
 
 pub fn monitoring_menu() {
@@ -80,7 +80,7 @@ fn install_mangohud() {
     let packages = [
         "mangohud",
         "lib32-mangohud",
-        "python-mako",  // Required for MangoHud
+        "python-mako", // Required for MangoHud
     ];
 
     println!("📦 Installing MangoHud packages...");
@@ -92,15 +92,15 @@ fn install_mangohud() {
     match status {
         Ok(s) if s.success() => {
             println!("✅ MangoHud installed successfully!");
-            
+
             // Create default config
             create_mangohud_config();
-            
+
             println!("\n💡 Usage examples:");
             println!("  mangohud <game_command>         # Run game with overlay");
             println!("  MANGOHUD=1 <game_command>       # Alternative method");
             println!("  mangohud steam                  # Steam with overlay");
-            
+
             let test_mangohud = Confirm::new()
                 .with_prompt("Test MangoHud with glxgears?")
                 .default(false)
@@ -199,7 +199,7 @@ fn setup_dxvk_hud() {
     println!("  • gpuload - GPU utilization");
     println!("  • version - DXVK version");
     println!("  • api - Graphics API");
-    
+
     let setup_env = Confirm::new()
         .with_prompt("Add DXVK HUD environment variables to ~/.profile?")
         .default(false)
@@ -225,7 +225,11 @@ export DXVK_LOG_LEVEL=info
     use std::fs::OpenOptions;
     use std::io::Write;
 
-    if let Ok(mut file) = OpenOptions::new().append(true).create(true).open(&profile_path) {
+    if let Ok(mut file) = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&profile_path)
+    {
         if let Err(_) = writeln!(file, "{}", dxvk_env) {
             println!("❌ Failed to write to profile");
         } else {
@@ -259,10 +263,7 @@ fn setup_vulkan_overlay() {
         .unwrap();
 
     if install_vulkan_layers {
-        let packages = [
-            "vulkan-mesa-layers",
-            "lib32-vulkan-mesa-layers",
-        ];
+        let packages = ["vulkan-mesa-layers", "lib32-vulkan-mesa-layers"];
 
         let status = Command::new("sudo")
             .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -281,7 +282,7 @@ fn setup_linux_performance_overlay() {
     println!("============================");
 
     println!("💡 Alternative performance overlays for Linux gaming:");
-    
+
     let overlay_tools = [
         "📊 goverlay - GUI for MangoHud",
         "🎮 CoreCtrl - AMD GPU control with overlay",
@@ -307,7 +308,7 @@ fn setup_linux_performance_overlay() {
 
 fn install_goverlay_tool() {
     println!("📊 Installing GOverlay");
-    
+
     let aur_helpers = ["yay", "paru", "trizen"];
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
@@ -316,7 +317,7 @@ fn install_goverlay_tool() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "goverlay"])
                     .status();
-                
+
                 match install_status {
                     Ok(s) if s.success() => {
                         println!("✅ GOverlay installed");
@@ -328,7 +329,7 @@ fn install_goverlay_tool() {
             }
         }
     }
-    
+
     println!("❌ No AUR helper found. Install yay first:");
     println!("   sudo pacman -S --needed base-devel git");
     println!("   git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si");
@@ -370,7 +371,7 @@ fn install_system_monitors() {
 
     let system_monitors = [
         ("htop", "Interactive process viewer"),
-        ("btop", "Modern system monitor"), 
+        ("btop", "Modern system monitor"),
         ("iotop", "I/O monitoring"),
         ("nethogs", "Network usage per process"),
     ];
@@ -382,13 +383,18 @@ fn install_system_monitors() {
 
     let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select monitors to install")
-        .items(&system_monitors.iter().map(|(tool, desc)| format!("{} - {}", tool, desc)).collect::<Vec<_>>())
+        .items(
+            &system_monitors
+                .iter()
+                .map(|(tool, desc)| format!("{} - {}", tool, desc))
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
     if !selections.is_empty() {
         let packages: Vec<&str> = selections.iter().map(|&i| system_monitors[i].0).collect();
-        
+
         let status = Command::new("sudo")
             .args(&["pacman", "-S", "--needed", "--noconfirm"])
             .args(&packages)
@@ -418,7 +424,12 @@ fn install_gpu_monitoring() {
 
     let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select GPU monitors to install")
-        .items(&gpu_monitors.iter().map(|(tool, desc)| format!("{} - {}", tool, desc)).collect::<Vec<_>>())
+        .items(
+            &gpu_monitors
+                .iter()
+                .map(|(tool, desc)| format!("{} - {}", tool, desc))
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
@@ -439,12 +450,7 @@ fn install_network_monitoring() {
     println!("📊 Installing Network Monitoring Tools");
     println!("======================================");
 
-    let network_tools = [
-        "nethogs",
-        "iftop",
-        "bandwhich",
-        "nload",
-    ];
+    let network_tools = ["nethogs", "iftop", "bandwhich", "nload"];
 
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -474,7 +480,7 @@ fn install_storage_monitoring() {
     ];
 
     let packages: Vec<&str> = storage_tools.iter().map(|(pkg, _)| *pkg).collect();
-    
+
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
         .args(&packages)
@@ -503,7 +509,7 @@ fn install_process_monitoring() {
     ];
 
     let packages: Vec<&str> = process_tools.iter().map(|(pkg, _)| *pkg).collect();
-    
+
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
         .args(&packages)
@@ -527,7 +533,7 @@ fn system_resource_monitoring() {
     let resource_options = [
         "📊 Real-time System Overview",
         "🖥️  CPU Monitoring",
-        "💾 Memory Monitoring", 
+        "💾 Memory Monitoring",
         "💿 Disk I/O Monitoring",
         "🌐 Network Monitoring",
         "🌡️  Temperature Monitoring",
@@ -558,7 +564,7 @@ fn realtime_system_overview() {
 
     let overview_tools = [
         "🖥️  Launch htop",
-        "📊 Launch btop", 
+        "📊 Launch btop",
         "⚡ Launch nvtop (GPU)",
         "🌐 Launch nethogs (Network)",
         "💾 Launch iotop (I/O)",
@@ -573,11 +579,21 @@ fn realtime_system_overview() {
         .unwrap();
 
     match choice {
-        0 => { let _ = Command::new("htop").status(); }
-        1 => { let _ = Command::new("btop").status(); }
-        2 => { let _ = Command::new("nvtop").status(); }
-        3 => { let _ = Command::new("sudo").arg("nethogs").status(); }
-        4 => { let _ = Command::new("sudo").arg("iotop").status(); }
+        0 => {
+            let _ = Command::new("htop").status();
+        }
+        1 => {
+            let _ = Command::new("btop").status();
+        }
+        2 => {
+            let _ = Command::new("nvtop").status();
+        }
+        3 => {
+            let _ = Command::new("sudo").arg("nethogs").status();
+        }
+        4 => {
+            let _ = Command::new("sudo").arg("iotop").status();
+        }
         _ => return,
     }
 }
@@ -607,7 +623,10 @@ fn memory_monitoring() {
     let _ = Command::new("vmstat").status();
 
     println!("\n📈 Memory by Process:");
-    let _ = Command::new("ps").args(&["aux", "--sort=-%mem"]).args(&["|", "head", "-20"]).status();
+    let _ = Command::new("ps")
+        .args(&["aux", "--sort=-%mem"])
+        .args(&["|", "head", "-20"])
+        .status();
 }
 
 fn disk_io_monitoring() {
@@ -621,7 +640,10 @@ fn disk_io_monitoring() {
     let _ = Command::new("iostat").args(&["-x", "1", "1"]).status();
 
     println!("\n🔍 I/O by Process:");
-    let _ = Command::new("sudo").arg("iotop").args(&["-o", "-n", "1"]).status();
+    let _ = Command::new("sudo")
+        .arg("iotop")
+        .args(&["-o", "-n", "1"])
+        .status();
 }
 
 fn network_resource_monitoring() {
@@ -635,7 +657,10 @@ fn network_resource_monitoring() {
     let _ = Command::new("ss").args(&["-tuln"]).status();
 
     println!("\n⚡ Network Usage by Process:");
-    let _ = Command::new("sudo").arg("nethogs").args(&["-d", "1"]).status();
+    let _ = Command::new("sudo")
+        .arg("nethogs")
+        .args(&["-d", "1"])
+        .status();
 }
 
 fn temperature_monitoring() {
@@ -712,7 +737,7 @@ fn steam_game_monitoring() {
     println!("  • Steam built-in FPS counter (Settings > In-Game)");
     println!("  • MangoHud overlay for detailed metrics");
     println!("  • Proton logging for compatibility issues");
-    
+
     println!("\n🔧 Steam launch options for monitoring:");
     println!("  mangohud %command%                    # MangoHud overlay");
     println!("  DXVK_HUD=fps %command%                # DXVK FPS counter");
@@ -732,10 +757,10 @@ fn wine_proton_monitoring() {
     println!("  • WINEDEBUG environment variables");
     println!("  • Proton logging");
     println!("  • DXVK/VKD3D performance overlays");
-    
+
     println!("\n🔧 Useful environment variables:");
     println!("  export WINEDEBUG=+fps,+d3d           # Wine FPS and D3D debugging");
-    println!("  export PROTON_LOG=1                  # Enable Proton logging"); 
+    println!("  export PROTON_LOG=1                  # Enable Proton logging");
     println!("  export DXVK_LOG_LEVEL=info           # DXVK debugging");
     println!("  export VKD3D_DEBUG=warn              # VKD3D debugging");
 
@@ -766,7 +791,11 @@ export WINEDEBUG=+fps
     use std::fs::OpenOptions;
     use std::io::Write;
 
-    if let Ok(mut file) = OpenOptions::new().append(true).create(true).open(&profile_path) {
+    if let Ok(mut file) = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&profile_path)
+    {
         if let Err(_) = writeln!(file, "{}", wine_monitoring_env) {
             println!("❌ Failed to write to profile");
         } else {
@@ -821,14 +850,21 @@ fn show_running_games() {
     println!("===========================");
 
     let game_processes = [
-        "steam", "steamwebhelper", "csgo", "cs2", "dota2", "tf2",
-        "wine", "lutris", "heroic", "minecraft", "java",
+        "steam",
+        "steamwebhelper",
+        "csgo",
+        "cs2",
+        "dota2",
+        "tf2",
+        "wine",
+        "lutris",
+        "heroic",
+        "minecraft",
+        "java",
     ];
 
     for game in &game_processes {
-        let pgrep_output = Command::new("pgrep")
-            .args(&["-l", game])
-            .output();
+        let pgrep_output = Command::new("pgrep").args(&["-l", game]).output();
 
         if let Ok(output) = pgrep_output {
             let processes = String::from_utf8_lossy(&output.stdout);
@@ -882,13 +918,16 @@ fn setup_mangohud_logging() {
 
     println!("✅ Created logs directory: {}", logs_dir.display());
 
-    let config_addition = format!(r#"
+    let config_addition = format!(
+        r#"
 # Performance Logging Configuration
 output_folder={}
 log_duration=30
 autostart_log=1
 toggle_logging=F10
-"#, logs_dir.display());
+"#,
+        logs_dir.display()
+    );
 
     println!("📝 Add to MangoHud config (~/.config/MangoHud/MangoHud.conf):");
     println!("{}", config_addition);
@@ -912,7 +951,11 @@ fn update_mangohud_config_with_logging(config_addition: &str) {
     use std::fs::OpenOptions;
     use std::io::Write;
 
-    if let Ok(mut file) = OpenOptions::new().append(true).create(true).open(&config_file) {
+    if let Ok(mut file) = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&config_file)
+    {
         if let Err(_) = writeln!(file, "{}", config_addition) {
             println!("❌ Failed to update MangoHud config");
         } else {
@@ -989,8 +1032,13 @@ echo "Log file: $LOG_DIR/${GAME_NAME}_${TIMESTAMP}.log"
                 println!("❌ Failed to write performance script");
             } else {
                 // Make script executable
-                let _ = Command::new("chmod").args(&["+x", &perf_script.to_string_lossy()]).status();
-                println!("✅ Created performance monitoring script: {}", perf_script.display());
+                let _ = Command::new("chmod")
+                    .args(&["+x", &perf_script.to_string_lossy()])
+                    .status();
+                println!(
+                    "✅ Created performance monitoring script: {}",
+                    perf_script.display()
+                );
                 println!("💡 Usage: {} <game_name>", perf_script.display());
             }
         }
@@ -1004,7 +1052,7 @@ fn analyze_performance_logs() {
 
     let logs_dirs = [
         "~/Documents/MangoHud_Logs",
-        "~/Documents/GameLogs", 
+        "~/Documents/GameLogs",
         "~/.local/share/lutris/logs",
         "~/.steam/steam/logs",
     ];
@@ -1021,7 +1069,9 @@ fn analyze_performance_logs() {
 
         if expanded_path.exists() {
             println!("  ✅ {}", expanded_path.display());
-            let _ = Command::new("ls").args(&["-la", &expanded_path.to_string_lossy()]).status();
+            let _ = Command::new("ls")
+                .args(&["-la", &expanded_path.to_string_lossy()])
+                .status();
         } else {
             println!("  ❌ {} (not found)", expanded_path.display());
         }
@@ -1032,10 +1082,7 @@ fn clean_log_files() {
     println!("🗑️  Cleaning Old Log Files");
     println!("==========================");
 
-    let logs_dirs = [
-        "~/Documents/MangoHud_Logs",
-        "~/Documents/GameLogs",
-    ];
+    let logs_dirs = ["~/Documents/MangoHud_Logs", "~/Documents/GameLogs"];
 
     for log_dir in &logs_dirs {
         let expanded_path = if log_dir.starts_with("~/") {
@@ -1048,9 +1095,12 @@ fn clean_log_files() {
 
         if expanded_path.exists() {
             println!("📁 Checking: {}", expanded_path.display());
-            
+
             let confirm = Confirm::new()
-                .with_prompt(&format!("Clean log files older than 7 days in {}?", expanded_path.display()))
+                .with_prompt(&format!(
+                    "Clean log files older than 7 days in {}?",
+                    expanded_path.display()
+                ))
                 .default(false)
                 .interact()
                 .unwrap();
@@ -1059,14 +1109,18 @@ fn clean_log_files() {
                 let status = Command::new("find")
                     .args(&[
                         &expanded_path.to_string_lossy(),
-                        "-name", "*.log",
-                        "-mtime", "+7",
-                        "-delete"
+                        "-name",
+                        "*.log",
+                        "-mtime",
+                        "+7",
+                        "-delete",
                     ])
                     .status();
 
                 match status {
-                    Ok(s) if s.success() => println!("✅ Cleaned old logs from {}", expanded_path.display()),
+                    Ok(s) if s.success() => {
+                        println!("✅ Cleaned old logs from {}", expanded_path.display())
+                    }
                     _ => println!("❌ Failed to clean logs from {}", expanded_path.display()),
                 }
             }
@@ -1120,11 +1174,14 @@ fn launch_game_with_monitoring() {
 
     if !game_command.trim().is_empty() {
         println!("🚀 Launching {} with full monitoring...", game_command);
-        
+
         // Launch with monitoring
         let monitoring_command = format!("gamemoderun mangohud {}", game_command);
-        let _ = Command::new("sh").arg("-c").arg(&monitoring_command).spawn();
-        
+        let _ = Command::new("sh")
+            .arg("-c")
+            .arg(&monitoring_command)
+            .spawn();
+
         println!("✅ Game launched with monitoring");
         println!("💡 Check MangoHud overlay in-game (F12 to toggle)");
     }
@@ -1144,16 +1201,18 @@ fn performance_bottleneck_analysis() {
     println!("==================================");
 
     println!("💡 Analyzing potential performance bottlenecks:");
-    
+
     println!("\n📊 CPU Analysis:");
     let _ = Command::new("lscpu").status();
-    
+
     println!("\n💾 Memory Analysis:");
     let _ = Command::new("free").arg("-h").status();
-    
+
     println!("\n🎮 GPU Analysis:");
-    let _ = Command::new("lspci").args(&["|", "grep", "-i", "vga"]).status();
-    
+    let _ = Command::new("lspci")
+        .args(&["|", "grep", "-i", "vga"])
+        .status();
+
     println!("\n💿 Storage Analysis:");
     let _ = Command::new("df").arg("-h").status();
 }
@@ -1179,10 +1238,18 @@ fn realtime_metrics_viewer() {
         .unwrap();
 
     match choice {
-        0 => { let _ = Command::new("htop").status(); }
-        1 => { let _ = Command::new("nvtop").status(); }
-        2 => { let _ = Command::new("sudo").arg("nethogs").status(); }
-        3 => { let _ = Command::new("sudo").arg("iotop").status(); }
+        0 => {
+            let _ = Command::new("htop").status();
+        }
+        1 => {
+            let _ = Command::new("nvtop").status();
+        }
+        2 => {
+            let _ = Command::new("sudo").arg("nethogs").status();
+        }
+        3 => {
+            let _ = Command::new("sudo").arg("iotop").status();
+        }
         4 => launch_monitoring_session(),
         _ => return,
     }
@@ -1196,13 +1263,28 @@ fn launch_monitoring_session() {
     match tmux_check {
         Ok(s) if s.success() => {
             println!("🚀 Starting tmux monitoring session...");
-            let _ = Command::new("tmux").args(&[
-                "new-session", "-d", "-s", "gaming-monitor", 
-                "htop", ";",
-                "split-window", "-v", "nvtop", ";",
-                "split-window", "-h", "sudo", "nethogs", ";",
-                "attach-session", "-t", "gaming-monitor"
-            ]).status();
+            let _ = Command::new("tmux")
+                .args(&[
+                    "new-session",
+                    "-d",
+                    "-s",
+                    "gaming-monitor",
+                    "htop",
+                    ";",
+                    "split-window",
+                    "-v",
+                    "nvtop",
+                    ";",
+                    "split-window",
+                    "-h",
+                    "sudo",
+                    "nethogs",
+                    ";",
+                    "attach-session",
+                    "-t",
+                    "gaming-monitor",
+                ])
+                .status();
         }
         _ => {
             println!("❌ tmux not found");
@@ -1269,7 +1351,7 @@ fn mangohud_configuration() {
 
     if config_file.exists() {
         println!("✅ MangoHud config found: {}", config_file.display());
-        
+
         let edit_config = Confirm::new()
             .with_prompt("Edit MangoHud configuration?")
             .default(false)
@@ -1309,7 +1391,7 @@ fn dxvk_hud_configuration() {
     println!("  export DXVK_HUD=fps                    # FPS only");
     println!("  export DXVK_HUD=full                   # All metrics");
     println!("  export DXVK_HUD=fps,memory,gpuload     # Custom selection");
-    
+
     println!("\n📊 Available DXVK HUD options:");
     println!("  • fps - Frame rate");
     println!("  • frametimes - Frame timing");
@@ -1328,7 +1410,7 @@ fn vulkan_overlay_configuration() {
     println!("💡 Vulkan overlay environment variables:");
     println!("  export VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay");
     println!("  export VK_LAYER_MESA_OVERLAY_CONFIG=fps,cpu,gpu");
-    
+
     println!("\n📊 Mesa overlay configuration options:");
     println!("  • fps - Frame rate");
     println!("  • cpu - CPU usage");
@@ -1345,7 +1427,7 @@ fn system_monitoring_configuration() {
     println!("  • htop: ~/.config/htop/htoprc");
     println!("  • btop: ~/.config/btop/btop.conf");
     println!("  • sensors: /etc/sensors3.conf");
-    
+
     let configure_htop = Confirm::new()
         .with_prompt("Launch htop configuration?")
         .default(false)
@@ -1368,10 +1450,7 @@ fn logging_configuration() {
     println!("  • Lutris: ~/.local/share/lutris/logs/");
     println!("  • Wine: ~/.wine/");
 
-    let log_dirs = [
-        "~/Documents/MangoHud_Logs",
-        "~/Documents/GameLogs",
-    ];
+    let log_dirs = ["~/Documents/MangoHud_Logs", "~/Documents/GameLogs"];
 
     for log_dir in &log_dirs {
         let expanded_path = if log_dir.starts_with("~/") {

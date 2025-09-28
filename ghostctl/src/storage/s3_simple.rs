@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Input, Password, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Password, Select};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -18,7 +18,7 @@ pub fn s3_menu() {
             "Configure MinIO/S3",
             "Test Connection",
             "List Buckets",
-            "Create Bucket", 
+            "Create Bucket",
             "Upload File",
             "Download File",
             "MinIO Cluster Management",
@@ -53,54 +53,54 @@ pub fn s3_menu() {
 
 fn configure_s3() {
     println!("🔧 Configure S3/MinIO Connection\n");
-    
+
     let endpoint: String = Input::new()
         .with_prompt("Endpoint URL (e.g., https://minio.example.com:9000)")
         .interact_text()
         .unwrap();
-    
+
     let access_key: String = Input::new()
         .with_prompt("Access Key")
         .interact_text()
         .unwrap();
-    
+
     let secret_key = Password::new()
         .with_prompt("Secret Key")
         .interact()
         .unwrap();
-    
+
     let region: String = Input::new()
         .with_prompt("Region")
         .default("us-east-1".to_string())
         .interact_text()
         .unwrap();
-    
+
     let config = MinioConfig {
         endpoint,
         access_key,
         secret_key,
         region,
     };
-    
+
     // Save config
     let config_dir = "/tmp/ghostctl";
     let _ = fs::create_dir_all(config_dir);
-    
+
     let config_file = format!("{}/s3-config.json", config_dir);
     let json = serde_json::to_string_pretty(&config).unwrap();
     fs::write(config_file, json).expect("Failed to save config");
-    
+
     println!("✅ S3/MinIO configuration saved!");
 }
 
 fn load_config() -> Option<MinioConfig> {
     let config_file = "/tmp/ghostctl/s3-config.json";
-    
+
     if !Path::new(config_file).exists() {
         println!("❌ No configuration found. Please configure S3/MinIO first.");
         return None;
     }
-    
+
     let content = fs::read_to_string(config_file).ok()?;
     serde_json::from_str(&content).ok()
 }
@@ -110,9 +110,9 @@ fn test_connection() {
         Some(config) => config,
         None => return,
     };
-    
+
     println!("🔍 Testing connection to {}...", config.endpoint);
-    
+
     // Use mc (MinIO Client) if available
     if Command::new("mc").arg("--help").output().is_ok() {
         test_with_mc(&config);
@@ -123,27 +123,35 @@ fn test_connection() {
 
 fn test_with_mc(config: &MinioConfig) {
     println!("Using MinIO client (mc)...");
-    
+
     // Configure mc alias
     let status = Command::new("mc")
-        .args(&["alias", "set", "ghostctl", &config.endpoint, &config.access_key, &config.secret_key])
+        .args(&[
+            "alias",
+            "set",
+            "ghostctl",
+            &config.endpoint,
+            &config.access_key,
+            &config.secret_key,
+        ])
         .status();
-    
+
     if status.map(|s| s.success()).unwrap_or(false) {
         println!("✅ MinIO client configured!");
-        
+
         // Test listing
-        let output = Command::new("mc")
-            .args(&["ls", "ghostctl"])
-            .output();
-        
+        let output = Command::new("mc").args(&["ls", "ghostctl"]).output();
+
         if let Ok(output) = output {
             if output.status.success() {
                 println!("✅ Connection successful!");
                 println!("Buckets:");
                 println!("{}", String::from_utf8_lossy(&output.stdout));
             } else {
-                println!("❌ Connection failed: {}", String::from_utf8_lossy(&output.stderr));
+                println!(
+                    "❌ Connection failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
             }
         }
     } else {
@@ -153,26 +161,29 @@ fn test_with_mc(config: &MinioConfig) {
 
 fn test_with_aws_cli(config: &MinioConfig) {
     println!("Using AWS CLI...");
-    
+
     let mut cmd = Command::new("aws");
     cmd.args(&["s3", "ls"])
-       .env("AWS_ACCESS_KEY_ID", &config.access_key)
-       .env("AWS_SECRET_ACCESS_KEY", &config.secret_key)
-       .env("AWS_DEFAULT_REGION", &config.region);
-    
+        .env("AWS_ACCESS_KEY_ID", &config.access_key)
+        .env("AWS_SECRET_ACCESS_KEY", &config.secret_key)
+        .env("AWS_DEFAULT_REGION", &config.region);
+
     if !config.endpoint.is_empty() {
         cmd.arg("--endpoint-url").arg(&config.endpoint);
     }
-    
+
     let output = cmd.output();
-    
+
     if let Ok(output) = output {
         if output.status.success() {
             println!("✅ Connection successful!");
             println!("Buckets:");
             println!("{}", String::from_utf8_lossy(&output.stdout));
         } else {
-            println!("❌ Connection failed: {}", String::from_utf8_lossy(&output.stderr));
+            println!(
+                "❌ Connection failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
         }
     } else {
         println!("❌ Failed to execute AWS CLI");
@@ -184,19 +195,20 @@ fn list_buckets() {
         Some(config) => config,
         None => return,
     };
-    
+
     println!("📋 Listing buckets...\n");
-    
+
     if Command::new("mc").arg("--help").output().is_ok() {
-        let output = Command::new("mc")
-            .args(&["ls", "ghostctl"])
-            .output();
-        
+        let output = Command::new("mc").args(&["ls", "ghostctl"]).output();
+
         if let Ok(output) = output {
             if output.status.success() {
                 println!("{}", String::from_utf8_lossy(&output.stdout));
             } else {
-                println!("❌ Failed to list buckets: {}", String::from_utf8_lossy(&output.stderr));
+                println!(
+                    "❌ Failed to list buckets: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
             }
         }
     } else {
@@ -206,9 +218,10 @@ fn list_buckets() {
             .env("AWS_ACCESS_KEY_ID", &config.access_key)
             .env("AWS_SECRET_ACCESS_KEY", &config.secret_key)
             .env("AWS_DEFAULT_REGION", &config.region)
-            .arg("--endpoint-url").arg(&config.endpoint)
+            .arg("--endpoint-url")
+            .arg(&config.endpoint)
             .output();
-        
+
         if let Ok(output) = output {
             if output.status.success() {
                 println!("{}", String::from_utf8_lossy(&output.stdout));
@@ -224,19 +237,19 @@ fn create_bucket() {
         Some(config) => config,
         None => return,
     };
-    
+
     let bucket_name: String = Input::new()
         .with_prompt("Bucket name")
         .interact_text()
         .unwrap();
-    
+
     println!("📦 Creating bucket: {}", bucket_name);
-    
+
     if Command::new("mc").arg("--help").output().is_ok() {
         let status = Command::new("mc")
             .args(&["mb", &format!("ghostctl/{}", bucket_name)])
             .status();
-        
+
         if status.map(|s| s.success()).unwrap_or(false) {
             println!("✅ Bucket created successfully!");
         } else {
@@ -249,9 +262,10 @@ fn create_bucket() {
             .env("AWS_ACCESS_KEY_ID", &config.access_key)
             .env("AWS_SECRET_ACCESS_KEY", &config.secret_key)
             .env("AWS_DEFAULT_REGION", &config.region)
-            .arg("--endpoint-url").arg(&config.endpoint)
+            .arg("--endpoint-url")
+            .arg(&config.endpoint)
             .status();
-        
+
         if status.map(|s| s.success()).unwrap_or(false) {
             println!("✅ Bucket created successfully!");
         } else {
@@ -265,35 +279,41 @@ fn upload_file() {
         Some(config) => config,
         None => return,
     };
-    
+
     let file_path: String = Input::new()
         .with_prompt("Local file path")
         .interact_text()
         .unwrap();
-    
+
     if !Path::new(&file_path).exists() {
         println!("❌ File not found: {}", file_path);
         return;
     }
-    
+
     let bucket: String = Input::new()
         .with_prompt("Destination bucket")
         .interact_text()
         .unwrap();
-    
+
     let key: String = Input::new()
         .with_prompt("S3 key (object name)")
-        .default(Path::new(&file_path).file_name().unwrap().to_string_lossy().to_string())
+        .default(
+            Path::new(&file_path)
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .to_string(),
+        )
         .interact_text()
         .unwrap();
-    
+
     println!("📤 Uploading {} to {}/{}", file_path, bucket, key);
-    
+
     if Command::new("mc").arg("--help").output().is_ok() {
         let status = Command::new("mc")
             .args(&["cp", &file_path, &format!("ghostctl/{}/{}", bucket, key)])
             .status();
-        
+
         if status.map(|s| s.success()).unwrap_or(false) {
             println!("✅ File uploaded successfully!");
         } else {
@@ -306,9 +326,10 @@ fn upload_file() {
             .env("AWS_ACCESS_KEY_ID", &config.access_key)
             .env("AWS_SECRET_ACCESS_KEY", &config.secret_key)
             .env("AWS_DEFAULT_REGION", &config.region)
-            .arg("--endpoint-url").arg(&config.endpoint)
+            .arg("--endpoint-url")
+            .arg(&config.endpoint)
             .status();
-        
+
         if status.map(|s| s.success()).unwrap_or(false) {
             println!("✅ File uploaded successfully!");
         } else {
@@ -322,30 +343,30 @@ fn download_file() {
         Some(config) => config,
         None => return,
     };
-    
+
     let bucket: String = Input::new()
         .with_prompt("Source bucket")
         .interact_text()
         .unwrap();
-    
+
     let key: String = Input::new()
         .with_prompt("S3 key (object name)")
         .interact_text()
         .unwrap();
-    
+
     let local_path: String = Input::new()
         .with_prompt("Local file path")
         .default(key.clone())
         .interact_text()
         .unwrap();
-    
+
     println!("📥 Downloading {}/{} to {}", bucket, key, local_path);
-    
+
     if Command::new("mc").arg("--help").output().is_ok() {
         let status = Command::new("mc")
             .args(&["cp", &format!("ghostctl/{}/{}", bucket, key), &local_path])
             .status();
-        
+
         if status.map(|s| s.success()).unwrap_or(false) {
             println!("✅ File downloaded successfully!");
         } else {
@@ -358,9 +379,10 @@ fn download_file() {
             .env("AWS_ACCESS_KEY_ID", &config.access_key)
             .env("AWS_SECRET_ACCESS_KEY", &config.secret_key)
             .env("AWS_DEFAULT_REGION", &config.region)
-            .arg("--endpoint-url").arg(&config.endpoint)
+            .arg("--endpoint-url")
+            .arg(&config.endpoint)
             .status();
-        
+
         if status.map(|s| s.success()).unwrap_or(false) {
             println!("✅ File downloaded successfully!");
         } else {
@@ -450,15 +472,16 @@ fn add_cluster_node() {
         .unwrap();
 
     println!("🔗 Adding node to cluster...");
-    
+
     // Configure the new node alias
     let _ = Command::new("mc")
         .args(&[
-            "alias", "set", 
+            "alias",
+            "set",
             &format!("node-{}", chrono::Utc::now().timestamp()),
             &node_url,
             &node_access_key,
-            &node_secret_key
+            &node_secret_key,
         ])
         .status();
 
@@ -467,7 +490,7 @@ fn add_cluster_node() {
     println!("   1. Stop the MinIO cluster");
     println!("   2. Update the startup command with new node URLs");
     println!("   3. Restart all nodes simultaneously");
-    
+
     if Confirm::new()
         .with_prompt("Generate cluster startup script?")
         .default(true)
@@ -493,7 +516,8 @@ fn generate_cluster_startup_script() {
 
     println!("📝 Generating cluster startup script...");
 
-    let script_content = format!(r#"#!/bin/bash
+    let script_content = format!(
+        r#"#!/bin/bash
 # MinIO Distributed Cluster Startup Script
 # Generated by ghostctl
 
@@ -522,7 +546,9 @@ minio server \
   http://node2.example.com:9000$DATA_DIR \
   http://node3.example.com:9000$DATA_DIR \
   http://node4.example.com:9000$DATA_DIR
-"#, nodes_count, data_dir);
+"#,
+        nodes_count, data_dir
+    );
 
     std::fs::write("/tmp/minio_cluster_startup.sh", script_content).ok();
     let _ = Command::new("chmod")
@@ -534,14 +560,14 @@ minio server \
 
 fn remove_cluster_node() {
     println!("🗑️  Remove Cluster Node\n");
-    
+
     println!("⚠️  MinIO distributed setup doesn't support dynamic node removal.");
     println!("📋 To remove a node from cluster:");
     println!("   1. Stop the entire cluster");
     println!("   2. Remove the node from the startup command");
     println!("   3. Restart remaining nodes");
     println!("   4. Data will be automatically rebalanced");
-    
+
     if Confirm::new()
         .with_prompt("Show current cluster topology?")
         .default(true)
@@ -578,7 +604,7 @@ fn cluster_configuration() {
             let _ = Command::new("mc")
                 .args(&["admin", "config", "get", "ghostctl"])
                 .status();
-        },
+        }
         1 => set_cluster_config(),
         2 => show_environment_variables(),
         3 => configure_tls_ssl(),
@@ -597,9 +623,19 @@ fn set_cluster_config() {
         .interact()
         .unwrap();
 
-    println!("⚙️  Setting configuration: {} = {}", config_key, config_value);
+    println!(
+        "⚙️  Setting configuration: {} = {}",
+        config_key, config_value
+    );
     let _ = Command::new("mc")
-        .args(&["admin", "config", "set", "ghostctl", &config_key, &config_value])
+        .args(&[
+            "admin",
+            "config",
+            "set",
+            "ghostctl",
+            &config_key,
+            &config_value,
+        ])
         .status();
 
     if Confirm::new()
@@ -628,7 +664,7 @@ fn show_environment_variables() {
 
 fn configure_tls_ssl() {
     println!("🔐 TLS/SSL Configuration\n");
-    
+
     let cert_path: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Certificate file path")
         .default("/etc/ssl/certs/minio.crt".to_string())
@@ -654,7 +690,7 @@ fn node_maintenance_mode() {
 
     let maintenance_options = vec![
         "Enable Maintenance Mode",
-        "Disable Maintenance Mode", 
+        "Disable Maintenance Mode",
         "Check Maintenance Status",
         "Back",
     ];
@@ -671,18 +707,18 @@ fn node_maintenance_mode() {
             println!("🚧 Enabling maintenance mode...");
             // This would implement maintenance mode enabling
             println!("⚠️  Node will reject new requests");
-        },
+        }
         1 => {
             println!("✅ Disabling maintenance mode...");
             // This would implement maintenance mode disabling
             println!("🚀 Node is now accepting requests");
-        },
+        }
         2 => {
             println!("📊 Checking maintenance status...");
             let _ = Command::new("mc")
                 .args(&["admin", "info", "ghostctl"])
                 .status();
-        },
+        }
         _ => {}
     }
 }
@@ -711,25 +747,25 @@ fn cluster_balancing() {
             let _ = Command::new("mc")
                 .args(&["admin", "info", "ghostctl"])
                 .status();
-        },
+        }
         1 => {
             println!("🔄 Starting manual rebalancing...");
             let _ = Command::new("mc")
                 .args(&["admin", "rebalance", "start", "ghostctl"])
                 .status();
-        },
+        }
         2 => {
             println!("🏥 Healing missing objects...");
             let _ = Command::new("mc")
                 .args(&["admin", "heal", "ghostctl"])
                 .status();
-        },
+        }
         3 => {
             println!("📈 Optimizing storage usage...");
             let _ = Command::new("mc")
                 .args(&["admin", "decommission", "status", "ghostctl"])
                 .status();
-        },
+        }
         _ => {}
     }
 }
@@ -785,7 +821,7 @@ fn calculate_erasure_parity() {
     if let Ok(drives) = total_drives.parse::<u32>() {
         let recommended_parity = drives / 2;
         let storage_efficiency = ((drives - recommended_parity) as f64 / drives as f64) * 100.0;
-        
+
         println!("\n📊 Erasure Code Analysis:");
         println!("   Total Drives: {}", drives);
         println!("   Recommended Parity: {}", recommended_parity);

@@ -1,7 +1,7 @@
-use dialoguer::{Select, Input, Confirm, theme::ColorfulTheme, MultiSelect};
-use std::process::Command;
-use std::path::Path;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::fs;
+use std::path::Path;
+use std::process::Command;
 use std::sync::OnceLock;
 
 // Cache for commonly accessed paths
@@ -9,15 +9,11 @@ static HOME_DIR: OnceLock<String> = OnceLock::new();
 static GAMES_DIR: OnceLock<String> = OnceLock::new();
 
 fn get_home_dir() -> &'static str {
-    HOME_DIR.get_or_init(|| {
-        std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string())
-    })
+    HOME_DIR.get_or_init(|| std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string()))
 }
 
 fn get_games_dir() -> &'static str {
-    GAMES_DIR.get_or_init(|| {
-        format!("{}/Games", get_home_dir())
-    })
+    GAMES_DIR.get_or_init(|| format!("{}/Games", get_home_dir()))
 }
 
 pub fn wine_prefix_menu() {
@@ -97,12 +93,12 @@ fn create_new_prefix() {
     fs::create_dir_all(&prefix_path).ok();
 
     // Initialize prefix
-    let init_cmd = format!("WINEPREFIX={} WINEARCH={} wineboot -i", prefix_path, arch_str);
+    let init_cmd = format!(
+        "WINEPREFIX={} WINEARCH={} wineboot -i",
+        prefix_path, arch_str
+    );
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&init_cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&init_cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -115,7 +111,9 @@ fn create_new_prefix() {
             // Save prefix metadata
             let metadata = format!(
                 "name={}\narch={}\nwindows={}\ncreated={}\n",
-                prefix_name, arch_str, win_version,
+                prefix_name,
+                arch_str,
+                win_version,
                 chrono::Local::now().format("%Y-%m-%d %H:%M:%S")
             );
 
@@ -202,8 +200,7 @@ fn list_prefixes() {
     }
 
     // Also check for Lutris prefixes
-    let lutris_prefixes = format!("{}/.local/share/lutris/runners/wine",
-        get_home_dir());
+    let lutris_prefixes = format!("{}/.local/share/lutris/runners/wine", get_home_dir());
 
     if Path::new(&lutris_prefixes).exists() {
         println!("\n🎮 Lutris Wine Prefixes:");
@@ -234,16 +231,12 @@ fn clone_prefix() {
         .interact()
         .unwrap();
 
-    let dest = format!("{}/Games/prefixes/{}",
-        get_home_dir(), dest_name);
+    let dest = format!("{}/Games/prefixes/{}", get_home_dir(), dest_name);
 
     println!("📂 Cloning prefix...");
     let cmd = format!("cp -r '{}' '{}'", source, dest);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -252,7 +245,8 @@ fn clone_prefix() {
             // Update metadata
             let metadata = format!(
                 "name={}\ncloned_from={}\ncloned={}\n",
-                dest_name, source,
+                dest_name,
+                source,
                 chrono::Local::now().format("%Y-%m-%d %H:%M:%S")
             );
 
@@ -277,12 +271,14 @@ fn backup_prefix() {
 
     let backup_name = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter backup name")
-        .default(format!("backup_{}", chrono::Local::now().format("%Y%m%d_%H%M%S")))
+        .default(format!(
+            "backup_{}",
+            chrono::Local::now().format("%Y%m%d_%H%M%S")
+        ))
         .interact()
         .unwrap();
 
-    let backup_dir = format!("{}/Games/prefix_backups",
-        get_home_dir());
+    let backup_dir = format!("{}/Games/prefix_backups", get_home_dir());
 
     fs::create_dir_all(&backup_dir).ok();
 
@@ -291,10 +287,7 @@ fn backup_prefix() {
     println!("📦 Creating backup...");
     let cmd = format!("tar -czf '{}' -C '{}' .", backup_path, prefix_path);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -305,7 +298,8 @@ fn backup_prefix() {
                 "source={}\ndate={}\nsize={}\n",
                 prefix_path,
                 chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
-                fs::metadata(&backup_path).ok()
+                fs::metadata(&backup_path)
+                    .ok()
                     .map(|m| m.len())
                     .unwrap_or(0)
             );
@@ -319,8 +313,7 @@ fn backup_prefix() {
 fn restore_prefix() {
     println!("📥 Restore Wine Prefix");
 
-    let backup_dir = format!("{}/Games/prefix_backups",
-        get_home_dir());
+    let backup_dir = format!("{}/Games/prefix_backups", get_home_dir());
 
     if !Path::new(&backup_dir).exists() {
         println!("❌ No backups found");
@@ -355,7 +348,8 @@ fn restore_prefix() {
         return;
     }
 
-    let backup_names: Vec<String> = backups.iter()
+    let backup_names: Vec<String> = backups
+        .iter()
         .map(|(name, _, info)| format!("{}\n{}", name, info))
         .collect();
 
@@ -373,8 +367,7 @@ fn restore_prefix() {
         .interact()
         .unwrap();
 
-    let restore_path = format!("{}/Games/prefixes/{}",
-        get_home_dir(), restore_name);
+    let restore_path = format!("{}/Games/prefixes/{}", get_home_dir(), restore_name);
 
     if Path::new(&restore_path).exists() {
         let overwrite = Confirm::with_theme(&ColorfulTheme::default())
@@ -387,7 +380,10 @@ fn restore_prefix() {
             return;
         }
 
-        Command::new("rm").args(&["-rf", &restore_path]).status().ok();
+        Command::new("rm")
+            .args(&["-rf", &restore_path])
+            .status()
+            .ok();
     }
 
     fs::create_dir_all(&restore_path).ok();
@@ -395,10 +391,7 @@ fn restore_prefix() {
     println!("📂 Restoring prefix...");
     let cmd = format!("tar -xzf '{}' -C '{}'", backup_path, restore_path);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Prefix restored successfully"),
@@ -444,9 +437,7 @@ fn delete_prefix() {
         }
 
         println!("🗑️ Deleting prefix...");
-        let status = Command::new("rm")
-            .args(&["-rf", &prefix_path])
-            .status();
+        let status = Command::new("rm").args(&["-rf", &prefix_path]).status();
 
         match status {
             Ok(s) if s.success() => println!("✅ Prefix deleted"),
@@ -457,8 +448,7 @@ fn delete_prefix() {
 
 fn backup_prefix_internal(prefix_path: &str) {
     let backup_name = format!("deleted_{}", chrono::Local::now().format("%Y%m%d_%H%M%S"));
-    let backup_dir = format!("{}/Games/prefix_backups",
-        get_home_dir());
+    let backup_dir = format!("{}/Games/prefix_backups", get_home_dir());
 
     fs::create_dir_all(&backup_dir).ok();
 
@@ -520,7 +510,9 @@ fn configure_prefix() {
 }
 
 fn change_windows_version(prefix_path: &str) {
-    let versions = ["win11", "win10", "win81", "win8", "win7", "winxp", "win98", "win95"];
+    let versions = [
+        "win11", "win10", "win81", "win8", "win7", "winxp", "win98", "win95",
+    ];
 
     let choice = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Windows version")
@@ -531,10 +523,7 @@ fn change_windows_version(prefix_path: &str) {
 
     let cmd = format!("WINEPREFIX={} winecfg /v {}", prefix_path, versions[choice]);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Windows version changed to {}", versions[choice]),
@@ -563,14 +552,15 @@ fn install_prefix_components(prefix_path: &str) {
         .unwrap();
 
     for idx in selected {
-        let component = components[idx].split('(').nth(1).unwrap().trim_end_matches(')');
+        let component = components[idx]
+            .split('(')
+            .nth(1)
+            .unwrap()
+            .trim_end_matches(')');
         println!("📦 Installing {}...", component);
 
         let cmd = format!("WINEPREFIX={} winetricks -q {}", prefix_path, component);
-        let status = Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .status();
+        let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
         match status {
             Ok(s) if s.success() => println!("  ✅ {} installed", component),
@@ -610,8 +600,10 @@ fn configure_audio(prefix_path: &str) {
         .interact()
         .unwrap();
 
-    let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Drivers' /v Audio /d {} /f",
-        prefix_path, audio_systems[choice]);
+    let cmd = format!(
+        "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Drivers' /v Audio /d {} /f",
+        prefix_path, audio_systems[choice]
+    );
 
     Command::new("sh").arg("-c").arg(&cmd).status().ok();
     println!("✅ Audio system set to {}", audio_systems[choice]);
@@ -692,10 +684,7 @@ fn reset_prefix(prefix_path: &str) {
         println!("🔄 Resetting prefix...");
         let cmd = format!("WINEPREFIX={} wineboot -r", prefix_path);
 
-        let status = Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .status();
+        let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
         match status {
             Ok(s) if s.success() => println!("✅ Prefix reset to default"),
@@ -727,9 +716,11 @@ fn game_specific_prefix() {
         .interact()
         .unwrap();
 
-    let prefix_path = format!("{}/Games/prefixes/{}",
+    let prefix_path = format!(
+        "{}/Games/prefixes/{}",
         get_home_dir(),
-        game_name.to_lowercase().replace(" ", "_"));
+        game_name.to_lowercase().replace(" ", "_")
+    );
 
     // Create prefix
     fs::create_dir_all(&prefix_path).ok();
@@ -752,9 +743,11 @@ fn setup_modern_game_prefix(prefix_path: &str) {
     println!("🎮 Setting up modern AAA game prefix...");
 
     // Windows 10
-    Command::new("sh").arg("-c")
+    Command::new("sh")
+        .arg("-c")
         .arg(&format!("WINEPREFIX={} winecfg /v win10", prefix_path))
-        .status().ok();
+        .status()
+        .ok();
 
     // Install components
     let components = ["vcrun2019", "dotnet48", "d3dx11_43", "faudio"];
@@ -774,9 +767,11 @@ fn setup_classic_game_prefix(prefix_path: &str) {
     println!("🎮 Setting up classic game prefix...");
 
     // Windows XP
-    Command::new("sh").arg("-c")
+    Command::new("sh")
+        .arg("-c")
         .arg(&format!("WINEPREFIX={} winecfg /v winxp", prefix_path))
-        .status().ok();
+        .status()
+        .ok();
 
     // Install components
     let components = ["vcrun2005", "vcrun2008", "d3dx9", "directplay"];
@@ -792,9 +787,11 @@ fn setup_indie_game_prefix(prefix_path: &str) {
     println!("🎮 Setting up indie game prefix...");
 
     // Windows 7
-    Command::new("sh").arg("-c")
+    Command::new("sh")
+        .arg("-c")
         .arg(&format!("WINEPREFIX={} winecfg /v win7", prefix_path))
-        .status().ok();
+        .status()
+        .ok();
 
     // Install components
     let components = ["dotnet40", "vcrun2017", "openal"];
@@ -810,9 +807,11 @@ fn setup_multiplayer_game_prefix(prefix_path: &str) {
     println!("🎮 Setting up multiplayer game prefix...");
 
     // Windows 10
-    Command::new("sh").arg("-c")
+    Command::new("sh")
+        .arg("-c")
         .arg(&format!("WINEPREFIX={} winecfg /v win10", prefix_path))
-        .status().ok();
+        .status()
+        .ok();
 
     // Disable Esync/Fsync for compatibility
     std::env::remove_var("WINEESYNC");
@@ -854,7 +853,10 @@ fn auto_detect_prefixes() {
                             if path.is_dir() {
                                 let pfx_path = format!("{}/pfx", path.display());
                                 if Path::new(&pfx_path).exists() {
-                                    found_prefixes.push(format!("Steam: {}", path.file_name().unwrap().to_string_lossy()));
+                                    found_prefixes.push(format!(
+                                        "Steam: {}",
+                                        path.file_name().unwrap().to_string_lossy()
+                                    ));
                                 }
                             }
                         }
@@ -867,7 +869,10 @@ fn auto_detect_prefixes() {
                         if let Ok(entry) = entry {
                             let path = entry.path();
                             if path.is_dir() {
-                                found_prefixes.push(format!("Bottles: {}", path.file_name().unwrap().to_string_lossy()));
+                                found_prefixes.push(format!(
+                                    "Bottles: {}",
+                                    path.file_name().unwrap().to_string_lossy()
+                                ));
                             }
                         }
                     }
@@ -880,7 +885,9 @@ fn auto_detect_prefixes() {
                     for entry in entries {
                         if let Ok(entry) = entry {
                             let path = entry.path();
-                            if path.is_dir() && Path::new(&format!("{}/drive_c", path.display())).exists() {
+                            if path.is_dir()
+                                && Path::new(&format!("{}/drive_c", path.display())).exists()
+                            {
                                 found_prefixes.push(path.to_string_lossy().to_string());
                             }
                         }
@@ -939,9 +946,11 @@ fn prefix_templates() {
     match template_id {
         "gaming_performance" => {
             println!("⚡ Applying gaming performance template...");
-            Command::new("sh").arg("-c")
+            Command::new("sh")
+                .arg("-c")
                 .arg(&format!("WINEPREFIX={} winecfg /v win10", prefix_path))
-                .status().ok();
+                .status()
+                .ok();
 
             let components = ["vcrun2019", "dotnet48", "d3dx11_43", "faudio"];
             for comp in &components {
@@ -953,9 +962,11 @@ fn prefix_templates() {
         }
         "gaming_compat" => {
             println!("🛡️ Applying gaming compatibility template...");
-            Command::new("sh").arg("-c")
+            Command::new("sh")
+                .arg("-c")
                 .arg(&format!("WINEPREFIX={} winecfg /v win7", prefix_path))
-                .status().ok();
+                .status()
+                .ok();
 
             let components = ["vcrun2019", "vcrun2017", "vcrun2015", "dotnet48", "d3dx9"];
             for comp in &components {
@@ -965,9 +976,11 @@ fn prefix_templates() {
         }
         "office" => {
             println!("📄 Applying office/productivity template...");
-            Command::new("sh").arg("-c")
+            Command::new("sh")
+                .arg("-c")
                 .arg(&format!("WINEPREFIX={} winecfg /v win10", prefix_path))
-                .status().ok();
+                .status()
+                .ok();
 
             let components = ["dotnet48", "vcrun2019", "gdiplus", "riched20"];
             for comp in &components {

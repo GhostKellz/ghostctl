@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Input, Select, MultiSelect, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::process::Command;
 
 pub fn aur_helper_management() {
@@ -474,9 +474,7 @@ fn package_info_dependencies() {
     println!("-----------------------------------");
 
     // Check if package is installed
-    let status = Command::new("pacman")
-        .args(["-Qi", &package])
-        .status();
+    let status = Command::new("pacman").args(["-Qi", &package]).status();
 
     if status.is_ok() && status.unwrap().success() {
         println!("✅ Package is installed (showing local info)");
@@ -525,7 +523,15 @@ fn deep_clean_cache() {
 
         // Clean temp build directories
         let _ = Command::new("sudo")
-            .args(["rm", "-rf", "/tmp/yaourt-tmp-*", "/tmp/pamac-build-*", "/tmp/makepkg-*", "/tmp/yay-*", "/tmp/paru-*"])
+            .args([
+                "rm",
+                "-rf",
+                "/tmp/yaourt-tmp-*",
+                "/tmp/pamac-build-*",
+                "/tmp/makepkg-*",
+                "/tmp/yay-*",
+                "/tmp/paru-*",
+            ])
             .status();
 
         // Clean user caches
@@ -547,9 +553,7 @@ fn rebuild_all_aur() {
     println!("===========================");
 
     println!("📋 Finding AUR/foreign packages...");
-    let output = Command::new("pacman")
-        .args(["-Qm"])
-        .output();
+    let output = Command::new("pacman").args(["-Qm"]).output();
 
     match output {
         Ok(output) if output.status.success() => {
@@ -602,9 +606,7 @@ fn list_foreign_packages() {
 
     if let Ok(output) = output {
         if output.status.success() {
-            let count = String::from_utf8_lossy(&output.stdout)
-                .lines()
-                .count();
+            let count = String::from_utf8_lossy(&output.stdout).lines().count();
             println!("  Total foreign packages: {}", count);
         }
     }
@@ -653,9 +655,7 @@ fn check_broken_dependencies() {
 
     // Check for missing dependencies
     println!("\n🔗 Checking for missing dependencies:");
-    let status = Command::new("pacman")
-        .args(["-Dk"])
-        .status();
+    let status = Command::new("pacman").args(["-Dk"]).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ No missing dependencies found"),
@@ -719,9 +719,7 @@ fn reinstall_broken_packages() {
         println!("🔍 Auto-detecting broken packages...");
 
         // Check for packages with missing files
-        let output = Command::new("pacman")
-            .args(["-Qk"])
-            .output();
+        let output = Command::new("pacman").args(["-Qk"]).output();
 
         match output {
             Ok(output) if !output.status.success() => {
@@ -759,9 +757,7 @@ fn remove_orphaned_deps() {
     println!("===============================");
 
     println!("🔍 Finding orphaned packages...");
-    let output = Command::new("pacman")
-        .args(["-Qtdq"])
-        .output();
+    let output = Command::new("pacman").args(["-Qtdq"]).output();
 
     match output {
         Ok(output) if output.status.success() => {
@@ -819,14 +815,10 @@ fn fix_database_corruption() {
             .status();
 
         println!("🔄 Synchronizing package databases...");
-        let _ = Command::new("sudo")
-            .args(["pacman", "-Syy"])
-            .status();
+        let _ = Command::new("sudo").args(["pacman", "-Syy"]).status();
 
         println!("🔧 Refreshing package databases...");
-        let _ = Command::new("sudo")
-            .args(["pacman-db-upgrade"])
-            .status();
+        let _ = Command::new("sudo").args(["pacman-db-upgrade"]).status();
 
         println!("✅ Database repair completed");
     }
@@ -860,15 +852,11 @@ fn repair_package_database() {
         match option {
             0 => {
                 println!("🔄 Refreshing package databases...");
-                let _ = Command::new("sudo")
-                    .args(["pacman", "-Syy"])
-                    .status();
+                let _ = Command::new("sudo").args(["pacman", "-Syy"]).status();
             }
             1 => {
                 println!("🔧 Rebuilding pacman database...");
-                let _ = Command::new("sudo")
-                    .args(["pacman-db-upgrade"])
-                    .status();
+                let _ = Command::new("sudo").args(["pacman-db-upgrade"]).status();
             }
             2 => {
                 println!("🗑️  Clearing package cache...");
@@ -940,9 +928,7 @@ fn analyze_dependency_tree() {
 
     // Show size information
     println!("\n📊 Package size information:");
-    let _ = Command::new("pacman")
-        .args(["-Qi", &package])
-        .status();
+    let _ = Command::new("pacman").args(["-Qi", &package]).status();
 }
 
 fn find_circular_dependencies() {
@@ -952,9 +938,7 @@ fn find_circular_dependencies() {
     println!("🔍 Scanning for circular dependencies...");
 
     // This is a simplified check - real implementation would be more complex
-    let output = Command::new("pacman")
-        .args(["-Q"])
-        .output();
+    let output = Command::new("pacman").args(["-Q"]).output();
 
     match output {
         Ok(output) if output.status.success() => {
@@ -962,7 +946,9 @@ fn find_circular_dependencies() {
             let package_count = packages.lines().count();
 
             println!("📊 Checked {} packages", package_count);
-            println!("💡 For detailed circular dependency detection, consider using specialized tools");
+            println!(
+                "💡 For detailed circular dependency detection, consider using specialized tools"
+            );
 
             // Basic check using pactree
             println!("🔍 Running basic circular dependency check...");
@@ -981,9 +967,7 @@ fn check_missing_dependencies() {
 
     println!("🔍 Checking for missing dependencies...");
 
-    let status = Command::new("pacman")
-        .args(["-Dk"])
-        .status();
+    let status = Command::new("pacman").args(["-Dk"]).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -1000,9 +984,7 @@ fn check_missing_dependencies() {
                 .unwrap();
 
             if !package.is_empty() {
-                let _ = Command::new("pacman")
-                    .args(["-Dk", &package])
-                    .status();
+                let _ = Command::new("pacman").args(["-Dk", &package]).status();
             }
         }
     }
@@ -1052,14 +1034,10 @@ fn optimize_dependency_cache() {
                 .status();
         }
         2 => {
-            let _ = Command::new("sudo")
-                .args(["paccache", "-r", "-u"])
-                .status();
+            let _ = Command::new("sudo").args(["paccache", "-r", "-u"]).status();
         }
         3 => {
-            let _ = Command::new("paccache")
-                .args(["-d"])
-                .status();
+            let _ = Command::new("paccache").args(["-d"]).status();
         }
         _ => return,
     }
@@ -1165,20 +1143,14 @@ fn detect_package_conflicts() {
 
     // Check for file conflicts
     println!("📁 Checking for file conflicts:");
-    let _ = Command::new("pacman")
-        .args(["-Qkk"])
-        .status();
+    let _ = Command::new("pacman").args(["-Qkk"]).status();
 
     // Check for dependency conflicts
     println!("\n🔗 Checking dependency conflicts:");
-    let _ = Command::new("pacman")
-        .args(["-Dk"])
-        .status();
+    let _ = Command::new("pacman").args(["-Dk"]).status();
 
     println!("\n📦 Checking for broken packages:");
-    let output = Command::new("pacman")
-        .args(["-Qk"])
-        .output();
+    let output = Command::new("pacman").args(["-Qk"]).output();
 
     match output {
         Ok(output) if !output.status.success() => {
@@ -1205,9 +1177,7 @@ fn resolve_file_conflicts() {
         .status();
 
     // Show file information
-    let _ = Command::new("ls")
-        .args(["-la", &conflict_file])
-        .status();
+    let _ = Command::new("ls").args(["-la", &conflict_file]).status();
 
     let resolution_options = [
         "🔄 Reinstall owning package",
@@ -1274,9 +1244,7 @@ fn fix_broken_packages_conflicts() {
     println!("🔄 Running comprehensive package check...");
 
     // Full package verification
-    let status = Command::new("pacman")
-        .args(["-Qkk"])
-        .status();
+    let status = Command::new("pacman").args(["-Qkk"]).status();
 
     if status.is_ok() && !status.unwrap().success() {
         println!("⚠️  Found broken packages");
@@ -1303,7 +1271,12 @@ fn fix_broken_packages_conflicts() {
             2 => {
                 println!("🔧 Attempting automatic fix...");
                 let _ = Command::new("sudo")
-                    .args(["pacman", "-S", "--noconfirm", "$(pacman -Qkk 2>&1 | grep warning | awk '{print $2}' | sort -u)"])
+                    .args([
+                        "pacman",
+                        "-S",
+                        "--noconfirm",
+                        "$(pacman -Qkk 2>&1 | grep warning | awk '{print $2}' | sort -u)",
+                    ])
                     .status();
             }
             _ => {}

@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Select};
 use reqwest::blocking::get;
 use std::process::Command;
 

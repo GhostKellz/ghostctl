@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Select};
 use std::process::Command;
 use std::sync::OnceLock;
 
@@ -6,9 +6,7 @@ use std::sync::OnceLock;
 static HOME_DIR: OnceLock<String> = OnceLock::new();
 
 fn get_home_dir() -> &'static str {
-    HOME_DIR.get_or_init(|| {
-        std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string())
-    })
+    HOME_DIR.get_or_init(|| std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string()))
 }
 
 pub fn platforms_menu() {
@@ -103,8 +101,8 @@ fn install_lutris() {
         "lib32-alsa-plugins",
         "lib32-libpulse",
         "lib32-openal",
-        "python-evdev",  // For controller support
-        "python-dbus",   // For desktop integration
+        "python-evdev", // For controller support
+        "python-dbus",  // For desktop integration
     ];
 
     println!("📦 Installing Lutris and dependencies...");
@@ -116,10 +114,10 @@ fn install_lutris() {
     match status {
         Ok(s) if s.success() => {
             println!("✅ Lutris installed successfully!");
-            
+
             // Install additional wine versions via AUR
             install_additional_wine_versions();
-            
+
             let launch = Confirm::new()
                 .with_prompt("Launch Lutris now?")
                 .default(false)
@@ -136,7 +134,7 @@ fn install_lutris() {
 
 fn install_additional_wine_versions() {
     println!("🍷 Installing additional Wine versions...");
-    
+
     let aur_helpers = ["yay", "paru", "trizen"];
     let wine_packages = [
         "wine-staging",
@@ -149,12 +147,12 @@ fn install_additional_wine_versions() {
         if let Ok(s) = helper_check {
             if s.success() {
                 println!("🔧 Using {} to install additional Wine versions...", helper);
-                
+
                 for package in &wine_packages {
                     let install_status = Command::new(helper)
                         .args(&["-S", "--noconfirm", package])
                         .status();
-                    
+
                     match install_status {
                         Ok(s) if s.success() => println!("  ✅ {} installed", package),
                         _ => println!("  ⚠️  Failed to install {}", package),
@@ -164,7 +162,7 @@ fn install_additional_wine_versions() {
             }
         }
     }
-    
+
     println!("💡 No AUR helper found. Install yay for additional Wine versions:");
     println!("   sudo pacman -S --needed base-devel git");
     println!("   git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si");
@@ -190,7 +188,12 @@ fn install_lutris_runners() {
 
     let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select runners to install")
-        .items(&runners.iter().map(|(name, _, desc)| format!("{} - {}", name, desc)).collect::<Vec<_>>())
+        .items(
+            &runners
+                .iter()
+                .map(|(name, _, desc)| format!("{} - {}", name, desc))
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
@@ -206,7 +209,7 @@ fn install_lutris_runners() {
             let status = Command::new("sudo")
                 .args(&["pacman", "-S", "--needed", "--noconfirm", package])
                 .status();
-            
+
             match status {
                 Ok(s) if s.success() => println!("  ✅ {} installed", name),
                 _ => println!("  ❌ Failed to install {}", name),
@@ -266,7 +269,9 @@ fn list_wine_versions() {
 
     if lutris_runners_dir.exists() {
         println!("\n🎯 Lutris Wine Runners:");
-        let _ = Command::new("ls").args(&["-la", &lutris_runners_dir.to_string_lossy()]).status();
+        let _ = Command::new("ls")
+            .args(&["-la", &lutris_runners_dir.to_string_lossy()])
+            .status();
     } else {
         println!("\n❌ No Lutris Wine runners found");
     }
@@ -277,7 +282,7 @@ fn download_wine_ge() {
     println!("==============================");
 
     println!("💡 Wine-GE (GloriousEggroll) provides optimizations for gaming");
-    
+
     let confirm = Confirm::new()
         .with_prompt("Download latest Wine-GE?")
         .default(true)
@@ -294,7 +299,7 @@ fn download_wine_ge() {
     println!("  2. Go to Preferences > Runners > Wine");
     println!("  3. Click 'Manage versions'");
     println!("  4. Install lutris-GE-Proton versions");
-    
+
     println!("\n💡 Or install via ProtonUp-Qt (if available):");
     let protonup_check = Command::new("which").arg("protonup-qt").status();
     match protonup_check {
@@ -304,7 +309,7 @@ fn download_wine_ge() {
                 .default(true)
                 .interact()
                 .unwrap();
-            
+
             if launch {
                 let _ = Command::new("protonup-qt").spawn();
             }
@@ -319,16 +324,18 @@ fn download_wine_ge() {
 fn configure_wine_versions() {
     println!("🔧 Configure Wine Versions");
     println!("==========================");
-    
+
     println!("💡 Wine configuration options:");
     println!("  winecfg                 - Wine configuration GUI");
     println!("  winetricks              - Install Windows components");
-    println!("  
-            - Performance Wine build");
-    
+    println!(
+        "  
+            - Performance Wine build"
+    );
+
     let options = [
         "🔧 Launch winecfg",
-        "🎯 Launch winetricks", 
+        "🎯 Launch winetricks",
         "📦 Install common Windows libraries",
         "⬅️  Back",
     ];
@@ -358,7 +365,7 @@ fn install_common_libraries() {
 
     let libraries = [
         "vcrun2019",
-        "dotnet48", 
+        "dotnet48",
         "corefonts",
         "d3dcompiler_47",
         "dxvk",
@@ -378,11 +385,9 @@ fn install_common_libraries() {
     if !selections.is_empty() {
         println!("🔧 Installing selected libraries with winetricks...");
         let selected_libs: Vec<&str> = selections.iter().map(|&i| libraries[i]).collect();
-        
-        let status = Command::new("winetricks")
-            .args(&selected_libs)
-            .status();
-        
+
+        let status = Command::new("winetricks").args(&selected_libs).status();
+
         match status {
             Ok(s) if s.success() => println!("✅ Libraries installed"),
             _ => println!("❌ Some libraries may have failed to install"),
@@ -393,21 +398,23 @@ fn install_common_libraries() {
 fn clean_wine_prefixes() {
     println!("🧹 Clean Wine Prefixes");
     println!("======================");
-    
+
     let wineprefix_dir = Some(std::path::PathBuf::from(get_home_dir()))
         .map(|h| h.join("Games"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/Games"));
 
     if wineprefix_dir.exists() {
         println!("📁 Found Wine prefixes in: {}", wineprefix_dir.display());
-        let _ = Command::new("ls").args(&["-la", &wineprefix_dir.to_string_lossy()]).status();
+        let _ = Command::new("ls")
+            .args(&["-la", &wineprefix_dir.to_string_lossy()])
+            .status();
     }
 
     println!("\n💡 Clean options:");
     println!("  - Clear Wine cache and temporary files");
     println!("  - Remove old prefixes (BE CAREFUL!)");
     println!("  - Reset specific game prefixes");
-    
+
     let confirm = Confirm::new()
         .with_prompt("Clean Wine cache and temporary files?")
         .default(true)
@@ -433,7 +440,7 @@ fn clean_wine_prefixes() {
                     .status();
             }
         }
-        
+
         println!("✅ Wine cache cleaned");
     }
 }
@@ -471,18 +478,18 @@ fn lutris_configuration() {
 fn lutris_gaming_optimizations() {
     println!("🎮 Lutris Gaming Optimizations");
     println!("==============================");
-    
+
     println!("💡 Recommended Lutris optimizations:");
     println!("  1. Enable DXVK for DirectX games");
     println!("  2. Enable Esync/Fsync for performance");
     println!("  3. Set appropriate Wine version per game");
     println!("  4. Configure GameMode integration");
-    
+
     println!("\n🔧 In Lutris preferences:");
     println!("  • System Options > Enable Feral GameMode");
     println!("  • Runners > Wine > Enable DXVK");
     println!("  • Runners > Wine > Enable Esync");
-    
+
     let launch_lutris = Confirm::new()
         .with_prompt("Launch Lutris to configure these settings?")
         .default(true)
@@ -497,7 +504,7 @@ fn lutris_gaming_optimizations() {
 fn lutris_display_settings() {
     println!("🖥️  Lutris Display Settings");
     println!("===========================");
-    
+
     println!("💡 Display optimization tips:");
     println!("  • Set correct resolution per game");
     println!("  • Enable/disable fullscreen as needed");
@@ -508,12 +515,12 @@ fn lutris_display_settings() {
 fn lutris_audio_configuration() {
     println!("🔊 Lutris Audio Configuration");
     println!("=============================");
-    
+
     println!("💡 Audio setup for Lutris:");
     println!("  • Use PulseAudio/PipeWire for best compatibility");
     println!("  • Install lib32-libpulse for 32-bit games");
     println!("  • Configure Wine audio driver (pulse recommended)");
-    
+
     let install_audio = Confirm::new()
         .with_prompt("Install additional audio libraries?")
         .default(true)
@@ -526,7 +533,7 @@ fn lutris_audio_configuration() {
             .args(&["pacman", "-S", "--needed", "--noconfirm"])
             .args(&packages)
             .status();
-        
+
         match status {
             Ok(s) if s.success() => println!("✅ Audio libraries installed"),
             _ => println!("❌ Failed to install audio libraries"),
@@ -537,7 +544,7 @@ fn lutris_audio_configuration() {
 fn lutris_directories() {
     println!("📁 Lutris Default Directories");
     println!("=============================");
-    
+
     let lutris_dir = Some(std::path::PathBuf::from(get_home_dir()))
         .map(|h| h.join(".local/share/lutris"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/.local/share/lutris"));
@@ -547,7 +554,7 @@ fn lutris_directories() {
     println!("  Data: {}", lutris_dir.display());
     println!("  Games: ~/Games/ (default)");
     println!("  Runners: {}runners/", lutris_dir.display());
-    
+
     let open_dir = Confirm::new()
         .with_prompt("Open Lutris data directory?")
         .default(false)
@@ -562,14 +569,14 @@ fn lutris_directories() {
 fn lutris_advanced_settings() {
     println!("🔧 Lutris Advanced Settings");
     println!("===========================");
-    
+
     println!("💡 Advanced Lutris configuration:");
     println!("  • Custom Wine builds and versions");
     println!("  • DXVK/VKD3D configuration");
     println!("  • Esync/Fsync tweaks");
     println!("  • Custom environment variables");
     println!("  • Game-specific optimizations");
-    
+
     println!("\n📖 For advanced configuration, edit:");
     println!("  ~/.config/lutris/lutris.conf");
 }
@@ -579,7 +586,7 @@ fn install_popular_games_lutris() {
     println!("====================================");
 
     println!("💡 Popular games available through Lutris:");
-    
+
     let game_categories = [
         "🎮 Battle.net (Blizzard games)",
         "🎯 Epic Games Store",
@@ -614,20 +621,22 @@ fn install_popular_games_lutris() {
 fn clean_lutris_prefixes() {
     println!("🧹 Clean Lutris Prefixes");
     println!("========================");
-    
+
     let lutris_prefixes = Some(std::path::PathBuf::from(get_home_dir()))
         .map(|h| h.join("Games"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/Games"));
 
     if lutris_prefixes.exists() {
         println!("📁 Lutris game prefixes found:");
-        let _ = Command::new("ls").args(&["-la", &lutris_prefixes.to_string_lossy()]).status();
-        
+        let _ = Command::new("ls")
+            .args(&["-la", &lutris_prefixes.to_string_lossy()])
+            .status();
+
         println!("\n⚠️  Cleaning options:");
         println!("  • Clear temporary files and cache");
         println!("  • Remove unused prefixes");
         println!("  • Reset problematic game installations");
-        
+
         let clean_cache = Confirm::new()
             .with_prompt("Clean cache and temporary files from all prefixes?")
             .default(true)
@@ -637,12 +646,22 @@ fn clean_lutris_prefixes() {
         if clean_cache {
             // Clean common locations in prefixes
             let _ = Command::new("find")
-                .args(&[&lutris_prefixes.to_string_lossy(), "-name", "*.tmp", "-delete"])
+                .args(&[
+                    &lutris_prefixes.to_string_lossy(),
+                    "-name",
+                    "*.tmp",
+                    "-delete",
+                ])
                 .status();
             let _ = Command::new("find")
-                .args(&[&lutris_prefixes.to_string_lossy(), "-path", "*/Temp/*", "-delete"])
+                .args(&[
+                    &lutris_prefixes.to_string_lossy(),
+                    "-path",
+                    "*/Temp/*",
+                    "-delete",
+                ])
                 .status();
-            
+
             println!("✅ Lutris prefixes cleaned");
         }
     } else {
@@ -653,19 +672,19 @@ fn clean_lutris_prefixes() {
 fn lutris_status() {
     println!("📋 Lutris Status");
     println!("================");
-    
+
     let lutris_check = Command::new("which").arg("lutris").status();
     match lutris_check {
         Ok(s) if s.success() => {
             println!("✅ Lutris is installed");
-            
+
             let version_output = Command::new("lutris").arg("--version").output();
             match version_output {
                 Ok(out) => {
                     let output_string = String::from_utf8_lossy(&out.stdout);
                     println!("📋 Version: {}", output_string.trim());
                 }
-                _ => {},
+                _ => {}
             }
         }
         _ => {
@@ -696,7 +715,7 @@ fn lutris_status() {
 
     if lutris_data.exists() {
         println!("📁 Lutris data found: {}", lutris_data.display());
-        
+
         // Count installed runners
         let runners_dir = lutris_data.join("runners");
         if runners_dir.exists() {
@@ -766,7 +785,7 @@ fn install_heroic() {
 
 fn install_heroic_aur() {
     println!("📦 Installing Heroic from AUR");
-    
+
     let aur_helpers = ["yay", "paru", "trizen"];
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
@@ -776,7 +795,7 @@ fn install_heroic_aur() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "heroic-games-launcher-bin"])
                     .status();
-                
+
                 match install_status {
                     Ok(s) if s.success() => {
                         println!("✅ Heroic installed successfully!");
@@ -787,7 +806,7 @@ fn install_heroic_aur() {
             }
         }
     }
-    
+
     println!("❌ No AUR helper found. Install yay first:");
     println!("   sudo pacman -S --needed base-devel git");
     println!("   git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si");
@@ -796,12 +815,14 @@ fn install_heroic_aur() {
 fn install_heroic_appimage() {
     println!("📱 Installing Heroic AppImage");
     println!("=============================");
-    
+
     println!("💡 To install Heroic as AppImage:");
-    println!("  1. Download from: https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/releases");
+    println!(
+        "  1. Download from: https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/releases"
+    );
     println!("  2. Make executable: chmod +x Heroic-*.AppImage");
     println!("  3. Run: ./Heroic-*.AppImage");
-    
+
     println!("\n🔧 Or use automated download:");
     let download = Confirm::new()
         .with_prompt("Download latest Heroic AppImage?")
@@ -815,18 +836,20 @@ fn install_heroic_appimage() {
             .args(&["-L", "-o", "/tmp/heroic.AppImage", 
                    "https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/releases/latest/download/Heroic-Games-Launcher.AppImage"])
             .status();
-        
+
         match status {
             Ok(s) if s.success() => {
-                let _ = Command::new("chmod").args(&["+x", "/tmp/heroic.AppImage"]).status();
+                let _ = Command::new("chmod")
+                    .args(&["+x", "/tmp/heroic.AppImage"])
+                    .status();
                 println!("✅ Heroic AppImage downloaded to /tmp/heroic.AppImage");
-                
+
                 let run_now = Confirm::new()
                     .with_prompt("Run Heroic now?")
                     .default(true)
                     .interact()
                     .unwrap();
-                
+
                 if run_now {
                     let _ = Command::new("/tmp/heroic.AppImage").spawn();
                 }
@@ -839,14 +862,14 @@ fn install_heroic_appimage() {
 fn install_heroic_flatpak() {
     println!("🐳 Installing Heroic via Flatpak");
     println!("================================");
-    
+
     let flatpak_check = Command::new("which").arg("flatpak").status();
     match flatpak_check {
         Ok(s) if s.success() => {
             let install_status = Command::new("flatpak")
                 .args(&["install", "-y", "flathub", "com.heroicgameslauncher.hgl"])
                 .status();
-            
+
             match install_status {
                 Ok(s) if s.success() => println!("✅ Heroic installed via Flatpak"),
                 _ => println!("❌ Failed to install Heroic via Flatpak"),
@@ -862,13 +885,13 @@ fn install_heroic_flatpak() {
 fn setup_epic_games() {
     println!("🎮 Epic Games Store Setup");
     println!("=========================");
-    
+
     println!("💡 To setup Epic Games Store in Heroic:");
     println!("  1. Launch Heroic Games Launcher");
     println!("  2. Click 'Log In' for Epic Games Store");
     println!("  3. Enter your Epic credentials");
     println!("  4. Browse and install games");
-    
+
     println!("\n🎯 Popular Epic Games Store titles:");
     println!("  • Fortnite");
     println!("  • Rocket League");
@@ -879,13 +902,13 @@ fn setup_epic_games() {
 fn setup_gog() {
     println!("🎯 GOG Integration Setup");
     println!("========================");
-    
+
     println!("💡 To setup GOG in Heroic:");
     println!("  1. Launch Heroic Games Launcher");
     println!("  2. Click 'Log In' for GOG");
     println!("  3. Enter your GOG credentials");
     println!("  4. Access your GOG library");
-    
+
     println!("\n🎮 GOG benefits:");
     println!("  • DRM-free games");
     println!("  • Classic games collection");
@@ -895,14 +918,14 @@ fn setup_gog() {
 fn heroic_configuration() {
     println!("🔧 Heroic Configuration");
     println!("=======================");
-    
+
     println!("💡 Key Heroic settings to configure:");
     println!("  • Default Wine version");
     println!("  • DXVK/VKD3D settings");
     println!("  • GameMode integration");
     println!("  • Download directory");
     println!("  • Performance settings");
-    
+
     let launch_heroic = Confirm::new()
         .with_prompt("Launch Heroic to configure settings?")
         .default(true)
@@ -917,10 +940,12 @@ fn heroic_configuration() {
 fn heroic_status() {
     println!("📋 Heroic Games Launcher Status");
     println!("===============================");
-    
+
     let heroic_check = Command::new("which").arg("heroic").status();
     let heroic_appimage = std::path::Path::new("/tmp/heroic.AppImage").exists();
-    let heroic_flatpak = Command::new("flatpak").args(&["list", "--app", "|", "grep", "heroic"]).status();
+    let heroic_flatpak = Command::new("flatpak")
+        .args(&["list", "--app", "|", "grep", "heroic"])
+        .status();
 
     if let Ok(s) = heroic_check {
         if s.success() {
@@ -1005,7 +1030,7 @@ fn install_bottles_flatpak() {
             let install_status = Command::new("flatpak")
                 .args(&["install", "-y", "flathub", "com.usebottles.bottles"])
                 .status();
-            
+
             match install_status {
                 Ok(s) if s.success() => println!("✅ Bottles installed via Flatpak"),
                 _ => println!("❌ Failed to install Bottles via Flatpak"),
@@ -1027,7 +1052,7 @@ fn install_bottles_aur() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "bottles"])
                     .status();
-                
+
                 match install_status {
                     Ok(s) if s.success() => {
                         println!("✅ Bottles installed via AUR");
@@ -1038,14 +1063,14 @@ fn install_bottles_aur() {
             }
         }
     }
-    
+
     println!("❌ No AUR helper found");
 }
 
 fn create_bottle() {
     println!("🍷 Create New Bottle");
     println!("===================");
-    
+
     println!("💡 To create a new bottle:");
     println!("  1. Launch Bottles");
     println!("  2. Click 'Create New Bottle'");
@@ -1057,7 +1082,7 @@ fn create_bottle() {
 fn manage_bottles() {
     println!("🔧 Manage Existing Bottles");
     println!("==========================");
-    
+
     println!("💡 Bottle management features:");
     println!("  • Install Windows software in bottles");
     println!("  • Configure Wine settings per bottle");
@@ -1069,14 +1094,14 @@ fn manage_bottles() {
 fn gaming_bottle_templates() {
     println!("🎮 Gaming Bottle Templates");
     println!("==========================");
-    
+
     println!("💡 Popular gaming bottle configurations:");
     println!("  🎯 DirectX 11/12 Gaming");
     println!("  🎮 Older Games (DirectX 9)");
     println!("  🎪 Epic Games Store");
     println!("  🔶 Origin/EA App");
     println!("  🎲 Battle.net");
-    
+
     println!("\n🔧 Template usually includes:");
     println!("  • Appropriate Wine version");
     println!("  • DXVK/VKD3D");
@@ -1088,7 +1113,7 @@ fn gaming_bottle_templates() {
 fn bottles_status() {
     println!("📋 Bottles Status");
     println!("=================");
-    
+
     let bottles_flatpak = Command::new("flatpak")
         .args(&["list", "--app"])
         .output()
@@ -1096,7 +1121,7 @@ fn bottles_status() {
         .unwrap_or(false);
 
     let bottles_system = Command::new("which").arg("bottles").status();
-    
+
     if bottles_flatpak {
         println!("✅ Bottles installed (Flatpak)");
     } else if let Ok(s) = bottles_system {
@@ -1198,14 +1223,19 @@ fn console_emulators() {
 
     let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select emulators to install")
-        .items(&emulators.iter().map(|(console, _, name)| format!("{} - {}", console, name)).collect::<Vec<_>>())
+        .items(
+            &emulators
+                .iter()
+                .map(|(console, _, name)| format!("{} - {}", console, name))
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
     for &index in &selections {
         let (console, package, _) = emulators[index];
         println!("📦 Installing {} emulator...", console);
-        
+
         if package.contains("git") || package.contains("bin") {
             // AUR package
             install_aur_package(package);
@@ -1214,7 +1244,7 @@ fn console_emulators() {
             let status = Command::new("sudo")
                 .args(&["pacman", "-S", "--needed", "--noconfirm", package])
                 .status();
-            
+
             match status {
                 Ok(s) if s.success() => println!("  ✅ {} installed", console),
                 _ => println!("  ❌ Failed to install {}", console),
@@ -1277,14 +1307,14 @@ fn handheld_emulators() {
 fn emulation_setup_guide() {
     println!("🔧 Emulation Setup Guide");
     println!("========================");
-    
+
     println!("💡 General emulation setup tips:");
     println!("  1. Obtain legal ROM/BIOS files");
     println!("  2. Create organized ROM directories");
     println!("  3. Configure controllers/input");
     println!("  4. Set up save file management");
     println!("  5. Configure graphics and performance");
-    
+
     println!("\n📁 Recommended directory structure:");
     println!("  ~/Games/ROMs/");
     println!("  ├── NES/");
@@ -1292,7 +1322,7 @@ fn emulation_setup_guide() {
     println!("  ├── PlayStation/");
     println!("  ├── Nintendo64/");
     println!("  └── etc...");
-    
+
     println!("\n⚖️  Legal note:");
     println!("  Only use ROMs of games you legally own!");
 }
@@ -1306,10 +1336,10 @@ fn install_aur_package(package: &str) {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", package])
                     .status();
-                
+
                 match install_status {
                     Ok(s) if s.success() => return,
-                    _ => {},
+                    _ => {}
                 }
             }
         }
@@ -1324,7 +1354,7 @@ pub fn wine_management() {
     let options = [
         "📦 Install Wine versions",
         "🔧 Configure Wine",
-        "🛠️  Winetricks management", 
+        "🛠️  Winetricks management",
         "🧹 Clean Wine data",
         "📋 Wine status",
         "⬅️  Back",
@@ -1353,8 +1383,16 @@ fn install_wine_versions() {
 
     let wine_versions = [
         ("Wine (stable)", "wine", "Standard Wine from repos"),
-        ("Wine Staging", "wine-staging", "Development version with patches"),
-        ("Wine-TkG", "wine-tkg-staging-fsync-git", "Custom optimized build (AUR)"),
+        (
+            "Wine Staging",
+            "wine-staging",
+            "Development version with patches",
+        ),
+        (
+            "Wine-TkG",
+            "wine-tkg-staging-fsync-git",
+            "Custom optimized build (AUR)",
+        ),
         ("Wine-GE", "wine-ge-custom", "Gaming-focused build (AUR)"),
     ];
 
@@ -1365,21 +1403,26 @@ fn install_wine_versions() {
 
     let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Wine versions to install")
-        .items(&wine_versions.iter().map(|(name, _, desc)| format!("{} - {}", name, desc)).collect::<Vec<_>>())
+        .items(
+            &wine_versions
+                .iter()
+                .map(|(name, _, desc)| format!("{} - {}", name, desc))
+                .collect::<Vec<_>>(),
+        )
         .interact()
         .unwrap();
 
     for &index in &selections {
         let (name, package, _) = wine_versions[index];
         println!("📦 Installing {}...", name);
-        
+
         if package.contains("git") || package.contains("custom") {
             install_aur_package(package);
         } else {
             let status = Command::new("sudo")
                 .args(&["pacman", "-S", "--needed", "--noconfirm", package])
                 .status();
-            
+
             match status {
                 Ok(s) if s.success() => println!("  ✅ {} installed", name),
                 _ => println!("  ❌ Failed to install {}", name),
@@ -1421,13 +1464,13 @@ fn configure_wine() {
 fn configure_wine_gaming() {
     println!("🎮 Configure Wine for Gaming");
     println!("============================");
-    
+
     println!("💡 Gaming optimizations:");
     println!("  • Enable DXVK for DirectX games");
     println!("  • Enable Esync/Fsync for performance");
     println!("  • Install Visual C++ redistributables");
     println!("  • Configure Windows version compatibility");
-    
+
     let install_dxvk = Confirm::new()
         .with_prompt("Install DXVK for DirectX translation?")
         .default(true)
@@ -1438,7 +1481,7 @@ fn configure_wine_gaming() {
         let status = Command::new("sudo")
             .args(&["pacman", "-S", "--needed", "--noconfirm", "dxvk-bin"])
             .status();
-        
+
         match status {
             Ok(s) if s.success() => println!("✅ DXVK installed"),
             _ => println!("❌ Failed to install DXVK"),
@@ -1449,25 +1492,25 @@ fn configure_wine_gaming() {
 fn configure_wine_display() {
     println!("🖥️  Configure Wine Display");
     println!("===========================");
-    
+
     println!("💡 Display configuration options:");
     println!("  • Set screen resolution");
     println!("  • Configure DPI scaling");
     println!("  • Set up virtual desktop");
     println!("  • Graphics driver settings");
-    
+
     println!("\n🔧 Launch winecfg to configure graphics settings");
 }
 
 fn configure_wine_audio() {
     println!("🔊 Configure Wine Audio");
     println!("=======================");
-    
+
     println!("💡 Audio driver options:");
     println!("  • PulseAudio (recommended)");
     println!("  • ALSA");
     println!("  • OSS");
-    
+
     println!("\n🔧 In winecfg > Audio tab:");
     println!("  • Set driver to 'pulse'");
     println!("  • Test audio functionality");
@@ -1481,7 +1524,7 @@ fn winetricks_management() {
     match winetricks_check {
         Ok(s) if s.success() => {
             println!("✅ Winetricks found");
-            
+
             let launch = Confirm::new()
                 .with_prompt("Launch winetricks GUI?")
                 .default(true)
@@ -1504,7 +1547,7 @@ fn winetricks_management() {
                 let status = Command::new("sudo")
                     .args(&["pacman", "-S", "--needed", "--noconfirm", "winetricks"])
                     .status();
-                
+
                 match status {
                     Ok(s) if s.success() => {
                         println!("✅ Winetricks installed");
@@ -1520,14 +1563,14 @@ fn winetricks_management() {
 fn clean_wine_data() {
     println!("🧹 Clean Wine Data");
     println!("==================");
-    
+
     let wine_dir = Some(std::path::PathBuf::from(get_home_dir()))
         .map(|h| h.join(".wine"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/.wine"));
 
     if wine_dir.exists() {
         println!("📁 Wine directory found: {}", wine_dir.display());
-        
+
         let clean_options = [
             "🗑️  Clear Wine cache",
             "🧹 Remove temporary files",
@@ -1555,13 +1598,17 @@ fn clean_wine_data() {
                 }
                 3 => {
                     let confirm = Confirm::new()
-                        .with_prompt("⚠️  Really reset Wine prefix? This will delete all Windows software!")
+                        .with_prompt(
+                            "⚠️  Really reset Wine prefix? This will delete all Windows software!",
+                        )
                         .default(false)
                         .interact()
                         .unwrap();
-                    
+
                     if confirm {
-                        let _ = Command::new("rm").args(&["-rf", &wine_dir.to_string_lossy()]).status();
+                        let _ = Command::new("rm")
+                            .args(&["-rf", &wine_dir.to_string_lossy()])
+                            .status();
                         println!("⚠️  Wine prefix reset");
                     }
                 }
@@ -1576,7 +1623,7 @@ fn clean_wine_data() {
 fn wine_status() {
     println!("📋 Wine Status");
     println!("==============");
-    
+
     let wine_check = Command::new("wine").arg("--version").output();
     match wine_check {
         Ok(out) => {
@@ -1596,7 +1643,7 @@ fn wine_status() {
 
     if wine_dir.exists() {
         println!("📁 Wine prefix: {}", wine_dir.display());
-        
+
         let drive_c = wine_dir.join("drive_c");
         if drive_c.exists() {
             println!("💾 Windows C: drive configured");
@@ -1616,7 +1663,7 @@ fn wine_status() {
 pub fn launchers_overview() {
     println!("🎨 Game Launchers Overview");
     println!("==========================");
-    
+
     println!("🎮 Available gaming platforms on Linux:");
     println!("");
     println!("🚀 Steam");
@@ -1653,7 +1700,7 @@ pub fn launchers_overview() {
 pub fn platform_status() {
     println!("📋 Gaming Platforms Status");
     println!("==========================");
-    
+
     // Check Steam
     let steam_check = Command::new("which").arg("steam").status();
     match steam_check {
@@ -1675,7 +1722,7 @@ pub fn platform_status() {
         .output()
         .map(|out| String::from_utf8_lossy(&out.stdout).contains("heroic"))
         .unwrap_or(false);
-    
+
     if let Ok(s) = heroic_check {
         if s.success() {
             println!("✅ Heroic installed (system)");
@@ -1693,7 +1740,7 @@ pub fn platform_status() {
         .output()
         .map(|out| String::from_utf8_lossy(&out.stdout).contains("bottles"))
         .unwrap_or(false);
-    
+
     if let Ok(s) = bottles_check {
         if s.success() {
             println!("✅ Bottles installed (system)");

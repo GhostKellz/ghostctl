@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use std::process::Command;
 
 pub fn local_storage_menu() {
@@ -7,7 +7,7 @@ pub fn local_storage_menu() {
             "Disk Health Monitoring",
             "SMART Status Check",
             "Filesystem Tools",
-            "Mount Management", 
+            "Mount Management",
             "Storage Benchmarking",
             "Disk Cleanup Tools",
             "RAID Management",
@@ -38,27 +38,19 @@ fn disk_health_monitoring() {
     println!("🔍 Disk Health Monitoring\n");
 
     println!("📊 Overall Disk Usage:");
-    let _ = Command::new("df")
-        .args(&["-h"])
-        .status();
+    let _ = Command::new("df").args(&["-h"]).status();
 
     println!("\n💿 Block Devices:");
-    let _ = Command::new("lsblk")
-        .status();
+    let _ = Command::new("lsblk").status();
 
     println!("\n🌡️  Disk Temperatures:");
-    let _ = Command::new("sensors")
-        .status();
+    let _ = Command::new("sensors").status();
 
     println!("\n📈 I/O Statistics:");
-    let _ = Command::new("iostat")
-        .args(&["-x", "1", "3"])
-        .status();
+    let _ = Command::new("iostat").args(&["-x", "1", "3"]).status();
 
     println!("\n⚡ Current I/O Activity:");
-    let _ = Command::new("iotop")
-        .args(&["-o", "-n", "3"])
-        .status();
+    let _ = Command::new("iotop").args(&["-o", "-n", "3"]).status();
 }
 
 fn smart_status_check() {
@@ -80,9 +72,7 @@ fn smart_status_check() {
         .unwrap();
 
     println!("🔍 SMART status for {}:", disk);
-    let _ = Command::new("smartctl")
-        .args(&["-a", &disk])
-        .status();
+    let _ = Command::new("smartctl").args(&["-a", &disk]).status();
 
     println!("\n🧪 Running SMART self-test...");
     if Confirm::new()
@@ -94,7 +84,7 @@ fn smart_status_check() {
         let _ = Command::new("smartctl")
             .args(&["-t", "short", &disk])
             .status();
-        
+
         println!("✅ Self-test started. Check results in a few minutes with:");
         println!("   smartctl -l selftest {}", disk);
     }
@@ -107,9 +97,7 @@ fn smart_status_check() {
         .unwrap()
     {
         println!("🔍 Scanning for bad sectors (this may take a while)...");
-        let _ = Command::new("badblocks")
-            .args(&["-v", &disk])
-            .status();
+        let _ = Command::new("badblocks").args(&["-v", &disk]).status();
     }
 }
 
@@ -168,21 +156,15 @@ fn check_filesystem() {
     match fs_type.as_str() {
         "ext2" | "ext3" | "ext4" => {
             println!("🔍 Running e2fsck...");
-            let _ = Command::new("e2fsck")
-                .args(&["-f", "-v", &device])
-                .status();
+            let _ = Command::new("e2fsck").args(&["-f", "-v", &device]).status();
         }
         "xfs" => {
             println!("🔍 Running xfs_check...");
-            let _ = Command::new("xfs_check")
-                .args(&[&device])
-                .status();
+            let _ = Command::new("xfs_check").args(&[&device]).status();
         }
         "btrfs" => {
             println!("🔍 Running btrfs check...");
-            let _ = Command::new("btrfs")
-                .args(&["check", &device])
-                .status();
+            let _ = Command::new("btrfs").args(&["check", &device]).status();
         }
         _ => {
             println!("⚠️  Unsupported filesystem type for automatic check");
@@ -221,14 +203,10 @@ fn repair_filesystem() {
 
     match fs_type.as_str() {
         "ext2" | "ext3" | "ext4" => {
-            let _ = Command::new("e2fsck")
-                .args(&["-y", &device])
-                .status();
+            let _ = Command::new("e2fsck").args(&["-y", &device]).status();
         }
         "xfs" => {
-            let _ = Command::new("xfs_repair")
-                .args(&[&device])
-                .status();
+            let _ = Command::new("xfs_repair").args(&[&device]).status();
         }
         "btrfs" => {
             let _ = Command::new("btrfs")
@@ -274,35 +252,27 @@ fn resize_filesystem() {
         .unwrap();
 
     match fs_type.as_str() {
-        "ext2" | "ext3" | "ext4" => {
-            match resize_type {
-                0 => {
-                    if !mount_point.is_empty() {
-                        let _ = Command::new("resize2fs")
-                            .args(&[&device])
-                            .status();
-                    } else {
-                        println!("⚠️  Mount the filesystem first for online resize");
-                    }
+        "ext2" | "ext3" | "ext4" => match resize_type {
+            0 => {
+                if !mount_point.is_empty() {
+                    let _ = Command::new("resize2fs").args(&[&device]).status();
+                } else {
+                    println!("⚠️  Mount the filesystem first for online resize");
                 }
-                1 | 2 => {
-                    let size: String = Input::with_theme(&ColorfulTheme::default())
-                        .with_prompt("Enter new size (e.g., 10G, 500M)")
-                        .interact()
-                        .unwrap();
-                    
-                    let _ = Command::new("resize2fs")
-                        .args(&[&device, &size])
-                        .status();
-                }
-                _ => {}
             }
-        }
+            1 | 2 => {
+                let size: String = Input::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Enter new size (e.g., 10G, 500M)")
+                    .interact()
+                    .unwrap();
+
+                let _ = Command::new("resize2fs").args(&[&device, &size]).status();
+            }
+            _ => {}
+        },
         "xfs" => {
             if !mount_point.is_empty() {
-                let _ = Command::new("xfs_growfs")
-                    .args(&[&mount_point])
-                    .status();
+                let _ = Command::new("xfs_growfs").args(&[&mount_point]).status();
             } else {
                 println!("⚠️  XFS can only be grown while mounted");
             }
@@ -354,7 +324,8 @@ fn create_filesystem() {
     }
 
     match fs_type {
-        0 => { // ext4
+        0 => {
+            // ext4
             let mut args = vec!["-t", "ext4"];
             if !label.is_empty() {
                 args.extend_from_slice(&["-L", &label]);
@@ -362,7 +333,8 @@ fn create_filesystem() {
             args.push(&device);
             let _ = Command::new("mkfs").args(&args).status();
         }
-        1 => { // xfs
+        1 => {
+            // xfs
             let mut args = vec!["-f"];
             if !label.is_empty() {
                 args.extend_from_slice(&["-L", &label]);
@@ -370,7 +342,8 @@ fn create_filesystem() {
             args.push(&device);
             let _ = Command::new("mkfs.xfs").args(&args).status();
         }
-        2 => { // btrfs
+        2 => {
+            // btrfs
             let mut args = vec![];
             if !label.is_empty() {
                 args.extend_from_slice(&["-L", &label]);
@@ -378,15 +351,15 @@ fn create_filesystem() {
             args.push(&device);
             let _ = Command::new("mkfs.btrfs").args(&args).status();
         }
-        3 => { // fat32
+        3 => {
+            // fat32
             let _ = Command::new("mkfs.fat")
                 .args(&["-F", "32", &device])
                 .status();
         }
-        4 => { // ntfs
-            let _ = Command::new("mkfs.ntfs")
-                .args(&["-f", &device])
-                .status();
+        4 => {
+            // ntfs
+            let _ = Command::new("mkfs.ntfs").args(&["-f", &device]).status();
         }
         _ => {}
     }
@@ -404,9 +377,7 @@ fn filesystem_information() {
 
     // Basic information
     println!("📋 Basic Information:");
-    let _ = Command::new("blkid")
-        .args(&[&device])
-        .status();
+    let _ = Command::new("blkid").args(&[&device]).status();
 
     // Detailed filesystem information
     let fs_output = Command::new("blkid")
@@ -415,19 +386,15 @@ fn filesystem_information() {
 
     if let Ok(output) = fs_output {
         let fs_type = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        
+
         match fs_type.as_str() {
             "ext2" | "ext3" | "ext4" => {
                 println!("\n📊 ext Filesystem Details:");
-                let _ = Command::new("tune2fs")
-                    .args(&["-l", &device])
-                    .status();
+                let _ = Command::new("tune2fs").args(&["-l", &device]).status();
             }
             "xfs" => {
                 println!("\n📊 XFS Filesystem Details:");
-                let _ = Command::new("xfs_info")
-                    .args(&[&device])
-                    .status();
+                let _ = Command::new("xfs_info").args(&[&device]).status();
             }
             "btrfs" => {
                 println!("\n📊 Btrfs Filesystem Details:");
@@ -441,9 +408,7 @@ fn filesystem_information() {
 
     // Check if mounted and show mount info
     println!("\n🔗 Mount Status:");
-    let _ = Command::new("findmnt")
-        .args(&[&device])
-        .status();
+    let _ = Command::new("findmnt").args(&[&device]).status();
 }
 
 fn defragment_filesystem() {
@@ -461,7 +426,7 @@ fn defragment_filesystem() {
 
     if let Ok(output) = fs_output {
         let fs_type = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        
+
         match fs_type.as_str() {
             "ext4" => {
                 println!("🔄 Defragmenting ext4 filesystem...");
@@ -489,7 +454,7 @@ fn mount_management() {
     loop {
         let options = vec![
             "List All Mounts",
-            "Mount Device", 
+            "Mount Device",
             "Unmount Device",
             "Edit /etc/fstab",
             "Test fstab",
@@ -518,13 +483,10 @@ fn mount_management() {
 
 fn list_mounts() {
     println!("📋 Current Mounts\n");
-    let _ = Command::new("mount")
-        .status();
-    
+    let _ = Command::new("mount").status();
+
     println!("\n💾 Disk Usage:");
-    let _ = Command::new("df")
-        .args(&["-h"])
-        .status();
+    let _ = Command::new("df").args(&["-h"]).status();
 }
 
 fn mount_device() {
@@ -547,9 +509,7 @@ fn mount_device() {
         .unwrap();
 
     // Create mount point if it doesn't exist
-    let _ = Command::new("mkdir")
-        .args(&["-p", &mount_point])
-        .status();
+    let _ = Command::new("mkdir").args(&["-p", &mount_point]).status();
 
     let result = if options == "defaults" {
         Command::new("mount")
@@ -576,18 +536,14 @@ fn unmount_device() {
         .interact()
         .unwrap();
 
-    let result = Command::new("umount")
-        .args(&[&target])
-        .status();
+    let result = Command::new("umount").args(&[&target]).status();
 
     if result.unwrap().success() {
         println!("✅ Unmount successful!");
     } else {
         println!("❌ Unmount failed. Trying lazy unmount...");
-        let lazy_result = Command::new("umount")
-            .args(&["-l", &target])
-            .status();
-        
+        let lazy_result = Command::new("umount").args(&["-l", &target]).status();
+
         if lazy_result.unwrap().success() {
             println!("✅ Lazy unmount successful!");
         } else {
@@ -598,11 +554,9 @@ fn unmount_device() {
 
 fn edit_fstab() {
     println!("📝 Edit /etc/fstab\n");
-    
+
     println!("Current /etc/fstab:");
-    let _ = Command::new("cat")
-        .args(&["/etc/fstab"])
-        .status();
+    let _ = Command::new("cat").args(&["/etc/fstab"]).status();
 
     if Confirm::new()
         .with_prompt("Edit /etc/fstab?")
@@ -610,9 +564,7 @@ fn edit_fstab() {
         .interact()
         .unwrap()
     {
-        let _ = Command::new("nano")
-            .args(&["/etc/fstab"])
-            .status();
+        let _ = Command::new("nano").args(&["/etc/fstab"]).status();
     }
 }
 
@@ -620,9 +572,7 @@ fn test_fstab() {
     println!("🧪 Test /etc/fstab\n");
 
     println!("Testing all fstab entries...");
-    let result = Command::new("mount")
-        .args(&["-a"])
-        .status();
+    let result = Command::new("mount").args(&["-a"]).status();
 
     if result.unwrap().success() {
         println!("✅ All fstab entries mount successfully!");
@@ -697,7 +647,13 @@ fn quick_disk_benchmark() {
 
     println!("🔄 Running quick sequential read test...");
     let _ = Command::new("dd")
-        .args(&["if=/dev/zero", &format!("of={}/testfile", device), "bs=1M", "count=1024", "conv=fsync"])
+        .args(&[
+            "if=/dev/zero",
+            &format!("of={}/testfile", device),
+            "bs=1M",
+            "count=1024",
+            "conv=fsync",
+        ])
         .status();
 
     let _ = Command::new("rm")
@@ -716,40 +672,52 @@ fn comprehensive_io_test() {
         .unwrap();
 
     // Check if fio is installed
-    let fio_check = Command::new("which")
-        .args(&["fio"])
-        .output();
+    let fio_check = Command::new("which").args(&["fio"]).output();
 
     if fio_check.unwrap().status.success() {
         println!("🧪 Running comprehensive fio benchmark...");
-        
+
         let _ = Command::new("fio")
             .args(&[
                 "--name=randrw",
                 &format!("--directory={}", device),
                 "--rw=randrw",
-                "--bs=4k", 
+                "--bs=4k",
                 "--size=1G",
                 "--numjobs=4",
                 "--time_based",
                 "--runtime=60s",
-                "--group_reporting"
+                "--group_reporting",
             ])
             .status();
     } else {
         println!("❌ fio not installed. Installing...");
         // Install fio based on package manager
-        if Command::new("which").args(&["apt"]).output().unwrap().status.success() {
+        if Command::new("which")
+            .args(&["apt"])
+            .output()
+            .unwrap()
+            .status
+            .success()
+        {
             let _ = Command::new("apt").args(&["install", "-y", "fio"]).status();
-        } else if Command::new("which").args(&["pacman"]).output().unwrap().status.success() {
-            let _ = Command::new("pacman").args(&["-S", "--noconfirm", "fio"]).status();
+        } else if Command::new("which")
+            .args(&["pacman"])
+            .output()
+            .unwrap()
+            .status
+            .success()
+        {
+            let _ = Command::new("pacman")
+                .args(&["-S", "--noconfirm", "fio"])
+                .status();
         }
     }
 }
 
 fn random_vs_sequential() {
     println!("📊 Random vs Sequential Performance Test\n");
-    
+
     let device: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter mount point to test")
         .interact()
@@ -757,12 +725,18 @@ fn random_vs_sequential() {
 
     println!("📈 Testing sequential read performance...");
     let _ = Command::new("dd")
-        .args(&["if=/dev/zero", &format!("of={}/seq_test", device), "bs=1M", "count=512", "oflag=direct"])
+        .args(&[
+            "if=/dev/zero",
+            &format!("of={}/seq_test", device),
+            "bs=1M",
+            "count=512",
+            "oflag=direct",
+        ])
         .status();
 
     println!("📈 Testing random read performance...");
     // This would use fio or other tools for random I/O testing
-    
+
     let _ = Command::new("rm")
         .args(&[&format!("{}/seq_test", device)])
         .status();
@@ -770,30 +744,30 @@ fn random_vs_sequential() {
 
 fn filesystem_benchmark() {
     println!("🗂️  Filesystem Benchmark\n");
-    
+
     println!("This benchmark compares filesystem performance...");
     // Implementation would test various filesystem operations
 }
 
 fn compare_multiple_disks() {
     println!("⚖️  Compare Multiple Disks\n");
-    
+
     println!("Enter multiple devices to compare (one per line, empty to finish):");
     let mut devices = Vec::new();
-    
+
     loop {
         let device: String = Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter device")
             .default("".to_string())
             .interact()
             .unwrap();
-        
+
         if device.is_empty() {
             break;
         }
         devices.push(device);
     }
-    
+
     for device in devices {
         println!("\n📊 Testing {}:", device);
         // Run benchmarks for each device
@@ -848,7 +822,9 @@ fn find_large_files() {
 
     println!("🔍 Searching for files larger than {}...", size);
     let _ = Command::new("find")
-        .args(&[&path, "-type", "f", "-size", &size, "-exec", "ls", "-lh", "{}", "+"])
+        .args(&[
+            &path, "-type", "f", "-size", &size, "-exec", "ls", "-lh", "{}", "+",
+        ])
         .status();
 }
 
@@ -874,19 +850,37 @@ fn clean_package_cache() {
     println!("📦 Cleaning Package Cache\n");
 
     // Detect package manager and clean cache
-    if Command::new("which").args(&["apt"]).output().unwrap().status.success() {
+    if Command::new("which")
+        .args(&["apt"])
+        .output()
+        .unwrap()
+        .status
+        .success()
+    {
         println!("🧹 Cleaning APT cache...");
         let _ = Command::new("apt").args(&["clean"]).status();
         let _ = Command::new("apt").args(&["autoclean"]).status();
         let _ = Command::new("apt").args(&["autoremove"]).status();
     }
-    
-    if Command::new("which").args(&["pacman"]).output().unwrap().status.success() {
+
+    if Command::new("which")
+        .args(&["pacman"])
+        .output()
+        .unwrap()
+        .status
+        .success()
+    {
         println!("🧹 Cleaning Pacman cache...");
         let _ = Command::new("pacman").args(&["-Sc"]).status();
     }
-    
-    if Command::new("which").args(&["yum"]).output().unwrap().status.success() {
+
+    if Command::new("which")
+        .args(&["yum"])
+        .output()
+        .unwrap()
+        .status
+        .success()
+    {
         println!("🧹 Cleaning YUM cache...");
         let _ = Command::new("yum").args(&["clean", "all"]).status();
     }
@@ -898,9 +892,7 @@ fn clean_log_files() {
     println!("📝 Cleaning Log Files\n");
 
     println!("📊 Current log usage:");
-    let _ = Command::new("du")
-        .args(&["-sh", "/var/log"])
-        .status();
+    let _ = Command::new("du").args(&["-sh", "/var/log"]).status();
 
     if Confirm::new()
         .with_prompt("Clean old log files?")
@@ -931,21 +923,33 @@ fn find_duplicate_files() {
         .unwrap();
 
     // Check if fdupes is installed
-    let fdupes_check = Command::new("which")
-        .args(&["fdupes"])
-        .output();
+    let fdupes_check = Command::new("which").args(&["fdupes"]).output();
 
     if fdupes_check.unwrap().status.success() {
         println!("🔍 Searching for duplicate files...");
-        let _ = Command::new("fdupes")
-            .args(&["-r", &path])
-            .status();
+        let _ = Command::new("fdupes").args(&["-r", &path]).status();
     } else {
         println!("📦 Installing fdupes...");
-        if Command::new("which").args(&["apt"]).output().unwrap().status.success() {
-            let _ = Command::new("apt").args(&["install", "-y", "fdupes"]).status();
-        } else if Command::new("which").args(&["pacman"]).output().unwrap().status.success() {
-            let _ = Command::new("pacman").args(&["-S", "--noconfirm", "fdupes"]).status();
+        if Command::new("which")
+            .args(&["apt"])
+            .output()
+            .unwrap()
+            .status
+            .success()
+        {
+            let _ = Command::new("apt")
+                .args(&["install", "-y", "fdupes"])
+                .status();
+        } else if Command::new("which")
+            .args(&["pacman"])
+            .output()
+            .unwrap()
+            .status
+            .success()
+        {
+            let _ = Command::new("pacman")
+                .args(&["-S", "--noconfirm", "fdupes"])
+                .status();
         }
     }
 }
@@ -954,9 +958,7 @@ fn clean_temporary_files() {
     println!("🗑️  Cleaning Temporary Files\n");
 
     println!("📊 Current /tmp usage:");
-    let _ = Command::new("du")
-        .args(&["-sh", "/tmp"])
-        .status();
+    let _ = Command::new("du").args(&["-sh", "/tmp"]).status();
 
     if Confirm::new()
         .with_prompt("Clean temporary files older than 7 days?")
@@ -978,24 +980,20 @@ fn clean_temporary_files() {
 
 fn raid_management() {
     println!("⚔️  RAID Management\n");
-    
+
     println!("🔍 Current RAID status:");
-    let _ = Command::new("cat")
-        .args(&["/proc/mdstat"])
-        .status();
+    let _ = Command::new("cat").args(&["/proc/mdstat"]).status();
 
     println!("\n📋 Available RAID tools:");
     println!("  • mdadm - Linux Software RAID");
     println!("  • Hardware RAID (vendor specific)");
-    
+
     if Confirm::new()
         .with_prompt("Show detailed RAID information?")
         .default(true)
         .interact()
         .unwrap()
     {
-        let _ = Command::new("mdadm")
-            .args(&["--detail", "--scan"])
-            .status();
+        let _ = Command::new("mdadm").args(&["--detail", "--scan"]).status();
     }
 }

@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use std::fs;
 
 pub fn setup_schedule() {

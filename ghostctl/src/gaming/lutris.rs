@@ -1,9 +1,9 @@
-use dialoguer::{Select, Input, Confirm, theme::ColorfulTheme};
-use std::process::Command;
-use std::path::Path;
-use std::fs;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use serde::{Deserialize, Serialize};
 use serde_yaml;
+use std::fs;
+use std::path::Path;
+use std::process::Command;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct LutrisGame {
@@ -56,8 +56,10 @@ pub fn lutris_menu() {
 fn list_installed_games() {
     println!("🎮 Installed Lutris Games");
 
-    let games_db = format!("{}/.local/share/lutris/pga.db",
-        std::env::var("HOME").unwrap_or_default());
+    let games_db = format!(
+        "{}/.local/share/lutris/pga.db",
+        std::env::var("HOME").unwrap_or_default()
+    );
 
     if !Path::new(&games_db).exists() {
         println!("❌ Lutris database not found. Is Lutris installed?");
@@ -89,8 +91,10 @@ fn list_installed_games() {
         }
         _ => {
             // Fallback: check YAML configs
-            let config_dir = format!("{}/.config/lutris/games",
-                std::env::var("HOME").unwrap_or_default());
+            let config_dir = format!(
+                "{}/.config/lutris/games",
+                std::env::var("HOME").unwrap_or_default()
+            );
 
             if Path::new(&config_dir).exists() {
                 println!("\n📋 Games from configs:");
@@ -100,9 +104,14 @@ fn list_installed_games() {
                             let path = entry.path();
                             if path.extension().and_then(|s| s.to_str()) == Some("yml") {
                                 if let Ok(content) = fs::read_to_string(&path) {
-                                    if let Ok(config) = serde_yaml::from_str::<serde_yaml::Value>(&content) {
-                                        if let Some(name) = config.get("name").and_then(|v| v.as_str()) {
-                                            let runner = config.get("runner")
+                                    if let Ok(config) =
+                                        serde_yaml::from_str::<serde_yaml::Value>(&content)
+                                    {
+                                        if let Some(name) =
+                                            config.get("name").and_then(|v| v.as_str())
+                                        {
+                                            let runner = config
+                                                .get("runner")
                                                 .and_then(|v| v.as_str())
                                                 .unwrap_or("unknown");
                                             println!("  🎮 {} ({})", name, runner);
@@ -138,10 +147,7 @@ fn install_game() {
             println!("📥 Installing from Lutris.net...");
             let cmd = format!("lutris lutris:install/{}", game_slug);
 
-            let status = Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status();
+            let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
             match status {
                 Ok(s) if s.success() => println!("✅ Game installation started"),
@@ -161,10 +167,7 @@ fn install_game() {
 
             let cmd = format!("lutris -i '{}'", installer_path);
 
-            let status = Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status();
+            let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
             match status {
                 Ok(s) if s.success() => println!("✅ Installation started"),
@@ -220,12 +223,17 @@ system:
         game_name, runner, executable, working_dir
     );
 
-    let config_path = format!("{}/.config/lutris/games/{}.yml",
+    let config_path = format!(
+        "{}/.config/lutris/games/{}.yml",
         std::env::var("HOME").unwrap_or_default(),
-        game_name.to_lowercase().replace(" ", "-"));
+        game_name.to_lowercase().replace(" ", "-")
+    );
 
-    fs::create_dir_all(format!("{}/.config/lutris/games",
-        std::env::var("HOME").unwrap_or_default())).ok();
+    fs::create_dir_all(format!(
+        "{}/.config/lutris/games",
+        std::env::var("HOME").unwrap_or_default()
+    ))
+    .ok();
 
     fs::write(&config_path, config).ok();
     println!("✅ Game configuration saved: {}", config_path);
@@ -243,9 +251,11 @@ fn configure_game() {
         .interact()
         .unwrap();
 
-    let config_file = format!("{}/.config/lutris/games/{}.yml",
+    let config_file = format!(
+        "{}/.config/lutris/games/{}.yml",
         std::env::var("HOME").unwrap_or_default(),
-        game_name.to_lowercase().replace(" ", "-"));
+        game_name.to_lowercase().replace(" ", "-")
+    );
 
     if !Path::new(&config_file).exists() {
         println!("❌ Game configuration not found");
@@ -270,10 +280,7 @@ fn configure_game() {
     match choice {
         0 => {
             let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
-            Command::new(&editor)
-                .arg(&config_file)
-                .status()
-                .ok();
+            Command::new(&editor).arg(&config_file).status().ok();
         }
         1 => configure_wine_runner(&config_file),
         2 => configure_system_options(&config_file),
@@ -340,7 +347,8 @@ fn configure_wine_runner(config_file: &str) {
             .interact()
             .unwrap();
 
-        config["wine"]["dxvk_version"] = serde_yaml::Value::String(dxvk_versions[dxvk_choice].to_string());
+        config["wine"]["dxvk_version"] =
+            serde_yaml::Value::String(dxvk_versions[dxvk_choice].to_string());
     }
 
     // VKD3D settings
@@ -358,7 +366,7 @@ fn configure_wine_runner(config_file: &str) {
             .with_prompt("Enable Esync?")
             .default(true)
             .interact()
-            .unwrap()
+            .unwrap(),
     );
 
     config["wine"]["fsync"] = serde_yaml::Value::Bool(
@@ -366,7 +374,7 @@ fn configure_wine_runner(config_file: &str) {
             .with_prompt("Enable Fsync?")
             .default(true)
             .interact()
-            .unwrap()
+            .unwrap(),
     );
 
     // Save config
@@ -391,7 +399,7 @@ fn configure_system_options(config_file: &str) {
             .with_prompt("Enable GameMode?")
             .default(true)
             .interact()
-            .unwrap()
+            .unwrap(),
     );
 
     // MangoHud
@@ -400,7 +408,7 @@ fn configure_system_options(config_file: &str) {
             .with_prompt("Enable MangoHud?")
             .default(false)
             .interact()
-            .unwrap()
+            .unwrap(),
     );
 
     // Disable compositor
@@ -409,7 +417,7 @@ fn configure_system_options(config_file: &str) {
             .with_prompt("Disable compositor?")
             .default(true)
             .interact()
-            .unwrap()
+            .unwrap(),
     );
 
     // Environment variables
@@ -425,7 +433,7 @@ fn configure_system_options(config_file: &str) {
             if let Some((key, value)) = pair.split_once('=') {
                 env_map.insert(
                     serde_yaml::Value::String(key.to_string()),
-                    serde_yaml::Value::String(value.to_string())
+                    serde_yaml::Value::String(value.to_string()),
                 );
             }
         }
@@ -533,8 +541,10 @@ fn manage_wine_runners() {
 fn list_wine_runners() {
     println!("📋 Installed Wine Runners");
 
-    let runners_dir = format!("{}/.local/share/lutris/runners/wine",
-        std::env::var("HOME").unwrap_or_default());
+    let runners_dir = format!(
+        "{}/.local/share/lutris/runners/wine",
+        std::env::var("HOME").unwrap_or_default()
+    );
 
     if !Path::new(&runners_dir).exists() {
         println!("❌ No Wine runners directory found");
@@ -574,8 +584,10 @@ fn install_wine_ge() {
         version, version
     );
 
-    let runners_dir = format!("{}/.local/share/lutris/runners/wine",
-        std::env::var("HOME").unwrap_or_default());
+    let runners_dir = format!(
+        "{}/.local/share/lutris/runners/wine",
+        std::env::var("HOME").unwrap_or_default()
+    );
 
     fs::create_dir_all(&runners_dir).ok();
 
@@ -585,10 +597,7 @@ fn install_wine_ge() {
         url, version, runners_dir
     );
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&download_cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&download_cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -624,11 +633,7 @@ fn install_wine_tkg() {
 fn install_proton_ge() {
     println!("📦 Installing Proton-GE for Lutris");
 
-    let versions = [
-        "GE-Proton8-26",
-        "GE-Proton8-25",
-        "GE-Proton8-24",
-    ];
+    let versions = ["GE-Proton8-26", "GE-Proton8-25", "GE-Proton8-24"];
 
     let choice = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Proton-GE version")
@@ -643,8 +648,10 @@ fn install_proton_ge() {
         version, version
     );
 
-    let compat_dir = format!("{}/.steam/steam/compatibilitytools.d",
-        std::env::var("HOME").unwrap_or_default());
+    let compat_dir = format!(
+        "{}/.steam/steam/compatibilitytools.d",
+        std::env::var("HOME").unwrap_or_default()
+    );
 
     fs::create_dir_all(&compat_dir).ok();
 
@@ -654,10 +661,7 @@ fn install_proton_ge() {
         url, version, compat_dir
     );
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&download_cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&download_cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -675,10 +679,7 @@ fn update_runners() {
     println!("🔄 Updating Wine Runners");
 
     let cmd = "lutris -u";
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Runners updated"),
@@ -689,8 +690,10 @@ fn update_runners() {
 fn remove_runner() {
     println!("🗑️ Remove Wine Runner");
 
-    let runners_dir = format!("{}/.local/share/lutris/runners/wine",
-        std::env::var("HOME").unwrap_or_default());
+    let runners_dir = format!(
+        "{}/.local/share/lutris/runners/wine",
+        std::env::var("HOME").unwrap_or_default()
+    );
 
     if !Path::new(&runners_dir).exists() {
         println!("❌ No runners found");
@@ -728,7 +731,10 @@ fn remove_runner() {
 
     if confirm {
         let runner_path = format!("{}/{}", runners_dir, runner);
-        Command::new("rm").args(&["-rf", &runner_path]).status().ok();
+        Command::new("rm")
+            .args(&["-rf", &runner_path])
+            .status()
+            .ok();
         println!("✅ Runner removed");
     }
 }
@@ -736,8 +742,10 @@ fn remove_runner() {
 fn set_default_runner() {
     println!("🎯 Set Default Wine Runner");
 
-    let runners_dir = format!("{}/.local/share/lutris/runners/wine",
-        std::env::var("HOME").unwrap_or_default());
+    let runners_dir = format!(
+        "{}/.local/share/lutris/runners/wine",
+        std::env::var("HOME").unwrap_or_default()
+    );
 
     if !Path::new(&runners_dir).exists() {
         println!("❌ No runners found");
@@ -767,8 +775,10 @@ fn set_default_runner() {
     };
 
     // Update Lutris config
-    let _config_path = format!("{}/.config/lutris/lutris.conf",
-        std::env::var("HOME").unwrap_or_default());
+    let _config_path = format!(
+        "{}/.config/lutris/lutris.conf",
+        std::env::var("HOME").unwrap_or_default()
+    );
 
     // This would need proper INI parsing, simplified here
     println!("✅ Default runner set to: {}", runner);
@@ -780,7 +790,12 @@ fn import_export_config() {
 
     let action = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select action")
-        .items(&["Export game config", "Import game config", "Export all configs", "Import configs"])
+        .items(&[
+            "Export game config",
+            "Import game config",
+            "Export all configs",
+            "Import configs",
+        ])
         .default(0)
         .interact()
         .unwrap();
@@ -800,9 +815,11 @@ fn export_game_config() {
         .interact()
         .unwrap();
 
-    let config_file = format!("{}/.config/lutris/games/{}.yml",
+    let config_file = format!(
+        "{}/.config/lutris/games/{}.yml",
         std::env::var("HOME").unwrap_or_default(),
-        game_name.to_lowercase().replace(" ", "-"));
+        game_name.to_lowercase().replace(" ", "-")
+    );
 
     if !Path::new(&config_file).exists() {
         println!("❌ Game configuration not found");
@@ -811,8 +828,11 @@ fn export_game_config() {
 
     let export_path = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter export path")
-        .default(format!("{}/{}_config.yml",
-            std::env::var("HOME").unwrap_or_default(), game_name))
+        .default(format!(
+            "{}/{}_config.yml",
+            std::env::var("HOME").unwrap_or_default(),
+            game_name
+        ))
         .interact()
         .unwrap();
 
@@ -833,8 +853,10 @@ fn import_game_config() {
         return;
     }
 
-    let config_dir = format!("{}/.config/lutris/games",
-        std::env::var("HOME").unwrap_or_default());
+    let config_dir = format!(
+        "{}/.config/lutris/games",
+        std::env::var("HOME").unwrap_or_default()
+    );
 
     fs::create_dir_all(&config_dir).ok();
 
@@ -867,22 +889,24 @@ fn import_game_config() {
 fn export_all_configs() {
     let export_dir = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter export directory")
-        .default(format!("{}/lutris_backup", std::env::var("HOME").unwrap_or_default()))
+        .default(format!(
+            "{}/lutris_backup",
+            std::env::var("HOME").unwrap_or_default()
+        ))
         .interact()
         .unwrap();
 
     fs::create_dir_all(&export_dir).ok();
 
-    let config_dir = format!("{}/.config/lutris",
-        std::env::var("HOME").unwrap_or_default());
+    let config_dir = format!(
+        "{}/.config/lutris",
+        std::env::var("HOME").unwrap_or_default()
+    );
 
     println!("📦 Exporting all Lutris configurations...");
     let cmd = format!("cp -r '{}' '{}'", config_dir, export_dir);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ All configs exported to: {}", export_dir),
@@ -913,10 +937,7 @@ fn import_configs() {
         println!("📥 Importing configurations...");
         let cmd = format!("cp -r '{}/lutris' '{}'", import_dir, config_dir);
 
-        let status = Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .status();
+        let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
         match status {
             Ok(s) if s.success() => println!("✅ Configs imported"),
@@ -928,9 +949,7 @@ fn import_configs() {
 fn sync_lutris_net() {
     println!("🔄 Sync with Lutris.net");
 
-    let status = Command::new("lutris")
-        .arg("--sync")
-        .status();
+    let status = Command::new("lutris").arg("--sync").status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Synced with Lutris.net"),
@@ -942,8 +961,15 @@ fn runner_management() {
     println!("🛠️ Runner Management");
 
     let runners = [
-        "wine", "steam", "linux", "browser", "dosbox",
-        "scummvm", "retroarch", "mame", "mednafen"
+        "wine",
+        "steam",
+        "linux",
+        "browser",
+        "dosbox",
+        "scummvm",
+        "retroarch",
+        "mame",
+        "mednafen",
     ];
 
     let choice = Select::with_theme(&ColorfulTheme::default())
@@ -955,12 +981,7 @@ fn runner_management() {
 
     let runner = runners[choice];
 
-    let options = [
-        "Install/Update",
-        "Configure",
-        "Remove",
-        "View info",
-    ];
+    let options = ["Install/Update", "Configure", "Remove", "View info"];
 
     let action = Select::with_theme(&ColorfulTheme::default())
         .with_prompt(format!("Manage {} runner", runner))
@@ -1006,27 +1027,38 @@ fn backup_game_configs() {
 
     let backup_name = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter backup name")
-        .default(format!("lutris_backup_{}", chrono::Local::now().format("%Y%m%d_%H%M%S")))
+        .default(format!(
+            "lutris_backup_{}",
+            chrono::Local::now().format("%Y%m%d_%H%M%S")
+        ))
         .interact()
         .unwrap();
 
-    let backup_dir = format!("{}/lutris_backups/{}",
-        std::env::var("HOME").unwrap_or_default(), backup_name);
+    let backup_dir = format!(
+        "{}/lutris_backups/{}",
+        std::env::var("HOME").unwrap_or_default(),
+        backup_name
+    );
 
     fs::create_dir_all(&backup_dir).ok();
 
     println!("📦 Creating backup...");
 
     // Backup game configs
-    let games_dir = format!("{}/.config/lutris/games", std::env::var("HOME").unwrap_or_default());
+    let games_dir = format!(
+        "{}/.config/lutris/games",
+        std::env::var("HOME").unwrap_or_default()
+    );
     if Path::new(&games_dir).exists() {
         let cmd = format!("cp -r '{}' '{}/games'", games_dir, backup_dir);
         Command::new("sh").arg("-c").arg(&cmd).status().ok();
     }
 
     // Backup runners
-    let runners_dir = format!("{}/.local/share/lutris/runners",
-        std::env::var("HOME").unwrap_or_default());
+    let runners_dir = format!(
+        "{}/.local/share/lutris/runners",
+        std::env::var("HOME").unwrap_or_default()
+    );
     if Path::new(&runners_dir).exists() {
         println!("  Backing up runners (this may take a while)...");
         let cmd = format!("cp -r '{}' '{}/runners'", runners_dir, backup_dir);
@@ -1056,10 +1088,7 @@ fn launch_game() {
     println!("🚀 Launching {}...", game_name);
     let cmd = format!("lutris lutris:rungame/{}", game_name);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Game launched"),

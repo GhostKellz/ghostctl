@@ -146,7 +146,7 @@ pub fn balance(mountpoint: &str) {
 }
 
 pub fn snapper_menu() {
-    use dialoguer::{Input, Select, theme::ColorfulTheme};
+    use dialoguer::{theme::ColorfulTheme, Input, Select};
     let opts = ["Deploy Base Config", "Edit Config", "List Configs", "Back"];
     match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Snapper Menu")
@@ -239,7 +239,7 @@ pub fn emergency_cleanup_all_snapshots() {
 }
 
 pub fn bulk_cleanup_snapshots() {
-    use dialoguer::{Select, theme::ColorfulTheme};
+    use dialoguer::{theme::ColorfulTheme, Select};
 
     println!("🧹 Bulk Snapshot Cleanup");
     println!("========================");
@@ -268,7 +268,7 @@ pub fn bulk_cleanup_snapshots() {
         4 => {
             check_disk_space();
             bulk_cleanup_snapshots(); // Return to menu
-        },
+        }
         _ => return,
     }
 }
@@ -332,7 +332,7 @@ fn cleanup_by_range_interactive() {
 }
 
 fn cleanup_specific_snapshots() {
-    use dialoguer::{Input, Confirm};
+    use dialoguer::{Confirm, Input};
     // Get available snapshots
     if let Ok(output) = std::process::Command::new("snapper")
         .args(["-c", "root", "list"])
@@ -375,9 +375,7 @@ pub fn check_disk_space() {
     println!("=====================");
 
     // Show overall filesystem usage
-    let _ = std::process::Command::new("df")
-        .args(["-h", "/"])
-        .status();
+    let _ = std::process::Command::new("df").args(["-h", "/"]).status();
 
     // Show BTRFS specific usage
     println!("\n🗂️  BTRFS Filesystem Usage:");
@@ -405,7 +403,16 @@ pub fn check_disk_space() {
 
     // Count snapshots if possible
     if let Ok(output) = std::process::Command::new("sudo")
-        .args(["find", "/.snapshots", "-maxdepth", "1", "-type", "d", "-name", "[0-9]*"])
+        .args([
+            "find",
+            "/.snapshots",
+            "-maxdepth",
+            "1",
+            "-type",
+            "d",
+            "-name",
+            "[0-9]*",
+        ])
         .output()
     {
         let count = String::from_utf8_lossy(&output.stdout).lines().count();
@@ -421,7 +428,10 @@ pub fn check_disk_space() {
         if let Some(line) = usage_str.lines().nth(1) {
             if let Ok(usage) = line.trim().trim_end_matches('%').parse::<i32>() {
                 if usage > 90 {
-                    println!("\n⚠️  WARNING: Disk usage is {}% - consider emergency cleanup!", usage);
+                    println!(
+                        "\n⚠️  WARNING: Disk usage is {}% - consider emergency cleanup!",
+                        usage
+                    );
                 } else if usage > 80 {
                     println!("\n⚠️  CAUTION: Disk usage is {}% - monitor closely", usage);
                 }

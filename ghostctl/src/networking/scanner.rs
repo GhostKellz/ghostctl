@@ -7,17 +7,15 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use dialoguer::{theme::ColorfulTheme, Select};
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{
-        BarChart, Block, Borders, Gauge, List, ListItem, ListState, Paragraph, Tabs,
-    },
+    widgets::{BarChart, Block, Borders, Gauge, List, ListItem, ListState, Paragraph, Tabs},
     Frame, Terminal,
 };
-use dialoguer::{Select, theme::ColorfulTheme};
 
 #[derive(Debug, Clone)]
 pub struct ScanResult {
@@ -161,7 +159,10 @@ impl ScannerApp {
         });
     }
 
-    async fn run_tui(&mut self, terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>) -> std::io::Result<()> {
+    async fn run_tui(
+        &mut self,
+        terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>,
+    ) -> std::io::Result<()> {
         loop {
             terminal.draw(|f| self.ui(f))?;
 
@@ -229,7 +230,11 @@ impl ScannerApp {
             .collect();
 
         let tabs = Tabs::new(tab_titles)
-            .block(Block::default().borders(Borders::ALL).title("GhostCTL Scanner"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("GhostCTL Scanner"),
+            )
             .style(Style::default().fg(Color::Cyan))
             .highlight_style(
                 Style::default()
@@ -253,7 +258,14 @@ impl ScannerApp {
     fn render_overview(&mut self, f: &mut Frame, area: Rect) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Length(8), Constraint::Min(0)].as_ref())
+            .constraints(
+                [
+                    Constraint::Length(3),
+                    Constraint::Length(8),
+                    Constraint::Min(0),
+                ]
+                .as_ref(),
+            )
             .split(area);
 
         // Progress gauge
@@ -265,7 +277,11 @@ impl ScannerApp {
         };
 
         let gauge = Gauge::default()
-            .block(Block::default().borders(Borders::ALL).title("Scan Progress"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Scan Progress"),
+            )
             .gauge_style(Style::default().fg(Color::Green))
             .percent(progress);
 
@@ -334,7 +350,10 @@ impl ScannerApp {
                     result.response_time.as_millis()
                 );
 
-                ListItem::new(Line::from(Span::styled(content, Style::default().fg(status_color))))
+                ListItem::new(Line::from(Span::styled(
+                    content,
+                    Style::default().fg(status_color),
+                )))
             })
             .collect();
 
@@ -381,7 +400,11 @@ impl ScannerApp {
             ]),
             Line::from(vec![
                 Span::styled("Service Detection: ", Style::default().fg(Color::Cyan)),
-                Span::raw(if self.config.service_detection { "Enabled" } else { "Disabled" }),
+                Span::raw(if self.config.service_detection {
+                    "Enabled"
+                } else {
+                    "Disabled"
+                }),
             ]),
             Line::from(""),
             Line::from("Controls:"),
@@ -390,8 +413,11 @@ impl ScannerApp {
             Line::from("q   : Quit"),
         ];
 
-        let settings_paragraph = Paragraph::new(settings_text)
-            .block(Block::default().borders(Borders::ALL).title("Configuration & Help"));
+        let settings_paragraph = Paragraph::new(settings_text).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Configuration & Help"),
+        );
 
         f.render_widget(settings_paragraph, area);
     }
@@ -437,9 +463,11 @@ async fn perform_scan(
 
                     // Calculate ETA
                     if stats.ports_scanned > 0 {
-                        let avg_time_per_port = stats.elapsed.as_secs_f64() / stats.ports_scanned as f64;
+                        let avg_time_per_port =
+                            stats.elapsed.as_secs_f64() / stats.ports_scanned as f64;
                         let remaining_ports = stats.total_ports - stats.ports_scanned;
-                        stats.estimated_remaining = Duration::from_secs_f64(avg_time_per_port * remaining_ports as f64);
+                        stats.estimated_remaining =
+                            Duration::from_secs_f64(avg_time_per_port * remaining_ports as f64);
                     }
                 }
             });
@@ -493,11 +521,14 @@ async fn scan_port(target: &str, port: u16, config: &ScanConfig) -> ScanResult {
     let socket_addr = SocketAddr::new(target_ip, port);
 
     // Perform TCP connect scan
-    let status = match tokio::time::timeout(config.timeout, tokio::net::TcpStream::connect(socket_addr)).await {
-        Ok(Ok(_)) => PortStatus::Open,
-        Ok(Err(_)) => PortStatus::Closed,
-        Err(_) => PortStatus::Filtered, // Timeout
-    };
+    let status =
+        match tokio::time::timeout(config.timeout, tokio::net::TcpStream::connect(socket_addr))
+            .await
+        {
+            Ok(Ok(_)) => PortStatus::Open,
+            Ok(Err(_)) => PortStatus::Closed,
+            Err(_) => PortStatus::Filtered, // Timeout
+        };
 
     let mut service = None;
     let mut banner = None;
@@ -509,8 +540,10 @@ async fn scan_port(target: &str, port: u16, config: &ScanConfig) -> ScanResult {
         // Try to grab banner
         if let Ok(Ok(mut stream)) = tokio::time::timeout(
             Duration::from_millis(500),
-            tokio::net::TcpStream::connect(socket_addr)
-        ).await {
+            tokio::net::TcpStream::connect(socket_addr),
+        )
+        .await
+        {
             banner = grab_banner(&mut stream, port).await;
         }
     }
@@ -579,7 +612,11 @@ async fn grab_banner(stream: &mut tokio::net::TcpStream, port: u16) -> Option<St
 }
 
 // CLI interface functions
-pub fn scan_cli(targets: Vec<String>, ports: Option<String>, threads: Option<usize>) -> Result<(), Box<dyn std::error::Error>> {
+pub fn scan_cli(
+    targets: Vec<String>,
+    ports: Option<String>,
+    threads: Option<usize>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let rt = tokio::runtime::Runtime::new()?;
 
     rt.block_on(async {

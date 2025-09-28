@@ -1,4 +1,4 @@
-use dialoguer::{Select, Input, Confirm, theme::ColorfulTheme, MultiSelect};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::process::Command;
 
 pub fn firewall_menu() {
@@ -69,9 +69,7 @@ fn ufw_management() {
 
                 if enable {
                     println!("🔧 Enabling UFW...");
-                    let status = Command::new("sudo")
-                        .args(&["ufw", "enable"])
-                        .status();
+                    let status = Command::new("sudo").args(&["ufw", "enable"]).status();
 
                     match status {
                         Ok(s) if s.success() => println!("✅ UFW enabled"),
@@ -79,9 +77,7 @@ fn ufw_management() {
                     }
                 } else {
                     println!("🔧 Disabling UFW...");
-                    let status = Command::new("sudo")
-                        .args(&["ufw", "disable"])
-                        .status();
+                    let status = Command::new("sudo").args(&["ufw", "disable"]).status();
 
                     match status {
                         Ok(s) if s.success() => println!("✅ UFW disabled"),
@@ -92,7 +88,13 @@ fn ufw_management() {
             1 => {
                 let rule_type = Select::with_theme(&ColorfulTheme::default())
                     .with_prompt("Select rule type")
-                    .items(&["Allow port", "Deny port", "Allow from IP", "Deny from IP", "Allow service"])
+                    .items(&[
+                        "Allow port",
+                        "Deny port",
+                        "Allow from IP",
+                        "Deny from IP",
+                        "Allow service",
+                    ])
                     .default(0)
                     .interact()
                     .unwrap();
@@ -121,10 +123,7 @@ fn ufw_management() {
                         let cmd = format!("sudo ufw {} {}{}", action, port, proto);
                         println!("🔧 Executing: {}", cmd);
 
-                        let status = Command::new("sh")
-                            .arg("-c")
-                            .arg(&cmd)
-                            .status();
+                        let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
                         match status {
                             Ok(s) if s.success() => println!("✅ Rule added"),
@@ -133,7 +132,9 @@ fn ufw_management() {
                     }
                     2 | 3 => {
                         let ip = Input::<String>::with_theme(&ColorfulTheme::default())
-                            .with_prompt("Enter IP address or subnet (e.g., 192.168.1.100, 192.168.1.0/24)")
+                            .with_prompt(
+                                "Enter IP address or subnet (e.g., 192.168.1.100, 192.168.1.0/24)",
+                            )
                             .interact()
                             .unwrap();
 
@@ -152,10 +153,7 @@ fn ufw_management() {
                         };
 
                         println!("🔧 Executing: {}", cmd);
-                        let status = Command::new("sh")
-                            .arg("-c")
-                            .arg(&cmd)
-                            .status();
+                        let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
                         match status {
                             Ok(s) if s.success() => println!("✅ Rule added"),
@@ -171,10 +169,7 @@ fn ufw_management() {
                         let cmd = format!("sudo ufw allow {}", service);
                         println!("🔧 Executing: {}", cmd);
 
-                        let status = Command::new("sh")
-                            .arg("-c")
-                            .arg(&cmd)
-                            .status();
+                        let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
                         match status {
                             Ok(s) if s.success() => println!("✅ Service allowed"),
@@ -198,10 +193,7 @@ fn ufw_management() {
 
                 if rule_num != "cancel" {
                     let cmd = format!("sudo ufw delete {}", rule_num);
-                    let status = Command::new("sh")
-                        .arg("-c")
-                        .arg(&cmd)
-                        .status();
+                    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
                     match status {
                         Ok(s) if s.success() => println!("✅ Rule deleted"),
@@ -244,11 +236,7 @@ fn ufw_management() {
                     .unwrap();
 
                 let cmd = format!("sudo ufw allow '{}'", app);
-                Command::new("sh")
-                    .arg("-c")
-                    .arg(&cmd)
-                    .status()
-                    .ok();
+                Command::new("sh").arg("-c").arg(&cmd).status().ok();
             }
             6 => {
                 let app = Input::<String>::with_theme(&ColorfulTheme::default())
@@ -257,11 +245,7 @@ fn ufw_management() {
                     .unwrap();
 
                 let cmd = format!("sudo ufw deny '{}'", app);
-                Command::new("sh")
-                    .arg("-c")
-                    .arg(&cmd)
-                    .status()
-                    .ok();
+                Command::new("sh").arg("-c").arg(&cmd).status().ok();
             }
             7 => {
                 println!("📊 UFW Status:");
@@ -315,10 +299,7 @@ fn firewalld_management() {
                 };
 
                 if !cmd.is_empty() {
-                    let status = Command::new("sh")
-                        .arg("-c")
-                        .arg(cmd)
-                        .status();
+                    let status = Command::new("sh").arg("-c").arg(cmd).status();
 
                     match status {
                         Ok(s) if s.success() => println!("✅ Action completed"),
@@ -376,15 +357,13 @@ fn firewalld_management() {
                             format!("--zone={}", zone)
                         };
 
-                        let cmd = format!("sudo firewall-cmd {} {} --add-port={}",
-                                        perm_flag, zone_flag, port);
+                        let cmd = format!(
+                            "sudo firewall-cmd {} {} --add-port={}",
+                            perm_flag, zone_flag, port
+                        );
 
                         println!("🔧 Executing: {}", cmd);
-                        Command::new("sh")
-                            .arg("-c")
-                            .arg(&cmd)
-                            .status()
-                            .ok();
+                        Command::new("sh").arg("-c").arg(&cmd).status().ok();
                     }
                     1 => {
                         let service = Input::<String>::with_theme(&ColorfulTheme::default())
@@ -392,14 +371,10 @@ fn firewalld_management() {
                             .interact()
                             .unwrap();
 
-                        let cmd = format!("sudo firewall-cmd {} --add-service={}",
-                                        perm_flag, service);
+                        let cmd =
+                            format!("sudo firewall-cmd {} --add-service={}", perm_flag, service);
 
-                        Command::new("sh")
-                            .arg("-c")
-                            .arg(&cmd)
-                            .status()
-                            .ok();
+                        Command::new("sh").arg("-c").arg(&cmd).status().ok();
                     }
                     2 => {
                         let source = Input::<String>::with_theme(&ColorfulTheme::default())
@@ -407,14 +382,10 @@ fn firewalld_management() {
                             .interact()
                             .unwrap();
 
-                        let cmd = format!("sudo firewall-cmd {} --add-source={}",
-                                        perm_flag, source);
+                        let cmd =
+                            format!("sudo firewall-cmd {} --add-source={}", perm_flag, source);
 
-                        Command::new("sh")
-                            .arg("-c")
-                            .arg(&cmd)
-                            .status()
-                            .ok();
+                        Command::new("sh").arg("-c").arg(&cmd).status().ok();
                     }
                     _ => {}
                 }
@@ -456,14 +427,9 @@ fn firewalld_management() {
                             .interact()
                             .unwrap();
 
-                        let cmd = format!("sudo firewall-cmd {} --remove-port={}",
-                                        perm_flag, port);
+                        let cmd = format!("sudo firewall-cmd {} --remove-port={}", perm_flag, port);
 
-                        Command::new("sh")
-                            .arg("-c")
-                            .arg(&cmd)
-                            .status()
-                            .ok();
+                        Command::new("sh").arg("-c").arg(&cmd).status().ok();
                     }
                     1 => {
                         println!("📋 Current services:");
@@ -477,14 +443,12 @@ fn firewalld_management() {
                             .interact()
                             .unwrap();
 
-                        let cmd = format!("sudo firewall-cmd {} --remove-service={}",
-                                        perm_flag, service);
+                        let cmd = format!(
+                            "sudo firewall-cmd {} --remove-service={}",
+                            perm_flag, service
+                        );
 
-                        Command::new("sh")
-                            .arg("-c")
-                            .arg(&cmd)
-                            .status()
-                            .ok();
+                        Command::new("sh").arg("-c").arg(&cmd).status().ok();
                     }
                     2 => {
                         println!("📋 Current sources:");
@@ -498,14 +462,10 @@ fn firewalld_management() {
                             .interact()
                             .unwrap();
 
-                        let cmd = format!("sudo firewall-cmd {} --remove-source={}",
-                                        perm_flag, source);
+                        let cmd =
+                            format!("sudo firewall-cmd {} --remove-source={}", perm_flag, source);
 
-                        Command::new("sh")
-                            .arg("-c")
-                            .arg(&cmd)
-                            .status()
-                            .ok();
+                        Command::new("sh").arg("-c").arg(&cmd).status().ok();
                     }
                     _ => {}
                 }
@@ -601,14 +561,12 @@ fn zone_management() {
                 .interact()
                 .unwrap();
 
-            let cmd = format!("sudo firewall-cmd --zone={} --add-interface={} --permanent",
-                            zone, interface);
+            let cmd = format!(
+                "sudo firewall-cmd --zone={} --add-interface={} --permanent",
+                zone, interface
+            );
 
-            Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status()
-                .ok();
+            Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
             Command::new("sudo")
                 .args(&["firewall-cmd", "--reload"])
@@ -626,14 +584,12 @@ fn zone_management() {
                 .interact()
                 .unwrap();
 
-            let cmd = format!("sudo firewall-cmd --zone={} --remove-interface={} --permanent",
-                            zone, interface);
+            let cmd = format!(
+                "sudo firewall-cmd --zone={} --remove-interface={} --permanent",
+                zone, interface
+            );
 
-            Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status()
-                .ok();
+            Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
             Command::new("sudo")
                 .args(&["firewall-cmd", "--reload"])
@@ -647,11 +603,7 @@ fn zone_management() {
                 .unwrap();
 
             let cmd = format!("sudo firewall-cmd --permanent --new-zone={}", zone_name);
-            Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status()
-                .ok();
+            Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
             Command::new("sudo")
                 .args(&["firewall-cmd", "--reload"])
@@ -747,11 +699,7 @@ fn rich_rules_management() {
             let cmd = format!("sudo firewall-cmd --add-rich-rule='{}' --permanent", rule);
             println!("🔧 Executing: {}", cmd);
 
-            Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status()
-                .ok();
+            Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
             Command::new("sudo")
                 .args(&["firewall-cmd", "--reload"])
@@ -770,12 +718,11 @@ fn rich_rules_management() {
                 .interact()
                 .unwrap();
 
-            let cmd = format!("sudo firewall-cmd --remove-rich-rule='{}' --permanent", rule);
-            Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status()
-                .ok();
+            let cmd = format!(
+                "sudo firewall-cmd --remove-rich-rule='{}' --permanent",
+                rule
+            );
+            Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
             Command::new("sudo")
                 .args(&["firewall-cmd", "--reload"])
@@ -800,11 +747,7 @@ fn rich_rules_management() {
             );
 
             let cmd = format!("sudo firewall-cmd --add-rich-rule='{}' --permanent", rule);
-            Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status()
-                .ok();
+            Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
             Command::new("sudo")
                 .args(&["firewall-cmd", "--reload"])
@@ -822,11 +765,7 @@ fn rich_rules_management() {
             let rule = format!("rule family=\"ipv4\" source address=\"{}\" drop", source);
 
             let cmd = format!("sudo firewall-cmd --add-rich-rule='{}' --permanent", rule);
-            Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status()
-                .ok();
+            Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
             Command::new("sudo")
                 .args(&["firewall-cmd", "--reload"])
@@ -877,11 +816,7 @@ fn iptables_management() {
                 };
 
                 let cmd = format!("sudo iptables {} -L -n -v --line-numbers", table_flag);
-                Command::new("sh")
-                    .arg("-c")
-                    .arg(&cmd)
-                    .status()
-                    .ok();
+                Command::new("sh").arg("-c").arg(&cmd).status().ok();
             }
             1 => {
                 add_iptables_rule();
@@ -913,11 +848,7 @@ fn iptables_management() {
                     }
                 };
 
-                Command::new("sh")
-                    .arg("-c")
-                    .arg(cmd)
-                    .status()
-                    .ok();
+                Command::new("sh").arg("-c").arg(cmd).status().ok();
 
                 println!("✅ Rules saved");
             }
@@ -931,11 +862,7 @@ fn iptables_management() {
                     .unwrap();
 
                 let cmd = format!("sudo iptables-restore < {}", path);
-                Command::new("sh")
-                    .arg("-c")
-                    .arg(&cmd)
-                    .status()
-                    .ok();
+                Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
                 println!("✅ Rules restored");
             }
@@ -1105,10 +1032,7 @@ fn add_iptables_rule() {
             .unwrap();
 
         if !selected.is_empty() {
-            let state_list: Vec<String> = selected
-                .iter()
-                .map(|&i| states[i].to_string())
-                .collect();
+            let state_list: Vec<String> = selected.iter().map(|&i| states[i].to_string()).collect();
             rule.push_str(&format!("-m state --state {} ", state_list.join(",")));
         }
     }
@@ -1116,10 +1040,7 @@ fn add_iptables_rule() {
     rule.push_str(&format!("-j {}", action_str));
 
     println!("🔧 Executing: {}", rule);
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&rule)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&rule).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Rule added"),
@@ -1148,11 +1069,7 @@ fn delete_iptables_rule() {
 
     // List rules with line numbers
     let cmd = format!("sudo iptables -L {} --line-numbers -n", chain_name);
-    Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status()
-        .ok();
+    Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
     let rule_num = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter rule number to delete")
@@ -1160,10 +1077,7 @@ fn delete_iptables_rule() {
         .unwrap();
 
     let delete_cmd = format!("sudo iptables -D {} {}", chain_name, rule_num);
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&delete_cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&delete_cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Rule deleted"),
@@ -1203,10 +1117,7 @@ fn chain_management() {
                 .unwrap();
 
             let cmd = format!("sudo iptables -N {}", chain_name);
-            let status = Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status();
+            let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
             match status {
                 Ok(s) if s.success() => println!("✅ Chain '{}' created", chain_name),
@@ -1220,10 +1131,7 @@ fn chain_management() {
                 .unwrap();
 
             let cmd = format!("sudo iptables -X {}", chain_name);
-            let status = Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status();
+            let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
             match status {
                 Ok(s) if s.success() => println!("✅ Chain '{}' deleted", chain_name),
@@ -1250,10 +1158,7 @@ fn chain_management() {
             let policy_str = ["ACCEPT", "DROP"][policy];
 
             let cmd = format!("sudo iptables -P {} {}", chain_name, policy_str);
-            let status = Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status();
+            let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
             match status {
                 Ok(s) if s.success() => println!("✅ Default policy set"),
@@ -1309,10 +1214,7 @@ fn nftables_management() {
                     .unwrap();
 
                 let cmd = format!("sudo nft add table {} {}", family_str, table_name);
-                let status = Command::new("sh")
-                    .arg("-c")
-                    .arg(&cmd)
-                    .status();
+                let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
                 match status {
                     Ok(s) if s.success() => println!("✅ Table created"),
@@ -1350,10 +1252,7 @@ fn nftables_management() {
                     table_name, chain_name, hook_str, priority
                 );
 
-                let status = Command::new("sh")
-                    .arg("-c")
-                    .arg(&cmd)
-                    .status();
+                let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
                 match status {
                     Ok(s) if s.success() => println!("✅ Chain created"),
@@ -1385,14 +1284,12 @@ fn nftables_management() {
                     .interact()
                     .unwrap();
 
-                let cmd = format!("sudo nft delete rule inet {} {} handle {}",
-                                table, chain, handle);
+                let cmd = format!(
+                    "sudo nft delete rule inet {} {} handle {}",
+                    table, chain, handle
+                );
 
-                Command::new("sh")
-                    .arg("-c")
-                    .arg(&cmd)
-                    .status()
-                    .ok();
+                Command::new("sh").arg("-c").arg(&cmd).status().ok();
             }
             5 => {
                 let path = Input::<String>::with_theme(&ColorfulTheme::default())
@@ -1402,11 +1299,7 @@ fn nftables_management() {
                     .unwrap();
 
                 let cmd = format!("sudo nft list ruleset > {}", path);
-                Command::new("sh")
-                    .arg("-c")
-                    .arg(&cmd)
-                    .status()
-                    .ok();
+                Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
                 println!("✅ Configuration saved to {}", path);
             }
@@ -1418,11 +1311,7 @@ fn nftables_management() {
                     .unwrap();
 
                 let cmd = format!("sudo nft -f {}", path);
-                Command::new("sh")
-                    .arg("-c")
-                    .arg(&cmd)
-                    .status()
-                    .ok();
+                Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
                 println!("✅ Configuration loaded");
             }
@@ -1528,10 +1417,7 @@ fn add_nftables_rule() {
     let cmd = format!("sudo nft add rule inet {} {} {}", table, chain, rule);
     println!("🔧 Executing: {}", cmd);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Rule added"),
@@ -1571,10 +1457,7 @@ fn port_scanner() {
 
             match scan_type {
                 0 => {
-                    Command::new("sudo")
-                        .args(&["ss", "-tuln"])
-                        .status()
-                        .ok();
+                    Command::new("sudo").args(&["ss", "-tuln"]).status().ok();
                 }
                 1 => {
                     println!("📋 Common ports status:");
@@ -1616,11 +1499,7 @@ fn port_scanner() {
                         .unwrap();
 
                     let cmd = format!("for port in $(seq {} {}); do nc -zv localhost $port 2>&1 | grep succeeded; done", start, end);
-                    Command::new("sh")
-                        .arg("-c")
-                        .arg(&cmd)
-                        .status()
-                        .ok();
+                    Command::new("sh").arg("-c").arg(&cmd).status().ok();
                 }
                 _ => {
                     println!("Invalid scan type selected");
@@ -1647,11 +1526,7 @@ fn port_scanner() {
             if let Ok(s) = nmap_check {
                 if s.success() {
                     let cmd = format!("nmap -p {} {}", port_range, host);
-                    Command::new("sh")
-                        .arg("-c")
-                        .arg(&cmd)
-                        .status()
-                        .ok();
+                    Command::new("sh").arg("-c").arg(&cmd).status().ok();
                 } else {
                     println!("⚠️ nmap not found, using nc...");
                     let ports: Vec<&str> = port_range.split('-').collect();
@@ -1660,11 +1535,7 @@ fn port_scanner() {
                             "for port in $(seq {} {}); do nc -zv -w 1 {} $port 2>&1 | grep succeeded; done",
                             ports[0], ports[1], host
                         );
-                        Command::new("sh")
-                            .arg("-c")
-                            .arg(&cmd)
-                            .status()
-                            .ok();
+                        Command::new("sh").arg("-c").arg(&cmd).status().ok();
                     }
                 }
             }
@@ -1683,9 +1554,7 @@ fn port_scanner() {
 
             println!("🔍 Checking {}:{}...", host, port);
 
-            let output = Command::new("nc")
-                .args(&["-zv", &host, &port])
-                .output();
+            let output = Command::new("nc").args(&["-zv", &host, &port]).output();
 
             match output {
                 Ok(out) => {
@@ -1697,11 +1566,7 @@ fn port_scanner() {
                         if host == "localhost" || host == "127.0.0.1" {
                             let cmd = format!("sudo lsof -i :{}", port);
                             println!("\n📋 Service information:");
-                            Command::new("sh")
-                                .arg("-c")
-                                .arg(&cmd)
-                                .status()
-                                .ok();
+                            Command::new("sh").arg("-c").arg(&cmd).status().ok();
                         }
                     } else {
                         println!("❌ Port {} is CLOSED on {}", port, host);
@@ -1721,10 +1586,7 @@ fn port_scanner() {
             println!("📊 Port Usage Statistics:");
 
             println!("\n📈 TCP Connections:");
-            Command::new("ss")
-                .args(&["-s"])
-                .status()
-                .ok();
+            Command::new("ss").args(&["-s"]).status().ok();
 
             println!("\n🔢 Port count by state:");
             Command::new("sh")
@@ -1805,9 +1667,7 @@ fn diagnose_connectivity() {
 
     // 1. DNS Resolution
     println!("\n1️⃣ DNS Resolution:");
-    let dns_output = Command::new("nslookup")
-        .arg(&host)
-        .output();
+    let dns_output = Command::new("nslookup").arg(&host).output();
 
     match dns_output {
         Ok(out) if out.status.success() => {
@@ -1855,9 +1715,7 @@ fn diagnose_connectivity() {
 
         // Traceroute to port
         println!("\n4️⃣ Traceroute to port {}:", port);
-        let tcptraceroute = Command::new("which")
-            .arg("tcptraceroute")
-            .status();
+        let tcptraceroute = Command::new("which").arg("tcptraceroute").status();
 
         if let Ok(s) = tcptraceroute {
             if s.success() {
@@ -1879,9 +1737,7 @@ fn diagnose_connectivity() {
     println!("\n5️⃣ Local Firewall Check:");
 
     // Check if any firewall is blocking
-    let ufw_status = Command::new("sudo")
-        .args(&["ufw", "status"])
-        .output();
+    let ufw_status = Command::new("sudo").args(&["ufw", "status"]).output();
 
     if let Ok(out) = ufw_status {
         let status_str = String::from_utf8_lossy(&out.stdout);
@@ -1890,11 +1746,7 @@ fn diagnose_connectivity() {
 
             if !port.is_empty() {
                 let check_cmd = format!("sudo ufw status | grep {}", port);
-                Command::new("sh")
-                    .arg("-c")
-                    .arg(&check_cmd)
-                    .status()
-                    .ok();
+                Command::new("sh").arg("-c").arg(&check_cmd).status().ok();
             }
         }
     }
@@ -1902,10 +1754,7 @@ fn diagnose_connectivity() {
     // Check iptables
     if !port.is_empty() {
         let iptables_cmd = format!("sudo iptables -L -n | grep {}", port);
-        let iptables_out = Command::new("sh")
-            .arg("-c")
-            .arg(&iptables_cmd)
-            .output();
+        let iptables_out = Command::new("sh").arg("-c").arg(&iptables_cmd).output();
 
         if let Ok(out) = iptables_out {
             if !out.stdout.is_empty() {
@@ -1999,18 +1848,22 @@ fn test_firewall_rules() {
                 source, dest, proto, port
             );
 
-            Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status()
-                .ok();
+            Command::new("sh").arg("-c").arg(&cmd).status().ok();
         }
         1 => {
             println!("🔄 Testing all firewall rules...");
             println!("⚠️ This will show the packet flow through all chains");
 
             Command::new("sudo")
-                .args(&["iptables", "-t", "filter", "-L", "-n", "-v", "--line-numbers"])
+                .args(&[
+                    "iptables",
+                    "-t",
+                    "filter",
+                    "-L",
+                    "-n",
+                    "-v",
+                    "--line-numbers",
+                ])
                 .status()
                 .ok();
 
@@ -2064,42 +1917,32 @@ fn find_blocking_rule() {
     match direction {
         0 | 2 => {
             println!("\n📥 INPUT chain:");
-            let cmd = format!("sudo iptables -L INPUT -n -v --line-numbers | grep -E 'DROP|REJECT' | grep {}", port);
-            Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status()
-                .ok();
+            let cmd = format!(
+                "sudo iptables -L INPUT -n -v --line-numbers | grep -E 'DROP|REJECT' | grep {}",
+                port
+            );
+            Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
             // Also check for default DROP policy
             let policy_cmd = "sudo iptables -L INPUT -n | head -1";
-            Command::new("sh")
-                .arg("-c")
-                .arg(policy_cmd)
-                .status()
-                .ok();
+            Command::new("sh").arg("-c").arg(policy_cmd).status().ok();
         }
         _ => {}
     }
 
     if direction == 1 || direction == 2 {
         println!("\n📤 OUTPUT chain:");
-        let cmd = format!("sudo iptables -L OUTPUT -n -v --line-numbers | grep -E 'DROP|REJECT' | grep {}", port);
-        Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .status()
-            .ok();
+        let cmd = format!(
+            "sudo iptables -L OUTPUT -n -v --line-numbers | grep -E 'DROP|REJECT' | grep {}",
+            port
+        );
+        Command::new("sh").arg("-c").arg(&cmd).status().ok();
     }
 
     // Check UFW
     println!("\n🛡️ UFW rules:");
     let ufw_cmd = format!("sudo ufw status numbered | grep {}", port);
-    Command::new("sh")
-        .arg("-c")
-        .arg(&ufw_cmd)
-        .status()
-        .ok();
+    Command::new("sh").arg("-c").arg(&ufw_cmd).status().ok();
 
     // Check firewalld
     println!("\n🔥 Firewalld rules:");
@@ -2133,21 +1976,47 @@ fn quick_fixes() {
     match choice {
         0 => {
             println!("🔧 Allowing SSH...");
-            Command::new("sudo").args(&["ufw", "allow", "22/tcp"]).status().ok();
-            Command::new("sudo").args(&["iptables", "-A", "INPUT", "-p", "tcp", "--dport", "22", "-j", "ACCEPT"]).status().ok();
+            Command::new("sudo")
+                .args(&["ufw", "allow", "22/tcp"])
+                .status()
+                .ok();
+            Command::new("sudo")
+                .args(&[
+                    "iptables", "-A", "INPUT", "-p", "tcp", "--dport", "22", "-j", "ACCEPT",
+                ])
+                .status()
+                .ok();
             println!("✅ SSH access allowed");
         }
         1 => {
             println!("🔧 Allowing HTTP/HTTPS...");
-            Command::new("sudo").args(&["ufw", "allow", "80/tcp"]).status().ok();
-            Command::new("sudo").args(&["ufw", "allow", "443/tcp"]).status().ok();
-            Command::new("sudo").args(&["iptables", "-A", "INPUT", "-p", "tcp", "--dport", "80", "-j", "ACCEPT"]).status().ok();
-            Command::new("sudo").args(&["iptables", "-A", "INPUT", "-p", "tcp", "--dport", "443", "-j", "ACCEPT"]).status().ok();
+            Command::new("sudo")
+                .args(&["ufw", "allow", "80/tcp"])
+                .status()
+                .ok();
+            Command::new("sudo")
+                .args(&["ufw", "allow", "443/tcp"])
+                .status()
+                .ok();
+            Command::new("sudo")
+                .args(&[
+                    "iptables", "-A", "INPUT", "-p", "tcp", "--dport", "80", "-j", "ACCEPT",
+                ])
+                .status()
+                .ok();
+            Command::new("sudo")
+                .args(&[
+                    "iptables", "-A", "INPUT", "-p", "tcp", "--dport", "443", "-j", "ACCEPT",
+                ])
+                .status()
+                .ok();
             println!("✅ HTTP/HTTPS access allowed");
         }
         2 => {
             println!("🔧 Allowing development ports...");
-            let dev_ports = vec!["3000", "3001", "8000", "8080", "8081", "5000", "5001", "4200", "9000"];
+            let dev_ports = vec![
+                "3000", "3001", "8000", "8080", "8081", "5000", "5001", "4200", "9000",
+            ];
 
             for port in dev_ports {
                 let cmd = format!("sudo ufw allow {}/tcp", port);
@@ -2164,11 +2033,17 @@ fn quick_fixes() {
 
             if duration == "0" {
                 Command::new("sudo").args(&["ufw", "disable"]).status().ok();
-                Command::new("sudo").args(&["systemctl", "stop", "firewalld"]).status().ok();
+                Command::new("sudo")
+                    .args(&["systemctl", "stop", "firewalld"])
+                    .status()
+                    .ok();
                 println!("⚠️ Firewall disabled permanently");
             } else {
                 Command::new("sudo").args(&["ufw", "disable"]).status().ok();
-                Command::new("sudo").args(&["systemctl", "stop", "firewalld"]).status().ok();
+                Command::new("sudo")
+                    .args(&["systemctl", "stop", "firewalld"])
+                    .status()
+                    .ok();
 
                 println!("⚠️ Firewall disabled for {} minutes", duration);
                 println!("⏰ Will re-enable automatically");
@@ -2178,11 +2053,7 @@ fn quick_fixes() {
                     duration
                 );
 
-                Command::new("sh")
-                    .arg("-c")
-                    .arg(&enable_cmd)
-                    .spawn()
-                    .ok();
+                Command::new("sh").arg("-c").arg(&enable_cmd).spawn().ok();
             }
         }
         4 => {
@@ -2196,44 +2067,98 @@ fn quick_fixes() {
                 println!("🔄 Resetting firewall...");
 
                 // Reset UFW
-                Command::new("sudo").args(&["ufw", "--force", "reset"]).status().ok();
-                Command::new("sudo").args(&["ufw", "default", "deny", "incoming"]).status().ok();
-                Command::new("sudo").args(&["ufw", "default", "allow", "outgoing"]).status().ok();
-                Command::new("sudo").args(&["ufw", "allow", "ssh"]).status().ok();
+                Command::new("sudo")
+                    .args(&["ufw", "--force", "reset"])
+                    .status()
+                    .ok();
+                Command::new("sudo")
+                    .args(&["ufw", "default", "deny", "incoming"])
+                    .status()
+                    .ok();
+                Command::new("sudo")
+                    .args(&["ufw", "default", "allow", "outgoing"])
+                    .status()
+                    .ok();
+                Command::new("sudo")
+                    .args(&["ufw", "allow", "ssh"])
+                    .status()
+                    .ok();
                 Command::new("sudo").args(&["ufw", "enable"]).status().ok();
 
                 // Reset iptables
                 Command::new("sudo").args(&["iptables", "-F"]).status().ok();
                 Command::new("sudo").args(&["iptables", "-X"]).status().ok();
-                Command::new("sudo").args(&["iptables", "-t", "nat", "-F"]).status().ok();
-                Command::new("sudo").args(&["iptables", "-t", "nat", "-X"]).status().ok();
-                Command::new("sudo").args(&["iptables", "-t", "mangle", "-F"]).status().ok();
-                Command::new("sudo").args(&["iptables", "-t", "mangle", "-X"]).status().ok();
-                Command::new("sudo").args(&["iptables", "-P", "INPUT", "ACCEPT"]).status().ok();
-                Command::new("sudo").args(&["iptables", "-P", "FORWARD", "ACCEPT"]).status().ok();
-                Command::new("sudo").args(&["iptables", "-P", "OUTPUT", "ACCEPT"]).status().ok();
+                Command::new("sudo")
+                    .args(&["iptables", "-t", "nat", "-F"])
+                    .status()
+                    .ok();
+                Command::new("sudo")
+                    .args(&["iptables", "-t", "nat", "-X"])
+                    .status()
+                    .ok();
+                Command::new("sudo")
+                    .args(&["iptables", "-t", "mangle", "-F"])
+                    .status()
+                    .ok();
+                Command::new("sudo")
+                    .args(&["iptables", "-t", "mangle", "-X"])
+                    .status()
+                    .ok();
+                Command::new("sudo")
+                    .args(&["iptables", "-P", "INPUT", "ACCEPT"])
+                    .status()
+                    .ok();
+                Command::new("sudo")
+                    .args(&["iptables", "-P", "FORWARD", "ACCEPT"])
+                    .status()
+                    .ok();
+                Command::new("sudo")
+                    .args(&["iptables", "-P", "OUTPUT", "ACCEPT"])
+                    .status()
+                    .ok();
 
                 println!("✅ Firewall reset to defaults");
             }
         }
         5 => {
             println!("🔧 Allowing ICMP (ping)...");
-            Command::new("sudo").args(&["iptables", "-A", "INPUT", "-p", "icmp", "-j", "ACCEPT"]).status().ok();
-            Command::new("sudo").args(&["iptables", "-A", "OUTPUT", "-p", "icmp", "-j", "ACCEPT"]).status().ok();
+            Command::new("sudo")
+                .args(&["iptables", "-A", "INPUT", "-p", "icmp", "-j", "ACCEPT"])
+                .status()
+                .ok();
+            Command::new("sudo")
+                .args(&["iptables", "-A", "OUTPUT", "-p", "icmp", "-j", "ACCEPT"])
+                .status()
+                .ok();
             println!("✅ ICMP/ping allowed");
         }
         6 => {
             println!("🐳 Fixing Docker networking...");
 
             // Restart Docker
-            Command::new("sudo").args(&["systemctl", "restart", "docker"]).status().ok();
+            Command::new("sudo")
+                .args(&["systemctl", "restart", "docker"])
+                .status()
+                .ok();
 
             // Allow Docker bridge
-            Command::new("sudo").args(&["iptables", "-A", "FORWARD", "-i", "docker0", "-j", "ACCEPT"]).status().ok();
-            Command::new("sudo").args(&["iptables", "-A", "FORWARD", "-o", "docker0", "-j", "ACCEPT"]).status().ok();
+            Command::new("sudo")
+                .args(&["iptables", "-A", "FORWARD", "-i", "docker0", "-j", "ACCEPT"])
+                .status()
+                .ok();
+            Command::new("sudo")
+                .args(&["iptables", "-A", "FORWARD", "-o", "docker0", "-j", "ACCEPT"])
+                .status()
+                .ok();
 
             // Fix Docker DNS
-            Command::new("sudo").args(&["iptables", "-A", "INPUT", "-i", "docker0", "-p", "udp", "--dport", "53", "-j", "ACCEPT"]).status().ok();
+            Command::new("sudo")
+                .args(&[
+                    "iptables", "-A", "INPUT", "-i", "docker0", "-p", "udp", "--dport", "53", "-j",
+                    "ACCEPT",
+                ])
+                .status()
+                .ok();
 
             println!("✅ Docker networking rules applied");
         }
@@ -2246,7 +2171,13 @@ fn view_firewall_logs() {
 
     let log_type = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select log source")
-        .items(&["UFW logs", "iptables logs", "Firewalld logs", "All firewall logs", "Live monitoring"])
+        .items(&[
+            "UFW logs",
+            "iptables logs",
+            "Firewalld logs",
+            "All firewall logs",
+            "Live monitoring",
+        ])
         .default(0)
         .interact()
         .unwrap();
@@ -2299,9 +2230,7 @@ fn firewall_status_overview() {
 
     // Check UFW
     println!("🛡️ UFW Status:");
-    let ufw_status = Command::new("sudo")
-        .args(&["ufw", "status"])
-        .output();
+    let ufw_status = Command::new("sudo").args(&["ufw", "status"]).output();
 
     if let Ok(out) = ufw_status {
         let status_str = String::from_utf8_lossy(&out.stdout);
@@ -2335,7 +2264,10 @@ fn firewall_status_overview() {
                 .output();
 
             if let Ok(z) = zone {
-                println!("  🌐 Default zone: {}", String::from_utf8_lossy(&z.stdout).trim());
+                println!(
+                    "  🌐 Default zone: {}",
+                    String::from_utf8_lossy(&z.stdout).trim()
+                );
             }
         } else {
             println!("  ⭕ Firewalld is INACTIVE");
@@ -2350,7 +2282,10 @@ fn firewall_status_overview() {
         .output();
 
     if let Ok(out) = iptables_count {
-        let count = String::from_utf8_lossy(&out.stdout).trim().parse::<i32>().unwrap_or(0);
+        let count = String::from_utf8_lossy(&out.stdout)
+            .trim()
+            .parse::<i32>()
+            .unwrap_or(0);
         if count > 10 {
             println!("  ✅ iptables has {} rules configured", count);
 
@@ -2498,21 +2433,17 @@ fn optimize_all_gaming_ports() {
         ("3724", "tcp", "World of Warcraft"),
         ("6113", "tcp", "Battle.net"),
         ("6881-6999", "tcp", "Blizzard Downloader"),
-
         // Steam
         ("27000-27100", "udp", "Steam Client"),
         ("27015-27030", "tcp", "Steam"),
         ("27015-27030", "udp", "Steam"),
-
         // Discord
         ("50000-65535", "udp", "Discord Voice"),
-
         // Popular games
         ("7777-7784", "tcp", "Unreal Tournament"),
         ("27015", "tcp", "Source Games"),
         ("25565", "tcp", "Minecraft"),
         ("19132", "udp", "Minecraft Bedrock"),
-
         // Console gaming
         ("53", "udp", "Console DNS"),
         ("80", "tcp", "Console Updates"),
@@ -2535,18 +2466,33 @@ fn optimize_all_gaming_ports() {
                 "sudo iptables -A INPUT -p tcp --dport {} -j ACCEPT -m comment --comment '{}'",
                 port, service
             );
-            Command::new("sh").arg("-c").arg(&iptables_cmd).status().ok();
+            Command::new("sh")
+                .arg("-c")
+                .arg(&iptables_cmd)
+                .status()
+                .ok();
         } else {
             let iptables_cmd = format!(
                 "sudo iptables -A INPUT -p udp --dport {} -j ACCEPT -m comment --comment '{}'",
                 port, service
             );
-            Command::new("sh").arg("-c").arg(&iptables_cmd).status().ok();
+            Command::new("sh")
+                .arg("-c")
+                .arg(&iptables_cmd)
+                .status()
+                .ok();
         }
 
         // Firewalld rules
-        let firewalld_cmd = format!("sudo firewall-cmd --permanent --add-port={}/{}", port, protocol);
-        Command::new("sh").arg("-c").arg(&firewalld_cmd).status().ok();
+        let firewalld_cmd = format!(
+            "sudo firewall-cmd --permanent --add-port={}/{}",
+            port, protocol
+        );
+        Command::new("sh")
+            .arg("-c")
+            .arg(&firewalld_cmd)
+            .status()
+            .ok();
     }
 
     // Reload firewalld
@@ -2588,15 +2534,26 @@ fn optimize_wow_ports() {
             "sudo iptables -I INPUT 1 -p {} --dport {} -j ACCEPT -m comment --comment 'WoW {}'",
             protocol, port, service
         );
-        Command::new("sh").arg("-c").arg(&iptables_cmd).status().ok();
+        Command::new("sh")
+            .arg("-c")
+            .arg(&iptables_cmd)
+            .status()
+            .ok();
 
         // UFW allow
         let ufw_cmd = format!("sudo ufw allow {}/{}", port, protocol);
         Command::new("sh").arg("-c").arg(&ufw_cmd).status().ok();
 
         // Firewalld
-        let firewalld_cmd = format!("sudo firewall-cmd --permanent --add-port={}/{}", port, protocol);
-        Command::new("sh").arg("-c").arg(&firewalld_cmd).status().ok();
+        let firewalld_cmd = format!(
+            "sudo firewall-cmd --permanent --add-port={}/{}",
+            port, protocol
+        );
+        Command::new("sh")
+            .arg("-c")
+            .arg(&firewalld_cmd)
+            .status()
+            .ok();
     }
 
     // WoW-specific optimizations
@@ -2612,7 +2569,10 @@ fn optimize_wow_ports() {
         Command::new("sh").arg("-c").arg(rule).status().ok();
     }
 
-    Command::new("sudo").args(&["firewall-cmd", "--reload"]).status().ok();
+    Command::new("sudo")
+        .args(&["firewall-cmd", "--reload"])
+        .status()
+        .ok();
 
     println!("✅ World of Warcraft network optimization completed!");
     println!("⚔️ Configured priority traffic handling for WoW connections");
@@ -2642,13 +2602,24 @@ fn optimize_diablo4_ports() {
             "sudo iptables -I INPUT 1 -p {} --dport {} -j ACCEPT -m comment --comment 'D4 {}'",
             protocol, port, service
         );
-        Command::new("sh").arg("-c").arg(&iptables_cmd).status().ok();
+        Command::new("sh")
+            .arg("-c")
+            .arg(&iptables_cmd)
+            .status()
+            .ok();
 
         let ufw_cmd = format!("sudo ufw allow {}/{}", port, protocol);
         Command::new("sh").arg("-c").arg(&ufw_cmd).status().ok();
 
-        let firewalld_cmd = format!("sudo firewall-cmd --permanent --add-port={}/{}", port, protocol);
-        Command::new("sh").arg("-c").arg(&firewalld_cmd).status().ok();
+        let firewalld_cmd = format!(
+            "sudo firewall-cmd --permanent --add-port={}/{}",
+            port, protocol
+        );
+        Command::new("sh")
+            .arg("-c")
+            .arg(&firewalld_cmd)
+            .status()
+            .ok();
     }
 
     // D4-specific optimizations for anti-cheat
@@ -2665,7 +2636,10 @@ fn optimize_diablo4_ports() {
         Command::new("sh").arg("-c").arg(rule).status().ok();
     }
 
-    Command::new("sudo").args(&["firewall-cmd", "--reload"]).status().ok();
+    Command::new("sudo")
+        .args(&["firewall-cmd", "--reload"])
+        .status()
+        .ok();
 
     println!("✅ Diablo 4 network optimization completed!");
     println!("🔥 Configured for optimal D4 performance and anti-cheat compatibility");
@@ -2690,7 +2664,11 @@ fn optimize_cs2_ports() {
             "sudo iptables -I INPUT 1 -p {} --dport {} -j ACCEPT -m comment --comment 'CS2 {}'",
             protocol, port, service
         );
-        Command::new("sh").arg("-c").arg(&iptables_cmd).status().ok();
+        Command::new("sh")
+            .arg("-c")
+            .arg(&iptables_cmd)
+            .status()
+            .ok();
 
         let ufw_cmd = format!("sudo ufw allow {}/{}", port, protocol);
         Command::new("sh").arg("-c").arg(&ufw_cmd).status().ok();
@@ -2727,7 +2705,11 @@ fn optimize_lol_ports() {
             "sudo iptables -I INPUT 1 -p {} --dport {} -j ACCEPT -m comment --comment 'LoL {}'",
             protocol, port, service
         );
-        Command::new("sh").arg("-c").arg(&iptables_cmd).status().ok();
+        Command::new("sh")
+            .arg("-c")
+            .arg(&iptables_cmd)
+            .status()
+            .ok();
     }
 
     println!("✅ League of Legends optimization completed!");
@@ -2749,7 +2731,11 @@ fn optimize_rocket_league_ports() {
             "sudo iptables -I INPUT 1 -p {} --dport {} -j ACCEPT -m comment --comment 'RL {}'",
             protocol, port, service
         );
-        Command::new("sh").arg("-c").arg(&iptables_cmd).status().ok();
+        Command::new("sh")
+            .arg("-c")
+            .arg(&iptables_cmd)
+            .status()
+            .ok();
     }
 
     println!("✅ Rocket League optimization completed!");
@@ -2772,7 +2758,11 @@ fn optimize_fortnite_ports() {
             "sudo iptables -I INPUT 1 -p {} --dport {} -j ACCEPT -m comment --comment 'Fortnite {}'",
             protocol, port, service
         );
-        Command::new("sh").arg("-c").arg(&iptables_cmd).status().ok();
+        Command::new("sh")
+            .arg("-c")
+            .arg(&iptables_cmd)
+            .status()
+            .ok();
     }
 
     println!("✅ Fortnite optimization completed!");
@@ -2796,7 +2786,11 @@ fn optimize_valorant_ports() {
             "sudo iptables -I INPUT 1 -p {} --dport {} -j ACCEPT -m comment --comment 'Valorant {}'",
             protocol, port, service
         );
-        Command::new("sh").arg("-c").arg(&iptables_cmd).status().ok();
+        Command::new("sh")
+            .arg("-c")
+            .arg(&iptables_cmd)
+            .status()
+            .ok();
     }
 
     // Valorant anti-cheat specific rules
@@ -2829,7 +2823,11 @@ fn optimize_discord_gaming() {
             "sudo iptables -I INPUT 1 -p {} --dport {} -j ACCEPT -m comment --comment 'Discord {}'",
             protocol, port, service
         );
-        Command::new("sh").arg("-c").arg(&iptables_cmd).status().ok();
+        Command::new("sh")
+            .arg("-c")
+            .arg(&iptables_cmd)
+            .status()
+            .ok();
     }
 
     // Prioritize Discord voice traffic
@@ -2866,7 +2864,11 @@ fn optimize_steam_gaming() {
             "sudo iptables -I INPUT 1 -p {} --dport {} -j ACCEPT -m comment --comment 'Steam {}'",
             protocol, port, service
         );
-        Command::new("sh").arg("-c").arg(&iptables_cmd).status().ok();
+        Command::new("sh")
+            .arg("-c")
+            .arg(&iptables_cmd)
+            .status()
+            .ok();
     }
 
     // Steam-specific optimizations
@@ -2918,7 +2920,11 @@ fn optimize_custom_game_ports() {
                 "sudo iptables -I INPUT 1 -p tcp --dport {} -j ACCEPT -m comment --comment '{}'",
                 port_range, game_name
             );
-            Command::new("sh").arg("-c").arg(&iptables_cmd).status().ok();
+            Command::new("sh")
+                .arg("-c")
+                .arg(&iptables_cmd)
+                .status()
+                .ok();
 
             if priority {
                 let qos_cmd = format!(
@@ -2937,7 +2943,11 @@ fn optimize_custom_game_ports() {
             "sudo iptables -I INPUT 1 -p udp --dport {} -j ACCEPT -m comment --comment '{}'",
             port_range, game_name
         );
-        Command::new("sh").arg("-c").arg(&iptables_cmd).status().ok();
+        Command::new("sh")
+            .arg("-c")
+            .arg(&iptables_cmd)
+            .status()
+            .ok();
 
         if priority {
             let qos_cmd = format!(
@@ -3020,7 +3030,10 @@ fn configure_all_anticheat_rules() {
     ];
 
     for rule in &anticheat_rules {
-        println!("  ⚡ Applying rule: {}", rule.split("comment").next().unwrap_or(""));
+        println!(
+            "  ⚡ Applying rule: {}",
+            rule.split("comment").next().unwrap_or("")
+        );
         Command::new("sh").arg("-c").arg(rule).status().ok();
     }
 
@@ -3050,7 +3063,10 @@ fn configure_all_anticheat_rules() {
         Command::new("sh").arg("-c").arg(rule).status().ok();
     }
 
-    Command::new("sudo").args(&["firewall-cmd", "--reload"]).status().ok();
+    Command::new("sudo")
+        .args(&["firewall-cmd", "--reload"])
+        .status()
+        .ok();
 
     println!("\n✅ Universal anti-cheat firewall rules configured!");
     println!("🛡️ Compatible with: EAC, BattlEye, Vanguard, VAC, FairFight");
@@ -3169,7 +3185,10 @@ fn configure_custom_anticheat() {
         .interact()
         .unwrap();
 
-    println!("\n🔧 Configuring custom anti-cheat rules for {}...", service_name);
+    println!(
+        "\n🔧 Configuring custom anti-cheat rules for {}...",
+        service_name
+    );
 
     for port in ports.split(',') {
         let port = port.trim();
@@ -3177,12 +3196,17 @@ fn configure_custom_anticheat() {
         for &protocol_idx in &protocols {
             let protocol = if protocol_idx == 0 { "tcp" } else { "udp" };
 
-            let rule = format!(
+            let rule =
+                format!(
                 "sudo iptables -A OUTPUT -p {} --dport {} -j ACCEPT -m comment --comment '{} {}'",
                 protocol, port, service_name, protocol.to_uppercase()
             );
 
-            println!("  ⚡ Adding rule for {} port {}", protocol.to_uppercase(), port);
+            println!(
+                "  ⚡ Adding rule for {} port {}",
+                protocol.to_uppercase(),
+                port
+            );
             Command::new("sh").arg("-c").arg(&rule).status().ok();
         }
     }
@@ -3265,7 +3289,11 @@ fn tcp_udp_optimization() {
     }
 
     let write_config = format!("echo '{}' | sudo tee {}", config_content, sysctl_config);
-    Command::new("sh").arg("-c").arg(&write_config).status().ok();
+    Command::new("sh")
+        .arg("-c")
+        .arg(&write_config)
+        .status()
+        .ok();
 
     println!("\n🚀 UDP optimizations for real-time gaming...");
 
@@ -3301,21 +3329,17 @@ fn kernel_network_tuning() {
         ("net.core.netdev_max_backlog", "30000"),
         ("net.core.netdev_budget", "600"),
         ("net.core.netdev_budget_usecs", "5000"),
-
         // Interrupt handling
         ("net.core.dev_weight", "64"),
-
         // Memory pressure handling
         ("vm.min_free_kbytes", "65536"),
         ("vm.swappiness", "1"),
-
         // Network stack tuning
         ("net.ipv4.neigh.default.gc_thresh1", "1024"),
         ("net.ipv4.neigh.default.gc_thresh2", "2048"),
         ("net.ipv4.neigh.default.gc_thresh3", "4096"),
         ("net.netfilter.nf_conntrack_max", "1000000"),
         ("net.netfilter.nf_conntrack_tcp_timeout_established", "1800"),
-
         // Gaming-specific optimizations
         ("net.ipv4.tcp_mtu_probing", "1"),
         ("net.ipv4.tcp_base_mss", "1024"),
@@ -3331,9 +3355,7 @@ fn kernel_network_tuning() {
     // IRQ affinity optimization
     println!("\n⚡ Optimizing IRQ affinity for network interfaces...");
 
-    let check_irq = Command::new("cat")
-        .arg("/proc/interrupts")
-        .output();
+    let check_irq = Command::new("cat").arg("/proc/interrupts").output();
 
     if let Ok(out) = check_irq {
         let interrupts = String::from_utf8_lossy(&out.stdout);
@@ -3366,9 +3388,18 @@ fn gaming_qos_configuration() {
 
     if tc_check.is_err() || !tc_check.unwrap().success() {
         println!("⚠️ tc (traffic control) not found. Installing...");
-        Command::new("sudo").args(&["apt", "install", "iproute2"]).status().ok();
-        Command::new("sudo").args(&["pacman", "-S", "iproute2"]).status().ok();
-        Command::new("sudo").args(&["dnf", "install", "iproute"]).status().ok();
+        Command::new("sudo")
+            .args(&["apt", "install", "iproute2"])
+            .status()
+            .ok();
+        Command::new("sudo")
+            .args(&["pacman", "-S", "iproute2"])
+            .status()
+            .ok();
+        Command::new("sudo")
+            .args(&["dnf", "install", "iproute"])
+            .status()
+            .ok();
     }
 
     // Get primary network interface
@@ -3519,7 +3550,10 @@ fn configure_gaming_dns() {
         _ => ("1.1.1.1".to_string(), "1.0.0.1".to_string()),
     };
 
-    println!("\n🔧 Configuring DNS servers: {} and {}", primary_dns, secondary_dns);
+    println!(
+        "\n🔧 Configuring DNS servers: {} and {}",
+        primary_dns, secondary_dns
+    );
 
     // Update resolv.conf
     let resolv_content = format!(
@@ -3528,7 +3562,11 @@ fn configure_gaming_dns() {
     );
 
     let update_resolv = format!("echo '{}' | sudo tee /etc/resolv.conf", resolv_content);
-    Command::new("sh").arg("-c").arg(&update_resolv).status().ok();
+    Command::new("sh")
+        .arg("-c")
+        .arg(&update_resolv)
+        .status()
+        .ok();
 
     // NetworkManager configuration
     let nm_conf = format!(
@@ -3536,11 +3574,17 @@ fn configure_gaming_dns() {
         primary_dns, secondary_dns
     );
 
-    let update_nm = format!("echo '{}' | sudo tee /etc/NetworkManager/conf.d/gaming-dns.conf", nm_conf);
+    let update_nm = format!(
+        "echo '{}' | sudo tee /etc/NetworkManager/conf.d/gaming-dns.conf",
+        nm_conf
+    );
     Command::new("sh").arg("-c").arg(&update_nm).status().ok();
 
     // Restart NetworkManager
-    Command::new("sudo").args(&["systemctl", "restart", "NetworkManager"]).status().ok();
+    Command::new("sudo")
+        .args(&["systemctl", "restart", "NetworkManager"])
+        .status()
+        .ok();
 
     println!("✅ Gaming DNS servers configured!");
     println!("🎮 Optimized for low-latency DNS resolution");
@@ -3569,19 +3613,38 @@ DNSStubListener=yes
 ReadEtcHosts=yes
 "#;
 
-        let update_resolved = format!("echo '{}' | sudo tee /etc/systemd/resolved.conf", resolved_conf);
-        Command::new("sh").arg("-c").arg(&update_resolved).status().ok();
+        let update_resolved = format!(
+            "echo '{}' | sudo tee /etc/systemd/resolved.conf",
+            resolved_conf
+        );
+        Command::new("sh")
+            .arg("-c")
+            .arg(&update_resolved)
+            .status()
+            .ok();
 
-        Command::new("sudo").args(&["systemctl", "restart", "systemd-resolved"]).status().ok();
+        Command::new("sudo")
+            .args(&["systemctl", "restart", "systemd-resolved"])
+            .status()
+            .ok();
 
         println!("✅ systemd-resolved DNS caching configured!");
     } else {
         // Install and configure dnsmasq
         println!("📦 Installing dnsmasq for DNS caching...");
 
-        Command::new("sudo").args(&["apt", "install", "dnsmasq"]).status().ok();
-        Command::new("sudo").args(&["pacman", "-S", "dnsmasq"]).status().ok();
-        Command::new("sudo").args(&["dnf", "install", "dnsmasq"]).status().ok();
+        Command::new("sudo")
+            .args(&["apt", "install", "dnsmasq"])
+            .status()
+            .ok();
+        Command::new("sudo")
+            .args(&["pacman", "-S", "dnsmasq"])
+            .status()
+            .ok();
+        Command::new("sudo")
+            .args(&["dnf", "install", "dnsmasq"])
+            .status()
+            .ok();
 
         let dnsmasq_conf = r#"# Gaming DNS Cache Configuration
 cache-size=10000
@@ -3598,10 +3661,20 @@ dns-forward-max=1000
 "#;
 
         let update_dnsmasq = format!("echo '{}' | sudo tee /etc/dnsmasq.conf", dnsmasq_conf);
-        Command::new("sh").arg("-c").arg(&update_dnsmasq).status().ok();
+        Command::new("sh")
+            .arg("-c")
+            .arg(&update_dnsmasq)
+            .status()
+            .ok();
 
-        Command::new("sudo").args(&["systemctl", "enable", "dnsmasq"]).status().ok();
-        Command::new("sudo").args(&["systemctl", "start", "dnsmasq"]).status().ok();
+        Command::new("sudo")
+            .args(&["systemctl", "enable", "dnsmasq"])
+            .status()
+            .ok();
+        Command::new("sudo")
+            .args(&["systemctl", "start", "dnsmasq"])
+            .status()
+            .ok();
 
         println!("✅ dnsmasq DNS caching configured!");
     }
@@ -3643,7 +3716,13 @@ fn dns_performance_test() {
             let start_time = std::time::Instant::now();
 
             let result = Command::new("dig")
-                .args(&[&format!("@{}", server), &**domain, "+short", "+time=2", "+tries=1"])
+                .args(&[
+                    &format!("@{}", server),
+                    &**domain,
+                    "+short",
+                    "+time=2",
+                    "+tries=1",
+                ])
                 .output();
 
             let elapsed = start_time.elapsed().as_millis() as f64;
@@ -3662,7 +3741,12 @@ fn dns_performance_test() {
 
         if successful_queries > 0 {
             let avg_time = total_time / successful_queries as f64;
-            println!("  📊 Average: {:.1}ms ({}/{} successful)\n", avg_time, successful_queries, test_domains.len());
+            println!(
+                "  📊 Average: {:.1}ms ({}/{} successful)\n",
+                avg_time,
+                successful_queries,
+                test_domains.len()
+            );
         } else {
             println!("  📊 Average: N/A (no successful queries)\n");
         }
@@ -3711,12 +3795,22 @@ fn custom_dns_configuration() {
         resolved_conf.push_str("DNS=2606:4700:4700::1111 2606:4700:4700::1001\n");
     }
 
-    resolved_conf.push_str(&format!("DNSSEC={}\n", if enable_dnssec { "yes" } else { "no" }));
+    resolved_conf.push_str(&format!(
+        "DNSSEC={}\n",
+        if enable_dnssec { "yes" } else { "no" }
+    ));
     resolved_conf.push_str("Cache=yes\n");
     resolved_conf.push_str("DNSStubListener=yes\n");
 
-    let update_resolved = format!("echo '{}' | sudo tee /etc/systemd/resolved.conf", resolved_conf);
-    Command::new("sh").arg("-c").arg(&update_resolved).status().ok();
+    let update_resolved = format!(
+        "echo '{}' | sudo tee /etc/systemd/resolved.conf",
+        resolved_conf
+    );
+    Command::new("sh")
+        .arg("-c")
+        .arg(&update_resolved)
+        .status()
+        .ok();
 
     // Apply kernel DNS settings
     let dns_sysctls = vec![
@@ -3730,7 +3824,10 @@ fn custom_dns_configuration() {
         Command::new("sh").arg("-c").arg(&cmd).status().ok();
     }
 
-    Command::new("sudo").args(&["systemctl", "restart", "systemd-resolved"]).status().ok();
+    Command::new("sudo")
+        .args(&["systemctl", "restart", "systemd-resolved"])
+        .status()
+        .ok();
 
     println!("✅ Custom DNS configuration applied!");
     println!("🎮 Optimized for gaming performance");
@@ -3741,9 +3838,7 @@ fn network_interface_tuning() {
     println!("============================\n");
 
     // Get network interfaces
-    let interfaces_result = Command::new("ls")
-        .arg("/sys/class/net")
-        .output();
+    let interfaces_result = Command::new("ls").arg("/sys/class/net").output();
 
     let interfaces = if let Ok(out) = interfaces_result {
         String::from_utf8_lossy(&out.stdout)
@@ -3812,7 +3907,10 @@ fn network_interface_tuning() {
                 let irq_num = irq.replace(":", "");
                 if let Ok(_) = irq_num.parse::<u32>() {
                     // Set interrupt affinity to specific CPU
-                    let cmd = format!("echo 2 | sudo tee /proc/irq/{}/smp_affinity 2>/dev/null || true", irq_num);
+                    let cmd = format!(
+                        "echo 2 | sudo tee /proc/irq/{}/smp_affinity 2>/dev/null || true",
+                        irq_num
+                    );
                     Command::new("sh").arg("-c").arg(&cmd).status().ok();
                     println!("  ⚡ Set IRQ {} to CPU 1", irq_num);
                 }
@@ -3824,8 +3922,14 @@ fn network_interface_tuning() {
     println!("📊 Optimizing interface queues...");
 
     let queue_optimizations = vec![
-        format!("echo mq | sudo tee /sys/class/net/{}/queues/tx-*/xps_cpus 2>/dev/null || true", interface),
-        format!("echo 2 | sudo tee /sys/class/net/{}/queues/rx-*/rps_cpus 2>/dev/null || true", interface),
+        format!(
+            "echo mq | sudo tee /sys/class/net/{}/queues/tx-*/xps_cpus 2>/dev/null || true",
+            interface
+        ),
+        format!(
+            "echo 2 | sudo tee /sys/class/net/{}/queues/rx-*/rps_cpus 2>/dev/null || true",
+            interface
+        ),
     ];
 
     for cmd in &queue_optimizations {
@@ -3833,12 +3937,19 @@ fn network_interface_tuning() {
     }
 
     println!("\n✅ Network interface optimization completed!");
-    println!("🎮 Interface {} optimized for gaming performance", interface);
+    println!(
+        "🎮 Interface {} optimized for gaming performance",
+        interface
+    );
 
     // Show current settings
     println!("\n📋 Current interface settings:");
     let show_settings = format!("sudo ethtool {} | head -20", interface);
-    Command::new("sh").arg("-c").arg(&show_settings).status().ok();
+    Command::new("sh")
+        .arg("-c")
+        .arg(&show_settings)
+        .status()
+        .ok();
 }
 
 fn latency_testing_analysis() {
@@ -3900,7 +4011,10 @@ fn gaming_server_latency_test() {
             let output = String::from_utf8_lossy(&out.stdout);
             for line in output.lines() {
                 if line.contains("min/avg/max") {
-                    println!("  🏓 ICMP: {}", line.split('=').last().unwrap_or("N/A").trim());
+                    println!(
+                        "  🏓 ICMP: {}",
+                        line.split('=').last().unwrap_or("N/A").trim()
+                    );
                     break;
                 }
             }
@@ -3956,9 +4070,7 @@ fn dns_resolution_speed_test() {
     for domain in &gaming_domains {
         let start_time = std::time::Instant::now();
 
-        let result = Command::new("nslookup")
-            .arg(domain)
-            .output();
+        let result = Command::new("nslookup").arg(domain).output();
 
         let elapsed = start_time.elapsed().as_millis() as f64;
 
@@ -3978,7 +4090,11 @@ fn dns_resolution_speed_test() {
         let average = total_time / successful_queries as f64;
         println!("\n📊 DNS Resolution Summary:");
         println!("  📈 Average resolution time: {:.1}ms", average);
-        println!("  ✅ Successful queries: {}/{}", successful_queries, gaming_domains.len());
+        println!(
+            "  ✅ Successful queries: {}/{}",
+            successful_queries,
+            gaming_domains.len()
+        );
 
         if average < 20.0 {
             println!("  🎮 Status: Excellent for gaming");
@@ -3995,9 +4111,7 @@ fn network_interface_analysis() {
     println!("=============================\n");
 
     // Get all network interfaces
-    let interfaces_result = Command::new("ls")
-        .arg("/sys/class/net")
-        .output();
+    let interfaces_result = Command::new("ls").arg("/sys/class/net").output();
 
     let interfaces = if let Ok(out) = interfaces_result {
         String::from_utf8_lossy(&out.stdout)
@@ -4023,7 +4137,10 @@ fn network_interface_analysis() {
         if let (Ok(rx_bytes), Ok(tx_bytes)) = (rx_bytes_result, tx_bytes_result) {
             let rx_mb = rx_bytes.trim().parse::<u64>().unwrap_or(0) / 1024 / 1024;
             let tx_mb = tx_bytes.trim().parse::<u64>().unwrap_or(0) / 1024 / 1024;
-            println!("  📊 Traffic: {} MB received, {} MB transmitted", rx_mb, tx_mb);
+            println!(
+                "  📊 Traffic: {} MB received, {} MB transmitted",
+                rx_mb, tx_mb
+            );
         }
 
         if let (Ok(rx_errors), Ok(tx_errors)) = (rx_errors_result, tx_errors_result) {
@@ -4045,9 +4162,7 @@ fn network_interface_analysis() {
         }
 
         // Driver info
-        let ethtool_result = Command::new("ethtool")
-            .args(&["-i", interface])
-            .output();
+        let ethtool_result = Command::new("ethtool").args(&["-i", interface]).output();
 
         if let Ok(out) = ethtool_result {
             let output = String::from_utf8_lossy(&out.stdout);
@@ -4079,7 +4194,10 @@ fn realtime_latency_monitoring() {
         .unwrap();
 
     println!("\n🔍 Starting real-time latency monitoring...");
-    println!("Target: {} | Duration: {}s | Press Ctrl+C to stop\n", target, duration);
+    println!(
+        "Target: {} | Duration: {}s | Press Ctrl+C to stop\n",
+        target, duration
+    );
 
     // Use continuous ping with timestamps
     let ping_cmd = format!(
@@ -4087,11 +4205,7 @@ fn realtime_latency_monitoring() {
         duration, target
     );
 
-    Command::new("sh")
-        .arg("-c")
-        .arg(&ping_cmd)
-        .status()
-        .ok();
+    Command::new("sh").arg("-c").arg(&ping_cmd).status().ok();
 
     println!("\n📊 Monitoring completed");
     println!("💡 Look for consistent latency patterns - spikes may indicate network issues");

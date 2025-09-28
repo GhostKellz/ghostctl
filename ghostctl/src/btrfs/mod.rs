@@ -1,6 +1,6 @@
 pub mod snapshot;
 
-use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use std::process::Command;
 
 // We'll use the BtrfsAction enum from main.rs

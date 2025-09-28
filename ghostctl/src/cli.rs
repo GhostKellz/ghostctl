@@ -3,7 +3,7 @@ use crate::{
     arch, backup, btrfs, cloud, network, nvidia, proxmox, restore, security, shell, systemd, tools,
 };
 use clap::{Arg, ArgMatches, Command};
-use dialoguer::{Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Select};
 
 // Command-line interface setup
 pub fn build_cli() -> Command {
@@ -555,46 +555,50 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("scan")
                 .about("Network scanner with beautiful TUI")
-                .arg(Arg::new("target").required(true).help("Target IP/hostname/CIDR range"))
+                .arg(
+                    Arg::new("target")
+                        .required(true)
+                        .help("Target IP/hostname/CIDR range"),
+                )
                 .arg(
                     Arg::new("ports")
                         .short('p')
                         .long("ports")
                         .help("Port specification (e.g., 80,443,8080 or 1-1000)")
-                        .default_value("1-1000")
+                        .default_value("1-1000"),
                 )
                 .arg(
                     Arg::new("threads")
                         .short('t')
                         .long("threads")
                         .help("Number of concurrent threads")
-                        .default_value("100")
+                        .default_value("100"),
                 )
                 .arg(
                     Arg::new("full")
                         .long("full")
                         .action(clap::ArgAction::SetTrue)
-                        .help("Scan all 65535 ports")
+                        .help("Scan all 65535 ports"),
                 )
                 .arg(
                     Arg::new("service")
                         .long("service")
                         .action(clap::ArgAction::SetTrue)
-                        .help("Enable service detection")
+                        .help("Enable service detection"),
                 )
                 .arg(
                     Arg::new("json")
                         .long("json")
                         .action(clap::ArgAction::SetTrue)
-                        .help("Output results in JSON format (no TUI)")
+                        .help("Output results in JSON format (no TUI)"),
                 )
                 .arg(
                     Arg::new("quiet")
                         .short('q')
                         .long("quiet")
                         .action(clap::ArgAction::SetTrue)
-                        .help("Minimal output")
-                )
+                        .help("Minimal output"),
+                ),
         )
         .subcommand(Command::new("version").about("Show version information"))
         .subcommand(Command::new("list").about("List available commands"))
@@ -628,7 +632,7 @@ pub fn handle_cli_args(matches: &ArgMatches) {
         Some(("gpg", matches)) => handle_gpg_management(matches), // GPG management with subcommands
         Some(("dns", matches)) => handle_dnslookup_commands(matches), // DNS lookup with options
         Some(("nc", matches)) => handle_netcat_commands(matches), // Netcat utilities
-        Some(("scan", matches)) => handle_scan_command(matches), // Network scanner
+        Some(("scan", matches)) => handle_scan_command(matches),  // Network scanner
         Some(("cloud", matches)) => handle_cloud_commands(matches),
         Some(("nginx", matches)) => handle_nginx_commands(matches),
         Some(("tools", matches)) => handle_tools_commands(matches),
@@ -1128,12 +1132,10 @@ fn handle_btrfs_commands(matches: &ArgMatches) {
             if sub_matches.get_flag("emergency") {
                 btrfs::handle_btrfs_action(crate::BtrfsAction::EmergencyCleanup);
             } else if let Some(days) = sub_matches.get_one::<String>("days") {
-                btrfs::handle_btrfs_action(crate::BtrfsAction::CleanupByAge {
-                    days: days.clone()
-                });
+                btrfs::handle_btrfs_action(crate::BtrfsAction::CleanupByAge { days: days.clone() });
             } else if let Some(range) = sub_matches.get_one::<String>("range") {
                 btrfs::handle_btrfs_action(crate::BtrfsAction::CleanupByRange {
-                    range: range.clone()
+                    range: range.clone(),
                 });
             } else {
                 // Show disk space and cleanup menu
@@ -1713,7 +1715,8 @@ fn handle_netcat_commands(matches: &ArgMatches) {
 fn handle_scan_command(matches: &ArgMatches) {
     let target = matches.get_one::<String>("target").unwrap();
     let ports = matches.get_one::<String>("ports").map(|s| s.as_str());
-    let threads = matches.get_one::<String>("threads")
+    let threads = matches
+        .get_one::<String>("threads")
         .and_then(|s| s.parse().ok());
     let full_scan = matches.get_flag("full");
     let service_detection = matches.get_flag("service");
@@ -1729,17 +1732,20 @@ fn handle_scan_command(matches: &ArgMatches) {
         } else {
             println!("Ports: {}", ports.unwrap_or("1-1000"));
         }
-        println!("Service Detection: {}", if service_detection { "Enabled" } else { "Disabled" });
+        println!(
+            "Service Detection: {}",
+            if service_detection {
+                "Enabled"
+            } else {
+                "Disabled"
+            }
+        );
         println!("Threads: {}", threads.unwrap_or(100));
         println!();
     }
 
     // Parse ports for full scan
-    let port_spec = if full_scan {
-        Some("1-65535")
-    } else {
-        ports
-    };
+    let port_spec = if full_scan { Some("1-65535") } else { ports };
 
     // Convert target to vector for the scanner
     let targets = if target.contains('/') {
@@ -1750,7 +1756,9 @@ fn handle_scan_command(matches: &ArgMatches) {
     };
 
     // Launch the scanner
-    if let Err(e) = crate::network::scan::scan_cli(targets, port_spec.map(|s| s.to_string()), threads) {
+    if let Err(e) =
+        crate::network::scan::scan_cli(targets, port_spec.map(|s| s.to_string()), threads)
+    {
         eprintln!("❌ Scan failed: {}", e);
         std::process::exit(1);
     }

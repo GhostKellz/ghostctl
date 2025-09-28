@@ -1,6 +1,6 @@
-use dialoguer::{Select, Input, Confirm, theme::ColorfulTheme, MultiSelect};
-use std::process::Command;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::path::Path;
+use std::process::Command;
 
 pub fn virtualization_menu() {
     loop {
@@ -78,7 +78,10 @@ fn docker_network_status() {
 
     match docker_status {
         Ok(out) => {
-            let status = String::from_utf8_lossy(&out.stdout).trim().to_string().to_string();
+            let status = String::from_utf8_lossy(&out.stdout)
+                .trim()
+                .to_string()
+                .to_string();
             if status == "active" {
                 println!("  ✅ Docker daemon is running");
             } else {
@@ -94,7 +97,10 @@ fn docker_network_status() {
 
     // List Docker networks
     println!("\n🌐 Docker Networks:");
-    Command::new("docker").args(&["network", "ls"]).status().ok();
+    Command::new("docker")
+        .args(&["network", "ls"])
+        .status()
+        .ok();
 
     // Show detailed network information
     println!("\n📋 Network Details:");
@@ -122,7 +128,10 @@ fn docker_network_status() {
         .ok();
 
     println!("\n🔗 Docker Bridge Information:");
-    Command::new("ip").args(&["addr", "show", "docker0"]).status().ok();
+    Command::new("ip")
+        .args(&["addr", "show", "docker0"])
+        .status()
+        .ok();
 
     // Check Docker IP ranges
     println!("\n📊 Docker IP Ranges:");
@@ -138,7 +147,14 @@ fn container_network_diagnosis() {
 
     // List running containers
     println!("📦 Running Containers:");
-    Command::new("docker").args(&["ps", "--format", "table {{.Names}}\t{{.Status}}\t{{.Ports}}"]).status().ok();
+    Command::new("docker")
+        .args(&[
+            "ps",
+            "--format",
+            "table {{.Names}}\t{{.Status}}\t{{.Ports}}",
+        ])
+        .status()
+        .ok();
 
     let container = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter container name or ID to diagnose (or 'all' for all containers)")
@@ -178,7 +194,12 @@ fn diagnose_single_container(container: &str) {
     // Network configuration
     println!("\n1️⃣ Network Configuration:");
     Command::new("docker")
-        .args(&["inspect", container, "--format", "{{range .NetworkSettings.Networks}}{{.IPAddress}} {{.Gateway}} {{.MacAddress}}{{end}}"])
+        .args(&[
+            "inspect",
+            container,
+            "--format",
+            "{{range .NetworkSettings.Networks}}{{.IPAddress}} {{.Gateway}} {{.MacAddress}}{{end}}",
+        ])
         .status()
         .ok();
 
@@ -223,22 +244,39 @@ fn diagnose_single_container(container: &str) {
     // Test container-to-container communication
     println!("\n🐳 Container-to-Container Test:");
     let other_containers = Command::new("docker")
-        .args(&["ps", "--format", "{{.Names}}", "--filter", &format!("name!={}", container)])
+        .args(&[
+            "ps",
+            "--format",
+            "{{.Names}}",
+            "--filter",
+            &format!("name!={}", container),
+        ])
         .output();
 
     if let Ok(out) = other_containers {
-        let containers: Vec<String> = String::from_utf8_lossy(&out.stdout).lines().map(|s| s.to_string()).collect();
+        let containers: Vec<String> = String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .map(|s| s.to_string())
+            .collect();
         if !containers.is_empty() && !containers[0].trim().is_empty() {
             let target_container = containers[0].trim();
             println!("Testing connection to {}:", target_container);
 
             // Get target container IP
             let target_ip = Command::new("docker")
-                .args(&["inspect", target_container, "--format", "{{.NetworkSettings.IPAddress}}"])
+                .args(&[
+                    "inspect",
+                    target_container,
+                    "--format",
+                    "{{.NetworkSettings.IPAddress}}",
+                ])
                 .output();
 
             if let Ok(ip_out) = target_ip {
-                let ip = String::from_utf8_lossy(&ip_out.stdout).trim().to_string().to_string();
+                let ip = String::from_utf8_lossy(&ip_out.stdout)
+                    .trim()
+                    .to_string()
+                    .to_string();
                 if !ip.is_empty() && ip != "<no value>" {
                     Command::new("docker")
                         .args(&["exec", container, "ping", "-c", "2", &ip])
@@ -330,9 +368,15 @@ fn create_docker_network() {
 
     let driver_name = ["bridge", "overlay", "macvlan", "host", "none"][driver];
 
-    let mut cmd_args = vec!["network".to_string(), "create".to_string(), "--driver".to_string(), driver_name.to_string()];
+    let mut cmd_args = vec![
+        "network".to_string(),
+        "create".to_string(),
+        "--driver".to_string(),
+        driver_name.to_string(),
+    ];
 
-    if driver == 0 { // bridge driver
+    if driver == 0 {
+        // bridge driver
         let subnet = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter subnet (e.g., 172.20.0.0/16) or press Enter to auto-assign")
             .allow_empty(true)
@@ -370,10 +414,11 @@ fn create_docker_network() {
 
     cmd_args.push(name.clone());
 
-    println!("🔧 Creating network with command: docker {}", cmd_args.join(" "));
-    let result = Command::new("docker")
-        .args(&cmd_args)
-        .status();
+    println!(
+        "🔧 Creating network with command: docker {}",
+        cmd_args.join(" ")
+    );
+    let result = Command::new("docker").args(&cmd_args).status();
 
     match result {
         Ok(s) if s.success() => {
@@ -396,7 +441,10 @@ fn remove_docker_network() {
 
     // List networks
     println!("📋 Available Networks:");
-    Command::new("docker").args(&["network", "ls"]).status().ok();
+    Command::new("docker")
+        .args(&["network", "ls"])
+        .status()
+        .ok();
 
     let network = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter network name to remove")
@@ -427,7 +475,10 @@ fn connect_container_to_network() {
 
     // List containers
     println!("📦 Available Containers:");
-    Command::new("docker").args(&["ps", "--format", "table {{.Names}}\t{{.Status}}"]).status().ok();
+    Command::new("docker")
+        .args(&["ps", "--format", "table {{.Names}}\t{{.Status}}"])
+        .status()
+        .ok();
 
     let container = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter container name")
@@ -436,7 +487,10 @@ fn connect_container_to_network() {
 
     // List networks
     println!("\n🌐 Available Networks:");
-    Command::new("docker").args(&["network", "ls"]).status().ok();
+    Command::new("docker")
+        .args(&["network", "ls"])
+        .status()
+        .ok();
 
     let network = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter network name")
@@ -457,18 +511,24 @@ fn connect_container_to_network() {
 
     cmd_args.extend(&[network.as_str(), container.as_str()]);
 
-    let result = Command::new("docker")
-        .args(&cmd_args)
-        .status();
+    let result = Command::new("docker").args(&cmd_args).status();
 
     match result {
         Ok(s) if s.success() => {
-            println!("✅ Container '{}' connected to network '{}'", container, network);
+            println!(
+                "✅ Container '{}' connected to network '{}'",
+                container, network
+            );
 
             // Show updated container network info
             println!("\n📋 Updated Container Networks:");
             Command::new("docker")
-                .args(&["inspect", &container, "--format", "{{range .NetworkSettings.Networks}}{{.IPAddress}} {{.NetworkID}}{{end}}"])
+                .args(&[
+                    "inspect",
+                    &container,
+                    "--format",
+                    "{{range .NetworkSettings.Networks}}{{.IPAddress}} {{.NetworkID}}{{end}}",
+                ])
                 .status()
                 .ok();
         }
@@ -495,7 +555,10 @@ fn disconnect_container_from_network() {
         .status();
 
     match result {
-        Ok(s) if s.success() => println!("✅ Container '{}' disconnected from network '{}'", container, network),
+        Ok(s) if s.success() => println!(
+            "✅ Container '{}' disconnected from network '{}'",
+            container, network
+        ),
         _ => println!("❌ Failed to disconnect container from network"),
     }
 }
@@ -505,7 +568,10 @@ fn inspect_docker_network() {
     println!("==========================\n");
 
     println!("📋 Available Networks:");
-    Command::new("docker").args(&["network", "ls"]).status().ok();
+    Command::new("docker")
+        .args(&["network", "ls"])
+        .status()
+        .ok();
 
     let network = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter network name to inspect")
@@ -521,7 +587,13 @@ fn inspect_docker_network() {
     // Show containers connected to this network
     println!("\n🐳 Connected Containers:");
     let containers_in_network = Command::new("docker")
-        .args(&["network", "inspect", &network, "--format", "{{range .Containers}}{{.Name}} {{.IPv4Address}}{{end}}"])
+        .args(&[
+            "network",
+            "inspect",
+            &network,
+            "--format",
+            "{{range .Containers}}{{.Name}} {{.IPv4Address}}{{end}}",
+        ])
         .output();
 
     if let Ok(out) = containers_in_network {
@@ -539,7 +611,10 @@ fn prune_docker_networks() {
     println!("=================================\n");
 
     println!("📋 Current Networks:");
-    Command::new("docker").args(&["network", "ls"]).status().ok();
+    Command::new("docker")
+        .args(&["network", "ls"])
+        .status()
+        .ok();
 
     let confirm = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Remove all unused networks?")
@@ -556,7 +631,10 @@ fn prune_docker_networks() {
         println!("✅ Unused networks pruned");
 
         println!("\n📋 Remaining Networks:");
-        Command::new("docker").args(&["network", "ls"]).status().ok();
+        Command::new("docker")
+            .args(&["network", "ls"])
+            .status()
+            .ok();
     }
 }
 
@@ -582,7 +660,10 @@ fn fix_docker_networking() {
     match choice {
         0 => {
             println!("🔄 Restarting Docker daemon...");
-            Command::new("sudo").args(&["systemctl", "restart", "docker"]).status().ok();
+            Command::new("sudo")
+                .args(&["systemctl", "restart", "docker"])
+                .status()
+                .ok();
             println!("✅ Docker daemon restarted");
         }
         1 => {
@@ -596,13 +677,22 @@ fn fix_docker_networking() {
 
             if confirm {
                 // Stop Docker
-                Command::new("sudo").args(&["systemctl", "stop", "docker"]).status().ok();
+                Command::new("sudo")
+                    .args(&["systemctl", "stop", "docker"])
+                    .status()
+                    .ok();
 
                 // Remove bridge
-                Command::new("sudo").args(&["ip", "link", "delete", "docker0"]).status().ok();
+                Command::new("sudo")
+                    .args(&["ip", "link", "delete", "docker0"])
+                    .status()
+                    .ok();
 
                 // Start Docker (will recreate bridge)
-                Command::new("sudo").args(&["systemctl", "start", "docker"]).status().ok();
+                Command::new("sudo")
+                    .args(&["systemctl", "start", "docker"])
+                    .status()
+                    .ok();
 
                 println!("✅ Docker bridge recreated");
             }
@@ -611,15 +701,30 @@ fn fix_docker_networking() {
             println!("🔥 Fixing iptables rules...");
 
             // Add Docker chain if missing
-            Command::new("sudo").args(&["iptables", "-t", "nat", "-N", "DOCKER"]).status().ok();
-            Command::new("sudo").args(&["iptables", "-t", "filter", "-N", "DOCKER"]).status().ok();
+            Command::new("sudo")
+                .args(&["iptables", "-t", "nat", "-N", "DOCKER"])
+                .status()
+                .ok();
+            Command::new("sudo")
+                .args(&["iptables", "-t", "filter", "-N", "DOCKER"])
+                .status()
+                .ok();
 
             // Allow Docker bridge traffic
-            Command::new("sudo").args(&["iptables", "-A", "FORWARD", "-i", "docker0", "-j", "ACCEPT"]).status().ok();
-            Command::new("sudo").args(&["iptables", "-A", "FORWARD", "-o", "docker0", "-j", "ACCEPT"]).status().ok();
+            Command::new("sudo")
+                .args(&["iptables", "-A", "FORWARD", "-i", "docker0", "-j", "ACCEPT"])
+                .status()
+                .ok();
+            Command::new("sudo")
+                .args(&["iptables", "-A", "FORWARD", "-o", "docker0", "-j", "ACCEPT"])
+                .status()
+                .ok();
 
             // Restart Docker to rebuild rules
-            Command::new("sudo").args(&["systemctl", "restart", "docker"]).status().ok();
+            Command::new("sudo")
+                .args(&["systemctl", "restart", "docker"])
+                .status()
+                .ok();
 
             println!("✅ iptables rules fixed");
         }
@@ -634,13 +739,22 @@ fn fix_docker_networking() {
 
             if confirm {
                 // Stop all containers
-                Command::new("docker").args(&["stop", "$(docker ps -q)"]).status().ok();
+                Command::new("docker")
+                    .args(&["stop", "$(docker ps -q)"])
+                    .status()
+                    .ok();
 
                 // Remove all custom networks
-                Command::new("docker").args(&["network", "prune", "-f"]).status().ok();
+                Command::new("docker")
+                    .args(&["network", "prune", "-f"])
+                    .status()
+                    .ok();
 
                 // Restart Docker
-                Command::new("sudo").args(&["systemctl", "restart", "docker"]).status().ok();
+                Command::new("sudo")
+                    .args(&["systemctl", "restart", "docker"])
+                    .status()
+                    .ok();
 
                 println!("✅ Docker networks reset");
             }
@@ -649,7 +763,10 @@ fn fix_docker_networking() {
             println!("📊 Fixing DNS issues...");
 
             // Restart systemd-resolved
-            Command::new("sudo").args(&["systemctl", "restart", "systemd-resolved"]).status().ok();
+            Command::new("sudo")
+                .args(&["systemctl", "restart", "systemd-resolved"])
+                .status()
+                .ok();
 
             // Update Docker daemon configuration
             let config_exists = Path::new("/etc/docker/daemon.json").exists();
@@ -666,7 +783,10 @@ fn fix_docker_networking() {
             }
 
             // Restart Docker
-            Command::new("sudo").args(&["systemctl", "restart", "docker"]).status().ok();
+            Command::new("sudo")
+                .args(&["systemctl", "restart", "docker"])
+                .status()
+                .ok();
 
             println!("✅ DNS configuration updated");
         }
@@ -674,7 +794,10 @@ fn fix_docker_networking() {
             println!("🔧 Fixing IP forwarding...");
 
             // Enable IP forwarding
-            Command::new("sudo").args(&["sysctl", "net.ipv4.ip_forward=1"]).status().ok();
+            Command::new("sudo")
+                .args(&["sysctl", "net.ipv4.ip_forward=1"])
+                .status()
+                .ok();
 
             // Make persistent
             let sysctl_content = "net.ipv4.ip_forward=1\n";
@@ -693,17 +816,32 @@ fn fix_docker_networking() {
 
             if confirm {
                 println!("Stopping Docker...");
-                Command::new("sudo").args(&["systemctl", "stop", "docker"]).status().ok();
+                Command::new("sudo")
+                    .args(&["systemctl", "stop", "docker"])
+                    .status()
+                    .ok();
 
                 println!("Removing Docker bridge...");
-                Command::new("sudo").args(&["ip", "link", "delete", "docker0"]).status().ok();
+                Command::new("sudo")
+                    .args(&["ip", "link", "delete", "docker0"])
+                    .status()
+                    .ok();
 
                 println!("Cleaning iptables rules...");
-                Command::new("sudo").args(&["iptables", "-t", "nat", "-F", "DOCKER"]).status().ok();
-                Command::new("sudo").args(&["iptables", "-t", "filter", "-F", "DOCKER"]).status().ok();
+                Command::new("sudo")
+                    .args(&["iptables", "-t", "nat", "-F", "DOCKER"])
+                    .status()
+                    .ok();
+                Command::new("sudo")
+                    .args(&["iptables", "-t", "filter", "-F", "DOCKER"])
+                    .status()
+                    .ok();
 
                 println!("Restarting Docker...");
-                Command::new("sudo").args(&["systemctl", "start", "docker"]).status().ok();
+                Command::new("sudo")
+                    .args(&["systemctl", "start", "docker"])
+                    .status()
+                    .ok();
 
                 println!("✅ Complete Docker network reset completed");
             }
@@ -720,7 +858,10 @@ fn docker_dns_troubleshooting() {
     println!("1️⃣ Docker Daemon DNS Configuration:");
     let daemon_config = Path::new("/etc/docker/daemon.json");
     if daemon_config.exists() {
-        Command::new("cat").args(&["/etc/docker/daemon.json"]).status().ok();
+        Command::new("cat")
+            .args(&["/etc/docker/daemon.json"])
+            .status()
+            .ok();
     } else {
         println!("  No custom daemon configuration found");
     }
@@ -731,7 +872,10 @@ fn docker_dns_troubleshooting() {
 
     // Check systemd-resolved
     println!("\n3️⃣ systemd-resolved Status:");
-    Command::new("systemctl").args(&["status", "systemd-resolved", "--no-pager"]).status().ok();
+    Command::new("systemctl")
+        .args(&["status", "systemd-resolved", "--no-pager"])
+        .status()
+        .ok();
 
     // Test DNS inside containers
     println!("\n4️⃣ Container DNS Tests:");
@@ -797,20 +941,32 @@ fn docker_dns_troubleshooting() {
                 .interact()
                 .unwrap();
 
-            let config = format!(r#"{{
+            let config = format!(
+                r#"{{
     "dns": ["{}", "{}"]
-}}"#, dns1, dns2);
+}}"#,
+                dns1, dns2
+            );
 
             std::fs::create_dir_all("/etc/docker").ok();
             std::fs::write("/etc/docker/daemon.json", config).ok();
 
             println!("Restarting Docker...");
-            Command::new("sudo").args(&["systemctl", "restart", "docker"]).status().ok();
+            Command::new("sudo")
+                .args(&["systemctl", "restart", "docker"])
+                .status()
+                .ok();
             println!("✅ Custom DNS configured");
         }
         1 => {
-            Command::new("sudo").args(&["systemctl", "restart", "systemd-resolved"]).status().ok();
-            Command::new("sudo").args(&["systemctl", "restart", "docker"]).status().ok();
+            Command::new("sudo")
+                .args(&["systemctl", "restart", "systemd-resolved"])
+                .status()
+                .ok();
+            Command::new("sudo")
+                .args(&["systemctl", "restart", "docker"])
+                .status()
+                .ok();
             println!("✅ systemd-resolved restarted");
         }
         _ => {}
@@ -846,9 +1002,7 @@ fn port_mapping_analysis() {
                     .ok();
 
                 // Check if ports are accessible
-                let ports = Command::new("docker")
-                    .args(&["port", container])
-                    .output();
+                let ports = Command::new("docker").args(&["port", container]).output();
 
                 if let Ok(port_out) = ports {
                     for line in String::from_utf8_lossy(&port_out.stdout).lines() {
@@ -861,7 +1015,9 @@ fn port_mapping_analysis() {
                                         .output();
 
                                     match test {
-                                        Ok(t) if t.status.success() => println!("  ✅ Port {} accessible", port),
+                                        Ok(t) if t.status.success() => {
+                                            println!("  ✅ Port {} accessible", port)
+                                        }
                                         _ => println!("  ❌ Port {} not accessible", port),
                                     }
                                 }
@@ -876,7 +1032,15 @@ fn port_mapping_analysis() {
     // Check iptables NAT rules for ports
     println!("\n🔥 iptables NAT Rules for Docker:");
     Command::new("sudo")
-        .args(&["iptables", "-t", "nat", "-L", "DOCKER", "-n", "--line-numbers"])
+        .args(&[
+            "iptables",
+            "-t",
+            "nat",
+            "-L",
+            "DOCKER",
+            "-n",
+            "--line-numbers",
+        ])
         .status()
         .ok();
 
@@ -884,9 +1048,7 @@ fn port_mapping_analysis() {
     println!("\n⚠️ Port Conflict Detection:");
     println!("Checking for conflicts between Docker and host services...");
 
-    let host_ports = Command::new("ss")
-        .args(&["-tlnp"])
-        .output();
+    let host_ports = Command::new("ss").args(&["-tlnp"]).output();
 
     if let Ok(host_out) = host_ports {
         let docker_ports = Command::new("docker")
@@ -900,7 +1062,11 @@ fn port_mapping_analysis() {
 
             println!("Host services using common ports:");
             for line in host_lines.lines() {
-                if line.contains(":80 ") || line.contains(":443 ") || line.contains(":3000 ") || line.contains(":8080 ") {
+                if line.contains(":80 ")
+                    || line.contains(":443 ")
+                    || line.contains(":3000 ")
+                    || line.contains(":8080 ")
+                {
                     println!("  {}", line);
                 }
             }
@@ -926,7 +1092,7 @@ fn docker_performance_testing() {
             "🐳 Container to Container",
             "🖥️ Container to Host",
             "📊 Bridge Performance",
-            "🔧 Comprehensive Test"
+            "🔧 Comprehensive Test",
         ])
         .default(0)
         .interact()
@@ -950,18 +1116,37 @@ fn test_container_to_internet() {
 
     println!("📦 Creating test container...");
     let create_result = Command::new("docker")
-        .args(&["run", "-d", "--name", test_container, "alpine:latest", "sleep", "300"])
+        .args(&[
+            "run",
+            "-d",
+            "--name",
+            test_container,
+            "alpine:latest",
+            "sleep",
+            "300",
+        ])
         .status();
 
     if create_result.is_err() {
         // Container might already exist, try to start it
-        Command::new("docker").args(&["start", test_container]).status().ok();
+        Command::new("docker")
+            .args(&["start", test_container])
+            .status()
+            .ok();
     }
 
     // Install networking tools
     println!("🔧 Installing test tools...");
     Command::new("docker")
-        .args(&["exec", test_container, "apk", "add", "curl", "iperf3", "iputils"])
+        .args(&[
+            "exec",
+            test_container,
+            "apk",
+            "add",
+            "curl",
+            "iperf3",
+            "iputils",
+        ])
         .status()
         .ok();
 
@@ -975,13 +1160,25 @@ fn test_container_to_internet() {
     // Test HTTP download speed
     println!("\n📥 Testing HTTP Download Speed:");
     Command::new("docker")
-        .args(&["exec", test_container, "curl", "-o", "/dev/null", "-w", "Speed: %{speed_download} bytes/sec\n", "http://speedtest.ftp.otenet.gr/files/test1Mb.db"])
+        .args(&[
+            "exec",
+            test_container,
+            "curl",
+            "-o",
+            "/dev/null",
+            "-w",
+            "Speed: %{speed_download} bytes/sec\n",
+            "http://speedtest.ftp.otenet.gr/files/test1Mb.db",
+        ])
         .status()
         .ok();
 
     // Cleanup
     println!("\n🧹 Cleaning up...");
-    Command::new("docker").args(&["rm", "-f", test_container]).status().ok();
+    Command::new("docker")
+        .args(&["rm", "-f", test_container])
+        .status()
+        .ok();
 }
 
 fn test_container_to_container() {
@@ -994,13 +1191,29 @@ fn test_container_to_container() {
 
     // Create first container (server)
     Command::new("docker")
-        .args(&["run", "-d", "--name", container1, "alpine:latest", "sleep", "300"])
+        .args(&[
+            "run",
+            "-d",
+            "--name",
+            container1,
+            "alpine:latest",
+            "sleep",
+            "300",
+        ])
         .status()
         .ok();
 
     // Create second container (client)
     Command::new("docker")
-        .args(&["run", "-d", "--name", container2, "alpine:latest", "sleep", "300"])
+        .args(&[
+            "run",
+            "-d",
+            "--name",
+            container2,
+            "alpine:latest",
+            "sleep",
+            "300",
+        ])
         .status()
         .ok();
 
@@ -1015,11 +1228,19 @@ fn test_container_to_container() {
 
     // Get container IPs
     let ip1 = Command::new("docker")
-        .args(&["inspect", container1, "--format", "{{.NetworkSettings.IPAddress}}"])
+        .args(&[
+            "inspect",
+            container1,
+            "--format",
+            "{{.NetworkSettings.IPAddress}}",
+        ])
         .output();
 
     if let Ok(ip_out) = ip1 {
-        let ip = String::from_utf8_lossy(&ip_out.stdout).trim().to_string().to_string();
+        let ip = String::from_utf8_lossy(&ip_out.stdout)
+            .trim()
+            .to_string()
+            .to_string();
         if !ip.is_empty() {
             println!("\n📡 Testing ping between containers:");
             Command::new("docker")
@@ -1045,7 +1266,10 @@ fn test_container_to_container() {
 
     // Cleanup
     println!("\n🧹 Cleaning up...");
-    Command::new("docker").args(&["rm", "-f", container1, container2]).status().ok();
+    Command::new("docker")
+        .args(&["rm", "-f", container1, container2])
+        .status()
+        .ok();
 }
 
 fn test_container_to_host() {
@@ -1056,7 +1280,15 @@ fn test_container_to_host() {
     // Create container
     println!("📦 Creating test container...");
     Command::new("docker")
-        .args(&["run", "-d", "--name", test_container, "alpine:latest", "sleep", "300"])
+        .args(&[
+            "run",
+            "-d",
+            "--name",
+            test_container,
+            "alpine:latest",
+            "sleep",
+            "300",
+        ])
         .status()
         .ok();
 
@@ -1101,7 +1333,15 @@ fn test_container_to_host() {
 
                             if proceed {
                                 Command::new("docker")
-                                    .args(&["exec", test_container, "iperf3", "-c", gateway, "-t", "10"])
+                                    .args(&[
+                                        "exec",
+                                        test_container,
+                                        "iperf3",
+                                        "-c",
+                                        gateway,
+                                        "-t",
+                                        "10",
+                                    ])
                                     .status()
                                     .ok();
                             }
@@ -1115,7 +1355,10 @@ fn test_container_to_host() {
 
     // Cleanup
     println!("\n🧹 Cleaning up...");
-    Command::new("docker").args(&["rm", "-f", test_container]).status().ok();
+    Command::new("docker")
+        .args(&["rm", "-f", test_container])
+        .status()
+        .ok();
 }
 
 fn test_bridge_performance() {
@@ -1123,11 +1366,20 @@ fn test_bridge_performance() {
 
     // Analyze bridge statistics
     println!("🌉 Docker Bridge Statistics:");
-    Command::new("ip").args(&["addr", "show", "docker0"]).status().ok();
+    Command::new("ip")
+        .args(&["addr", "show", "docker0"])
+        .status()
+        .ok();
 
     println!("\n📈 Bridge Traffic Statistics:");
-    Command::new("cat").args(&["/sys/class/net/docker0/statistics/rx_bytes"]).status().ok();
-    Command::new("cat").args(&["/sys/class/net/docker0/statistics/tx_bytes"]).status().ok();
+    Command::new("cat")
+        .args(&["/sys/class/net/docker0/statistics/rx_bytes"])
+        .status()
+        .ok();
+    Command::new("cat")
+        .args(&["/sys/class/net/docker0/statistics/tx_bytes"])
+        .status()
+        .ok();
 
     // Monitor bridge for a short period
     println!("\n📊 Monitoring bridge for 30 seconds...");
@@ -1164,7 +1416,12 @@ fn test_bridge_performance() {
         let tx_rate = (current_tx - initial_tx) / i;
 
         if i % 5 == 0 {
-            println!("  [{:02}s] RX: {} KB/s, TX: {} KB/s", i, rx_rate / 1024, tx_rate / 1024);
+            println!(
+                "  [{:02}s] RX: {} KB/s, TX: {} KB/s",
+                i,
+                rx_rate / 1024,
+                tx_rate / 1024
+            );
         }
     }
 
@@ -1187,7 +1444,15 @@ fn comprehensive_docker_test() {
 
     for container in &containers {
         Command::new("docker")
-            .args(&["run", "-d", "--name", container, "alpine:latest", "sleep", "600"])
+            .args(&[
+                "run",
+                "-d",
+                "--name",
+                container,
+                "alpine:latest",
+                "sleep",
+                "600",
+            ])
             .status()
             .ok();
 
@@ -1201,12 +1466,17 @@ fn comprehensive_docker_test() {
     // 3. Test inter-container communication
     println!("\n3️⃣ Testing inter-container communication:");
     for i in 0..containers.len() {
-        for j in (i+1)..containers.len() {
+        for j in (i + 1)..containers.len() {
             let container1 = containers[i];
             let container2 = containers[j];
 
             let ip = Command::new("docker")
-                .args(&["inspect", container2, "--format", "{{.NetworkSettings.IPAddress}}"])
+                .args(&[
+                    "inspect",
+                    container2,
+                    "--format",
+                    "{{.NetworkSettings.IPAddress}}",
+                ])
                 .output();
 
             if let Ok(ip_out) = ip {
@@ -1245,7 +1515,10 @@ fn comprehensive_docker_test() {
     // Cleanup
     println!("\n🧹 Cleaning up test environment...");
     for container in &containers {
-        Command::new("docker").args(&["rm", "-f", container]).status().ok();
+        Command::new("docker")
+            .args(&["rm", "-f", container])
+            .status()
+            .ok();
     }
 
     println!("\n✅ Comprehensive Docker network test completed");
@@ -1373,7 +1646,15 @@ fn create_bridge_interface() {
 
                 // Add to bridge
                 let add_result = Command::new("sudo")
-                    .args(&["ip", "link", "set", "dev", &interface, "master", &bridge_name])
+                    .args(&[
+                        "ip",
+                        "link",
+                        "set",
+                        "dev",
+                        &interface,
+                        "master",
+                        &bridge_name,
+                    ])
                     .status();
 
                 // Bring interface back up
@@ -1390,7 +1671,10 @@ fn create_bridge_interface() {
 
             // Show final bridge configuration
             println!("\n📊 Bridge Configuration:");
-            Command::new("ip").args(&["addr", "show", &bridge_name]).status().ok();
+            Command::new("ip")
+                .args(&["addr", "show", &bridge_name])
+                .status()
+                .ok();
 
             println!("\n🌉 Bridge Members:");
             Command::new("bridge").args(&["link", "show"]).status().ok();
@@ -1441,11 +1725,24 @@ fn configure_bridge() {
 
                 let stp_value = if enable_stp { "1" } else { "0" };
                 Command::new("sudo")
-                    .args(&["ip", "link", "set", "dev", &bridge_name, "type", "bridge", "stp_state", stp_value])
+                    .args(&[
+                        "ip",
+                        "link",
+                        "set",
+                        "dev",
+                        &bridge_name,
+                        "type",
+                        "bridge",
+                        "stp_state",
+                        stp_value,
+                    ])
                     .status()
                     .ok();
 
-                println!("✅ STP {} for bridge", if enable_stp { "enabled" } else { "disabled" });
+                println!(
+                    "✅ STP {} for bridge",
+                    if enable_stp { "enabled" } else { "disabled" }
+                );
             }
             1 => {
                 let delay = Input::<String>::with_theme(&ColorfulTheme::default())
@@ -1455,7 +1752,17 @@ fn configure_bridge() {
                     .unwrap();
 
                 Command::new("sudo")
-                    .args(&["ip", "link", "set", "dev", &bridge_name, "type", "bridge", "forward_delay", &delay])
+                    .args(&[
+                        "ip",
+                        "link",
+                        "set",
+                        "dev",
+                        &bridge_name,
+                        "type",
+                        "bridge",
+                        "forward_delay",
+                        &delay,
+                    ])
                     .status()
                     .ok();
 
@@ -1469,7 +1776,17 @@ fn configure_bridge() {
                     .unwrap();
 
                 Command::new("sudo")
-                    .args(&["ip", "link", "set", "dev", &bridge_name, "type", "bridge", "hello_time", &hello_time])
+                    .args(&[
+                        "ip",
+                        "link",
+                        "set",
+                        "dev",
+                        &bridge_name,
+                        "type",
+                        "bridge",
+                        "hello_time",
+                        &hello_time,
+                    ])
                     .status()
                     .ok();
 
@@ -1483,7 +1800,17 @@ fn configure_bridge() {
                     .unwrap();
 
                 Command::new("sudo")
-                    .args(&["ip", "link", "set", "dev", &bridge_name, "type", "bridge", "max_age", &max_age])
+                    .args(&[
+                        "ip",
+                        "link",
+                        "set",
+                        "dev",
+                        &bridge_name,
+                        "type",
+                        "bridge",
+                        "max_age",
+                        &max_age,
+                    ])
                     .status()
                     .ok();
 
@@ -1497,7 +1824,17 @@ fn configure_bridge() {
                     .unwrap();
 
                 Command::new("sudo")
-                    .args(&["ip", "link", "set", "dev", &bridge_name, "type", "bridge", "priority", &priority])
+                    .args(&[
+                        "ip",
+                        "link",
+                        "set",
+                        "dev",
+                        &bridge_name,
+                        "type",
+                        "bridge",
+                        "priority",
+                        &priority,
+                    ])
                     .status()
                     .ok();
 
@@ -1512,18 +1849,30 @@ fn configure_bridge() {
 
                 println!("Available VLAN operations:");
                 println!("  bridge vlan add dev {} vid {} self", bridge_name, vlan_id);
-                println!("  bridge vlan add dev {} vid {} pvid untagged", bridge_name, vlan_id);
+                println!(
+                    "  bridge vlan add dev {} vid {} pvid untagged",
+                    bridge_name, vlan_id
+                );
                 println!("Run these commands manually with sudo");
             }
             6 => {
                 println!("📝 Current Bridge Configuration:");
-                Command::new("ip").args(&["link", "show", &bridge_name]).status().ok();
+                Command::new("ip")
+                    .args(&["link", "show", &bridge_name])
+                    .status()
+                    .ok();
 
                 println!("\n🌉 Bridge Details:");
-                Command::new("bridge").args(&["link", "show", "dev", &bridge_name]).status().ok();
+                Command::new("bridge")
+                    .args(&["link", "show", "dev", &bridge_name])
+                    .status()
+                    .ok();
 
                 println!("\n📊 Bridge FDB (Forwarding Database):");
-                Command::new("bridge").args(&["fdb", "show", "br", &bridge_name]).status().ok();
+                Command::new("bridge")
+                    .args(&["fdb", "show", "br", &bridge_name])
+                    .status()
+                    .ok();
 
                 println!("\n🔧 STP Information:");
                 let stp_info_path = format!("/sys/class/net/{}/bridge/stp_state", bridge_name);
@@ -1555,29 +1904,50 @@ fn bridge_status_diagnostics() {
 
     // Basic bridge information
     println!("\n1️⃣ Basic Information:");
-    Command::new("ip").args(&["link", "show", &bridge]).status().ok();
-    Command::new("ip").args(&["addr", "show", &bridge]).status().ok();
+    Command::new("ip")
+        .args(&["link", "show", &bridge])
+        .status()
+        .ok();
+    Command::new("ip")
+        .args(&["addr", "show", &bridge])
+        .status()
+        .ok();
 
     // Bridge members
     println!("\n2️⃣ Bridge Members:");
-    Command::new("bridge").args(&["link", "show", "br", &bridge]).status().ok();
+    Command::new("bridge")
+        .args(&["link", "show", "br", &bridge])
+        .status()
+        .ok();
 
     // MAC address learning table
     println!("\n3️⃣ MAC Address Table (FDB):");
-    Command::new("bridge").args(&["fdb", "show", "br", &bridge]).status().ok();
+    Command::new("bridge")
+        .args(&["fdb", "show", "br", &bridge])
+        .status()
+        .ok();
 
     // STP status if available
     println!("\n4️⃣ Spanning Tree Protocol Status:");
     let stp_path = format!("/sys/class/net/{}/bridge", bridge);
     if Path::new(&stp_path).exists() {
         println!("STP State:");
-        Command::new("cat").args(&[&format!("{}/stp_state", stp_path)]).status().ok();
+        Command::new("cat")
+            .args(&[&format!("{}/stp_state", stp_path)])
+            .status()
+            .ok();
 
         println!("Root ID:");
-        Command::new("cat").args(&[&format!("{}/root_id", stp_path)]).status().ok();
+        Command::new("cat")
+            .args(&[&format!("{}/root_id", stp_path)])
+            .status()
+            .ok();
 
         println!("Bridge ID:");
-        Command::new("cat").args(&[&format!("{}/bridge_id", stp_path)]).status().ok();
+        Command::new("cat")
+            .args(&[&format!("{}/bridge_id", stp_path)])
+            .status()
+            .ok();
     } else {
         println!("  Bridge sysfs information not available");
     }
@@ -1587,21 +1957,36 @@ fn bridge_status_diagnostics() {
     let stats_path = format!("/sys/class/net/{}/statistics", bridge);
     if Path::new(&stats_path).exists() {
         println!("RX Bytes:");
-        Command::new("cat").args(&[&format!("{}/rx_bytes", stats_path)]).status().ok();
+        Command::new("cat")
+            .args(&[&format!("{}/rx_bytes", stats_path)])
+            .status()
+            .ok();
 
         println!("TX Bytes:");
-        Command::new("cat").args(&[&format!("{}/tx_bytes", stats_path)]).status().ok();
+        Command::new("cat")
+            .args(&[&format!("{}/tx_bytes", stats_path)])
+            .status()
+            .ok();
 
         println!("RX Packets:");
-        Command::new("cat").args(&[&format!("{}/rx_packets", stats_path)]).status().ok();
+        Command::new("cat")
+            .args(&[&format!("{}/rx_packets", stats_path)])
+            .status()
+            .ok();
 
         println!("TX Packets:");
-        Command::new("cat").args(&[&format!("{}/tx_packets", stats_path)]).status().ok();
+        Command::new("cat")
+            .args(&[&format!("{}/tx_packets", stats_path)])
+            .status()
+            .ok();
     }
 
     // VLAN information
     println!("\n6️⃣ VLAN Configuration:");
-    Command::new("bridge").args(&["vlan", "show", "br", &bridge]).status().ok();
+    Command::new("bridge")
+        .args(&["vlan", "show", "br", &bridge])
+        .status()
+        .ok();
 
     // Connected devices analysis
     println!("\n7️⃣ Connected Devices Analysis:");
@@ -1619,20 +2004,25 @@ fn bridge_status_diagnostics() {
                     println!("\n--- Member Interface: {} ---", clean_interface);
 
                     // Show interface details
-                    Command::new("ip").args(&["link", "show", clean_interface]).status().ok();
+                    Command::new("ip")
+                        .args(&["link", "show", clean_interface])
+                        .status()
+                        .ok();
 
                     // Show interface statistics
                     println!("Statistics:");
                     let if_stats_path = format!("/sys/class/net/{}/statistics", clean_interface);
                     if Path::new(&if_stats_path).exists() {
-                        let rx_bytes = std::fs::read_to_string(&format!("{}/rx_bytes", if_stats_path))
-                            .unwrap_or_default()
-                            .trim()
-                            .to_string();
-                        let tx_bytes = std::fs::read_to_string(&format!("{}/tx_bytes", if_stats_path))
-                            .unwrap_or_default()
-                            .trim()
-                            .to_string();
+                        let rx_bytes =
+                            std::fs::read_to_string(&format!("{}/rx_bytes", if_stats_path))
+                                .unwrap_or_default()
+                                .trim()
+                                .to_string();
+                        let tx_bytes =
+                            std::fs::read_to_string(&format!("{}/tx_bytes", if_stats_path))
+                                .unwrap_or_default()
+                                .trim()
+                                .to_string();
 
                         println!("  RX: {} bytes, TX: {} bytes", rx_bytes, tx_bytes);
                     }
@@ -1647,7 +2037,10 @@ fn bridge_status_diagnostics() {
 }
 
 fn monitor_bridge_performance(bridge: &str, duration: u64) {
-    println!("📈 Monitoring bridge {} for {} seconds...", bridge, duration);
+    println!(
+        "📈 Monitoring bridge {} for {} seconds...",
+        bridge, duration
+    );
 
     let stats_path = format!("/sys/class/net/{}/statistics", bridge);
     if !Path::new(&stats_path).exists() {
@@ -1686,7 +2079,12 @@ fn monitor_bridge_performance(bridge: &str, duration: u64) {
         let tx_rate = (current_tx - initial_tx) / i;
 
         if i % 2 == 0 {
-            println!("  [{:02}s] RX: {} KB/s, TX: {} KB/s", i, rx_rate / 1024, tx_rate / 1024);
+            println!(
+                "  [{:02}s] RX: {} KB/s, TX: {} KB/s",
+                i,
+                rx_rate / 1024,
+                tx_rate / 1024
+            );
         }
     }
 
@@ -1740,8 +2138,7 @@ fn diagnose_vm_network_issues() {
 
     // Check KVM module
     println!("\n2️⃣ Checking KVM Module:");
-    let kvm_check = Command::new("lsmod")
-        .output();
+    let kvm_check = Command::new("lsmod").output();
 
     if let Ok(out) = kvm_check {
         let modules = String::from_utf8_lossy(&out.stdout);
@@ -1781,7 +2178,18 @@ fn diagnose_vm_network_issues() {
 
     // Check iptables rules for virtualization
     println!("\n7️⃣ Checking iptables for Virtualization:");
-    Command::new("sudo").args(&["iptables", "-L", "-n", "|", "grep", "-E", "(FORWARD|virbr|tap)"]).status().ok();
+    Command::new("sudo")
+        .args(&[
+            "iptables",
+            "-L",
+            "-n",
+            "|",
+            "grep",
+            "-E",
+            "(FORWARD|virbr|tap)",
+        ])
+        .status()
+        .ok();
 
     // VM-specific diagnostics
     println!("\n8️⃣ QEMU/Libvirt Network Configuration:");
@@ -1791,10 +2199,16 @@ fn diagnose_vm_network_issues() {
     if let Ok(s) = virsh_check {
         if s.success() {
             println!("Libvirt networks:");
-            Command::new("virsh").args(&["net-list", "--all"]).status().ok();
+            Command::new("virsh")
+                .args(&["net-list", "--all"])
+                .status()
+                .ok();
 
             println!("\nDefault network details:");
-            Command::new("virsh").args(&["net-dumpxml", "default"]).status().ok();
+            Command::new("virsh")
+                .args(&["net-dumpxml", "default"])
+                .status()
+                .ok();
         }
     }
 }
@@ -1812,9 +2226,7 @@ fn check_bridge_connectivity() {
     println!("🔍 Testing bridge connectivity: {}", bridge);
 
     // Check if bridge exists
-    let bridge_exists = Command::new("ip")
-        .args(&["link", "show", &bridge])
-        .status();
+    let bridge_exists = Command::new("ip").args(&["link", "show", &bridge]).status();
 
     match bridge_exists {
         Ok(s) if s.success() => println!("  ✅ Bridge {} exists", bridge),
@@ -1826,12 +2238,13 @@ fn check_bridge_connectivity() {
 
     // Check bridge IP
     println!("\n📊 Bridge IP Configuration:");
-    Command::new("ip").args(&["addr", "show", &bridge]).status().ok();
+    Command::new("ip")
+        .args(&["addr", "show", &bridge])
+        .status()
+        .ok();
 
     // Test bridge connectivity
-    let bridge_ip_output = Command::new("ip")
-        .args(&["addr", "show", &bridge])
-        .output();
+    let bridge_ip_output = Command::new("ip").args(&["addr", "show", &bridge]).output();
 
     if let Ok(out) = bridge_ip_output {
         let output_str = String::from_utf8_lossy(&out.stdout);
@@ -1841,10 +2254,7 @@ fn check_bridge_connectivity() {
                     let ip = ip_part.split('/').next().unwrap_or("");
                     if !ip.is_empty() {
                         println!("\n🏓 Testing ping to bridge IP: {}", ip);
-                        Command::new("ping")
-                            .args(&["-c", "3", ip])
-                            .status()
-                            .ok();
+                        Command::new("ping").args(&["-c", "3", ip]).status().ok();
                     }
                 }
                 break;
@@ -1854,7 +2264,10 @@ fn check_bridge_connectivity() {
 
     // Check bridge members
     println!("\n👥 Bridge Members:");
-    Command::new("bridge").args(&["link", "show", "br", &bridge]).status().ok();
+    Command::new("bridge")
+        .args(&["link", "show", "br", &bridge])
+        .status()
+        .ok();
 
     // Test member interfaces
     let members = Command::new("bridge")
@@ -1889,11 +2302,17 @@ fn check_bridge_connectivity() {
 
     // Check forwarding
     println!("\n📡 IP Forwarding Status:");
-    Command::new("cat").args(&["/proc/sys/net/ipv4/ip_forward"]).status().ok();
+    Command::new("cat")
+        .args(&["/proc/sys/net/ipv4/ip_forward"])
+        .status()
+        .ok();
 
     // Check iptables rules
     println!("\n🔥 iptables Rules for Bridge:");
-    Command::new("sudo").args(&["iptables", "-L", "-n", "|", "grep", &bridge]).status().ok();
+    Command::new("sudo")
+        .args(&["iptables", "-L", "-n", "|", "grep", &bridge])
+        .status()
+        .ok();
 }
 
 fn troubleshoot_tap_interfaces() {
@@ -1905,9 +2324,7 @@ fn troubleshoot_tap_interfaces() {
     Command::new("ip").args(&["tuntap", "show"]).status().ok();
 
     // Check TAP interface details
-    let tap_list = Command::new("ip")
-        .args(&["tuntap", "show"])
-        .output();
+    let tap_list = Command::new("ip").args(&["tuntap", "show"]).output();
 
     if let Ok(out) = tap_list {
         let output_str = String::from_utf8_lossy(&out.stdout);
@@ -1917,10 +2334,16 @@ fn troubleshoot_tap_interfaces() {
                     println!("\n--- TAP Interface: {} ---", tap_name);
 
                     // Show TAP details
-                    Command::new("ip").args(&["addr", "show", tap_name]).status().ok();
+                    Command::new("ip")
+                        .args(&["addr", "show", tap_name])
+                        .status()
+                        .ok();
 
                     // Check if attached to bridge
-                    Command::new("bridge").args(&["link", "show", "dev", tap_name]).status().ok();
+                    Command::new("bridge")
+                        .args(&["link", "show", "dev", tap_name])
+                        .status()
+                        .ok();
 
                     // Check permissions
                     let tap_path = format!("/dev/{}", tap_name);
@@ -1934,8 +2357,7 @@ fn troubleshoot_tap_interfaces() {
 
     // Check TUN/TAP module
     println!("\n🔍 TUN/TAP Module Status:");
-    let tun_check = Command::new("lsmod")
-        .output();
+    let tun_check = Command::new("lsmod").output();
 
     if let Ok(out) = tun_check {
         let modules = String::from_utf8_lossy(&out.stdout);
@@ -1950,7 +2372,10 @@ fn troubleshoot_tap_interfaces() {
     // Check device permissions
     println!("\n🔐 Device Permissions:");
     if Path::new("/dev/net/tun").exists() {
-        Command::new("ls").args(&["-l", "/dev/net/tun"]).status().ok();
+        Command::new("ls")
+            .args(&["-l", "/dev/net/tun"])
+            .status()
+            .ok();
     } else {
         println!("  ❌ /dev/net/tun does not exist");
     }
@@ -1988,7 +2413,10 @@ fn troubleshoot_tap_interfaces() {
                 println!("  ✅ TAP interface brought up");
 
                 // Show details
-                Command::new("ip").args(&["addr", "show", &tap_name]).status().ok();
+                Command::new("ip")
+                    .args(&["addr", "show", &tap_name])
+                    .status()
+                    .ok();
 
                 // Cleanup
                 let cleanup = Confirm::with_theme(&ColorfulTheme::default())
@@ -2016,16 +2444,20 @@ fn check_qemu_network_config() {
 
     // Check QEMU installation
     println!("1️⃣ QEMU Installation:");
-    let qemu_check = Command::new("which")
-        .arg("qemu-system-x86_64")
-        .output();
+    let qemu_check = Command::new("which").arg("qemu-system-x86_64").output();
 
     match qemu_check {
         Ok(out) if out.status.success() => {
-            println!("  ✅ QEMU installed at: {}", String::from_utf8_lossy(&out.stdout).trim().to_string());
+            println!(
+                "  ✅ QEMU installed at: {}",
+                String::from_utf8_lossy(&out.stdout).trim().to_string()
+            );
 
             // Get QEMU version
-            Command::new("qemu-system-x86_64").args(&["--version"]).status().ok();
+            Command::new("qemu-system-x86_64")
+                .args(&["--version"])
+                .status()
+                .ok();
         }
         _ => println!("  ❌ QEMU not found"),
     }
@@ -2044,15 +2476,24 @@ fn check_qemu_network_config() {
     if let Ok(s) = virsh_available {
         if s.success() {
             println!("📋 Libvirt networks:");
-            Command::new("virsh").args(&["net-list", "--all"]).status().ok();
+            Command::new("virsh")
+                .args(&["net-list", "--all"])
+                .status()
+                .ok();
 
             // Show default network config
             println!("\n📝 Default network configuration:");
-            Command::new("virsh").args(&["net-dumpxml", "default"]).status().ok();
+            Command::new("virsh")
+                .args(&["net-dumpxml", "default"])
+                .status()
+                .ok();
 
             // Check network autostart
             println!("\n🔄 Network autostart status:");
-            Command::new("virsh").args(&["net-autostart", "default"]).status().ok();
+            Command::new("virsh")
+                .args(&["net-autostart", "default"])
+                .status()
+                .ok();
         }
     }
 
@@ -2244,8 +2685,7 @@ fn qemu_kvm_integration_status() {
     }
 
     // Check KVM module
-    let kvm_check = Command::new("lsmod")
-        .output();
+    let kvm_check = Command::new("lsmod").output();
 
     if let Ok(out) = kvm_check {
         let modules = String::from_utf8_lossy(&out.stdout);
@@ -2296,7 +2736,10 @@ fn virtual_interface_management() {
     let virsh_check = Command::new("which").arg("virsh").status();
     if let Ok(s) = virsh_check {
         if s.success() {
-            Command::new("virsh").args(&["net-list", "--all"]).status().ok();
+            Command::new("virsh")
+                .args(&["net-list", "--all"])
+                .status()
+                .ok();
         }
     } else {
         println!("  virsh not available");
@@ -2382,9 +2825,7 @@ fn virtualization_network_status() {
     println!("\n3️⃣ Network Interfaces:");
 
     println!("🌉 Bridge Interfaces:");
-    let bridges = Command::new("bridge")
-        .args(&["link", "show"])
-        .output();
+    let bridges = Command::new("bridge").args(&["link", "show"]).output();
 
     if let Ok(out) = bridges {
         let output = String::from_utf8_lossy(&out.stdout);
@@ -2398,9 +2839,7 @@ fn virtualization_network_status() {
     }
 
     println!("\n🔌 TAP Interfaces:");
-    let taps = Command::new("ip")
-        .args(&["tuntap", "show"])
-        .output();
+    let taps = Command::new("ip").args(&["tuntap", "show"]).output();
 
     if let Ok(out) = taps {
         let output = String::from_utf8_lossy(&out.stdout);
@@ -2417,16 +2856,17 @@ fn virtualization_network_status() {
     let virsh_check = Command::new("which").arg("virsh").status();
     if let Ok(s) = virsh_check {
         if s.success() {
-            Command::new("virsh").args(&["net-list", "--all"]).status().ok();
+            Command::new("virsh")
+                .args(&["net-list", "--all"])
+                .status()
+                .ok();
         }
     } else {
         println!("  virsh not available");
     }
 
     println!("\n5️⃣ Docker Networks:");
-    let docker_nets = Command::new("docker")
-        .args(&["network", "ls"])
-        .output();
+    let docker_nets = Command::new("docker").args(&["network", "ls"]).output();
 
     if let Ok(out) = docker_nets {
         if out.status.success() {
@@ -2443,7 +2883,10 @@ fn virtualization_network_status() {
 
     // Check IP forwarding
     println!("📡 IP Forwarding:");
-    Command::new("cat").args(&["/proc/sys/net/ipv4/ip_forward"]).status().ok();
+    Command::new("cat")
+        .args(&["/proc/sys/net/ipv4/ip_forward"])
+        .status()
+        .ok();
 
     // Check key paths
     println!("\n🔐 Key Configuration Paths:");
@@ -2499,7 +2942,7 @@ fn advanced_virtual_networking() {
             "🌉 Linux Bridge Management",
             "🖥️ libvirt/KVM Advanced Networking",
             "🔥 Advanced Firewall & Networking",
-            "⬅️ Stay in current menu"
+            "⬅️ Stay in current menu",
         ])
         .default(3)
         .interact()
@@ -2512,7 +2955,9 @@ fn advanced_virtual_networking() {
         }
         1 => {
             println!("\n🔄 Redirecting to libvirt/KVM Advanced Networking...");
-            println!("Please navigate to: Main Menu → Networking → libvirt/KVM Advanced Networking");
+            println!(
+                "Please navigate to: Main Menu → Networking → libvirt/KVM Advanced Networking"
+            );
         }
         2 => {
             println!("\n🔄 Redirecting to Advanced Firewall & Networking...");

@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Input, Select, MultiSelect, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::process::Command;
 
 pub fn systemd_service_management() {
@@ -65,11 +65,15 @@ fn service_status_overview() {
         }
         1 => {
             println!("🟢 Active Services:");
-            let _ = Command::new("systemctl").args(["list-units", "--state=active"]).status();
+            let _ = Command::new("systemctl")
+                .args(["list-units", "--state=active"])
+                .status();
         }
         2 => {
             println!("🔵 All Services:");
-            let _ = Command::new("systemctl").args(["list-units", "--all"]).status();
+            let _ = Command::new("systemctl")
+                .args(["list-units", "--all"])
+                .status();
         }
         3 => {
             println!("⏰ Running Timers:");
@@ -108,7 +112,9 @@ fn manage_individual_services() {
 
         // Show current status
         println!("📊 Current Status:");
-        let _ = Command::new("systemctl").args(["status", &service_name]).status();
+        let _ = Command::new("systemctl")
+            .args(["status", &service_name])
+            .status();
 
         let actions = [
             "▶️  Start service",
@@ -200,14 +206,12 @@ fn failed_services_recovery() {
         .output();
 
     let failed_services: Vec<String> = match output {
-        Ok(output) => {
-            String::from_utf8_lossy(&output.stdout)
-                .lines()
-                .filter(|line| !line.is_empty())
-                .map(|line| line.split_whitespace().next().unwrap_or("").to_string())
-                .filter(|service| !service.is_empty())
-                .collect()
-        }
+        Ok(output) => String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .filter(|line| !line.is_empty())
+            .map(|line| line.split_whitespace().next().unwrap_or("").to_string())
+            .filter(|service| !service.is_empty())
+            .collect(),
         Err(_) => Vec::new(),
     };
 
@@ -302,9 +306,7 @@ fn analyze_individual_service(failed_services: &[String]) {
 
     // Check configuration
     println!("\n⚙️  Configuration Check:");
-    let _ = Command::new("systemctl")
-        .args(["cat", service])
-        .status();
+    let _ = Command::new("systemctl").args(["cat", service]).status();
 
     // Recovery suggestions
     println!("\n💡 Recovery Suggestions:");
@@ -411,7 +413,9 @@ fn emergency_service_recovery() {
     match choice {
         0 => {
             println!("🔄 Reloading systemd daemon...");
-            let _ = Command::new("sudo").args(["systemctl", "daemon-reload"]).status();
+            let _ = Command::new("sudo")
+                .args(["systemctl", "daemon-reload"])
+                .status();
             println!("✅ Daemon reloaded");
         }
         1 => fix_critical_system_services(),
@@ -483,12 +487,7 @@ fn restart_network_services() {
 fn restart_security_services() {
     println!("🔒 Restarting security services...");
 
-    let security_services = [
-        "sshd",
-        "ufw",
-        "fail2ban",
-        "apparmor",
-    ];
+    let security_services = ["sshd", "ufw", "fail2ban", "apparmor"];
 
     for service in &security_services {
         let status = Command::new("systemctl")
@@ -514,10 +513,14 @@ fn fix_storage_services() {
 
     // Check and fix common storage issues
     println!("🔍 Checking filesystem services...");
-    let _ = Command::new("sudo").args(["systemctl", "restart", "systemd-tmpfiles-setup"]).status();
+    let _ = Command::new("sudo")
+        .args(["systemctl", "restart", "systemd-tmpfiles-setup"])
+        .status();
 
     println!("🔍 Checking mount services...");
-    let _ = Command::new("sudo").args(["systemctl", "daemon-reload"]).status();
+    let _ = Command::new("sudo")
+        .args(["systemctl", "daemon-reload"])
+        .status();
     let _ = Command::new("sudo").args(["mount", "-a"]).status();
 
     println!("✅ Storage services checked");
@@ -534,7 +537,9 @@ fn system_service_health_check() {
     let _ = Command::new("systemctl").args(["--failed"]).status();
 
     println!("\n📊 Service statistics:");
-    let _ = Command::new("systemctl").args(["list-units", "--type=service", "--state=running"]).status();
+    let _ = Command::new("systemctl")
+        .args(["list-units", "--type=service", "--state=running"])
+        .status();
 
     println!("\n⏰ Timer status:");
     let _ = Command::new("systemctl").args(["list-timers"]).status();
@@ -575,7 +580,9 @@ fn list_active_timers() {
     println!("================");
 
     println!("⏰ SystemD Timers:");
-    let _ = Command::new("systemctl").args(["list-timers", "--all"]).status();
+    let _ = Command::new("systemctl")
+        .args(["list-timers", "--all"])
+        .status();
 
     println!("\n📅 Cron Jobs:");
     println!("User cron jobs:");
@@ -608,7 +615,7 @@ fn create_systemd_timer() {
 
     // Create service file
     let service_content = format!(
-r#"[Unit]
+        r#"[Unit]
 Description={} Service
 Wants={}.timer
 
@@ -618,11 +625,13 @@ ExecStart={}
 
 [Install]
 WantedBy=multi-user.target
-"#, timer_name, timer_name, command);
+"#,
+        timer_name, timer_name, command
+    );
 
     // Create timer file
     let timer_content = format!(
-r#"[Unit]
+        r#"[Unit]
 Description={} Timer
 Requires={}.service
 
@@ -632,7 +641,9 @@ Persistent=true
 
 [Install]
 WantedBy=timers.target
-"#, timer_name, timer_name, schedule);
+"#,
+        timer_name, timer_name, schedule
+    );
 
     println!("Service file content:");
     println!("{}", service_content);
@@ -741,7 +752,9 @@ fn analyze_timer_performance() {
     println!("============================");
 
     println!("📊 Timer statistics:");
-    let _ = Command::new("systemctl").args(["list-timers", "--all"]).status();
+    let _ = Command::new("systemctl")
+        .args(["list-timers", "--all"])
+        .status();
 
     println!("\n📈 Timer logs:");
     let _ = Command::new("journalctl")
@@ -867,13 +880,17 @@ fn fix_dependency_issues() {
     println!("=========================");
 
     println!("🔄 Reloading systemd daemon...");
-    let _ = Command::new("sudo").args(["systemctl", "daemon-reload"]).status();
+    let _ = Command::new("sudo")
+        .args(["systemctl", "daemon-reload"])
+        .status();
 
     println!("🔍 Checking for dependency cycles...");
     let _ = Command::new("systemd-analyze").args(["verify"]).status();
 
     println!("📊 Checking service order...");
-    let _ = Command::new("systemd-analyze").args(["critical-chain"]).status();
+    let _ = Command::new("systemd-analyze")
+        .args(["critical-chain"])
+        .status();
 }
 
 fn reverse_dependencies() {
@@ -927,7 +944,9 @@ fn boot_time_analysis() {
     let _ = Command::new("systemd-analyze").args(["blame"]).status();
 
     println!("\n📈 Boot timeline:");
-    let _ = Command::new("systemd-analyze").args(["critical-chain"]).status();
+    let _ = Command::new("systemd-analyze")
+        .args(["critical-chain"])
+        .status();
 }
 
 fn service_startup_times() {
@@ -1022,7 +1041,7 @@ fn create_simple_service() {
         .unwrap();
 
     let service_content = format!(
-r#"[Unit]
+        r#"[Unit]
 Description={}
 After=network.target
 
@@ -1038,8 +1057,16 @@ WantedBy=multi-user.target
 "#,
         description,
         exec_start,
-        if !user.is_empty() { format!("User={}\n", user) } else { String::new() },
-        if auto_restart { "Restart=always\nRestartSec=10\n" } else { "" }
+        if !user.is_empty() {
+            format!("User={}\n", user)
+        } else {
+            String::new()
+        },
+        if auto_restart {
+            "Restart=always\nRestartSec=10\n"
+        } else {
+            ""
+        }
     );
 
     println!("📝 Service file content:");
@@ -1338,9 +1365,7 @@ fn security_audit() {
     println!("🔍 Checking systemd security settings...");
 
     println!("🚨 Services without security restrictions:");
-    let _ = Command::new("systemd-analyze")
-        .args(["security"])
-        .status();
+    let _ = Command::new("systemd-analyze").args(["security"]).status();
 }
 
 fn vulnerability_scan() {

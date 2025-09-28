@@ -1,7 +1,7 @@
-use dialoguer::{Confirm, Input, Select, MultiSelect, theme::ColorfulTheme};
-use std::process::Command;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 
 pub fn recovery_menu() {
     println!("🚨 Arch Linux Recovery & Rescue Tools");
@@ -119,9 +119,7 @@ fn quick_system_fixes() {
             }
             3 => {
                 println!("📦 Syncing package databases...");
-                let _ = Command::new("sudo")
-                    .args(["pacman", "-Syy"])
-                    .status();
+                let _ = Command::new("sudo").args(["pacman", "-Syy"]).status();
                 println!("  ✅ Package databases synced");
             }
             4 => {
@@ -270,7 +268,9 @@ fn grub_recovery() {
         }
         2 => {
             println!("🔍 Checking GRUB installation...");
-            let _ = Command::new("grub-probe").args(["-t", "device", "/"]).status();
+            let _ = Command::new("grub-probe")
+                .args(["-t", "device", "/"])
+                .status();
         }
         3 => {
             println!("📝 Editing GRUB configuration...");
@@ -306,7 +306,7 @@ fn fix_grub_rescue() {
     if attempt {
         println!("🔄 Attempting to rebuild GRUB...");
         let _ = Command::new("sudo")
-            .args(["grub-install", "/dev/sda"])  // Default assumption
+            .args(["grub-install", "/dev/sda"]) // Default assumption
             .status();
         let _ = Command::new("sudo")
             .args(["grub-mkconfig", "-o", "/boot/grub/grub.cfg"])
@@ -363,7 +363,9 @@ fn fix_boot_entries() {
 
     if Path::new("/boot/loader/entries").exists() {
         println!("📁 Current boot entries:");
-        let _ = Command::new("ls").args(["-la", "/boot/loader/entries/"]).status();
+        let _ = Command::new("ls")
+            .args(["-la", "/boot/loader/entries/"])
+            .status();
 
         let regenerate = Confirm::new()
             .with_prompt("Remove all entries and regenerate?")
@@ -414,7 +416,11 @@ fn create_basic_boot_entry() {
 
                 let entry_file = format!("/boot/loader/entries/arch-{}.conf", kernel_name);
                 let _ = Command::new("sudo")
-                    .args(["bash", "-c", &format!("echo '{}' > '{}'", entry_content, entry_file)])
+                    .args([
+                        "bash",
+                        "-c",
+                        &format!("echo '{}' > '{}'", entry_content, entry_file),
+                    ])
                     .status();
 
                 println!("✅ Created entry for {}", kernel_name);
@@ -461,7 +467,9 @@ fn check_filesystem_integrity() {
 
     // Show mounted filesystems
     println!("📁 Mounted filesystems:");
-    let _ = Command::new("mount").args(["-t", "ext4,btrfs,xfs"]).status();
+    let _ = Command::new("mount")
+        .args(["-t", "ext4,btrfs,xfs"])
+        .status();
 
     // Check each filesystem
     let device: String = Input::new()
@@ -472,12 +480,16 @@ fn check_filesystem_integrity() {
     if device == "all" {
         println!("🔍 Checking all filesystems...");
         // Get list of devices
-        let output = Command::new("lsblk").args(["-f", "-n", "-o", "NAME,FSTYPE"]).output();
+        let output = Command::new("lsblk")
+            .args(["-f", "-n", "-o", "NAME,FSTYPE"])
+            .output();
         if let Ok(output) = output {
             let content = String::from_utf8_lossy(&output.stdout);
             for line in content.lines() {
                 let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 2 && (parts[1] == "ext4" || parts[1] == "btrfs" || parts[1] == "xfs") {
+                if parts.len() >= 2
+                    && (parts[1] == "ext4" || parts[1] == "btrfs" || parts[1] == "xfs")
+                {
                     let dev_path = format!("/dev/{}", parts[0]);
                     check_single_filesystem(&dev_path, parts[1]);
                 }
@@ -485,7 +497,9 @@ fn check_filesystem_integrity() {
         }
     } else {
         // Detect filesystem type
-        let output = Command::new("blkid").args(["-s", "TYPE", "-o", "value", &device]).output();
+        let output = Command::new("blkid")
+            .args(["-s", "TYPE", "-o", "value", &device])
+            .output();
         let fstype = if let Ok(output) = output {
             String::from_utf8_lossy(&output.stdout).trim().to_string()
         } else {
@@ -502,7 +516,7 @@ fn check_single_filesystem(device: &str, fstype: &str) {
     match fstype {
         "ext4" | "ext3" | "ext2" => {
             let _ = Command::new("sudo")
-                .args(["e2fsck", "-n", device])  // -n for no changes
+                .args(["e2fsck", "-n", device]) // -n for no changes
                 .status();
         }
         "btrfs" => {
@@ -512,7 +526,7 @@ fn check_single_filesystem(device: &str, fstype: &str) {
         }
         "xfs" => {
             let _ = Command::new("sudo")
-                .args(["xfs_repair", "-n", device])  // -n for no changes
+                .args(["xfs_repair", "-n", device]) // -n for no changes
                 .status();
         }
         _ => println!("⚠️  Unsupported filesystem type: {}", fstype),
@@ -542,7 +556,9 @@ fn repair_filesystem_errors() {
     }
 
     // Detect filesystem type
-    let output = Command::new("blkid").args(["-s", "TYPE", "-o", "value", &device]).output();
+    let output = Command::new("blkid")
+        .args(["-s", "TYPE", "-o", "value", &device])
+        .output();
     let fstype = if let Ok(output) = output {
         String::from_utf8_lossy(&output.stdout).trim().to_string()
     } else {
@@ -557,7 +573,7 @@ fn repair_filesystem_errors() {
     match fstype.as_str() {
         "ext4" | "ext3" | "ext2" => {
             let _ = Command::new("sudo")
-                .args(["e2fsck", "-y", &device])  // -y for automatic yes
+                .args(["e2fsck", "-y", &device]) // -y for automatic yes
                 .status();
         }
         "btrfs" => {
@@ -566,9 +582,7 @@ fn repair_filesystem_errors() {
                 .status();
         }
         "xfs" => {
-            let _ = Command::new("sudo")
-                .args(["xfs_repair", &device])
-                .status();
+            let _ = Command::new("sudo").args(["xfs_repair", &device]).status();
         }
         _ => println!("❌ Unsupported filesystem type: {}", fstype),
     }
@@ -582,7 +596,9 @@ fn check_disk_health() {
 
     // SMART status
     println!("🔍 SMART disk health:");
-    let _ = Command::new("sudo").args(["smartctl", "-H", "/dev/sda"]).status();
+    let _ = Command::new("sudo")
+        .args(["smartctl", "-H", "/dev/sda"])
+        .status();
 
     // Detailed SMART info
     let detailed = Confirm::new()
@@ -592,7 +608,9 @@ fn check_disk_health() {
         .unwrap();
 
     if detailed {
-        let _ = Command::new("sudo").args(["smartctl", "-a", "/dev/sda"]).status();
+        let _ = Command::new("sudo")
+            .args(["smartctl", "-a", "/dev/sda"])
+            .status();
     }
 
     // Disk usage
@@ -606,12 +624,22 @@ fn analyze_disk_usage() {
 
     println!("📁 Largest directories:");
     let _ = Command::new("sudo")
-        .args(["du", "-h", "/", "--max-depth=1", "--exclude=/proc", "--exclude=/sys", "--exclude=/dev"])
+        .args([
+            "du",
+            "-h",
+            "/",
+            "--max-depth=1",
+            "--exclude=/proc",
+            "--exclude=/sys",
+            "--exclude=/dev",
+        ])
         .status();
 
     println!("\n🗂️  Find large files:");
     let _ = Command::new("sudo")
-        .args(["find", "/", "-type", "f", "-size", "+100M", "-exec", "ls", "-lh", "{}", ";"])
+        .args([
+            "find", "/", "-type", "f", "-size", "+100M", "-exec", "ls", "-lh", "{}", ";",
+        ])
         .status();
 }
 
@@ -807,7 +835,12 @@ fn fix_user_permissions() {
     // Fix home directory ownership
     let home_dir = format!("/home/{}", username);
     let _ = Command::new("sudo")
-        .args(["chown", "-R", &format!("{}:{}", username, username), &home_dir])
+        .args([
+            "chown",
+            "-R",
+            &format!("{}:{}", username, username),
+            &home_dir,
+        ])
         .status();
 
     // Fix common permission issues
@@ -830,12 +863,19 @@ fn recover_home_directory() {
 
     if !Path::new(&home_dir).exists() {
         println!("📁 Creating home directory...");
-        let _ = Command::new("sudo").args(["mkdir", "-p", &home_dir]).status();
+        let _ = Command::new("sudo")
+            .args(["mkdir", "-p", &home_dir])
+            .status();
         let _ = Command::new("sudo")
             .args(["cp", "-r", "/etc/skel/.", &home_dir])
             .status();
         let _ = Command::new("sudo")
-            .args(["chown", "-R", &format!("{}:{}", username, username), &home_dir])
+            .args([
+                "chown",
+                "-R",
+                &format!("{}:{}", username, username),
+                &home_dir,
+            ])
             .status();
         println!("✅ Home directory recovered");
     } else {
@@ -859,7 +899,11 @@ fn fix_sudo_access() {
     // Ensure wheel group has sudo access
     println!("🔧 Ensuring wheel group has sudo access...");
     let _ = Command::new("sudo")
-        .args(["bash", "-c", "echo '%wheel ALL=(ALL:ALL) ALL' >> /etc/sudoers"])
+        .args([
+            "bash",
+            "-c",
+            "echo '%wheel ALL=(ALL:ALL) ALL' >> /etc/sudoers",
+        ])
         .status();
 
     println!("✅ Sudo access fixed");
@@ -870,14 +914,10 @@ fn list_all_users() {
     println!("==================");
 
     println!("👥 Regular users:");
-    let _ = Command::new("getent")
-        .args(["passwd"])
-        .status();
+    let _ = Command::new("getent").args(["passwd"]).status();
 
     println!("\n🔐 Users with sudo access:");
-    let _ = Command::new("getent")
-        .args(["group", "wheel"])
-        .status();
+    let _ = Command::new("getent").args(["group", "wheel"]).status();
 }
 
 fn package_database_recovery() {
@@ -946,9 +986,7 @@ fn fix_corrupted_database() {
     let _ = Command::new("sudo").args(["pacman", "-Dk"]).status();
 
     println!("🛠️  Attempting repair...");
-    let _ = Command::new("sudo")
-        .args(["pacman-db-upgrade"])
-        .status();
+    let _ = Command::new("sudo").args(["pacman-db-upgrade"]).status();
 
     println!("✅ Repair attempt completed");
 }
@@ -980,10 +1018,7 @@ fn restore_database_backup() {
 fn clear_broken_locks() {
     println!("🗑️  Clear Broken Locks");
 
-    let locks = [
-        "/var/lib/pacman/db.lck",
-        "/var/cache/pacman/pkg/cache.lck",
-    ];
+    let locks = ["/var/lib/pacman/db.lck", "/var/cache/pacman/pkg/cache.lck"];
 
     for lock in &locks {
         if Path::new(lock).exists() {
@@ -1005,7 +1040,8 @@ fn verify_database_integrity() {
 fn create_database_backup() {
     println!("💾 Create Database Backup");
 
-    let backup_path = format!("/var/lib/pacman.backup.{}",
+    let backup_path = format!(
+        "/var/lib/pacman.backup.{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -1090,13 +1126,21 @@ fn fix_wifi_issues() {
     match choice {
         0 => {
             println!("🔄 Restarting WiFi...");
-            let _ = Command::new("sudo").args(["ip", "link", "set", "wlan0", "down"]).status();
-            let _ = Command::new("sudo").args(["ip", "link", "set", "wlan0", "up"]).status();
+            let _ = Command::new("sudo")
+                .args(["ip", "link", "set", "wlan0", "down"])
+                .status();
+            let _ = Command::new("sudo")
+                .args(["ip", "link", "set", "wlan0", "up"])
+                .status();
         }
         1 => {
             println!("📶 Scanning networks...");
-            let _ = Command::new("iwctl").args(["station", "wlan0", "scan"]).status();
-            let _ = Command::new("iwctl").args(["station", "wlan0", "get-networks"]).status();
+            let _ = Command::new("iwctl")
+                .args(["station", "wlan0", "scan"])
+                .status();
+            let _ = Command::new("iwctl")
+                .args(["station", "wlan0", "get-networks"])
+                .status();
         }
         2 => {
             println!("🔑 Use iwctl to configure WiFi:");
@@ -1113,12 +1157,7 @@ fn fix_wifi_issues() {
 fn reset_dns_settings() {
     println!("🌍 Reset DNS Settings");
 
-    let dns_servers = [
-        "8.8.8.8",
-        "8.8.4.4",
-        "1.1.1.1",
-        "9.9.9.9",
-    ];
+    let dns_servers = ["8.8.8.8", "8.8.4.4", "1.1.1.1", "9.9.9.9"];
 
     println!("🌍 Available DNS servers:");
     for (i, server) in dns_servers.iter().enumerate() {
@@ -1136,7 +1175,11 @@ fn reset_dns_settings() {
 
     println!("🔧 Setting DNS to {}", selected_dns);
     let _ = Command::new("sudo")
-        .args(["bash", "-c", &format!("echo 'nameserver {}' > /etc/resolv.conf", selected_dns)])
+        .args([
+            "bash",
+            "-c",
+            &format!("echo 'nameserver {}' > /etc/resolv.conf", selected_dns),
+        ])
         .status();
 
     println!("✅ DNS settings updated");
@@ -1211,11 +1254,7 @@ fn reset_display_config() {
     println!("🔄 Reset Display Configuration");
 
     println!("🗑️  Removing X11 config files...");
-    let x11_configs = [
-        "~/.Xauthority",
-        "~/.xinitrc",
-        "/etc/X11/xorg.conf",
-    ];
+    let x11_configs = ["~/.Xauthority", "~/.xinitrc", "/etc/X11/xorg.conf"];
 
     for config in &x11_configs {
         let _ = Command::new("sudo").args(["rm", "-f", config]).status();
@@ -1229,7 +1268,9 @@ fn fix_x11_issues() {
 
     println!("🔧 Common X11 fixes:");
     println!("1. 🔄 Restart display manager");
-    let _ = Command::new("sudo").args(["systemctl", "restart", "gdm"]).status();
+    let _ = Command::new("sudo")
+        .args(["systemctl", "restart", "gdm"])
+        .status();
 
     println!("2. 🔑 Fix X11 permissions");
     let _ = Command::new("sudo").args(["chmod", "755", "/tmp"]).status();
@@ -1242,9 +1283,7 @@ fn fix_x11_issues() {
         .unwrap();
 
     if generate {
-        let _ = Command::new("sudo")
-            .args(["X", "-configure"])
-            .status();
+        let _ = Command::new("sudo").args(["X", "-configure"]).status();
     }
 }
 
@@ -1252,18 +1291,25 @@ fn wayland_troubleshooting() {
     println!("🎨 Wayland Troubleshooting");
 
     println!("🔍 Checking Wayland session...");
-    let _ = Command::new("loginctl").args(["show-session", "$XDG_SESSION_ID"]).status();
+    let _ = Command::new("loginctl")
+        .args(["show-session", "$XDG_SESSION_ID"])
+        .status();
 
     println!("🔧 Environment variables:");
     println!("  WAYLAND_DISPLAY: {:?}", std::env::var("WAYLAND_DISPLAY"));
-    println!("  XDG_SESSION_TYPE: {:?}", std::env::var("XDG_SESSION_TYPE"));
+    println!(
+        "  XDG_SESSION_TYPE: {:?}",
+        std::env::var("XDG_SESSION_TYPE")
+    );
 }
 
 fn graphics_driver_recovery() {
     println!("📱 Graphics Driver Recovery");
 
     println!("🔍 Detecting graphics hardware...");
-    let _ = Command::new("lspci").args(["-k", "|", "grep", "-A", "2", "-i", "VGA"]).status();
+    let _ = Command::new("lspci")
+        .args(["-k", "|", "grep", "-A", "2", "-i", "VGA"])
+        .status();
 
     println!("🔧 Common driver fixes:");
     println!("• NVIDIA: sudo pacman -S nvidia nvidia-utils");
@@ -1500,7 +1546,12 @@ fn install_bootloader() {
                 .args(["pacman", "-S", "--noconfirm", "grub", "efibootmgr"])
                 .status();
             let _ = Command::new("sudo")
-                .args(["grub-install", "--target=x86_64-efi", "--efi-directory=/boot", &device])
+                .args([
+                    "grub-install",
+                    "--target=x86_64-efi",
+                    "--efi-directory=/boot",
+                    &device,
+                ])
                 .status();
             let _ = Command::new("sudo")
                 .args(["grub-mkconfig", "-o", "/boot/grub/grub.cfg"])
@@ -1557,8 +1608,12 @@ fn mount_operations() {
                 .interact_text()
                 .unwrap();
 
-            let _ = Command::new("sudo").args(["mkdir", "-p", &mount_point]).status();
-            let _ = Command::new("sudo").args(["mount", &device, &mount_point]).status();
+            let _ = Command::new("sudo")
+                .args(["mkdir", "-p", &mount_point])
+                .status();
+            let _ = Command::new("sudo")
+                .args(["mount", &device, &mount_point])
+                .status();
             println!("✅ Mounted {} to {}", device, mount_point);
         }
         1 => {
@@ -1631,8 +1686,12 @@ fn advanced_repair_options() {
         }
         2 => {
             println!("🔑 Fixing critical permissions...");
-            let _ = Command::new("sudo").args(["chmod", "755", "/", "/usr", "/usr/bin"]).status();
-            let _ = Command::new("sudo").args(["chmod", "644", "/etc/passwd"]).status();
+            let _ = Command::new("sudo")
+                .args(["chmod", "755", "/", "/usr", "/usr/bin"])
+                .status();
+            let _ = Command::new("sudo")
+                .args(["chmod", "644", "/etc/passwd"])
+                .status();
         }
         3 => {
             println!("🗂️  Deep filesystem scan...");
@@ -1640,7 +1699,9 @@ fn advanced_repair_options() {
                 .with_prompt("Enter device for deep scan")
                 .interact_text()
                 .unwrap();
-            let _ = Command::new("sudo").args(["badblocks", "-v", &device]).status();
+            let _ = Command::new("sudo")
+                .args(["badblocks", "-v", &device])
+                .status();
         }
         _ => return,
     }
@@ -1669,7 +1730,9 @@ fn fix_boot_issues() {
     match choice {
         0 => {
             println!("🔄 Regenerating GRUB configuration...");
-            let _ = Command::new("sudo").args(["grub-mkconfig", "-o", "/boot/grub/grub.cfg"]).status();
+            let _ = Command::new("sudo")
+                .args(["grub-mkconfig", "-o", "/boot/grub/grub.cfg"])
+                .status();
         }
         1 => {
             println!("🔧 Reinstalling GRUB...");
@@ -1677,8 +1740,12 @@ fn fix_boot_issues() {
                 .with_prompt("Enter device to install GRUB to (e.g. /dev/sda)")
                 .interact_text()
                 .unwrap();
-            let _ = Command::new("sudo").args(["grub-install", &device]).status();
-            let _ = Command::new("sudo").args(["grub-mkconfig", "-o", "/boot/grub/grub.cfg"]).status();
+            let _ = Command::new("sudo")
+                .args(["grub-install", &device])
+                .status();
+            let _ = Command::new("sudo")
+                .args(["grub-mkconfig", "-o", "/boot/grub/grub.cfg"])
+                .status();
         }
         2 => {
             println!("🥾 Fixing systemd-boot...");
@@ -1721,7 +1788,16 @@ fn repair_critical_packages() {
     match choice {
         0 => {
             println!("🔧 Reinstalling base packages...");
-            let _ = Command::new("sudo").args(["pacman", "-S", "--noconfirm", "base", "linux", "linux-firmware"]).status();
+            let _ = Command::new("sudo")
+                .args([
+                    "pacman",
+                    "-S",
+                    "--noconfirm",
+                    "base",
+                    "linux",
+                    "linux-firmware",
+                ])
+                .status();
         }
         1 => {
             println!("🗃️  Fixing package database...");
@@ -1742,7 +1818,9 @@ fn repair_critical_packages() {
         }
         4 => {
             println!("🧹 Cleaning package cache...");
-            let _ = Command::new("sudo").args(["pacman", "-Scc", "--noconfirm"]).status();
+            let _ = Command::new("sudo")
+                .args(["pacman", "-Scc", "--noconfirm"])
+                .status();
         }
         _ => return,
     }
@@ -1793,18 +1871,35 @@ fn reset_user_permissions() {
         .interact_text()
         .unwrap();
 
-    let _ = Command::new("sudo").args(["usermod", "-aG", "wheel,audio,video,optical,storage", &username]).status();
+    let _ = Command::new("sudo")
+        .args([
+            "usermod",
+            "-aG",
+            "wheel,audio,video,optical,storage",
+            &username,
+        ])
+        .status();
 }
 
 fn reset_systemd_services() {
     println!("⚙️  Resetting systemd services...");
-    let _ = Command::new("sudo").args(["systemctl", "daemon-reload"]).status();
-    let _ = Command::new("sudo").args(["systemctl", "reset-failed"]).status();
+    let _ = Command::new("sudo")
+        .args(["systemctl", "daemon-reload"])
+        .status();
+    let _ = Command::new("sudo")
+        .args(["systemctl", "reset-failed"])
+        .status();
 }
 
 fn reset_file_permissions() {
     println!("📁 Resetting critical file permissions...");
-    let _ = Command::new("sudo").args(["chmod", "755", "/usr/bin"]).status();
-    let _ = Command::new("sudo").args(["chmod", "644", "/etc/passwd"]).status();
-    let _ = Command::new("sudo").args(["chmod", "600", "/etc/shadow"]).status();
+    let _ = Command::new("sudo")
+        .args(["chmod", "755", "/usr/bin"])
+        .status();
+    let _ = Command::new("sudo")
+        .args(["chmod", "644", "/etc/passwd"])
+        .status();
+    let _ = Command::new("sudo")
+        .args(["chmod", "600", "/etc/shadow"])
+        .status();
 }

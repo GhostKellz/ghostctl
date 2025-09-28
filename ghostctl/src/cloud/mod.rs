@@ -2,7 +2,7 @@ pub mod aws;
 pub mod azure;
 pub mod gcp;
 
-use dialoguer::{Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Select};
 
 pub fn infrastructure_menu() {
     loop {

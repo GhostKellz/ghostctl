@@ -1,7 +1,7 @@
-use dialoguer::{Confirm, Input, Select, MultiSelect, theme::ColorfulTheme};
-use std::process::Command;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 
 pub fn pkgbuild_management() {
     println!("📦 PKGBUILD Management & Validation");
@@ -55,9 +55,7 @@ fn validate_pkgbuild_syntax() {
     println!("🔄 Validating PKGBUILD syntax...");
 
     // Basic syntax check using bash -n
-    let syntax_check = Command::new("bash")
-        .args(["-n", &pkgbuild_path])
-        .output();
+    let syntax_check = Command::new("bash").args(["-n", &pkgbuild_path]).output();
 
     match syntax_check {
         Ok(output) if output.status.success() => {
@@ -139,7 +137,7 @@ fn fix_common_pkgbuild_issues() {
 
     let pkgbuild_path: String = Input::new()
         .with_prompt("Enter PKGBUILD file path")
-.with_initial_text("./PKGBUILD")
+        .with_initial_text("./PKGBUILD")
         .interact_text()
         .unwrap();
 
@@ -246,11 +244,21 @@ fn update_to_standards(content: String) -> String {
     let mut fixed = content;
 
     // Update deprecated syntax
-    fixed = fixed.replace("md5sums=", "# Deprecated: use sha256sums instead\n# md5sums=");
-    fixed = fixed.replace("sha1sums=", "# Deprecated: use sha256sums instead\n# sha1sums=");
+    fixed = fixed.replace(
+        "md5sums=",
+        "# Deprecated: use sha256sums instead\n# md5sums=",
+    );
+    fixed = fixed.replace(
+        "sha1sums=",
+        "# Deprecated: use sha256sums instead\n# sha1sums=",
+    );
 
-    if !fixed.contains("sha256sums=") && (fixed.contains("md5sums=") || fixed.contains("sha1sums=")) {
-        fixed = format!("{}\nsha256sums=('SKIP')  # TODO: Add proper checksums", fixed);
+    if !fixed.contains("sha256sums=") && (fixed.contains("md5sums=") || fixed.contains("sha1sums="))
+    {
+        fixed = format!(
+            "{}\nsha256sums=('SKIP')  # TODO: Add proper checksums",
+            fixed
+        );
         println!("🔢 Updated to modern checksum standards");
     }
 
@@ -295,7 +303,7 @@ fn analyze_pkgbuild_dependencies() {
 
     let pkgbuild_path: String = Input::new()
         .with_prompt("Enter PKGBUILD file path")
-.with_initial_text("./PKGBUILD")
+        .with_initial_text("./PKGBUILD")
         .interact_text()
         .unwrap();
 
@@ -354,7 +362,7 @@ fn auto_fix_pkgbuild() {
 
     let pkgbuild_path: String = Input::new()
         .with_prompt("Enter PKGBUILD file path")
-.with_initial_text("./PKGBUILD")
+        .with_initial_text("./PKGBUILD")
         .interact_text()
         .unwrap();
 
@@ -431,9 +439,7 @@ fn clean_build_environment() {
             }
             1 => {
                 println!("📁 Removing build directories...");
-                let _ = Command::new("rm")
-                    .args(["-rf", "./src", "./pkg"])
-                    .status();
+                let _ = Command::new("rm").args(["-rf", "./src", "./pkg"]).status();
             }
             2 => {
                 println!("🧹 Cleaning source cache...");
@@ -474,7 +480,7 @@ fn pkgbuild_security_audit() {
 
     let pkgbuild_path: String = Input::new()
         .with_prompt("Enter PKGBUILD file path")
-.with_initial_text("./PKGBUILD")
+        .with_initial_text("./PKGBUILD")
         .interact_text()
         .unwrap();
 
@@ -545,7 +551,7 @@ fn update_pkgbuild_standards() {
 
     let pkgbuild_path: String = Input::new()
         .with_prompt("Enter PKGBUILD file path")
-.with_initial_text("./PKGBUILD")
+        .with_initial_text("./PKGBUILD")
         .interact_text()
         .unwrap();
 
@@ -583,9 +589,7 @@ fn update_pkgbuild_standards() {
                     .args(["--printsrcinfo"])
                     .current_dir(Path::new(&pkgbuild_path).parent().unwrap_or(Path::new(".")))
                     .output()
-                    .and_then(|output| {
-                        fs::write(".SRCINFO", output.stdout)
-                    });
+                    .and_then(|output| fs::write(".SRCINFO", output.stdout));
                 println!("  ✅ .SRCINFO generated");
             }
             1 => {

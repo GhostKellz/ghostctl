@@ -1,17 +1,15 @@
-use dialoguer::{Select, Input, Confirm, theme::ColorfulTheme, MultiSelect};
-use std::process::Command;
-use std::path::Path;
-use std::fs;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
+use std::process::Command;
 use std::sync::OnceLock;
 
 // Cache for commonly accessed paths
 static HOME_DIR: OnceLock<String> = OnceLock::new();
 
 fn get_home_dir() -> &'static str {
-    HOME_DIR.get_or_init(|| {
-        std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string())
-    })
+    HOME_DIR.get_or_init(|| std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string()))
 }
 
 pub fn wine_tools_menu() {
@@ -111,10 +109,7 @@ fn automatic_dependency_resolution() {
 
     // Check with ldd in Wine
     let ldd_cmd = format!("WINEPREFIX={} wine ldd '{}'", wine_prefix, exe_path);
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(&ldd_cmd)
-        .output();
+    let output = Command::new("sh").arg("-c").arg(&ldd_cmd).output();
 
     let mut missing_dlls = Vec::new();
 
@@ -239,22 +234,62 @@ fn create_batch_script() {
 
     let all_components = vec![
         // Runtimes
-        "vcrun2019", "vcrun2017", "vcrun2015", "vcrun2013", "vcrun2012", "vcrun2010",
-        "vcrun2008", "vcrun2005", "vcrun6", "vcrun6sp6",
+        "vcrun2019",
+        "vcrun2017",
+        "vcrun2015",
+        "vcrun2013",
+        "vcrun2012",
+        "vcrun2010",
+        "vcrun2008",
+        "vcrun2005",
+        "vcrun6",
+        "vcrun6sp6",
         // .NET
-        "dotnet48", "dotnet472", "dotnet471", "dotnet47", "dotnet462", "dotnet461",
-        "dotnet46", "dotnet452", "dotnet45", "dotnet40", "dotnet35", "dotnet30",
-        "dotnet20", "dotnetcore3", "dotnetcore2",
+        "dotnet48",
+        "dotnet472",
+        "dotnet471",
+        "dotnet47",
+        "dotnet462",
+        "dotnet461",
+        "dotnet46",
+        "dotnet452",
+        "dotnet45",
+        "dotnet40",
+        "dotnet35",
+        "dotnet30",
+        "dotnet20",
+        "dotnetcore3",
+        "dotnetcore2",
         // DirectX
-        "d3dx9", "d3dx10", "d3dx11_43", "d3dcompiler_47", "d3dcompiler_43",
+        "d3dx9",
+        "d3dx10",
+        "d3dx11_43",
+        "d3dcompiler_47",
+        "d3dcompiler_43",
         // Audio
-        "faudio", "xact", "openal", "dsound",
+        "faudio",
+        "xact",
+        "openal",
+        "dsound",
         // Fonts
-        "corefonts", "tahoma", "arial", "comicsans", "georgia", "impact",
+        "corefonts",
+        "tahoma",
+        "arial",
+        "comicsans",
+        "georgia",
+        "impact",
         // System
-        "gdiplus", "msxml3", "msxml4", "msxml6", "riched20", "riched30",
+        "gdiplus",
+        "msxml3",
+        "msxml4",
+        "msxml6",
+        "riched20",
+        "riched30",
         // Gaming
-        "physx", "gamemode", "dxvk", "vkd3d",
+        "physx",
+        "gamemode",
+        "dxvk",
+        "vkd3d",
     ];
 
     let selected = MultiSelect::with_theme(&ColorfulTheme::default())
@@ -276,8 +311,10 @@ fn create_batch_script() {
     for idx in selected {
         let component = all_components[idx];
         script_content.push_str(&format!("echo \"Installing {}...\"\n", component));
-        script_content.push_str(&format!("winetricks -q {} || echo \"Failed to install {}\"\n\n",
-            component, component));
+        script_content.push_str(&format!(
+            "winetricks -q {} || echo \"Failed to install {}\"\n\n",
+            component, component
+        ));
     }
 
     script_content.push_str("echo \"Batch installation complete!\"\n");
@@ -341,9 +378,7 @@ fn run_batch_script() {
         .unwrap();
 
     println!("▶️ Running script: {}", script);
-    let status = Command::new(&script_path)
-        .arg(&wine_prefix)
-        .status();
+    let status = Command::new(&script_path).arg(&wine_prefix).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Script executed successfully"),
@@ -389,10 +424,7 @@ fn edit_batch_script() {
     let script_path = format!("{}/{}", script_dir, script);
 
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
-    Command::new(&editor)
-        .arg(&script_path)
-        .status()
-        .ok();
+    Command::new(&editor).arg(&script_path).status().ok();
 }
 
 fn delete_batch_script() {
@@ -544,7 +576,12 @@ fn custom_verb_creator() {
 
     let verb_type = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select verb type")
-        .items(&["Download and install", "Registry modification", "File operation", "Combined"])
+        .items(&[
+            "Download and install",
+            "Registry modification",
+            "File operation",
+            "Combined",
+        ])
         .default(0)
         .interact()
         .unwrap();
@@ -566,10 +603,7 @@ fn custom_verb_creator() {
                 .interact()
                 .unwrap();
 
-            verb_content.push_str(&format!(
-                "w_download '{}' CHECKSUM\n",
-                url
-            ));
+            verb_content.push_str(&format!("w_download '{}' CHECKSUM\n", url));
             verb_content.push_str(&format!("w_try {}\n", install_cmd));
         }
         1 => {
@@ -689,40 +723,48 @@ fn create_winetricks_profile() {
         0 => {
             // Modern gaming
             components = vec![
-                "vcrun2019", "dotnet48", "d3dx11_43", "d3dcompiler_47",
-                "faudio", "dxvk", "vkd3d"
+                "vcrun2019",
+                "dotnet48",
+                "d3dx11_43",
+                "d3dcompiler_47",
+                "faudio",
+                "dxvk",
+                "vkd3d",
             ];
         }
         1 => {
             // Classic gaming
-            components = vec![
-                "vcrun2008", "dotnet40", "d3dx9", "physx", "xact"
-            ];
+            components = vec!["vcrun2008", "dotnet40", "d3dx9", "physx", "xact"];
         }
         2 => {
             // Office
-            components = vec![
-                "dotnet48", "vcrun2019", "gdiplus", "riched30", "corefonts"
-            ];
+            components = vec!["dotnet48", "vcrun2019", "gdiplus", "riched30", "corefonts"];
         }
         3 => {
             // Development
-            components = vec![
-                "dotnet48", "vcrun2019", "python", "msxml6"
-            ];
+            components = vec!["dotnet48", "vcrun2019", "python", "msxml6"];
         }
         4 => {
             // Media
-            components = vec![
-                "vcrun2019", "gdiplus", "quartz", "amstream", "wmv9vcm"
-            ];
+            components = vec!["vcrun2019", "gdiplus", "quartz", "amstream", "wmv9vcm"];
         }
         5 => {
             // Custom
             let all_components = vec![
-                "vcrun2019", "vcrun2017", "vcrun2015", "dotnet48", "dotnet40",
-                "d3dx9", "d3dx11_43", "dxvk", "vkd3d", "faudio", "xact",
-                "corefonts", "gdiplus", "physx"
+                "vcrun2019",
+                "vcrun2017",
+                "vcrun2015",
+                "dotnet48",
+                "dotnet40",
+                "d3dx9",
+                "d3dx11_43",
+                "dxvk",
+                "vkd3d",
+                "faudio",
+                "xact",
+                "corefonts",
+                "gdiplus",
+                "physx",
             ];
 
             let selected = MultiSelect::with_theme(&ColorfulTheme::default())
@@ -842,10 +884,7 @@ fn edit_winetricks_profile() {
     let profile_path = format!("{}/{}.profile", profile_dir, profile);
 
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
-    Command::new(&editor)
-        .arg(&profile_path)
-        .status()
-        .ok();
+    Command::new(&editor).arg(&profile_path).status().ok();
 }
 
 fn delete_winetricks_profile() {
@@ -936,8 +975,7 @@ fn export_winetricks_profile() {
 
     let export_path = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter export path")
-        .default(format!("{}/{}.profile",
-            get_home_dir(), profile))
+        .default(format!("{}/{}.profile", get_home_dir(), profile))
         .interact()
         .unwrap();
 
@@ -982,7 +1020,10 @@ fn game_specific_recipes() {
 
     let games = vec![
         ("Grand Theft Auto V", vec!["vcrun2019", "d3dcompiler_47"]),
-        ("The Witcher 3", vec!["vcrun2015", "d3dx11_43", "d3dcompiler_43"]),
+        (
+            "The Witcher 3",
+            vec!["vcrun2015", "d3dx11_43", "d3dcompiler_43"],
+        ),
         ("Cyberpunk 2077", vec!["vcrun2019", "dotnet48"]),
         ("Red Dead Redemption 2", vec!["vcrun2019", "dotnet48"]),
         ("Skyrim", vec!["vcrun2019", "dotnet40", "d3dx9"]),
@@ -1122,10 +1163,7 @@ fn component_status() {
     println!("🔍 Checking installed winetricks components...");
     let cmd = format!("WINEPREFIX={} winetricks list-installed", wine_prefix);
 
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .output();
+    let output = Command::new("sh").arg("-c").arg(&cmd).output();
 
     match output {
         Ok(out) => {
@@ -1151,10 +1189,7 @@ fn update_winetricks() {
     println!("📥 Downloading latest winetricks...");
     let cmd = "sudo wget -O /usr/local/bin/winetricks https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks && sudo chmod +x /usr/local/bin/winetricks";
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -1226,12 +1261,12 @@ fn create_wine_bottle() {
     let arch_str = if arch == 0 { "win64" } else { "win32" };
 
     println!("🍾 Creating bottle...");
-    let cmd = format!("WINEPREFIX={} WINEARCH={} wineboot -i", bottle_path, arch_str);
+    let cmd = format!(
+        "WINEPREFIX={} WINEARCH={} wineboot -i",
+        bottle_path, arch_str
+    );
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -1306,8 +1341,7 @@ fn configure_wine_bottle() {
         .interact()
         .unwrap();
 
-    let bottle_path = format!("{}/Wine/bottles/{}",
-        get_home_dir(), bottle_name);
+    let bottle_path = format!("{}/Wine/bottles/{}", get_home_dir(), bottle_name);
 
     if !Path::new(&bottle_path).exists() {
         println!("❌ Bottle not found");
@@ -1344,10 +1378,7 @@ fn clone_wine_bottle() {
     println!("🔄 Cloning bottle...");
     let cmd = format!("cp -r '{}' '{}'", source_path, dest_path);
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
-        .status();
+    let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
     match status {
         Ok(s) if s.success() => {
@@ -1374,8 +1405,7 @@ fn delete_wine_bottle() {
         .interact()
         .unwrap();
 
-    let bottle_path = format!("{}/Wine/bottles/{}",
-        get_home_dir(), bottle_name);
+    let bottle_path = format!("{}/Wine/bottles/{}", get_home_dir(), bottle_name);
 
     if !Path::new(&bottle_path).exists() {
         println!("❌ Bottle not found");
@@ -1396,17 +1426,22 @@ fn delete_wine_bottle() {
             .unwrap();
 
         if backup {
-            let backup_path = format!("{}/Wine/bottle_backups/{}_backup.tar.gz",
-                get_home_dir(), bottle_name);
-            fs::create_dir_all(format!("{}/Wine/bottle_backups",
-                get_home_dir())).ok();
+            let backup_path = format!(
+                "{}/Wine/bottle_backups/{}_backup.tar.gz",
+                get_home_dir(),
+                bottle_name
+            );
+            fs::create_dir_all(format!("{}/Wine/bottle_backups", get_home_dir())).ok();
 
             let cmd = format!("tar -czf '{}' -C '{}' .", backup_path, bottle_path);
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
             println!("💾 Backup created: {}", backup_path);
         }
 
-        Command::new("rm").args(&["-rf", &bottle_path]).status().ok();
+        Command::new("rm")
+            .args(&["-rf", &bottle_path])
+            .status()
+            .ok();
         println!("✅ Bottle deleted");
     }
 }
@@ -1428,8 +1463,7 @@ fn import_export_bottle() {
                 .interact()
                 .unwrap();
 
-            let bottle_path = format!("{}/Wine/bottles/{}",
-                get_home_dir(), bottle_name);
+            let bottle_path = format!("{}/Wine/bottles/{}", get_home_dir(), bottle_name);
 
             if !Path::new(&bottle_path).exists() {
                 println!("❌ Bottle not found");
@@ -1438,18 +1472,14 @@ fn import_export_bottle() {
 
             let export_path = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter export path")
-                .default(format!("{}/{}.tar.gz",
-                    get_home_dir(), bottle_name))
+                .default(format!("{}/{}.tar.gz", get_home_dir(), bottle_name))
                 .interact()
                 .unwrap();
 
             println!("📦 Exporting bottle...");
             let cmd = format!("tar -czf '{}' -C '{}' .", export_path, bottle_path);
 
-            let status = Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status();
+            let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
             match status {
                 Ok(s) if s.success() => println!("✅ Bottle exported to: {}", export_path),
@@ -1481,10 +1511,7 @@ fn import_export_bottle() {
             println!("📥 Importing bottle...");
             let cmd = format!("tar -xzf '{}' -C '{}'", import_path, bottle_path);
 
-            let status = Command::new("sh")
-                .arg("-c")
-                .arg(&cmd)
-                .status();
+            let status = Command::new("sh").arg("-c").arg(&cmd).status();
 
             match status {
                 Ok(s) if s.success() => println!("✅ Bottle imported: {}", bottle_name),
@@ -1543,9 +1570,11 @@ fn create_wine_bottle_with_template(bottle_name: &str, template_id: &str) {
     match template_id {
         "gaming_perf" => {
             // High performance gaming
-            Command::new("sh").arg("-c")
+            Command::new("sh")
+                .arg("-c")
                 .arg(&format!("WINEPREFIX={} winecfg /v win10", bottle_path))
-                .status().ok();
+                .status()
+                .ok();
 
             let components = ["vcrun2019", "dotnet48", "dxvk", "vkd3d"];
             for comp in &components {
@@ -1555,9 +1584,11 @@ fn create_wine_bottle_with_template(bottle_name: &str, template_id: &str) {
         }
         "gaming_compat" => {
             // Maximum compatibility
-            Command::new("sh").arg("-c")
+            Command::new("sh")
+                .arg("-c")
                 .arg(&format!("WINEPREFIX={} winecfg /v win7", bottle_path))
-                .status().ok();
+                .status()
+                .ok();
 
             let components = ["vcrun2019", "vcrun2017", "vcrun2015", "dotnet48", "d3dx9"];
             for comp in &components {

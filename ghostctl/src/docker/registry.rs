@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme, MultiSelect};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::fs;
 use std::process::Command;
 
@@ -6,10 +6,10 @@ pub fn registry_management() {
     loop {
         let options = vec![
             "🏗️  Registry Selection & Auth",
-            "🪞 Registry Mirror Setup", 
+            "🪞 Registry Mirror Setup",
             "🔍 Search Images",
             "📥 Pull Image",
-            "📤 Push Image", 
+            "📤 Push Image",
             "📋 List Local Images",
             "🗑️  Remove Image",
             "🏷️  Tag Image",
@@ -116,7 +116,8 @@ fn setup_basic_registry() {
         .interact()
         .unwrap();
 
-    let docker_compose_content = format!(r#"version: '3.8'
+    let docker_compose_content = format!(
+        r#"version: '3.8'
 
 services:
   registry:
@@ -133,12 +134,12 @@ services:
 networks:
   default:
     name: registry-network
-"#, registry_port, storage_path);
+"#,
+        registry_port, storage_path
+    );
 
     // Create registry directory
-    let _ = Command::new("mkdir")
-        .args(&["-p", &storage_path])
-        .status();
+    let _ = Command::new("mkdir").args(&["-p", &storage_path]).status();
 
     // Write docker-compose file
     fs::write("/tmp/registry-compose.yml", docker_compose_content).ok();
@@ -158,9 +159,18 @@ networks:
 
         println!("✅ Local registry started on port {}", registry_port);
         println!("📋 Usage examples:");
-        println!("   • Tag image: docker tag myimage localhost:{}/myimage", registry_port);
-        println!("   • Push image: docker push localhost:{}/myimage", registry_port);
-        println!("   • Pull image: docker pull localhost:{}/myimage", registry_port);
+        println!(
+            "   • Tag image: docker tag myimage localhost:{}/myimage",
+            registry_port
+        );
+        println!(
+            "   • Push image: docker push localhost:{}/myimage",
+            registry_port
+        );
+        println!(
+            "   • Pull image: docker pull localhost:{}/myimage",
+            registry_port
+        );
     }
 }
 
@@ -339,7 +349,8 @@ fn setup_secured_registry() {
         .args(&["-Bbn", &auth_username, &auth_password])
         .output();
 
-    let secured_compose = format!(r#"version: '3.8'
+    let secured_compose = format!(
+        r#"version: '3.8'
 
 services:
   registry:
@@ -362,22 +373,27 @@ services:
 
 volumes:
   registry-data:
-"#, domain, domain, cert_path, domain, key_path, domain);
+"#,
+        domain, domain, cert_path, domain, key_path, domain
+    );
 
     fs::write("/tmp/secured-registry-compose.yml", secured_compose).ok();
 
     println!("✅ Secured registry configuration created!");
     println!("📋 Next steps:");
     println!("   1. Place SSL certificates in specified paths");
-    println!("   2. Create htpasswd file: htpasswd -Bn {} password > htpasswd", auth_username);
+    println!(
+        "   2. Create htpasswd file: htpasswd -Bn {} password > htpasswd",
+        auth_username
+    );
     println!("   3. Start with: docker-compose -f /tmp/secured-registry-compose.yml up -d");
 }
 
 fn configure_registry_mirrors() {
     println!("🪞 Configure Docker Registry Mirrors\n");
 
-    let current_config = fs::read_to_string("/etc/docker/daemon.json")
-        .unwrap_or_else(|_| "{}".to_string());
+    let current_config =
+        fs::read_to_string("/etc/docker/daemon.json").unwrap_or_else(|_| "{}".to_string());
 
     println!("📋 Current Docker daemon configuration:");
     println!("{}", current_config);
@@ -447,7 +463,10 @@ fn add_custom_mirror() {
         .interact()
         .unwrap();
 
-    println!("🔄 Adding custom mirror: {} -> {}", registry_url, mirror_url);
+    println!(
+        "🔄 Adding custom mirror: {} -> {}",
+        registry_url, mirror_url
+    );
     update_daemon_json_with_custom_mirror(&registry_url, &mirror_url);
 }
 
@@ -458,11 +477,11 @@ fn configure_multiple_mirrors() {
         .with_prompt("Select mirrors to configure")
         .items(&[
             "Docker Hub (docker.io)",
-            "GitHub Container Registry (ghcr.io)", 
+            "GitHub Container Registry (ghcr.io)",
             "Red Hat Quay (quay.io)",
             "Google Container Registry (gcr.io)",
             "Amazon ECR",
-            "Custom Registry"
+            "Custom Registry",
         ])
         .interact()
         .unwrap();
@@ -480,7 +499,7 @@ fn configure_multiple_mirrors() {
                     .interact()
                     .unwrap();
                 mirror_list.push(ghcr_mirror);
-            },
+            }
             2 => {
                 let quay_mirror: String = Input::with_theme(&ColorfulTheme::default())
                     .with_prompt("Quay mirror URL")
@@ -488,7 +507,7 @@ fn configure_multiple_mirrors() {
                     .interact()
                     .unwrap();
                 mirror_list.push(quay_mirror);
-            },
+            }
             _ => {
                 let custom_mirror: String = Input::with_theme(&ColorfulTheme::default())
                     .with_prompt("Custom mirror URL")
@@ -502,12 +521,19 @@ fn configure_multiple_mirrors() {
     mirror_config.insert(
         "registry-mirrors".to_string(),
         serde_json::Value::Array(
-            mirror_list.into_iter().map(serde_json::Value::String).collect()
-        )
+            mirror_list
+                .into_iter()
+                .map(serde_json::Value::String)
+                .collect(),
+        ),
     );
 
     let daemon_config = serde_json::Value::Object(mirror_config);
-    fs::write("/etc/docker/daemon.json", serde_json::to_string_pretty(&daemon_config).unwrap()).ok();
+    fs::write(
+        "/etc/docker/daemon.json",
+        serde_json::to_string_pretty(&daemon_config).unwrap(),
+    )
+    .ok();
 
     println!("✅ Multiple mirrors configured!");
     restart_docker_daemon();
@@ -517,12 +543,13 @@ fn remove_mirror() {
     println!("🗑️  Remove Registry Mirror\n");
 
     // Read current config
-    let current_config = fs::read_to_string("/etc/docker/daemon.json")
-        .unwrap_or_else(|_| "{}".to_string());
+    let current_config =
+        fs::read_to_string("/etc/docker/daemon.json").unwrap_or_else(|_| "{}".to_string());
 
     if let Ok(config) = serde_json::from_str::<serde_json::Value>(&current_config) {
         if let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array()) {
-            let mirror_strings: Vec<String> = mirrors.iter()
+            let mirror_strings: Vec<String> = mirrors
+                .iter()
                 .filter_map(|m| m.as_str().map(String::from))
                 .collect();
 
@@ -548,11 +575,18 @@ fn remove_mirror() {
             new_config.insert(
                 "registry-mirrors".to_string(),
                 serde_json::Value::Array(
-                    remaining_mirrors.into_iter().map(serde_json::Value::String).collect()
-                )
+                    remaining_mirrors
+                        .into_iter()
+                        .map(serde_json::Value::String)
+                        .collect(),
+                ),
             );
 
-            fs::write("/etc/docker/daemon.json", serde_json::to_string_pretty(&serde_json::Value::Object(new_config)).unwrap()).ok();
+            fs::write(
+                "/etc/docker/daemon.json",
+                serde_json::to_string_pretty(&serde_json::Value::Object(new_config)).unwrap(),
+            )
+            .ok();
             println!("✅ Mirrors removed!");
             restart_docker_daemon();
         }
@@ -563,8 +597,8 @@ fn show_mirror_status() {
     println!("📊 Registry Mirror Status\n");
 
     // Show current configuration
-    let current_config = fs::read_to_string("/etc/docker/daemon.json")
-        .unwrap_or_else(|_| "{}".to_string());
+    let current_config =
+        fs::read_to_string("/etc/docker/daemon.json").unwrap_or_else(|_| "{}".to_string());
 
     println!("📋 Current mirror configuration:");
     println!("{}", current_config);
@@ -577,9 +611,16 @@ fn show_mirror_status() {
                 if let Some(mirror_url) = mirror.as_str() {
                     println!("Testing {}...", mirror_url);
                     let result = Command::new("curl")
-                        .args(&["-s", "-o", "/dev/null", "-w", "%{http_code}", &format!("{}/v2/", mirror_url)])
+                        .args(&[
+                            "-s",
+                            "-o",
+                            "/dev/null",
+                            "-w",
+                            "%{http_code}",
+                            &format!("{}/v2/", mirror_url),
+                        ])
                         .output();
-                    
+
                     if let Ok(output) = result {
                         let status_code = String::from_utf8_lossy(&output.stdout);
                         if status_code == "200" || status_code == "401" {
@@ -595,17 +636,20 @@ fn show_mirror_status() {
 
     // Show Docker info
     println!("\n🐳 Docker daemon info:");
-    let _ = Command::new("docker").args(&["info", "--format", "{{.RegistryConfig}}"]).status();
+    let _ = Command::new("docker")
+        .args(&["info", "--format", "{{.RegistryConfig}}"])
+        .status();
 }
 
 fn update_daemon_json_with_mirror(mirror_url: &str) {
-    let current_config = fs::read_to_string("/etc/docker/daemon.json")
-        .unwrap_or_else(|_| "{}".to_string());
+    let current_config =
+        fs::read_to_string("/etc/docker/daemon.json").unwrap_or_else(|_| "{}".to_string());
 
-    let mut config: serde_json::Value = serde_json::from_str(&current_config)
-        .unwrap_or_else(|_| serde_json::json!({}));
+    let mut config: serde_json::Value =
+        serde_json::from_str(&current_config).unwrap_or_else(|_| serde_json::json!({}));
 
-    let mirrors = config.get_mut("registry-mirrors")
+    let mirrors = config
+        .get_mut("registry-mirrors")
         .and_then(|m| m.as_array_mut())
         .map(|mirrors| {
             mirrors.push(serde_json::Value::String(mirror_url.to_string()));
@@ -623,15 +667,16 @@ fn update_daemon_json_with_mirror(mirror_url: &str) {
 }
 
 fn update_daemon_json_with_custom_mirror(registry_url: &str, mirror_url: &str) {
-    let current_config = fs::read_to_string("/etc/docker/daemon.json")
-        .unwrap_or_else(|_| "{}".to_string());
+    let current_config =
+        fs::read_to_string("/etc/docker/daemon.json").unwrap_or_else(|_| "{}".to_string());
 
-    let mut config: serde_json::Value = serde_json::from_str(&current_config)
-        .unwrap_or_else(|_| serde_json::json!({}));
+    let mut config: serde_json::Value =
+        serde_json::from_str(&current_config).unwrap_or_else(|_| serde_json::json!({}));
 
     // Add to insecure registries if needed
     if !mirror_url.starts_with("https://") {
-        let insecure = config.get_mut("insecure-registries")
+        let insecure = config
+            .get_mut("insecure-registries")
             .and_then(|r| r.as_array_mut())
             .map(|registries| {
                 registries.push(serde_json::Value::String(mirror_url.to_string()));
@@ -644,7 +689,10 @@ fn update_daemon_json_with_custom_mirror(registry_url: &str, mirror_url: &str) {
 
     if let Ok(config_json) = serde_json::to_string_pretty(&config) {
         fs::write("/etc/docker/daemon.json", config_json).ok();
-        println!("✅ Custom mirror configured: {} -> {}", registry_url, mirror_url);
+        println!(
+            "✅ Custom mirror configured: {} -> {}",
+            registry_url, mirror_url
+        );
         restart_docker_daemon();
     }
 }
@@ -657,7 +705,9 @@ fn restart_docker_daemon() {
         .unwrap()
     {
         println!("🔄 Restarting Docker daemon...");
-        let _ = Command::new("systemctl").args(&["restart", "docker"]).status();
+        let _ = Command::new("systemctl")
+            .args(&["restart", "docker"])
+            .status();
         println!("✅ Docker daemon restarted!");
     }
 }
@@ -697,7 +747,10 @@ fn use_public_mirror() {
         ("USTC Mirror", "https://docker.mirrors.ustc.edu.cn"),
         ("163 Mirror", "https://hub-mirror.c.163.com"),
         ("Qiniu Mirror", "https://reg-mirror.qiniu.com"),
-        ("Aliyun Mirror", "https://[your-accelerator-url].mirror.aliyuncs.com"),
+        (
+            "Aliyun Mirror",
+            "https://[your-accelerator-url].mirror.aliyuncs.com",
+        ),
     ];
 
     println!("📋 Available public mirrors:");
@@ -707,7 +760,12 @@ fn use_public_mirror() {
 
     let mirror_selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select a public mirror")
-        .items(&public_mirrors.iter().map(|(name, _)| *name).collect::<Vec<_>>())
+        .items(
+            &public_mirrors
+                .iter()
+                .map(|(name, _)| *name)
+                .collect::<Vec<_>>(),
+        )
         .default(0)
         .interact()
         .unwrap();
@@ -789,20 +847,30 @@ fn corporate_proxy_setup() {
     let proxy_url = if proxy_user.is_empty() {
         format!("http://{}:{}", proxy_host, proxy_port)
     } else {
-        format!("http://{}:{}@{}:{}", proxy_user, proxy_pass, proxy_host, proxy_port)
+        format!(
+            "http://{}:{}@{}:{}",
+            proxy_user, proxy_pass, proxy_host, proxy_port
+        )
     };
 
     // Create systemd override for Docker
-    let systemd_override = format!(r#"[Service]
+    let systemd_override = format!(
+        r#"[Service]
 Environment="HTTP_PROXY={}"
 Environment="HTTPS_PROXY={}"
 Environment="NO_PROXY=localhost,127.0.0.1,docker-registry.somecorporation.com"
-"#, proxy_url, proxy_url);
+"#,
+        proxy_url, proxy_url
+    );
 
     let override_dir = "/etc/systemd/system/docker.service.d";
     let _ = Command::new("mkdir").args(&["-p", override_dir]).status();
-    
-    fs::write(format!("{}/http-proxy.conf", override_dir), systemd_override).ok();
+
+    fs::write(
+        format!("{}/http-proxy.conf", override_dir),
+        systemd_override,
+    )
+    .ok();
 
     println!("✅ Corporate proxy configured!");
     println!("🔄 Run these commands to apply:");
@@ -837,7 +905,7 @@ fn bandwidth_optimization() {
                 .unwrap();
 
             add_daemon_config("max-concurrent-downloads", &concurrent);
-        },
+        }
         1 => {
             let attempts: String = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Max download attempts")
@@ -846,7 +914,7 @@ fn bandwidth_optimization() {
                 .unwrap();
 
             add_daemon_config("max-download-attempts", &attempts);
-        },
+        }
         2 => {
             let timeout: String = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Download timeout (seconds)")
@@ -855,24 +923,25 @@ fn bandwidth_optimization() {
                 .unwrap();
 
             add_daemon_config("shutdown-timeout", &timeout);
-        },
+        }
         3 => {
             println!("💡 Enabling compression at registry level");
             add_daemon_config("experimental", "true");
-        },
+        }
         _ => {}
     }
 }
 
 fn add_daemon_config(key: &str, value: &str) {
-    let current_config = fs::read_to_string("/etc/docker/daemon.json")
-        .unwrap_or_else(|_| "{}".to_string());
+    let current_config =
+        fs::read_to_string("/etc/docker/daemon.json").unwrap_or_else(|_| "{}".to_string());
 
-    let mut config: serde_json::Value = serde_json::from_str(&current_config)
-        .unwrap_or_else(|_| serde_json::json!({}));
+    let mut config: serde_json::Value =
+        serde_json::from_str(&current_config).unwrap_or_else(|_| serde_json::json!({}));
 
     if value.parse::<i64>().is_ok() {
-        config[key] = serde_json::Value::Number(serde_json::Number::from(value.parse::<i64>().unwrap()));
+        config[key] =
+            serde_json::Value::Number(serde_json::Number::from(value.parse::<i64>().unwrap()));
     } else if value == "true" || value == "false" {
         config[key] = serde_json::Value::Bool(value == "true");
     } else {
@@ -895,19 +964,21 @@ fn corporate_registry_setup() {
 
     let is_insecure = !registry_url.starts_with("https://");
 
-    if is_insecure && Confirm::new()
-        .with_prompt("Registry uses HTTP. Add to insecure registries?")
-        .default(true)
-        .interact()
-        .unwrap()
+    if is_insecure
+        && Confirm::new()
+            .with_prompt("Registry uses HTTP. Add to insecure registries?")
+            .default(true)
+            .interact()
+            .unwrap()
     {
-        let current_config = fs::read_to_string("/etc/docker/daemon.json")
-            .unwrap_or_else(|_| "{}".to_string());
+        let current_config =
+            fs::read_to_string("/etc/docker/daemon.json").unwrap_or_else(|_| "{}".to_string());
 
-        let mut config: serde_json::Value = serde_json::from_str(&current_config)
-            .unwrap_or_else(|_| serde_json::json!({}));
+        let mut config: serde_json::Value =
+            serde_json::from_str(&current_config).unwrap_or_else(|_| serde_json::json!({}));
 
-        let insecure = config.get_mut("insecure-registries")
+        let insecure = config
+            .get_mut("insecure-registries")
             .and_then(|r| r.as_array_mut())
             .map(|registries| {
                 registries.push(serde_json::Value::String(registry_url.clone()));
@@ -1062,7 +1133,7 @@ fn aws_ecr_login() {
 
 fn google_registry_login() {
     println!("🔑 Google Container Registry requires service account authentication");
-    
+
     let key_file: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Path to service account key file")
         .interact()
@@ -1119,7 +1190,9 @@ fn registry_logout() {
     let result = if registry_url.is_empty() {
         Command::new("docker").args(&["logout"]).status()
     } else {
-        Command::new("docker").args(&["logout", &registry_url]).status()
+        Command::new("docker")
+            .args(&["logout", &registry_url])
+            .status()
     };
 
     if result.map(|s| s.success()).unwrap_or(false) {
@@ -1132,8 +1205,11 @@ fn registry_logout() {
 fn view_stored_credentials() {
     println!("📋 Stored Registry Credentials\n");
 
-    let config_path = format!("{}/.docker/config.json", std::env::var("HOME").unwrap_or_default());
-    
+    let config_path = format!(
+        "{}/.docker/config.json",
+        std::env::var("HOME").unwrap_or_default()
+    );
+
     if let Ok(config_content) = fs::read_to_string(&config_path) {
         if let Ok(config) = serde_json::from_str::<serde_json::Value>(&config_content) {
             if let Some(auths) = config.get("auths").and_then(|a| a.as_object()) {
@@ -1180,8 +1256,11 @@ fn mirror_configuration_management() {
 }
 
 fn backup_configuration() {
-    let backup_path = format!("/tmp/docker-daemon-backup-{}.json", chrono::Utc::now().format("%Y%m%d-%H%M%S"));
-    
+    let backup_path = format!(
+        "/tmp/docker-daemon-backup-{}.json",
+        chrono::Utc::now().format("%Y%m%d-%H%M%S")
+    );
+
     if let Ok(_) = fs::copy("/etc/docker/daemon.json", &backup_path) {
         println!("✅ Configuration backed up to: {}", backup_path);
     } else {
@@ -1212,9 +1291,9 @@ fn restore_configuration() {
 
 fn export_configuration() {
     let export_path = "/tmp/docker-registry-config-export.json";
-    
-    let current_config = fs::read_to_string("/etc/docker/daemon.json")
-        .unwrap_or_else(|_| "{}".to_string());
+
+    let current_config =
+        fs::read_to_string("/etc/docker/daemon.json").unwrap_or_else(|_| "{}".to_string());
 
     fs::write(export_path, current_config).ok();
     println!("✅ Configuration exported to: {}", export_path);
@@ -1265,11 +1344,13 @@ fn registry_health_check() {
 
     // Check local Docker daemon
     println!("🐳 Docker daemon status:");
-    let _ = Command::new("systemctl").args(&["status", "docker", "--no-pager"]).status();
+    let _ = Command::new("systemctl")
+        .args(&["status", "docker", "--no-pager"])
+        .status();
 
     // Check configured mirrors
-    let current_config = fs::read_to_string("/etc/docker/daemon.json")
-        .unwrap_or_else(|_| "{}".to_string());
+    let current_config =
+        fs::read_to_string("/etc/docker/daemon.json").unwrap_or_else(|_| "{}".to_string());
 
     if let Ok(config) = serde_json::from_str::<serde_json::Value>(&current_config) {
         if let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array()) {
@@ -1278,9 +1359,18 @@ fn registry_health_check() {
                 if let Some(mirror_url) = mirror.as_str() {
                     print!("Checking {}... ", mirror_url);
                     let result = Command::new("curl")
-                        .args(&["-s", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "10", &format!("{}/v2/", mirror_url)])
+                        .args(&[
+                            "-s",
+                            "-o",
+                            "/dev/null",
+                            "-w",
+                            "%{http_code}",
+                            "--max-time",
+                            "10",
+                            &format!("{}/v2/", mirror_url),
+                        ])
                         .output();
-                    
+
                     if let Ok(output) = result {
                         let status_code = String::from_utf8_lossy(&output.stdout);
                         match status_code.as_ref() {
@@ -1300,11 +1390,11 @@ fn registry_health_check() {
     println!("\n🧪 Testing Docker pull performance:");
     let test_image = "hello-world:latest";
     println!("Pulling {}...", test_image);
-    
+
     let start_time = std::time::Instant::now();
     let result = Command::new("docker").args(&["pull", test_image]).status();
     let duration = start_time.elapsed();
-    
+
     if result.map(|s| s.success()).unwrap_or(false) {
         println!("✅ Pull successful in {:.2}s", duration.as_secs_f64());
     } else {

@@ -1,7 +1,7 @@
-use dialoguer::{Select, Input, Confirm, theme::ColorfulTheme, MultiSelect};
-use std::process::Command;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 
 pub fn bridge_management_menu() {
     loop {
@@ -78,9 +78,7 @@ fn list_all_bridges() {
     println!("======================");
 
     // Method 1: Using brctl (if available)
-    let brctl_output = Command::new("brctl")
-        .arg("show")
-        .output();
+    let brctl_output = Command::new("brctl").arg("show").output();
 
     if let Ok(out) = brctl_output {
         let bridge_info = String::from_utf8_lossy(&out.stdout);
@@ -113,9 +111,7 @@ fn list_all_bridges() {
     }
 
     // Method 3: Show bridge details with ip bridge command
-    let bridge_show = Command::new("ip")
-        .args(&["bridge", "show"])
-        .output();
+    let bridge_show = Command::new("ip").args(&["bridge", "show"]).output();
 
     if let Ok(bridge_out) = bridge_show {
         let bridge_details = String::from_utf8_lossy(&bridge_out.stdout);
@@ -126,9 +122,7 @@ fn list_all_bridges() {
     }
 
     // Show network namespaces if any
-    let netns_output = Command::new("ip")
-        .args(&["netns", "list"])
-        .output();
+    let netns_output = Command::new("ip").args(&["netns", "list"]).output();
 
     if let Ok(ns_out) = netns_output {
         let namespaces = String::from_utf8_lossy(&ns_out.stdout);
@@ -191,7 +185,8 @@ fn show_bridge_statistics() {
                     println!("  🌉 {}", interface_name);
 
                     // Get bridge forward delay
-                    if let Ok(forward_delay) = fs::read_to_string(path.join("bridge/forward_delay")) {
+                    if let Ok(forward_delay) = fs::read_to_string(path.join("bridge/forward_delay"))
+                    {
                         println!("     Forward Delay: {} centiseconds", forward_delay.trim());
                     }
 
@@ -208,7 +203,14 @@ fn show_bridge_statistics() {
                     // Get STP state
                     if let Ok(stp_state) = fs::read_to_string(path.join("bridge/stp_state")) {
                         let stp_enabled = stp_state.trim() == "1";
-                        println!("     STP: {}", if stp_enabled { "✅ Enabled" } else { "❌ Disabled" });
+                        println!(
+                            "     STP: {}",
+                            if stp_enabled {
+                                "✅ Enabled"
+                            } else {
+                                "❌ Disabled"
+                            }
+                        );
                     }
 
                     // Show connected interfaces
@@ -218,7 +220,8 @@ fn show_bridge_statistics() {
                             let mut connected_interfaces = Vec::new();
                             for iface in interfaces {
                                 if let Ok(iface) = iface {
-                                    connected_interfaces.push(iface.file_name().to_string_lossy().to_string());
+                                    connected_interfaces
+                                        .push(iface.file_name().to_string_lossy().to_string());
                                 }
                             }
 
@@ -321,7 +324,16 @@ fn configure_new_bridge(bridge_name: &str) {
 
     if enable_stp {
         let stp_result = Command::new("sudo")
-            .args(&["ip", "link", "set", bridge_name, "type", "bridge", "stp_state", "1"])
+            .args(&[
+                "ip",
+                "link",
+                "set",
+                bridge_name,
+                "type",
+                "bridge",
+                "stp_state",
+                "1",
+            ])
             .status();
 
         match stp_result {
@@ -341,12 +353,22 @@ fn configure_new_bridge(bridge_name: &str) {
         if delay_val >= 4 && delay_val <= 30 {
             let delay_centisec = delay_val * 100;
             let delay_result = Command::new("sudo")
-                .args(&["ip", "link", "set", bridge_name, "type", "bridge",
-                       "forward_delay", &delay_centisec.to_string()])
+                .args(&[
+                    "ip",
+                    "link",
+                    "set",
+                    bridge_name,
+                    "type",
+                    "bridge",
+                    "forward_delay",
+                    &delay_centisec.to_string(),
+                ])
                 .status();
 
             match delay_result {
-                Ok(status) if status.success() => println!("✅ Forward delay set to {} seconds", delay_val),
+                Ok(status) if status.success() => {
+                    println!("✅ Forward delay set to {} seconds", delay_val)
+                }
                 _ => println!("⚠️ Failed to set forward delay"),
             }
         }
@@ -363,12 +385,22 @@ fn configure_new_bridge(bridge_name: &str) {
         if hello_val >= 1 && hello_val <= 10 {
             let hello_centisec = hello_val * 100;
             let hello_result = Command::new("sudo")
-                .args(&["ip", "link", "set", bridge_name, "type", "bridge",
-                       "hello_time", &hello_centisec.to_string()])
+                .args(&[
+                    "ip",
+                    "link",
+                    "set",
+                    bridge_name,
+                    "type",
+                    "bridge",
+                    "hello_time",
+                    &hello_centisec.to_string(),
+                ])
                 .status();
 
             match hello_result {
-                Ok(status) if status.success() => println!("✅ Hello time set to {} seconds", hello_val),
+                Ok(status) if status.success() => {
+                    println!("✅ Hello time set to {} seconds", hello_val)
+                }
                 _ => println!("⚠️ Failed to set hello time"),
             }
         }
@@ -385,8 +417,16 @@ fn configure_new_bridge(bridge_name: &str) {
         if age_val >= 6 && age_val <= 40 {
             let age_centisec = age_val * 100;
             let age_result = Command::new("sudo")
-                .args(&["ip", "link", "set", bridge_name, "type", "bridge",
-                       "max_age", &age_centisec.to_string()])
+                .args(&[
+                    "ip",
+                    "link",
+                    "set",
+                    bridge_name,
+                    "type",
+                    "bridge",
+                    "max_age",
+                    &age_centisec.to_string(),
+                ])
                 .status();
 
             match age_result {
@@ -442,7 +482,10 @@ fn delete_bridge() {
     show_bridge_details(bridge_name);
 
     let confirm = Confirm::with_theme(&ColorfulTheme::default())
-        .with_prompt(format!("Delete bridge '{}'? This will disconnect all attached interfaces", bridge_name))
+        .with_prompt(format!(
+            "Delete bridge '{}'? This will disconnect all attached interfaces",
+            bridge_name
+        ))
         .default(false)
         .interact()
         .unwrap();
@@ -522,7 +565,14 @@ fn show_bridge_details(bridge_name: &str) {
     if Path::new(&bridge_path).exists() {
         // STP state
         if let Ok(stp) = fs::read_to_string(format!("{}/stp_state", bridge_path)) {
-            println!("  STP: {}", if stp.trim() == "1" { "Enabled" } else { "Disabled" });
+            println!(
+                "  STP: {}",
+                if stp.trim() == "1" {
+                    "Enabled"
+                } else {
+                    "Disabled"
+                }
+            );
         }
 
         // Forward delay
@@ -540,8 +590,14 @@ fn show_bridge_details(bridge_name: &str) {
                     connected.push(iface.file_name().to_string_lossy().to_string());
                 }
             }
-            println!("  Connected Interfaces: {}",
-                if connected.is_empty() { "None".to_string() } else { connected.join(", ") });
+            println!(
+                "  Connected Interfaces: {}",
+                if connected.is_empty() {
+                    "None".to_string()
+                } else {
+                    connected.join(", ")
+                }
+            );
         }
     }
 
@@ -597,7 +653,10 @@ fn add_interface_to_bridge() {
 
     let interface_name = &available_interfaces[interface_choice];
 
-    println!("🔌 Adding interface '{}' to bridge '{}'...", interface_name, bridge_name);
+    println!(
+        "🔌 Adding interface '{}' to bridge '{}'...",
+        interface_name, bridge_name
+    );
 
     // Add interface to bridge
     let add_result = Command::new("sudo")
@@ -606,7 +665,10 @@ fn add_interface_to_bridge() {
 
     match add_result {
         Ok(status) if status.success() => {
-            println!("✅ Interface '{}' added to bridge '{}'", interface_name, bridge_name);
+            println!(
+                "✅ Interface '{}' added to bridge '{}'",
+                interface_name, bridge_name
+            );
 
             // Bring interface up if it's not already
             let up_result = Command::new("sudo")
@@ -627,9 +689,7 @@ fn add_interface_to_bridge() {
 fn get_available_interfaces() -> Vec<String> {
     let mut interfaces = Vec::new();
 
-    let output = Command::new("ip")
-        .args(&["link", "show"])
-        .output();
+    let output = Command::new("ip").args(&["link", "show"]).output();
 
     if let Ok(out) = output {
         let link_output = String::from_utf8_lossy(&out.stdout);
@@ -640,14 +700,20 @@ fn get_available_interfaces() -> Vec<String> {
                     if let Some(at_pos) = after_colon.find('@') {
                         let iface_name = &after_colon[..at_pos];
                         // Skip bridges and other virtual interfaces
-                        if !line.contains("bridge") && !line.contains("vnet") &&
-                           !iface_name.starts_with("virbr") && !iface_name.starts_with("br") {
+                        if !line.contains("bridge")
+                            && !line.contains("vnet")
+                            && !iface_name.starts_with("virbr")
+                            && !iface_name.starts_with("br")
+                        {
                             interfaces.push(iface_name.to_string());
                         }
                     } else if let Some(space_pos) = after_colon.find(' ') {
                         let iface_name = &after_colon[..space_pos];
-                        if !line.contains("bridge") && !line.contains("vnet") &&
-                           !iface_name.starts_with("virbr") && !iface_name.starts_with("br") {
+                        if !line.contains("bridge")
+                            && !line.contains("vnet")
+                            && !iface_name.starts_with("virbr")
+                            && !iface_name.starts_with("br")
+                        {
                             interfaces.push(iface_name.to_string());
                         }
                     }
@@ -694,13 +760,19 @@ fn remove_interface_from_bridge() {
     let interface_name = &connected_interfaces[interface_choice];
 
     let confirm = Confirm::with_theme(&ColorfulTheme::default())
-        .with_prompt(format!("Remove interface '{}' from bridge '{}'?", interface_name, bridge_name))
+        .with_prompt(format!(
+            "Remove interface '{}' from bridge '{}'?",
+            interface_name, bridge_name
+        ))
         .default(true)
         .interact()
         .unwrap();
 
     if confirm {
-        println!("❌ Removing interface '{}' from bridge '{}'...", interface_name, bridge_name);
+        println!(
+            "❌ Removing interface '{}' from bridge '{}'...",
+            interface_name, bridge_name
+        );
 
         // Remove interface from bridge
         let remove_result = Command::new("sudo")
@@ -709,7 +781,10 @@ fn remove_interface_from_bridge() {
 
         match remove_result {
             Ok(status) if status.success() => {
-                println!("✅ Interface '{}' removed from bridge '{}'", interface_name, bridge_name);
+                println!(
+                    "✅ Interface '{}' removed from bridge '{}'",
+                    interface_name, bridge_name
+                );
             }
             _ => println!("❌ Failed to remove interface from bridge"),
         }
@@ -782,7 +857,10 @@ fn bring_bridge_down() {
     let bridge_name = &bridges[choice];
 
     let confirm = Confirm::with_theme(&ColorfulTheme::default())
-        .with_prompt(format!("Bring bridge '{}' down? This will interrupt network connectivity", bridge_name))
+        .with_prompt(format!(
+            "Bring bridge '{}' down? This will interrupt network connectivity",
+            bridge_name
+        ))
         .default(false)
         .interact()
         .unwrap();
@@ -863,26 +941,44 @@ fn toggle_stp(bridge_name: &str) {
         false
     };
 
-    println!("Current STP state: {}", if current_stp { "Enabled" } else { "Disabled" });
+    println!(
+        "Current STP state: {}",
+        if current_stp { "Enabled" } else { "Disabled" }
+    );
 
     let new_state = !current_stp;
     let state_value = if new_state { "1" } else { "0" };
 
     let confirm = Confirm::with_theme(&ColorfulTheme::default())
-        .with_prompt(format!("{} STP?", if new_state { "Enable" } else { "Disable" }))
+        .with_prompt(format!(
+            "{} STP?",
+            if new_state { "Enable" } else { "Disable" }
+        ))
         .default(true)
         .interact()
         .unwrap();
 
     if confirm {
         let stp_result = Command::new("sudo")
-            .args(&["ip", "link", "set", bridge_name, "type", "bridge", "stp_state", state_value])
+            .args(&[
+                "ip",
+                "link",
+                "set",
+                bridge_name,
+                "type",
+                "bridge",
+                "stp_state",
+                state_value,
+            ])
             .status();
 
         match stp_result {
             Ok(status) if status.success() => {
-                println!("✅ STP {} for bridge '{}'",
-                    if new_state { "enabled" } else { "disabled" }, bridge_name);
+                println!(
+                    "✅ STP {} for bridge '{}'",
+                    if new_state { "enabled" } else { "disabled" },
+                    bridge_name
+                );
             }
             _ => println!("❌ Failed to modify STP state"),
         }
@@ -903,8 +999,16 @@ fn set_forward_delay(bridge_name: &str) {
             let delay_centisec = delay_val * 100;
 
             let result = Command::new("sudo")
-                .args(&["ip", "link", "set", bridge_name, "type", "bridge",
-                       "forward_delay", &delay_centisec.to_string()])
+                .args(&[
+                    "ip",
+                    "link",
+                    "set",
+                    bridge_name,
+                    "type",
+                    "bridge",
+                    "forward_delay",
+                    &delay_centisec.to_string(),
+                ])
                 .status();
 
             match result {
@@ -935,8 +1039,16 @@ fn set_hello_time(bridge_name: &str) {
             let hello_centisec = hello_val * 100;
 
             let result = Command::new("sudo")
-                .args(&["ip", "link", "set", bridge_name, "type", "bridge",
-                       "hello_time", &hello_centisec.to_string()])
+                .args(&[
+                    "ip",
+                    "link",
+                    "set",
+                    bridge_name,
+                    "type",
+                    "bridge",
+                    "hello_time",
+                    &hello_centisec.to_string(),
+                ])
                 .status();
 
             match result {
@@ -967,8 +1079,16 @@ fn set_max_age(bridge_name: &str) {
             let max_centisec = max_val * 100;
 
             let result = Command::new("sudo")
-                .args(&["ip", "link", "set", bridge_name, "type", "bridge",
-                       "max_age", &max_centisec.to_string()])
+                .args(&[
+                    "ip",
+                    "link",
+                    "set",
+                    bridge_name,
+                    "type",
+                    "bridge",
+                    "max_age",
+                    &max_centisec.to_string(),
+                ])
                 .status();
 
             match result {
@@ -997,8 +1117,16 @@ fn set_bridge_priority(bridge_name: &str) {
     if let Ok(priority_val) = priority.parse::<u32>() {
         if priority_val <= 65535 {
             let result = Command::new("sudo")
-                .args(&["ip", "link", "set", bridge_name, "type", "bridge",
-                       "priority", &priority_val.to_string()])
+                .args(&[
+                    "ip",
+                    "link",
+                    "set",
+                    bridge_name,
+                    "type",
+                    "bridge",
+                    "priority",
+                    &priority_val.to_string(),
+                ])
                 .status();
 
             match result {
@@ -1100,7 +1228,14 @@ fn set_mtu(bridge_name: &str) {
     if let Ok(mtu_val) = mtu.parse::<u32>() {
         if mtu_val >= 68 && mtu_val <= 65536 {
             let result = Command::new("sudo")
-                .args(&["ip", "link", "set", bridge_name, "mtu", &mtu_val.to_string()])
+                .args(&[
+                    "ip",
+                    "link",
+                    "set",
+                    bridge_name,
+                    "mtu",
+                    &mtu_val.to_string(),
+                ])
                 .status();
 
             match result {
@@ -1141,9 +1276,7 @@ fn vm_bridge_integration() {
 fn show_vm_bridge_connections() {
     println!("\n🖥️ VM Bridge Connections:");
 
-    let vm_output = Command::new("virsh")
-        .args(&["list", "--all"])
-        .output();
+    let vm_output = Command::new("virsh").args(&["list", "--all"]).output();
 
     if let Ok(vm_out) = vm_output {
         let vm_list = String::from_utf8_lossy(&vm_out.stdout);
@@ -1156,19 +1289,20 @@ fn show_vm_bridge_connections() {
                     println!("\n  VM: {}", vm_name);
 
                     // Get network interfaces for this VM
-                    let iface_output = Command::new("virsh")
-                        .args(&["domiflist", vm_name])
-                        .output();
+                    let iface_output = Command::new("virsh").args(&["domiflist", vm_name]).output();
 
                     if let Ok(iface_out) = iface_output {
                         let interfaces = String::from_utf8_lossy(&iface_out.stdout);
 
                         for iface_line in interfaces.lines().skip(2) {
                             if !iface_line.trim().is_empty() && !iface_line.contains("---") {
-                                let iface_parts: Vec<&str> = iface_line.split_whitespace().collect();
+                                let iface_parts: Vec<&str> =
+                                    iface_line.split_whitespace().collect();
                                 if iface_parts.len() >= 3 {
-                                    println!("     🔌 Interface: {} -> Bridge: {}",
-                                        iface_parts[0], iface_parts[2]);
+                                    println!(
+                                        "     🔌 Interface: {} -> Bridge: {}",
+                                        iface_parts[0], iface_parts[2]
+                                    );
                                 }
                             }
                         }

@@ -1,5 +1,5 @@
 use crate::security::credentials::{create_secure_env_file, store_backup_credentials};
-use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use std::fs;
 
 pub fn setup() {

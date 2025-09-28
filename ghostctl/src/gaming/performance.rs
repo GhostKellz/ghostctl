@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use std::process::Command;
 
 pub fn performance_menu() {
@@ -44,7 +44,7 @@ fn system_performance_optimization() {
 
     let optimizations = [
         "🚀 Enable GameMode for gaming",
-        "⚡ Configure CPU governor", 
+        "⚡ Configure CPU governor",
         "💾 Optimize memory management",
         "🔧 Kernel parameter tuning",
         "🖥️  Desktop environment optimizations",
@@ -78,7 +78,7 @@ fn enable_gamemode() {
     match gamemode_check {
         Ok(s) if s.success() => {
             println!("✅ GameMode is already installed");
-            
+
             // Check if gamemode daemon is running
             let daemon_check = Command::new("pgrep").arg("gamemode").status();
             match daemon_check {
@@ -90,9 +90,11 @@ fn enable_gamemode() {
                         .default(true)
                         .interact()
                         .unwrap();
-                    
+
                     if start_daemon {
-                        let _ = Command::new("systemctl").args(&["--user", "start", "gamemode"]).status();
+                        let _ = Command::new("systemctl")
+                            .args(&["--user", "start", "gamemode"])
+                            .status();
                     }
                 }
             }
@@ -113,13 +115,13 @@ fn enable_gamemode() {
                 match status {
                     Ok(s) if s.success() => {
                         println!("✅ GameMode installed successfully!");
-                        
+
                         // Add user to gamemode group
                         let username = std::env::var("USER").unwrap_or_else(|_| "user".to_string());
                         let _ = Command::new("sudo")
                             .args(&["usermod", "-a", "-G", "gamemode", &username])
                             .status();
-                        
+
                         println!("💡 You may need to log out and back in for group membership to take effect");
                         println!("🎮 Use: gamemoderun <game_command> to run games with GameMode");
                     }
@@ -141,10 +143,14 @@ fn configure_cpu_governor() {
     println!("=========================");
 
     println!("📊 Current CPU governor:");
-    let _ = Command::new("cat").arg("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor").status();
+    let _ = Command::new("cat")
+        .arg("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
+        .status();
 
     println!("\n📋 Available governors:");
-    let _ = Command::new("cat").arg("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors").status();
+    let _ = Command::new("cat")
+        .arg("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors")
+        .status();
 
     let governors = [
         ("performance", "Maximum performance (highest frequency)"),
@@ -161,13 +167,18 @@ fn configure_cpu_governor() {
 
     let governor_choice = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select CPU governor")
-        .items(&governors.iter().map(|(name, desc)| format!("{} - {}", name, desc)).collect::<Vec<_>>())
+        .items(
+            &governors
+                .iter()
+                .map(|(name, desc)| format!("{} - {}", name, desc))
+                .collect::<Vec<_>>(),
+        )
         .default(0)
         .interact()
         .unwrap();
 
     let selected_governor = governors[governor_choice].0;
-    
+
     let confirm = Confirm::new()
         .with_prompt(&format!("Set CPU governor to '{}'?", selected_governor))
         .default(true)
@@ -179,13 +190,16 @@ fn configure_cpu_governor() {
         let status = Command::new("sudo")
             .arg("sh")
             .arg("-c")
-            .arg(&format!("echo {} | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor", selected_governor))
+            .arg(&format!(
+                "echo {} | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor",
+                selected_governor
+            ))
             .status();
 
         match status {
             Ok(s) if s.success() => {
                 println!("✅ CPU governor set to '{}'", selected_governor);
-                
+
                 let permanent = Confirm::new()
                     .with_prompt("Make this change permanent? (adds to /etc/default/cpupower)")
                     .default(false)
@@ -216,13 +230,16 @@ fn make_cpu_governor_permanent(governor: &str) {
     let status = Command::new("sudo")
         .arg("sh")
         .arg("-c")
-        .arg(&format!("echo '{}' >> /etc/default/cpupower", config_content))
+        .arg(&format!(
+            "echo '{}' >> /etc/default/cpupower",
+            config_content
+        ))
         .status();
 
     match status {
         Ok(s) if s.success() => {
             println!("✅ CPU governor configuration saved");
-            
+
             // Enable cpupower service
             let _ = Command::new("sudo")
                 .args(&["systemctl", "enable", "cpupower"])
@@ -298,7 +315,7 @@ fn configure_swappiness() {
                 match status {
                     Ok(s) if s.success() => {
                         println!("✅ Swappiness set to {}", value);
-                        
+
                         let permanent = Confirm::new()
                             .with_prompt("Make this change permanent?")
                             .default(true)
@@ -310,7 +327,10 @@ fn configure_swappiness() {
                             let _ = Command::new("sudo")
                                 .arg("sh")
                                 .arg("-c")
-                                .arg(&format!("echo '{}' >> /etc/sysctl.d/99-swappiness.conf", config_line))
+                                .arg(&format!(
+                                    "echo '{}' >> /etc/sysctl.d/99-swappiness.conf",
+                                    config_line
+                                ))
                                 .status();
                             println!("✅ Swappiness configuration saved");
                         }
@@ -328,7 +348,8 @@ fn enable_zram() {
     println!("💾 Enable Zram Compression");
     println!("==========================");
 
-    let zram_check = Command::new("lsmod").output()
+    let zram_check = Command::new("lsmod")
+        .output()
         .map(|out| String::from_utf8_lossy(&out.stdout).contains("zram"))
         .unwrap_or(false);
 
@@ -352,17 +373,20 @@ fn enable_zram() {
             match status {
                 Ok(s) if s.success() => {
                     println!("✅ zram-generator installed");
-                    
+
                     // Create basic zram configuration
                     let zram_config = r#"[zram0]
 zram-size = ram / 2
 compression-algorithm = lz4
 "#;
-                    
+
                     let config_status = Command::new("sudo")
                         .arg("sh")
                         .arg("-c")
-                        .arg(&format!("echo '{}' > /etc/systemd/zram-generator.conf", zram_config))
+                        .arg(&format!(
+                            "echo '{}' > /etc/systemd/zram-generator.conf",
+                            zram_config
+                        ))
                         .status();
 
                     match config_status {
@@ -410,15 +434,27 @@ fn clear_memory_caches() {
         match index {
             0 => {
                 println!("🧹 Clearing page cache...");
-                let _ = Command::new("sudo").arg("sh").arg("-c").arg("echo 1 > /proc/sys/vm/drop_caches").status();
+                let _ = Command::new("sudo")
+                    .arg("sh")
+                    .arg("-c")
+                    .arg("echo 1 > /proc/sys/vm/drop_caches")
+                    .status();
             }
             1 => {
                 println!("🗑️  Clearing dentries and inodes...");
-                let _ = Command::new("sudo").arg("sh").arg("-c").arg("echo 2 > /proc/sys/vm/drop_caches").status();
+                let _ = Command::new("sudo")
+                    .arg("sh")
+                    .arg("-c")
+                    .arg("echo 2 > /proc/sys/vm/drop_caches")
+                    .status();
             }
             2 => {
                 println!("💾 Clearing all caches...");
-                let _ = Command::new("sudo").arg("sh").arg("-c").arg("echo 3 > /proc/sys/vm/drop_caches").status();
+                let _ = Command::new("sudo")
+                    .arg("sh")
+                    .arg("-c")
+                    .arg("echo 3 > /proc/sys/vm/drop_caches")
+                    .status();
             }
             3 => {
                 println!("📊 Cache usage:");
@@ -442,11 +478,14 @@ fn memory_usage_analysis() {
     let _ = Command::new("free").arg("-h").status();
 
     println!("\n📈 Memory usage by process (top 10):");
-    let _ = Command::new("ps").args(&["aux", "--sort=-%mem"]).output()
+    let _ = Command::new("ps")
+        .args(&["aux", "--sort=-%mem"])
+        .output()
         .and_then(|output| {
             let stdout_str = String::from_utf8_lossy(&output.stdout);
             let lines: Vec<&str> = stdout_str.lines().collect();
-            for line in lines.iter().take(11) { // header + 10 lines
+            for line in lines.iter().take(11) {
+                // header + 10 lines
                 println!("{}", line);
             }
             Ok(())
@@ -462,10 +501,22 @@ fn kernel_parameter_tuning() {
 
     let kernel_tweaks = [
         ("vm.dirty_ratio", "20", "Dirty memory threshold (%)"),
-        ("vm.dirty_background_ratio", "5", "Background write threshold (%)"),
+        (
+            "vm.dirty_background_ratio",
+            "5",
+            "Background write threshold (%)",
+        ),
         ("vm.vfs_cache_pressure", "50", "VFS cache pressure"),
-        ("kernel.sched_autogroup_enabled", "0", "Disable automatic process grouping"),
-        ("net.core.rmem_max", "134217728", "Max socket receive buffer"),
+        (
+            "kernel.sched_autogroup_enabled",
+            "0",
+            "Disable automatic process grouping",
+        ),
+        (
+            "net.core.rmem_max",
+            "134217728",
+            "Max socket receive buffer",
+        ),
         ("net.core.wmem_max", "134217728", "Max socket send buffer"),
     ];
 
@@ -486,7 +537,7 @@ fn kernel_parameter_tuning() {
 
         for (param, value, desc) in &kernel_tweaks {
             config_content.push_str(&format!("{} = {} # {}\n", param, value, desc));
-            
+
             // Apply temporarily
             let _ = Command::new("sudo")
                 .arg("sysctl")
@@ -498,7 +549,10 @@ fn kernel_parameter_tuning() {
         let status = Command::new("sudo")
             .arg("sh")
             .arg("-c")
-            .arg(&format!("echo '{}' > /etc/sysctl.d/99-gaming.conf", config_content))
+            .arg(&format!(
+                "echo '{}' > /etc/sysctl.d/99-gaming.conf",
+                config_content
+            ))
             .status();
 
         match status {
@@ -543,7 +597,9 @@ fn disable_composition() {
     println!("🎨 Disable Composition During Gaming");
     println!("====================================");
 
-    let de = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_else(|_| "unknown".to_string()).to_lowercase();
+    let de = std::env::var("XDG_CURRENT_DESKTOP")
+        .unwrap_or_else(|_| "unknown".to_string())
+        .to_lowercase();
 
     match de.as_str() {
         "kde" | "plasma" => {
@@ -682,7 +738,19 @@ fn configure_io_scheduler() {
     println!("==========================");
 
     println!("📊 Current I/O schedulers:");
-    let _ = Command::new("find").args(&["/sys/block/", "-name", "scheduler", "-exec", "grep", "-H", ".", "{}", ";"]).status();
+    let _ = Command::new("find")
+        .args(&[
+            "/sys/block/",
+            "-name",
+            "scheduler",
+            "-exec",
+            "grep",
+            "-H",
+            ".",
+            "{}",
+            ";",
+        ])
+        .status();
 
     println!("\n🔧 Available schedulers:");
     println!("  • mq-deadline - Good general purpose");
@@ -699,7 +767,7 @@ fn configure_io_scheduler() {
         .unwrap();
 
     let selected_scheduler = schedulers[scheduler_choice];
-    
+
     let confirm = Confirm::new()
         .with_prompt(&format!("Set I/O scheduler to '{}'?", selected_scheduler))
         .default(true)
@@ -708,12 +776,15 @@ fn configure_io_scheduler() {
 
     if confirm {
         println!("🔧 Setting I/O scheduler to '{}'...", selected_scheduler);
-        
+
         // This is a simplified example - in practice you'd want to detect block devices
         let status = Command::new("sudo")
             .arg("sh")
             .arg("-c")
-            .arg(&format!("echo {} | sudo tee /sys/block/*/queue/scheduler", selected_scheduler))
+            .arg(&format!(
+                "echo {} | sudo tee /sys/block/*/queue/scheduler",
+                selected_scheduler
+            ))
             .status();
 
         match status {
@@ -778,7 +849,9 @@ fn optimize_game_directories() {
         };
 
         if expanded_path.exists() {
-            let _ = Command::new("du").args(&["-sh", &expanded_path.to_string_lossy()]).status();
+            let _ = Command::new("du")
+                .args(&["-sh", &expanded_path.to_string_lossy()])
+                .status();
         } else {
             println!("  {} (not found)", expanded_path.display());
         }
@@ -823,7 +896,7 @@ fn run_disk_benchmark() {
                     "--numjobs=1",
                     "--size=1G",
                     "--runtime=30",
-                    "--direct=1"
+                    "--direct=1",
                 ])
                 .status();
         }
@@ -868,28 +941,36 @@ fn game_specific_optimizations() {
     println!("==============================");
 
     println!("🎮 Popular game optimizations:");
-    
+
     let games = [
-        ("CS2 (Counter-Strike 2)", vec![
-            "-high -threads 4 +fps_max 300",
-            "DXVK_ASYNC=1",
-            "Launch with: gamemoderun mangohud %command%"
-        ]),
-        ("Cyberpunk 2077", vec![
-            "PROTON_NO_ESYNC=1",
-            "DXVK_ASYNC=1", 
-            "Lower crowd density in settings"
-        ]),
-        ("GTA V", vec![
-            "WINEDEBUG=-all",
-            "DXVK_HUD=fps",
-            "Use DirectX 11 mode"
-        ]),
-        ("Elden Ring", vec![
-            "PROTON_USE_WINED3D=1 (if DXVK issues)",
-            "gamemoderun %command%",
-            "Cap at 60 FPS in-game"
-        ]),
+        (
+            "CS2 (Counter-Strike 2)",
+            vec![
+                "-high -threads 4 +fps_max 300",
+                "DXVK_ASYNC=1",
+                "Launch with: gamemoderun mangohud %command%",
+            ],
+        ),
+        (
+            "Cyberpunk 2077",
+            vec![
+                "PROTON_NO_ESYNC=1",
+                "DXVK_ASYNC=1",
+                "Lower crowd density in settings",
+            ],
+        ),
+        (
+            "GTA V",
+            vec!["WINEDEBUG=-all", "DXVK_HUD=fps", "Use DirectX 11 mode"],
+        ),
+        (
+            "Elden Ring",
+            vec![
+                "PROTON_USE_WINED3D=1 (if DXVK issues)",
+                "gamemoderun %command%",
+                "Cap at 60 FPS in-game",
+            ],
+        ),
     ];
 
     for (game, optimizations) in &games {
@@ -950,7 +1031,11 @@ export DXVK_ASYNC=1
         use std::fs::OpenOptions;
         use std::io::Write;
 
-        if let Ok(mut file) = OpenOptions::new().append(true).create(true).open(&profile_path) {
+        if let Ok(mut file) = OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(&profile_path)
+        {
             if let Err(_) = writeln!(file, "{}", wine_env) {
                 println!("❌ Failed to write to profile");
             } else {
@@ -994,7 +1079,7 @@ fn gpu_gaming_tweaks() {
     // Detect GPU vendor
     let lspci_output = Command::new("lspci").args(&["-k"]).output();
     let mut gpu_vendor = "Unknown";
-    
+
     if let Ok(output) = lspci_output {
         let lspci = String::from_utf8_lossy(&output.stdout);
         if lspci.contains("NVIDIA") {
@@ -1016,7 +1101,7 @@ fn gpu_gaming_tweaks() {
             println!("  • Set Power Management Mode to 'Prefer Maximum Performance'");
             println!("  • Enable Threaded Optimization");
             println!("  • Configure shader cache location");
-            
+
             let nvidia_tweaks = Confirm::new()
                 .with_prompt("Apply NVIDIA gaming environment variables?")
                 .default(false)
@@ -1033,7 +1118,7 @@ fn gpu_gaming_tweaks() {
             println!("  • Enable FreeSync if supported");
             println!("  • Set GPU power profile to 'performance'");
             println!("  • Configure RADV driver settings");
-            
+
             let amd_tweaks = Confirm::new()
                 .with_prompt("Apply AMD gaming environment variables?")
                 .default(false)
@@ -1075,12 +1160,16 @@ export __GL_SYNC_TO_VBLANK=0
     use std::fs::OpenOptions;
     use std::io::Write;
 
-    if let Ok(mut file) = OpenOptions::new().append(true).create(true).open(&profile_path) {
+    if let Ok(mut file) = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&profile_path)
+    {
         if let Err(_) = writeln!(file, "{}", nvidia_env) {
             println!("❌ Failed to write to profile");
         } else {
             println!("✅ NVIDIA gaming environment added to ~/.profile");
-            
+
             // Create shader cache directory
             let shader_cache = std::env::home_dir()
                 .map(|h| h.join(".cache/nvidia_shader"))
@@ -1106,7 +1195,11 @@ export RADV_DEBUG=checkir,llvm
     use std::fs::OpenOptions;
     use std::io::Write;
 
-    if let Ok(mut file) = OpenOptions::new().append(true).create(true).open(&profile_path) {
+    if let Ok(mut file) = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&profile_path)
+    {
         if let Err(_) = writeln!(file, "{}", amd_env) {
             println!("❌ Failed to write to profile");
         } else {
@@ -1153,12 +1246,7 @@ fn install_controller_utilities() {
     println!("🔧 Installing Controller Utilities");
     println!("==================================");
 
-    let controller_packages = [
-        "jstest-gtk",
-        "linuxconsole",
-        "antimicrox",
-        "lib32-libusb",
-    ];
+    let controller_packages = ["jstest-gtk", "linuxconsole", "antimicrox", "lib32-libusb"];
 
     let install = Confirm::new()
         .with_prompt("Install controller utilities?")
@@ -1193,7 +1281,9 @@ fn check_controller_latency() {
     let _ = Command::new("ls").arg("/dev/input/js*").status();
 
     println!("\n🔍 Controller device info:");
-    let _ = Command::new("lsusb").args(&["|", "grep", "-i", "gamepad\\|controller\\|joystick"]).status();
+    let _ = Command::new("lsusb")
+        .args(&["|", "grep", "-i", "gamepad\\|controller\\|joystick"])
+        .status();
 
     let test_controller = Confirm::new()
         .with_prompt("Test controller input? (requires jstest)")
@@ -1245,7 +1335,9 @@ fn optimize_wireless_performance() {
     println!("  • Adjust controller sleep timers");
 
     println!("\n📊 Check wireless interference:");
-    let _ = Command::new("iwlist").args(&["scan", "|", "grep", "Frequency"]).status();
+    let _ = Command::new("iwlist")
+        .args(&["scan", "|", "grep", "Frequency"])
+        .status();
 }
 
 fn gpu_performance_overclocking() {
@@ -1296,7 +1388,9 @@ fn gpu_monitoring_info() {
     println!("================================");
 
     println!("🖥️  GPU Hardware Information:");
-    let _ = Command::new("lspci").args(&["-v", "|", "grep", "-A", "10", "-i", "vga"]).status();
+    let _ = Command::new("lspci")
+        .args(&["-v", "|", "grep", "-A", "10", "-i", "vga"])
+        .status();
 
     println!("\n🔍 GPU Monitoring Tools:");
     let monitoring_tools = [
@@ -1391,7 +1485,7 @@ fn basic_performance_tweaks() {
     // Detect GPU vendor for specific instructions
     let lspci_output = Command::new("lspci").args(&["-k"]).output();
     let mut gpu_vendor = "Unknown";
-    
+
     if let Ok(output) = lspci_output {
         let lspci = String::from_utf8_lossy(&output.stdout);
         if lspci.contains("NVIDIA") {
@@ -1408,7 +1502,7 @@ fn basic_performance_tweaks() {
             println!("  • Set PowerMizer to 'Prefer Maximum Performance'");
             println!("  • Increase memory and core clock by +50MHz");
             println!("  • Test stability with games");
-            
+
             let apply_nvidia_tweaks = Confirm::new()
                 .with_prompt("Apply basic NVIDIA performance tweaks?")
                 .default(false)
@@ -1425,7 +1519,7 @@ fn basic_performance_tweaks() {
             println!("  • Enable performance mode in GPU settings");
             println!("  • Adjust power limit to +20%");
             println!("  • Increase fan curve for better cooling");
-            
+
             let apply_amd_tweaks = Confirm::new()
                 .with_prompt("Install CoreCtrl for AMD GPU management?")
                 .default(false)
@@ -1452,7 +1546,7 @@ fn apply_nvidia_basic_tweaks() {
     match nvidia_settings_check {
         Ok(s) if s.success() => {
             println!("✅ nvidia-settings found");
-            
+
             // Launch nvidia-settings for manual configuration
             let launch = Confirm::new()
                 .with_prompt("Launch nvidia-settings for manual configuration?")
@@ -1486,7 +1580,7 @@ fn install_corectrl() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "corectrl"])
                     .status();
-                
+
                 match install_status {
                     Ok(s) if s.success() => {
                         println!("✅ CoreCtrl installed successfully!");
@@ -1498,7 +1592,7 @@ fn install_corectrl() {
             }
         }
     }
-    
+
     println!("❌ No AUR helper found. Install yay first:");
     println!("   sudo pacman -S --needed base-devel git");
     println!("   git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si");
@@ -1547,7 +1641,7 @@ fn gpu_stress_testing() {
     println!("====================");
 
     println!("🔥 GPU stress testing tools:");
-    
+
     let stress_tools = [
         ("glmark2", "OpenGL benchmark", "glmark2"),
         ("unigine-heaven", "3D stress test", ""),
@@ -1602,11 +1696,11 @@ fn gpu_stress_testing() {
 fn memory_storage_optimization_menu() {
     println!("💾 Memory & Storage Optimization");
     println!("================================");
-    
+
     let options = [
         "🧠 Memory Optimization",
         "💿 Storage Performance",
-        "🔄 Swap Configuration", 
+        "🔄 Swap Configuration",
         "📊 Memory Analysis",
         "⬅️  Back",
     ];
@@ -1630,56 +1724,56 @@ fn memory_storage_optimization_menu() {
 fn memory_optimization() {
     println!("🧠 Memory Optimization");
     println!("======================");
-    
+
     println!("🔧 Applying memory optimizations...");
-    
+
     // Optimize vm parameters
     let _ = Command::new("sudo")
         .arg("sh")
         .arg("-c")
         .arg("echo 'vm.swappiness=1' >> /etc/sysctl.d/99-gaming.conf")
         .status();
-        
+
     let _ = Command::new("sudo")
         .arg("sh")
         .arg("-c")
         .arg("echo 'vm.vfs_cache_pressure=50' >> /etc/sysctl.d/99-gaming.conf")
         .status();
-        
+
     println!("✅ Memory optimizations applied");
 }
 
 fn storage_performance() {
     println!("💿 Storage Performance Optimization");
     println!("===================================");
-    
+
     println!("📊 Current storage configuration:");
     let _ = Command::new("lsblk").status();
-    
+
     println!("\n🔧 Optimizing I/O scheduler...");
     let _ = Command::new("sudo")
         .arg("sh")
         .arg("-c")
         .arg("echo mq-deadline > /sys/block/*/queue/scheduler")
         .status();
-        
+
     println!("✅ Storage optimizations applied");
 }
 
 fn swap_configuration() {
     println!("🔄 Swap Configuration");
     println!("=====================");
-    
+
     println!("📊 Current swap status:");
     let _ = Command::new("free").args(&["-h"]).status();
-    
+
     let _ = Command::new("cat").arg("/proc/swaps").status();
 }
 
 fn memory_analysis() {
     println!("📊 Memory Analysis");
     println!("==================");
-    
+
     let _ = Command::new("free").args(&["-h"]).status();
     let _ = Command::new("cat").arg("/proc/meminfo").status();
 }
@@ -1723,7 +1817,7 @@ fn monitor_temperatures() {
         Ok(s) if s.success() => {
             println!("📊 Current system temperatures:");
             let _ = Command::new("sensors").status();
-            
+
             println!("\n🎯 Temperature guidelines:");
             println!("  CPU: < 85°C under load");
             println!("  GPU: < 80°C under load");
@@ -1848,10 +1942,13 @@ fn thermal_throttling_analysis() {
 
     // Check CPU frequency scaling
     println!("\n⚡ CPU frequency information:");
-    let _ = Command::new("cat").arg("/proc/cpuinfo").output()
+    let _ = Command::new("cat")
+        .arg("/proc/cpuinfo")
+        .output()
         .and_then(|output| {
             let cpu_info = String::from_utf8_lossy(&output.stdout);
-            let mut cpu_mhz_lines: Vec<&str> = cpu_info.lines()
+            let mut cpu_mhz_lines: Vec<&str> = cpu_info
+                .lines()
                 .filter(|line| line.contains("cpu MHz"))
                 .collect();
             cpu_mhz_lines.truncate(4); // Show first 4 cores
@@ -1863,22 +1960,21 @@ fn thermal_throttling_analysis() {
 
     // Check thermal zones
     println!("\n🌡️  Thermal zones:");
-    let thermal_zones = std::fs::read_dir("/sys/class/thermal/")
-        .map(|entries| {
-            for entry in entries.flatten() {
-                if let Some(name) = entry.file_name().to_str() {
-                    if name.starts_with("thermal_zone") {
-                        let temp_path = entry.path().join("temp");
-                        if let Ok(temp) = std::fs::read_to_string(&temp_path) {
-                            if let Ok(temp_millic) = temp.trim().parse::<i32>() {
-                                let temp_c = temp_millic / 1000;
-                                println!("  {}: {}°C", name, temp_c);
-                            }
+    let thermal_zones = std::fs::read_dir("/sys/class/thermal/").map(|entries| {
+        for entry in entries.flatten() {
+            if let Some(name) = entry.file_name().to_str() {
+                if name.starts_with("thermal_zone") {
+                    let temp_path = entry.path().join("temp");
+                    if let Ok(temp) = std::fs::read_to_string(&temp_path) {
+                        if let Ok(temp_millic) = temp.trim().parse::<i32>() {
+                            let temp_c = temp_millic / 1000;
+                            println!("  {}: {}°C", name, temp_c);
                         }
                     }
                 }
             }
-        });
+        }
+    });
 
     if thermal_zones.is_err() {
         println!("  ❌ Could not read thermal zones");
@@ -1906,7 +2002,7 @@ fn cooling_optimization_tips() {
     println!("    • Quality thermal paste application");
     println!("    • Proper heatsink mounting pressure");
     println!("    • Consider liquid cooling for high-end CPUs");
-    
+
     println!("  GPU:");
     println!("    • Undervolting for lower temperatures");
     println!("    • Custom fan curves");
@@ -1949,7 +2045,9 @@ fn emergency_thermal_shutdown() {
 
         if final_confirm {
             println!("🚨 Performing emergency thermal shutdown...");
-            let _ = Command::new("sudo").args(&["shutdown", "-h", "now"]).status();
+            let _ = Command::new("sudo")
+                .args(&["shutdown", "-h", "now"])
+                .status();
         }
     }
 
@@ -2042,7 +2140,7 @@ fn cpu_benchmarks() {
         let _ = Command::new("stress")
             .args(&["--cpu", "4", "--timeout", "30s"])
             .status();
-        
+
         println!("✅ CPU stress test completed");
         println!("🌡️  Check temperatures with: sensors");
     }
@@ -2064,7 +2162,11 @@ fn gpu_benchmarks() {
         let status = Command::new("which").arg(tool).status();
         let installed = status.map(|s| s.success()).unwrap_or(false);
         let marker = if installed { "✅" } else { "❌" };
-        let availability = if *available_in_repos { "repos" } else { "manual" };
+        let availability = if *available_in_repos {
+            "repos"
+        } else {
+            "manual"
+        };
         println!("  {} {} - {} ({})", marker, tool, description, availability);
     }
 
@@ -2151,7 +2253,7 @@ fn storage_benchmarks() {
 
 fn run_simple_storage_benchmark() {
     println!("💾 Running simple storage benchmark...");
-    
+
     println!("\n📝 Write test (1GB):");
     let write_start = std::time::Instant::now();
     let write_result = Command::new("dd")
@@ -2160,10 +2262,10 @@ fn run_simple_storage_benchmark() {
             "of=/tmp/benchmark_test",
             "bs=1M",
             "count=1024",
-            "conv=fdatasync"
+            "conv=fdatasync",
         ])
         .output();
-    
+
     match write_result {
         Ok(_) => {
             let write_duration = write_start.elapsed();
@@ -2176,13 +2278,9 @@ fn run_simple_storage_benchmark() {
     println!("\n📖 Read test:");
     let read_start = std::time::Instant::now();
     let read_result = Command::new("dd")
-        .args(&[
-            "if=/tmp/benchmark_test",
-            "of=/dev/null",
-            "bs=1M"
-        ])
+        .args(&["if=/tmp/benchmark_test", "of=/dev/null", "bs=1M"])
         .output();
-    
+
     match read_result {
         Ok(_) => {
             let read_duration = read_start.elapsed();
@@ -2219,7 +2317,7 @@ fn network_performance() {
 
     let network_tests = [
         "🌐 Internet speed test",
-        "🏓 Gaming server latency test", 
+        "🏓 Gaming server latency test",
         "📊 Local network performance",
         "⬅️  Back",
     ];
@@ -2298,13 +2396,18 @@ fn gaming_latency_test() {
 
     let choice = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select server")
-        .items(&gaming_servers.iter().map(|(name, ip)| {
-            if !ip.is_empty() {
-                format!("{} ({})", name, ip)
-            } else {
-                name.to_string()
-            }
-        }).collect::<Vec<_>>())
+        .items(
+            &gaming_servers
+                .iter()
+                .map(|(name, ip)| {
+                    if !ip.is_empty() {
+                        format!("{} ({})", name, ip)
+                    } else {
+                        name.to_string()
+                    }
+                })
+                .collect::<Vec<_>>(),
+        )
         .default(2) // Steam
         .interact()
         .unwrap();
@@ -2350,9 +2453,7 @@ fn local_network_test() {
         if let Some(line) = gateway_info.lines().next() {
             if let Some(gateway_ip) = line.split_whitespace().nth(2) {
                 println!("🎯 Testing latency to gateway ({})...", gateway_ip);
-                let _ = Command::new("ping")
-                    .args(&["-c", "5", gateway_ip])
-                    .status();
+                let _ = Command::new("ping").args(&["-c", "5", gateway_ip]).status();
             }
         }
     }
@@ -2363,10 +2464,10 @@ fn system_monitoring_setup() {
     println!("==========================");
 
     println!("📊 System monitoring tools setup:");
-    
+
     let monitoring_tools = [
         ("htop", "Interactive process viewer", true),
-        ("btop", "Modern system monitor", true), 
+        ("btop", "Modern system monitor", true),
         ("iotop", "I/O monitoring", true),
         ("nethogs", "Network usage per process", true),
         ("nvtop", "GPU monitoring", true),
@@ -2387,9 +2488,7 @@ fn system_monitoring_setup() {
         .unwrap();
 
     if install_missing {
-        let packages: Vec<&str> = monitoring_tools.iter()
-            .map(|(tool, _, _)| *tool)
-            .collect();
+        let packages: Vec<&str> = monitoring_tools.iter().map(|(tool, _, _)| *tool).collect();
 
         let status = Command::new("sudo")
             .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -2451,7 +2550,7 @@ fn setup_mangohud_logging() {
     match mangohud_check {
         Ok(s) if s.success() => {
             println!("✅ MangoHud is installed");
-            
+
             let logs_dir = std::env::home_dir()
                 .map(|h| h.join("Documents/MangoHud_Logs"))
                 .unwrap_or_else(|| std::path::PathBuf::from("~/Documents/MangoHud_Logs"));
@@ -2463,13 +2562,16 @@ fn setup_mangohud_logging() {
 
             println!("📁 Created logs directory: {}", logs_dir.display());
 
-            let config_addition = format!(r#"
+            let config_addition = format!(
+                r#"
 # Performance Logging Configuration
 output_folder={}
 log_duration=30
 autostart_log=1
 toggle_logging=F10
-"#, logs_dir.display());
+"#,
+                logs_dir.display()
+            );
 
             println!("📝 MangoHud logging configuration:");
             println!("{}", config_addition);
@@ -2483,12 +2585,18 @@ toggle_logging=F10
             if update_config {
                 let config_file = std::env::home_dir()
                     .map(|h| h.join(".config/MangoHud/MangoHud.conf"))
-                    .unwrap_or_else(|| std::path::PathBuf::from("~/.config/MangoHud/MangoHud.conf"));
+                    .unwrap_or_else(|| {
+                        std::path::PathBuf::from("~/.config/MangoHud/MangoHud.conf")
+                    });
 
                 use std::fs::OpenOptions;
                 use std::io::Write;
 
-                if let Ok(mut file) = OpenOptions::new().append(true).create(true).open(&config_file) {
+                if let Ok(mut file) = OpenOptions::new()
+                    .append(true)
+                    .create(true)
+                    .open(&config_file)
+                {
                     if let Err(_) = writeln!(file, "{}", config_addition) {
                         println!("❌ Failed to update MangoHud config");
                     } else {
@@ -2575,8 +2683,13 @@ echo "Log saved to: $LOG_FILE"
                 println!("❌ Failed to write performance script");
             } else {
                 // Make script executable
-                let _ = Command::new("chmod").args(&["+x", &script_path.to_string_lossy()]).status();
-                println!("✅ Performance logging script created: {}", script_path.display());
+                let _ = Command::new("chmod")
+                    .args(&["+x", &script_path.to_string_lossy()])
+                    .status();
+                println!(
+                    "✅ Performance logging script created: {}",
+                    script_path.display()
+                );
                 println!("💡 Usage: {}", script_path.display());
                 println!("📁 Logs will be saved to: ~/Documents/PerformanceLogs/");
             }
@@ -2607,7 +2720,9 @@ fn show_existing_logs() {
 
         if expanded_path.exists() {
             println!("\n📁 {}", expanded_path.display());
-            let _ = Command::new("ls").args(&["-lah", &expanded_path.to_string_lossy()]).status();
+            let _ = Command::new("ls")
+                .args(&["-lah", &expanded_path.to_string_lossy()])
+                .status();
         }
     }
 }
@@ -2618,7 +2733,7 @@ fn clean_log_files() {
 
     let log_directories = [
         "~/Documents/MangoHud_Logs",
-        "~/Documents/PerformanceLogs", 
+        "~/Documents/PerformanceLogs",
         "~/Documents/GameLogs",
     ];
 
@@ -2633,9 +2748,12 @@ fn clean_log_files() {
 
         if expanded_path.exists() {
             println!("\n📁 Checking: {}", expanded_path.display());
-            
+
             let clean = Confirm::new()
-                .with_prompt(&format!("Clean log files older than 30 days in {}?", expanded_path.display()))
+                .with_prompt(&format!(
+                    "Clean log files older than 30 days in {}?",
+                    expanded_path.display()
+                ))
                 .default(false)
                 .interact()
                 .unwrap();
@@ -2644,14 +2762,18 @@ fn clean_log_files() {
                 let status = Command::new("find")
                     .args(&[
                         &expanded_path.to_string_lossy(),
-                        "-name", "*.log",
-                        "-mtime", "+30",
-                        "-delete"
+                        "-name",
+                        "*.log",
+                        "-mtime",
+                        "+30",
+                        "-delete",
                     ])
                     .status();
 
                 match status {
-                    Ok(s) if s.success() => println!("✅ Cleaned old logs from {}", expanded_path.display()),
+                    Ok(s) if s.success() => {
+                        println!("✅ Cleaned old logs from {}", expanded_path.display())
+                    }
                     _ => println!("❌ Failed to clean logs from {}", expanded_path.display()),
                 }
             }
@@ -2672,7 +2794,7 @@ fn custom_performance_profiles() {
 
     let profile_options = [
         "🎮 Create gaming performance profile",
-        "💡 Create power saving profile", 
+        "💡 Create power saving profile",
         "⚖️  Create balanced profile",
         "🚀 Create maximum performance profile",
         "📋 List existing profiles",
@@ -2881,8 +3003,14 @@ fn save_performance_profile(name: &str, content: &str) {
                 println!("❌ Failed to write profile");
             } else {
                 // Make script executable
-                let _ = Command::new("chmod").args(&["+x", &profile_path.to_string_lossy()]).status();
-                println!("✅ Performance profile '{}' created: {}", name, profile_path.display());
+                let _ = Command::new("chmod")
+                    .args(&["+x", &profile_path.to_string_lossy()])
+                    .status();
+                println!(
+                    "✅ Performance profile '{}' created: {}",
+                    name,
+                    profile_path.display()
+                );
             }
         }
         Err(_) => println!("❌ Failed to create profile file"),
@@ -2898,8 +3026,13 @@ fn list_performance_profiles() {
         .unwrap_or_else(|| std::path::PathBuf::from("~/.config/ghostctl/profiles"));
 
     if profiles_dir.exists() {
-        println!("📁 Performance profiles directory: {}", profiles_dir.display());
-        let _ = Command::new("ls").args(&["-la", &profiles_dir.to_string_lossy()]).status();
+        println!(
+            "📁 Performance profiles directory: {}",
+            profiles_dir.display()
+        );
+        let _ = Command::new("ls")
+            .args(&["-la", &profiles_dir.to_string_lossy()])
+            .status();
     } else {
         println!("❌ No profiles directory found");
         println!("💡 Create some profiles first");
@@ -2923,16 +3056,20 @@ fn apply_performance_profile() {
     // List available profiles
     let profiles: Vec<String> = std::fs::read_dir(&profiles_dir)
         .map(|entries| {
-            entries.filter_map(|entry| {
-                entry.ok().and_then(|e| {
-                    let path = e.path();
-                    if path.extension().map_or(false, |ext| ext == "sh") {
-                        path.file_stem().and_then(|stem| stem.to_str()).map(|s| s.to_string())
-                    } else {
-                        None
-                    }
+            entries
+                .filter_map(|entry| {
+                    entry.ok().and_then(|e| {
+                        let path = e.path();
+                        if path.extension().map_or(false, |ext| ext == "sh") {
+                            path.file_stem()
+                                .and_then(|stem| stem.to_str())
+                                .map(|s| s.to_string())
+                        } else {
+                            None
+                        }
+                    })
                 })
-            }).collect()
+                .collect()
         })
         .unwrap_or_default();
 
@@ -2957,7 +3094,10 @@ fn apply_performance_profile() {
     let profile_path = profiles_dir.join(format!("{}.sh", selected_profile));
 
     let confirm = Confirm::new()
-        .with_prompt(&format!("Apply '{}' performance profile?", selected_profile))
+        .with_prompt(&format!(
+            "Apply '{}' performance profile?",
+            selected_profile
+        ))
         .default(true)
         .interact()
         .unwrap();
@@ -2965,9 +3105,11 @@ fn apply_performance_profile() {
     if confirm {
         println!("🔧 Applying profile '{}'...", selected_profile);
         let status = Command::new("bash").arg(&profile_path).status();
-        
+
         match status {
-            Ok(s) if s.success() => println!("✅ Profile '{}' applied successfully!", selected_profile),
+            Ok(s) if s.success() => {
+                println!("✅ Profile '{}' applied successfully!", selected_profile)
+            }
             _ => println!("❌ Failed to apply profile '{}'", selected_profile),
         }
     }
@@ -3012,18 +3154,28 @@ fn detect_running_games() {
     println!("=================================");
 
     let game_processes = [
-        "steam", "steamwebhelper", "csgo", "cs2", "dota2", "tf2",
-        "wine", "lutris", "heroic", "minecraft", "java",
-        "factorio", "terraria", "rimworld", "cityskylinesii",
+        "steam",
+        "steamwebhelper",
+        "csgo",
+        "cs2",
+        "dota2",
+        "tf2",
+        "wine",
+        "lutris",
+        "heroic",
+        "minecraft",
+        "java",
+        "factorio",
+        "terraria",
+        "rimworld",
+        "cityskylinesii",
     ];
 
     println!("🎮 Scanning for running games...");
     let mut found_games = Vec::new();
 
     for game in &game_processes {
-        let pgrep_output = Command::new("pgrep")
-            .args(&["-l", game])
-            .output();
+        let pgrep_output = Command::new("pgrep").args(&["-l", game]).output();
 
         if let Ok(output) = pgrep_output {
             let processes = String::from_utf8_lossy(&output.stdout);
@@ -3039,7 +3191,7 @@ fn detect_running_games() {
         println!("💡 Games may not be in the detection list");
     } else {
         println!("\n✅ Detected {} running game(s)", found_games.len());
-        
+
         let optimize_now = Confirm::new()
             .with_prompt("Apply gaming optimizations for detected games?")
             .default(true)
@@ -3068,9 +3220,16 @@ fn apply_gaming_optimizations() {
     }
 
     // Start GameMode if available
-    if Command::new("which").arg("gamemoderun").status().map(|s| s.success()).unwrap_or(false) {
+    if Command::new("which")
+        .arg("gamemoderun")
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+    {
         println!("🚀 Starting GameMode...");
-        let _ = Command::new("systemctl").args(&["--user", "start", "gamemode"]).status();
+        let _ = Command::new("systemctl")
+            .args(&["--user", "start", "gamemode"])
+            .status();
     }
 
     println!("✅ Gaming optimizations applied!");
@@ -3121,26 +3280,38 @@ fn game_optimization_database() {
     println!("======================================");
 
     let game_optimizations = [
-        ("Counter-Strike 2", vec![
-            "-high -threads 4 +fps_max 300",
-            "DXVK_ASYNC=1",
-            "gamemoderun %command%"
-        ]),
-        ("Cyberpunk 2077", vec![
-            "PROTON_NO_ESYNC=1",
-            "DXVK_ASYNC=1",
-            "Lower crowd density settings"
-        ]),
-        ("Minecraft", vec![
-            "Allocate 4-8GB RAM",
-            "Use OptiFine or Sodium",
-            "Disable VSync for higher FPS"
-        ]),
-        ("Factorio", vec![
-            "Disable autosave during gameplay",
-            "Use faster graphics settings",
-            "Enable multi-threading"
-        ]),
+        (
+            "Counter-Strike 2",
+            vec![
+                "-high -threads 4 +fps_max 300",
+                "DXVK_ASYNC=1",
+                "gamemoderun %command%",
+            ],
+        ),
+        (
+            "Cyberpunk 2077",
+            vec![
+                "PROTON_NO_ESYNC=1",
+                "DXVK_ASYNC=1",
+                "Lower crowd density settings",
+            ],
+        ),
+        (
+            "Minecraft",
+            vec![
+                "Allocate 4-8GB RAM",
+                "Use OptiFine or Sodium",
+                "Disable VSync for higher FPS",
+            ],
+        ),
+        (
+            "Factorio",
+            vec![
+                "Disable autosave during gameplay",
+                "Use faster graphics settings",
+                "Enable multi-threading",
+            ],
+        ),
     ];
 
     println!("📚 Game-specific optimizations database:");
@@ -3164,16 +3335,18 @@ fn performance_status_report() {
 
     println!("🖥️  System Information:");
     let _ = Command::new("uname").arg("-a").status();
-    
+
     println!("\n💻 CPU Information:");
     let _ = Command::new("lscpu").status();
-    
+
     println!("\n💾 Memory Status:");
     let _ = Command::new("free").arg("-h").status();
-    
+
     println!("\n📊 Current CPU Governor:");
-    let _ = Command::new("cat").arg("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor").status();
-    
+    let _ = Command::new("cat")
+        .arg("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
+        .status();
+
     println!("\n🌡️  System Temperatures:");
     let sensors_check = Command::new("which").arg("sensors").status();
     match sensors_check {
@@ -3182,7 +3355,7 @@ fn performance_status_report() {
         }
         _ => println!("  ❌ lm_sensors not installed"),
     }
-    
+
     println!("\n🎮 Gaming Tools Status:");
     let gaming_tools = [
         ("GameMode", "gamemoderun"),
@@ -3210,14 +3383,19 @@ fn generate_performance_recommendations() {
     let governor_output = Command::new("cat")
         .arg("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
         .output();
-    
+
     if let Ok(output) = governor_output {
         let output_string = String::from_utf8_lossy(&output.stdout);
         let governor = output_string.trim().to_string();
         match governor.as_str() {
-            "powersave" => println!("  ⚡ Consider switching to 'performance' or 'schedutil' governor for gaming"),
+            "powersave" => println!(
+                "  ⚡ Consider switching to 'performance' or 'schedutil' governor for gaming"
+            ),
             "performance" => println!("  ✅ CPU governor optimized for performance"),
-            _ => println!("  💡 CPU governor: {} (consider 'performance' for gaming)", governor),
+            _ => println!(
+                "  💡 CPU governor: {} (consider 'performance' for gaming)",
+                governor
+            ),
         }
     }
 

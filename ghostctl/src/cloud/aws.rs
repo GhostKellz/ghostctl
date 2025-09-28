@@ -1,4 +1,4 @@
-use dialoguer::{Input, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Input, Select};
 use std::process::Command;
 
 pub fn aws_cli_tools() {

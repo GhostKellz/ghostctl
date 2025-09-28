@@ -1,4 +1,4 @@
-use dialoguer::{Input, MultiSelect, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Input, MultiSelect, Select};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;

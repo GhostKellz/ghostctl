@@ -1,11 +1,11 @@
-use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme, MultiSelect};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::process::Command;
 
 pub fn storage_migration_menu() {
     loop {
         let options = vec![
             "VM Storage Migration",
-            "Container Storage Migration", 
+            "Container Storage Migration",
             "Bulk Storage Migration",
             "Storage Pool Management",
             "Migration Planning & Analysis",
@@ -81,12 +81,15 @@ fn vm_storage_migration() {
     println!("   VM ID: {}", vm_id);
     println!("   From: {}", source_storage);
     println!("   To: {}", target_storage);
-    println!("   Type: {}", match migration_type {
-        0 => "Online (live)",
-        1 => "Offline", 
-        2 => "Copy (keep original)",
-        _ => "Unknown"
-    });
+    println!(
+        "   Type: {}",
+        match migration_type {
+            0 => "Online (live)",
+            1 => "Offline",
+            2 => "Copy (keep original)",
+            _ => "Unknown",
+        }
+    );
 
     if Confirm::new()
         .with_prompt("Proceed with migration?")
@@ -99,41 +102,56 @@ fn vm_storage_migration() {
                 println!("🚀 Starting online storage migration...");
                 let _ = Command::new("pvesh")
                     .args(&[
-                        "create", 
+                        "create",
                         &format!("/nodes/localhost/qemu/{}/move_disk", vm_id),
-                        "-disk", "virtio0",
-                        "-storage", &target_storage,
-                        "-delete", "1"
+                        "-disk",
+                        "virtio0",
+                        "-storage",
+                        &target_storage,
+                        "-delete",
+                        "1",
                     ])
                     .status();
-            },
+            }
             1 => {
                 println!("⏹️  Stopping VM for offline migration...");
                 let _ = Command::new("pvesh")
-                    .args(&["create", &format!("/nodes/localhost/qemu/{}/status/stop", vm_id)])
+                    .args(&[
+                        "create",
+                        &format!("/nodes/localhost/qemu/{}/status/stop", vm_id),
+                    ])
                     .status();
-                
+
                 println!("🔄 Moving disk...");
                 let _ = Command::new("pvesh")
                     .args(&[
                         "create",
                         &format!("/nodes/localhost/qemu/{}/move_disk", vm_id),
-                        "-disk", "virtio0",
-                        "-storage", &target_storage
+                        "-disk",
+                        "virtio0",
+                        "-storage",
+                        &target_storage,
                     ])
                     .status();
-            },
+            }
             2 => {
                 println!("📋 Creating disk copy...");
                 let _ = Command::new("qm")
-                    .args(&["clone", &vm_id, "999", "--full", "--storage", &target_storage])
+                    .args(&[
+                        "clone",
+                        &vm_id,
+                        "999",
+                        "--full",
+                        "--storage",
+                        &target_storage,
+                    ])
                     .status();
-            },
+            }
             _ => {}
         }
 
         println!("✅ Storage migration completed!");
-        
+
         // Verify migration
         println!("\n🔍 Verifying migration...");
         let _ = Command::new("pvesh")
@@ -179,17 +197,17 @@ fn container_storage_migration() {
         .unwrap()
     {
         println!("⏹️  Stopping container...");
-        let _ = Command::new("pct")
-            .args(&["stop", &ct_id])
-            .status();
+        let _ = Command::new("pct").args(&["stop", &ct_id]).status();
 
         println!("🔄 Moving container storage...");
         let _ = Command::new("pvesh")
             .args(&[
                 "create",
                 &format!("/nodes/localhost/lxc/{}/move_volume", ct_id),
-                "-volume", "rootfs",
-                "-storage", &target_storage
+                "-volume",
+                "rootfs",
+                "-storage",
+                &target_storage,
             ])
             .status();
 
@@ -199,9 +217,7 @@ fn container_storage_migration() {
             .interact()
             .unwrap()
         {
-            let _ = Command::new("pct")
-                .args(&["start", &ct_id])
-                .status();
+            let _ = Command::new("pct").args(&["start", &ct_id]).status();
         }
 
         println!("✅ Container migration completed!");
@@ -227,7 +243,7 @@ fn bulk_storage_migration() {
         .args(&["get", "/nodes/localhost/qemu", "--output-format", "json"])
         .output();
 
-    // List containers on source storage  
+    // List containers on source storage
     println!("🔍 Scanning containers on source storage...");
     let ct_list = Command::new("pvesh")
         .args(&["get", "/nodes/localhost/lxc", "--output-format", "json"])
@@ -239,7 +255,7 @@ fn bulk_storage_migration() {
 
     let migration_options = vec![
         "All VMs",
-        "All Containers", 
+        "All Containers",
         "VMs + Containers",
         "Custom Selection",
     ];
@@ -263,8 +279,11 @@ fn bulk_storage_migration() {
         .interact()
         .unwrap()
     {
-        println!("🚀 Starting bulk migration with {} parallel jobs...", parallel_jobs);
-        
+        println!(
+            "🚀 Starting bulk migration with {} parallel jobs...",
+            parallel_jobs
+        );
+
         // This would implement the actual bulk migration logic
         println!("⚠️  Bulk migration in progress - monitor via PVE web interface");
         println!("✅ Bulk migration jobs queued!");
@@ -276,7 +295,7 @@ fn storage_pool_management() {
         let options = vec![
             "List Storage Pools",
             "Add Storage Pool",
-            "Remove Storage Pool", 
+            "Remove Storage Pool",
             "Storage Pool Status",
             "Storage Pool Configuration",
             "Storage Usage Analysis",
@@ -304,23 +323,30 @@ fn storage_pool_management() {
 
 fn list_storage_pools() {
     println!("📦 PVE Storage Pools\n");
-    
+
     let _ = Command::new("pvesh")
         .args(&["get", "/storage", "--output-format", "table"])
         .status();
 
     println!("\n💾 Detailed storage information:");
-    let _ = Command::new("pvesm")
-        .args(&["status"])
-        .status();
+    let _ = Command::new("pvesm").args(&["status"]).status();
 }
 
 fn add_storage_pool() {
     println!("➕ Add Storage Pool\n");
 
     let storage_types = vec![
-        "local", "nfs", "cifs", "glusterfs", "cephfs", "ceph", 
-        "zfs", "lvm", "lvmthin", "iscsi", "iscsidirect"
+        "local",
+        "nfs",
+        "cifs",
+        "glusterfs",
+        "cephfs",
+        "ceph",
+        "zfs",
+        "lvm",
+        "lvmthin",
+        "iscsi",
+        "iscsidirect",
     ];
 
     let storage_type = Select::with_theme(&ColorfulTheme::default())
@@ -364,10 +390,12 @@ fn add_nfs_storage(storage_id: &str) {
 
     let mut content = String::new();
     for (i, &selected) in content_types.iter().enumerate() {
-        if i > 0 { content.push(','); }
+        if i > 0 {
+            content.push(',');
+        }
         content.push_str(match selected {
             0 => "images",
-            1 => "iso", 
+            1 => "iso",
             2 => "vztmpl",
             3 => "backup",
             4 => "snippets",
@@ -378,10 +406,15 @@ fn add_nfs_storage(storage_id: &str) {
     println!("➕ Adding NFS storage...");
     let _ = Command::new("pvesm")
         .args(&[
-            "add", "nfs", storage_id,
-            "--server", &server,
-            "--export", &export,
-            "--content", &content
+            "add",
+            "nfs",
+            storage_id,
+            "--server",
+            &server,
+            "--export",
+            &export,
+            "--content",
+            &content,
         ])
         .status();
 
@@ -412,12 +445,19 @@ fn add_cifs_storage(storage_id: &str) {
     println!("➕ Adding CIFS storage...");
     let _ = Command::new("pvesm")
         .args(&[
-            "add", "cifs", storage_id,
-            "--server", &server,
-            "--share", &share,
-            "--username", &username,
-            "--password", &password,
-            "--content", "images,iso,backup"
+            "add",
+            "cifs",
+            storage_id,
+            "--server",
+            &server,
+            "--share",
+            &share,
+            "--username",
+            &username,
+            "--password",
+            &password,
+            "--content",
+            "images,iso,backup",
         ])
         .status();
 
@@ -437,7 +477,15 @@ fn add_zfs_storage(storage_id: &str) {
         .unwrap();
 
     println!("➕ Adding ZFS storage...");
-    let mut args = vec!["add", "zfspool", storage_id, "--pool", &pool, "--content", "images,rootdir"];
+    let mut args = vec![
+        "add",
+        "zfspool",
+        storage_id,
+        "--pool",
+        &pool,
+        "--content",
+        "images,rootdir",
+    ];
     if sparse {
         args.push("--sparse");
     }
@@ -454,7 +502,15 @@ fn add_lvm_storage(storage_id: &str) {
 
     println!("➕ Adding LVM storage...");
     let _ = Command::new("pvesm")
-        .args(&["add", "lvm", storage_id, "--vgname", &vgname, "--content", "images,rootdir"])
+        .args(&[
+            "add",
+            "lvm",
+            storage_id,
+            "--vgname",
+            &vgname,
+            "--content",
+            "images,rootdir",
+        ])
         .status();
 
     println!("✅ LVM storage '{}' added successfully!", storage_id);
@@ -468,7 +524,15 @@ fn add_local_storage(storage_id: &str) {
 
     println!("➕ Adding local storage...");
     let _ = Command::new("pvesm")
-        .args(&["add", "dir", storage_id, "--path", &path, "--content", "images,iso,backup,snippets"])
+        .args(&[
+            "add",
+            "dir",
+            storage_id,
+            "--path",
+            &path,
+            "--content",
+            "images,iso,backup,snippets",
+        ])
         .status();
 
     println!("✅ Local storage '{}' added successfully!", storage_id);
@@ -533,21 +597,17 @@ fn storage_usage_analysis() {
     println!("📈 Storage Usage Analysis\n");
 
     println!("📊 Overall storage usage:");
-    let _ = Command::new("pvesm")
-        .args(&["status"])
-        .status();
+    let _ = Command::new("pvesm").args(&["status"]).status();
 
     println!("\n🔍 Analyzing disk usage per VM/CT...");
-    
+
     // Get VM disk usage
     let _ = Command::new("bash")
         .args(&["-c", "for vm in $(pvesh get /nodes/localhost/qemu --output-format json | jq -r '.[].vmid'); do echo \"VM $vm:\"; pvesh get /nodes/localhost/qemu/$vm/config | grep -E 'virtio|scsi|ide'; done"])
         .status();
 
     println!("\n💽 Storage performance metrics:");
-    let _ = Command::new("iostat")
-        .args(&["-x", "1", "3"])
-        .status();
+    let _ = Command::new("iostat").args(&["-x", "1", "3"]).status();
 }
 
 fn migration_planning() {
@@ -557,10 +617,10 @@ fn migration_planning() {
         .with_prompt("Select analysis type")
         .items(&[
             "Pre-migration Assessment",
-            "Storage Capacity Planning", 
+            "Storage Capacity Planning",
             "Performance Impact Analysis",
             "Migration Timeline Estimation",
-            "Rollback Planning"
+            "Rollback Planning",
         ])
         .default(0)
         .interact()
@@ -590,13 +650,16 @@ fn pre_migration_assessment() {
         .status();
 
     println!("\n🔍 Checking storage accessibility:");
-    let _ = Command::new("pvesm")
-        .args(&["list", &storage_id])
-        .status();
+    let _ = Command::new("pvesm").args(&["list", &storage_id]).status();
 
     println!("\n⚡ Performance baseline:");
     let _ = Command::new("dd")
-        .args(&["if=/dev/zero", &format!("of=/tmp/test_{}", storage_id), "bs=1M", "count=100"])
+        .args(&[
+            "if=/dev/zero",
+            &format!("of=/tmp/test_{}", storage_id),
+            "bs=1M",
+            "count=100",
+        ])
         .status();
 
     let _ = Command::new("rm")
@@ -609,9 +672,7 @@ fn pre_migration_assessment() {
 fn storage_capacity_planning() {
     println!("📏 Storage Capacity Planning\n");
 
-    let _ = Command::new("pvesm")
-        .args(&["status"])
-        .status();
+    let _ = Command::new("pvesm").args(&["status"]).status();
 
     println!("\n📊 Disk usage by VM:");
     // This would implement detailed capacity analysis
@@ -625,9 +686,7 @@ fn performance_impact_analysis() {
     println!("⚡ Performance Impact Analysis\n");
 
     println!("📊 Current I/O load:");
-    let _ = Command::new("iostat")
-        .args(&["-x", "1", "3"])
-        .status();
+    let _ = Command::new("iostat").args(&["-x", "1", "3"]).status();
 
     println!("\n🔍 Network bandwidth analysis:");
     let _ = Command::new("iftop")
@@ -654,9 +713,13 @@ fn migration_timeline_estimation() {
         .interact()
         .unwrap();
 
-    if let (Ok(size_gb), Ok(speed_gbps)) = (data_size.parse::<f64>(), network_speed.parse::<f64>()) {
+    if let (Ok(size_gb), Ok(speed_gbps)) = (data_size.parse::<f64>(), network_speed.parse::<f64>())
+    {
         let estimated_time = size_gb * 8.0 / (speed_gbps * 1000.0) / 0.7; // 70% efficiency
-        println!("\n⏱️  Estimated migration time: {:.1} hours", estimated_time);
+        println!(
+            "\n⏱️  Estimated migration time: {:.1} hours",
+            estimated_time
+        );
         println!("   (includes overhead and safety margin)");
     }
 }
@@ -666,7 +729,7 @@ fn rollback_planning() {
 
     println!("📋 Pre-migration checklist:");
     println!("   ☐ Create VM/CT snapshots");
-    println!("   ☐ Document current storage configuration"); 
+    println!("   ☐ Document current storage configuration");
     println!("   ☐ Test rollback procedure on non-critical VM");
     println!("   ☐ Prepare rollback scripts");
 
@@ -686,7 +749,8 @@ fn create_rollback_script() {
         .interact()
         .unwrap();
 
-    let script_content = format!(r#"#!/bin/bash
+    let script_content = format!(
+        r#"#!/bin/bash
 # Rollback script for VM {}
 # Generated by ghostctl
 
@@ -699,14 +763,14 @@ qm stop {}
 # qm rollback {} snapshot_name
 
 echo "✅ Rollback complete for VM {}"
-"#, vm_id, vm_id, vm_id, vm_id, vm_id);
+"#,
+        vm_id, vm_id, vm_id, vm_id, vm_id
+    );
 
     let script_path = format!("/tmp/rollback_vm_{}.sh", vm_id);
     std::fs::write(&script_path, script_content).ok();
-    
-    let _ = Command::new("chmod")
-        .args(&["+x", &script_path])
-        .status();
+
+    let _ = Command::new("chmod").args(&["+x", &script_path]).status();
 
     println!("✅ Rollback script created: {}", script_path);
 }
@@ -718,7 +782,7 @@ fn live_migration_tools() {
         "Monitor Active Migrations",
         "Cancel Running Migration",
         "Bandwidth Control",
-        "Migration Queue Management", 
+        "Migration Queue Management",
         "Live Migration Status",
     ];
 
@@ -820,7 +884,7 @@ fn storage_replication_setup() {
         "ZFS Replication",
         "Proxmox Backup Server Sync",
         "DRBD Replication",
-        "Custom Replication Script"
+        "Custom Replication Script",
     ];
 
     let replication_type = Select::with_theme(&ColorfulTheme::default())
@@ -833,7 +897,7 @@ fn storage_replication_setup() {
     match replication_type {
         0 => setup_zfs_replication(),
         1 => setup_pbs_sync(),
-        2 => setup_drbd_replication(), 
+        2 => setup_drbd_replication(),
         3 => setup_custom_replication(),
         _ => {}
     }
@@ -864,14 +928,17 @@ fn setup_zfs_replication() {
         .unwrap();
 
     println!("🔄 Setting up ZFS replication...");
-    
+
     // Create replication job
-    let replication_config = format!(r#"
+    let replication_config = format!(
+        r#"
 # ZFS Replication Configuration
 source: {}
 target: {}:{}
 schedule: {}
-"#, source_dataset, target_host, target_dataset, schedule);
+"#,
+        source_dataset, target_host, target_dataset, schedule
+    );
 
     println!("✅ ZFS replication configured!");
     println!("📋 Configuration:\n{}", replication_config);
@@ -893,10 +960,15 @@ fn setup_pbs_sync() {
     println!("🔧 Configuring PBS remote...");
     let _ = Command::new("pvesm")
         .args(&[
-            "add", "pbs", "backup-remote",
-            "--server", &pbs_server,
-            "--datastore", &datastore,
-            "--content", "backup"
+            "add",
+            "pbs",
+            "backup-remote",
+            "--server",
+            &pbs_server,
+            "--datastore",
+            &datastore,
+            "--content",
+            "backup",
         ])
         .status();
 
@@ -905,12 +977,12 @@ fn setup_pbs_sync() {
 
 fn setup_drbd_replication() {
     println!("🔄 DRBD Replication Setup\n");
-    
+
     println!("⚠️  DRBD setup requires:");
     println!("   • DRBD kernel module");
     println!("   • Dedicated network connection");
     println!("   • Matching block devices on both nodes");
-    
+
     println!("💡 This is an advanced setup - proceed with caution");
 }
 
@@ -927,7 +999,8 @@ fn setup_custom_replication() {
         .interact()
         .unwrap();
 
-    let script_content = format!(r#"#!/bin/bash
+    let script_content = format!(
+        r#"#!/bin/bash
 # Custom replication script generated by ghostctl
 
 SOURCE="{}"
@@ -944,14 +1017,14 @@ else
     echo "❌ Replication failed"
     exit 1
 fi
-"#, source_path, target_path);
+"#,
+        source_path, target_path
+    );
 
     let script_path = "/tmp/custom_replication.sh";
     std::fs::write(script_path, script_content).ok();
-    
-    let _ = Command::new("chmod")
-        .args(&["+x", script_path])
-        .status();
+
+    let _ = Command::new("chmod").args(&["+x", script_path]).status();
 
     println!("✅ Custom replication script created: {}", script_path);
 }

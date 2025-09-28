@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use std::process::Command;
 
 pub fn sysadmin_menu() {
@@ -39,7 +39,7 @@ pub fn sysadmin_menu() {
 fn advanced_system_config() {
     println!("🔧 Advanced System Configuration");
     println!("===============================");
-    
+
     let config_options = [
         "⚙️  System Limits Configuration",
         "🔧 Module Loading Configuration",
@@ -71,7 +71,7 @@ fn advanced_system_config() {
 fn configure_system_limits() {
     println!("⚙️  System Limits Configuration");
     println!("===============================");
-    
+
     let limits_config = r#"# GhostCTL System Limits
 # Increase file descriptor limits for high-performance applications
 * soft nofile 65536
@@ -110,7 +110,7 @@ fn configure_system_limits() {
 fn configure_module_loading() {
     println!("🔧 Kernel Module Loading Configuration");
     println!("=====================================");
-    
+
     let modules_options = [
         "📋 List Loaded Modules",
         "🔧 Configure Module Blacklist",
@@ -140,19 +140,19 @@ fn configure_module_loading() {
 fn list_loaded_modules() {
     println!("📋 Currently Loaded Kernel Modules");
     println!("==================================");
-    
+
     let _ = Command::new("lsmod").status();
 }
 
 fn configure_module_blacklist() {
     println!("🔧 Configure Module Blacklist");
     println!("=============================");
-    
+
     let module_name: String = Input::new()
         .with_prompt("Enter module name to blacklist")
         .interact_text()
         .unwrap();
-    
+
     let confirm = Confirm::new()
         .with_prompt(format!("Blacklist module '{}'?", module_name))
         .default(false)
@@ -162,11 +162,12 @@ fn configure_module_blacklist() {
     if confirm {
         let blacklist_entry = format!("blacklist {}\n", module_name);
         let blacklist_file = "/etc/modprobe.d/99-ghostctl-blacklist.conf";
-        
+
         if let Ok(mut file) = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
-            .open(blacklist_file) {
+            .open(blacklist_file)
+        {
             use std::io::Write;
             if file.write_all(blacklist_entry.as_bytes()).is_ok() {
                 println!("✅ Module '{}' blacklisted", module_name);
@@ -179,12 +180,12 @@ fn configure_module_blacklist() {
 fn load_module() {
     println!("⚡ Load Kernel Module");
     println!("====================");
-    
+
     let module_name: String = Input::new()
         .with_prompt("Enter module name to load")
         .interact_text()
         .unwrap();
-    
+
     let status = Command::new("sudo")
         .args(&["modprobe", &module_name])
         .status();
@@ -198,12 +199,12 @@ fn load_module() {
 fn unload_module() {
     println!("🛑 Unload Kernel Module");
     println!("=======================");
-    
+
     let module_name: String = Input::new()
         .with_prompt("Enter module name to unload")
         .interact_text()
         .unwrap();
-    
+
     let confirm = Confirm::new()
         .with_prompt(format!("Unload module '{}'?", module_name))
         .default(false)
@@ -225,12 +226,12 @@ fn unload_module() {
 fn module_information() {
     println!("📝 Module Information");
     println!("====================");
-    
+
     let module_name: String = Input::new()
         .with_prompt("Enter module name for information")
         .interact_text()
         .unwrap();
-    
+
     println!("📊 Module information for '{}':", module_name);
     let _ = Command::new("modinfo").arg(&module_name).status();
 }
@@ -238,7 +239,7 @@ fn module_information() {
 fn configure_filesystem_mounts() {
     println!("📁 Filesystem Mount Options");
     println!("===========================");
-    
+
     let mount_options = [
         "📊 Show Current Mounts",
         "🔧 Optimize Mount Options",
@@ -266,9 +267,9 @@ fn configure_filesystem_mounts() {
 fn show_current_mounts() {
     println!("📊 Current Filesystem Mounts");
     println!("============================");
-    
+
     let _ = Command::new("mount").status();
-    
+
     println!("\n📋 /etc/fstab contents:");
     let _ = Command::new("cat").arg("/etc/fstab").status();
 }
@@ -276,13 +277,13 @@ fn show_current_mounts() {
 fn optimize_mount_options() {
     println!("🔧 Optimize Mount Options");
     println!("=========================");
-    
+
     println!("💡 Common optimizations:");
     println!("  • noatime - Disable access time updates");
     println!("  • compress=zstd - Enable compression for Btrfs");
     println!("  • discard - Enable TRIM for SSDs");
     println!("  • relatime - Update access times efficiently");
-    
+
     println!("\n⚠️  Manual fstab editing required for persistent changes");
     println!("📝 Backup your fstab before making changes");
 }
@@ -290,19 +291,19 @@ fn optimize_mount_options() {
 fn setup_temp_filesystem() {
     println!("💾 Temporary Filesystem Setup");
     println!("=============================");
-    
+
     let temp_size: String = Input::new()
         .with_prompt("Enter tmpfs size (e.g., 4G, 50%)")
         .default("2G".to_string())
         .interact_text()
         .unwrap();
-    
+
     let mount_point: String = Input::new()
         .with_prompt("Enter mount point")
         .default("/tmp/ramdisk".to_string())
         .interact_text()
         .unwrap();
-    
+
     let confirm = Confirm::new()
         .with_prompt(format!("Create {}B tmpfs at '{}'?", temp_size, mount_point))
         .default(true)
@@ -314,10 +315,18 @@ fn setup_temp_filesystem() {
         let _ = Command::new("sudo")
             .args(&["mkdir", "-p", &mount_point])
             .status();
-            
+
         // Mount tmpfs
         let status = Command::new("sudo")
-            .args(&["mount", "-t", "tmpfs", "-o", &format!("size={}", temp_size), "tmpfs", &mount_point])
+            .args(&[
+                "mount",
+                "-t",
+                "tmpfs",
+                "-o",
+                &format!("size={}", temp_size),
+                "tmpfs",
+                &mount_point,
+            ])
             .status();
 
         match status {
@@ -330,9 +339,12 @@ fn setup_temp_filesystem() {
 fn backup_fstab() {
     println!("🗂️  Backup fstab");
     println!("================");
-    
-    let backup_name = format!("/etc/fstab.backup.{}", chrono::Utc::now().format("%Y%m%d_%H%M%S"));
-    
+
+    let backup_name = format!(
+        "/etc/fstab.backup.{}",
+        chrono::Utc::now().format("%Y%m%d_%H%M%S")
+    );
+
     let status = Command::new("sudo")
         .args(&["cp", "/etc/fstab", &backup_name])
         .status();
@@ -346,7 +358,7 @@ fn backup_fstab() {
 fn process_management() {
     println!("🔄 Advanced Process Management");
     println!("==============================");
-    
+
     let process_options = [
         "📊 Process Analysis",
         "🎯 CPU Affinity Management",
@@ -376,13 +388,13 @@ fn process_management() {
 fn process_analysis() {
     println!("📊 Process Analysis");
     println!("==================");
-    
+
     println!("🔍 Top CPU consumers:");
     let _ = Command::new("ps").args(&["aux", "--sort=-%cpu"]).status();
-    
+
     println!("\n💾 Top memory consumers:");
     let _ = Command::new("ps").args(&["aux", "--sort=-%mem"]).status();
-    
+
     println!("\n🌳 Process tree:");
     let _ = Command::new("pstree").args(&["-p"]).status();
 }
@@ -390,23 +402,23 @@ fn process_analysis() {
 fn cpu_affinity_management() {
     println!("🎯 CPU Affinity Management");
     println!("==========================");
-    
+
     println!("📊 Current CPU count:");
     let _ = Command::new("nproc").status();
-    
+
     let pid: String = Input::new()
         .with_prompt("Enter process PID for affinity management")
         .interact_text()
         .unwrap();
-    
+
     println!("📋 Current affinity for PID {}:", pid);
     let _ = Command::new("taskset").args(&["-p", &pid]).status();
-    
+
     let cpu_mask: String = Input::new()
         .with_prompt("Enter CPU mask (e.g., 0x3 for CPUs 0,1)")
         .interact_text()
         .unwrap();
-    
+
     let confirm = Confirm::new()
         .with_prompt(format!("Set CPU affinity {} for PID {}?", cpu_mask, pid))
         .default(false)
@@ -428,12 +440,12 @@ fn cpu_affinity_management() {
 fn process_priority_control() {
     println!("⚖️  Process Priority Control");
     println!("============================");
-    
+
     let pid: String = Input::new()
         .with_prompt("Enter process PID")
         .interact_text()
         .unwrap();
-    
+
     let priority_options = [
         "-20 (Highest priority)",
         "-10 (High priority)",
@@ -441,19 +453,22 @@ fn process_priority_control() {
         "10 (Low priority)",
         "19 (Lowest priority)",
     ];
-    
+
     let choice = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select priority level")
         .items(&priority_options)
         .default(2)
         .interact()
         .unwrap();
-    
+
     let priority_values = [-20, -10, 0, 10, 19];
     let selected_priority = priority_values[choice];
-    
+
     let confirm = Confirm::new()
-        .with_prompt(format!("Set priority {} for PID {}?", selected_priority, pid))
+        .with_prompt(format!(
+            "Set priority {} for PID {}?",
+            selected_priority, pid
+        ))
         .default(false)
         .interact()
         .unwrap();
@@ -473,17 +488,17 @@ fn process_priority_control() {
 fn process_limits() {
     println!("🔧 Process Resource Limits");
     println!("==========================");
-    
+
     println!("📊 Current resource limits:");
     let _ = Command::new("ulimit").arg("-a").status();
-    
+
     println!("\n💡 To modify limits permanently, edit /etc/security/limits.conf");
 }
 
 fn process_control() {
     println!("🛑 Process Control");
     println!("==================");
-    
+
     let control_options = [
         "🔍 Search Process",
         "⏸️  Pause Process (STOP)",
@@ -513,12 +528,12 @@ fn process_control() {
 fn search_process() {
     println!("🔍 Search Process");
     println!("=================");
-    
+
     let search_term: String = Input::new()
         .with_prompt("Enter process name or pattern")
         .interact_text()
         .unwrap();
-    
+
     println!("📋 Matching processes:");
     let _ = Command::new("pgrep").args(&["-l", &search_term]).status();
 }
@@ -526,12 +541,12 @@ fn search_process() {
 fn signal_process(signal: &str) {
     println!("📡 Send Signal {} to Process", signal);
     println!("===============================");
-    
+
     let pid: String = Input::new()
         .with_prompt("Enter process PID")
         .interact_text()
         .unwrap();
-    
+
     let confirm = Confirm::new()
         .with_prompt(format!("Send {} signal to PID {}?", signal, pid))
         .default(false)
@@ -553,7 +568,7 @@ fn signal_process(signal: &str) {
 fn file_permissions_audit() {
     println!("🗂️  File Permissions Audit");
     println!("===========================");
-    
+
     let audit_options = [
         "🔍 Find SUID/SGID Files",
         "📂 Find World-Writable Files",
@@ -583,12 +598,12 @@ fn file_permissions_audit() {
 fn find_suid_sgid_files() {
     println!("🔍 SUID/SGID Files");
     println!("==================");
-    
+
     println!("📋 SUID files (run with owner permissions):");
     let _ = Command::new("find")
         .args(&["/", "-type", "f", "-perm", "-4000", "-ls", "2>/dev/null"])
         .status();
-    
+
     println!("\n📋 SGID files (run with group permissions):");
     let _ = Command::new("find")
         .args(&["/", "-type", "f", "-perm", "-2000", "-ls", "2>/dev/null"])
@@ -598,12 +613,12 @@ fn find_suid_sgid_files() {
 fn find_world_writable_files() {
     println!("📂 World-Writable Files");
     println!("=======================");
-    
+
     println!("⚠️  World-writable files (potential security risk):");
     let _ = Command::new("find")
         .args(&["/", "-type", "f", "-perm", "-002", "-ls", "2>/dev/null"])
         .status();
-    
+
     println!("\n📁 World-writable directories:");
     let _ = Command::new("find")
         .args(&["/", "-type", "d", "-perm", "-002", "-ls", "2>/dev/null"])
@@ -613,12 +628,12 @@ fn find_world_writable_files() {
 fn find_files_without_owner() {
     println!("🔒 Files Without Owner");
     println!("======================");
-    
+
     println!("👻 Files without valid user:");
     let _ = Command::new("find")
         .args(&["/", "-nouser", "-ls", "2>/dev/null"])
         .status();
-    
+
     println!("\n👻 Files without valid group:");
     let _ = Command::new("find")
         .args(&["/", "-nogroup", "-ls", "2>/dev/null"])
@@ -628,7 +643,7 @@ fn find_files_without_owner() {
 fn permission_statistics() {
     println!("📊 File Permission Statistics");
     println!("=============================");
-    
+
     println!("📈 File type distribution:");
     let _ = Command::new("sh")
         .arg("-c")
@@ -639,17 +654,19 @@ fn permission_statistics() {
 fn security_audit() {
     println!("🛡️  File Security Audit");
     println!("=======================");
-    
+
     println!("🔍 Running comprehensive file security audit...");
-    
+
     // Check for common security issues
     println!("\n⚠️  Checking for potential security issues:");
-    
+
     println!("1. Checking for files with weak permissions in /etc:");
     let _ = Command::new("find")
-        .args(&["/etc", "-type", "f", "-perm", "-004", "-exec", "ls", "-l", "{}", "+"]) 
+        .args(&[
+            "/etc", "-type", "f", "-perm", "-004", "-exec", "ls", "-l", "{}", "+",
+        ])
         .status();
-    
+
     println!("\n2. Checking for executables in unusual locations:");
     let _ = Command::new("find")
         .args(&["/tmp", "/var/tmp", "-type", "f", "-executable", "-ls"])
@@ -659,10 +676,10 @@ fn security_audit() {
 fn user_group_management() {
     println!("🔒 User & Group Management");
     println!("==========================");
-    
+
     let user_options = [
         "👥 List Users",
-        "🏷️  List Groups", 
+        "🏷️  List Groups",
         "👤 User Information",
         "🏷️  Group Information",
         "🔑 Password Policy Check",
@@ -691,22 +708,26 @@ fn user_group_management() {
 fn list_users() {
     println!("👥 System Users");
     println!("===============");
-    
+
     println!("📋 All users:");
     let _ = Command::new("cut")
         .args(&["-d:", "-f1", "/etc/passwd"])
         .status();
-    
+
     println!("\n👤 Human users (UID >= 1000):");
     let _ = Command::new("awk")
-        .args(&["-F:", "$3 >= 1000 && $1 != \"nobody\" {print $1}", "/etc/passwd"])
+        .args(&[
+            "-F:",
+            "$3 >= 1000 && $1 != \"nobody\" {print $1}",
+            "/etc/passwd",
+        ])
         .status();
 }
 
 fn list_groups() {
     println!("🏷️  System Groups");
     println!("=================");
-    
+
     let _ = Command::new("cut")
         .args(&["-d:", "-f1", "/etc/group"])
         .status();
@@ -715,20 +736,18 @@ fn list_groups() {
 fn user_information() {
     println!("👤 User Information");
     println!("==================");
-    
+
     let username: String = Input::new()
         .with_prompt("Enter username")
         .interact_text()
         .unwrap();
-    
+
     println!("📊 User details for '{}':", username);
     let _ = Command::new("id").arg(&username).status();
-    
+
     println!("\n🏠 Home directory and shell:");
-    let _ = Command::new("getent")
-        .args(&["passwd", &username])
-        .status();
-    
+    let _ = Command::new("getent").args(&["passwd", &username]).status();
+
     println!("\n🏷️  Group memberships:");
     let _ = Command::new("groups").arg(&username).status();
 }
@@ -736,54 +755,64 @@ fn user_information() {
 fn group_information() {
     println!("🏷️  Group Information");
     println!("=====================");
-    
+
     let groupname: String = Input::new()
         .with_prompt("Enter group name")
         .interact_text()
         .unwrap();
-    
+
     println!("📊 Group details for '{}':", groupname);
-    let _ = Command::new("getent")
-        .args(&["group", &groupname])
-        .status();
+    let _ = Command::new("getent").args(&["group", &groupname]).status();
 }
 
 fn password_policy_check() {
     println!("🔑 Password Policy Check");
     println!("=======================");
-    
+
     println!("📊 Current password policies:");
     let _ = Command::new("cat").arg("/etc/login.defs").status();
-    
+
     println!("\n🔒 Password aging information:");
     let username: String = Input::new()
         .with_prompt("Enter username to check")
         .interact_text()
         .unwrap();
-    
+
     let _ = Command::new("chage").args(&["-l", &username]).status();
 }
 
 fn login_history() {
     println!("📊 Login History");
     println!("================");
-    
+
     println!("📋 Recent logins:");
     let _ = Command::new("last").args(&["-10"]).status();
-    
+
     println!("\n❌ Failed login attempts:");
     let _ = Command::new("lastb").args(&["-10"]).status();
-    
+
     println!("\n📈 Login statistics:");
     let _ = Command::new("last")
-        .args(&["|", "awk", "{print $1}", "|", "sort", "|", "uniq", "-c", "|", "sort", "-nr"])
+        .args(&[
+            "|",
+            "awk",
+            "{print $1}",
+            "|",
+            "sort",
+            "|",
+            "uniq",
+            "-c",
+            "|",
+            "sort",
+            "-nr",
+        ])
         .status();
 }
 
 fn advanced_package_management() {
     println!("📦 Advanced Package Management");
     println!("==============================");
-    
+
     let package_options = [
         "🔍 Package Dependency Analysis",
         "🧹 Deep System Cleanup",
@@ -815,7 +844,7 @@ fn advanced_package_management() {
 fn package_dependency_analysis() {
     println!("🔍 Package Dependency Analysis");
     println!("==============================");
-    
+
     let analysis_options = [
         "📦 Package Dependencies",
         "🔗 Reverse Dependencies",
@@ -863,7 +892,7 @@ fn package_dependency_analysis() {
 fn deep_system_cleanup() {
     println!("🧹 Deep System Cleanup");
     println!("======================");
-    
+
     let cleanup_options = [
         "🗑️  Remove Orphaned Packages",
         "📦 Clean Package Cache",
@@ -907,9 +936,7 @@ fn deep_system_cleanup() {
         }
         4 => {
             println!("🗂️  Cleaning temporary files...");
-            let _ = Command::new("sudo")
-                .args(&["rm", "-rf", "/tmp/*"])
-                .status();
+            let _ = Command::new("sudo").args(&["rm", "-rf", "/tmp/*"]).status();
             let _ = Command::new("sudo")
                 .args(&["rm", "-rf", "/var/tmp/*"])
                 .status();
@@ -918,11 +945,11 @@ fn deep_system_cleanup() {
             println!("🔄 Running all cleanup operations...");
             let cleanup_tasks = vec![
                 "Removing orphaned packages",
-                "Cleaning package cache", 
+                "Cleaning package cache",
                 "Cleaning log files",
                 "Cleaning temporary files",
             ];
-            
+
             for task in cleanup_tasks {
                 println!("  🔄 {}", task);
             }
@@ -934,19 +961,27 @@ fn deep_system_cleanup() {
 fn package_statistics() {
     println!("📊 Package Statistics");
     println!("====================");
-    
+
     println!("📈 Package counts:");
-    let _ = Command::new("pacman").args(&["-Q", "|", "wc", "-l"]).status();
-    
+    let _ = Command::new("pacman")
+        .args(&["-Q", "|", "wc", "-l"])
+        .status();
+
     println!("\n📦 Explicitly installed packages:");
-    let _ = Command::new("pacman").args(&["-Qe", "|", "wc", "-l"]).status();
-    
+    let _ = Command::new("pacman")
+        .args(&["-Qe", "|", "wc", "-l"])
+        .status();
+
     println!("\n🔗 Dependencies:");
-    let _ = Command::new("pacman").args(&["-Qd", "|", "wc", "-l"]).status();
-    
+    let _ = Command::new("pacman")
+        .args(&["-Qd", "|", "wc", "-l"])
+        .status();
+
     println!("\n👻 Orphaned packages:");
-    let _ = Command::new("pacman").args(&["-Qtd", "|", "wc", "-l"]).status();
-    
+    let _ = Command::new("pacman")
+        .args(&["-Qtd", "|", "wc", "-l"])
+        .status();
+
     println!("\n📊 Package sizes:");
     let _ = Command::new("pacman")
         .args(&["-Qi", "|", "grep", "Installed Size", "|", "sort", "-rh"])
@@ -956,10 +991,12 @@ fn package_statistics() {
 fn package_cache_management() {
     println!("🔄 Package Cache Management");
     println!("===========================");
-    
+
     println!("📊 Cache information:");
-    let _ = Command::new("du").args(&["-sh", "/var/cache/pacman/pkg/"]).status();
-    
+    let _ = Command::new("du")
+        .args(&["-sh", "/var/cache/pacman/pkg/"])
+        .status();
+
     let cache_options = [
         "🧹 Clean all cached packages",
         "🗑️  Keep only latest versions",
@@ -1002,7 +1039,7 @@ fn package_cache_management() {
 fn package_verification() {
     println!("🛡️  Package Verification");
     println!("========================");
-    
+
     let verify_options = [
         "🔍 Verify Package Files",
         "🔑 Check Package Signatures",
@@ -1027,7 +1064,9 @@ fn package_verification() {
         }
         1 => {
             println!("🔑 Checking package database signatures:");
-            let _ = Command::new("sudo").args(&["pacman-key", "--check-sigs"]).status();
+            let _ = Command::new("sudo")
+                .args(&["pacman-key", "--check-sigs"])
+                .status();
         }
         2 => {
             println!("📋 Running comprehensive integrity check:");
@@ -1040,7 +1079,7 @@ fn package_verification() {
 fn package_file_management() {
     println!("📋 Package File Management");
     println!("==========================");
-    
+
     let file_options = [
         "🔍 Find Package Owning File",
         "📂 List Package Files",
@@ -1084,7 +1123,7 @@ fn package_file_management() {
 fn security_hardening() {
     println!("🔐 System Security Hardening");
     println!("============================");
-    
+
     let security_options = [
         "🛡️  Firewall Configuration",
         "🔒 SSH Hardening",
@@ -1114,17 +1153,19 @@ fn security_hardening() {
 fn firewall_configuration() {
     println!("🛡️  Firewall Configuration");
     println!("===========================");
-    
+
     // Check if ufw is installed
     let ufw_check = Command::new("which").arg("ufw").status();
-    
+
     if ufw_check.is_ok() && ufw_check.unwrap().success() {
         println!("📊 Current firewall status:");
-        let _ = Command::new("sudo").args(&["ufw", "status", "verbose"]).status();
-        
+        let _ = Command::new("sudo")
+            .args(&["ufw", "status", "verbose"])
+            .status();
+
         let firewall_options = [
             "🔧 Enable UFW",
-            "🛑 Disable UFW", 
+            "🛑 Disable UFW",
             "📝 Add Rule",
             "🗑️  Delete Rule",
             "📊 Show Status",
@@ -1158,12 +1199,12 @@ fn firewall_configuration() {
                     .with_prompt("Enter rule (e.g., 'allow 22/tcp')")
                     .interact_text()
                     .unwrap();
-                let _ = Command::new("sudo")
-                    .args(&["ufw", "allow", &rule])
-                    .status();
+                let _ = Command::new("sudo").args(&["ufw", "allow", &rule]).status();
             }
             4 => {
-                let _ = Command::new("sudo").args(&["ufw", "status", "numbered"]).status();
+                let _ = Command::new("sudo")
+                    .args(&["ufw", "status", "numbered"])
+                    .status();
             }
             _ => {}
         }
@@ -1178,14 +1219,14 @@ fn firewall_configuration() {
 fn ssh_hardening() {
     println!("🔒 SSH Hardening");
     println!("================");
-    
+
     println!("💡 SSH Security recommendations:");
     println!("  • Disable root login");
     println!("  • Use key-based authentication");
     println!("  • Change default port");
     println!("  • Limit user access");
     println!("  • Enable fail2ban");
-    
+
     let confirm = Confirm::new()
         .with_prompt("View current SSH configuration?")
         .default(true)
@@ -1200,7 +1241,7 @@ fn ssh_hardening() {
 fn user_security() {
     println!("🔑 User Security Configuration");
     println!("==============================");
-    
+
     let user_sec_options = [
         "🔒 Password Policy",
         "⏰ Account Lockout",
@@ -1223,7 +1264,9 @@ fn user_security() {
         }
         1 => {
             println!("⏰ Account lockout settings:");
-            let _ = Command::new("cat").arg("/etc/security/faillock.conf").status();
+            let _ = Command::new("cat")
+                .arg("/etc/security/faillock.conf")
+                .status();
         }
         2 => {
             println!("📊 User security audit:");
@@ -1242,9 +1285,9 @@ fn user_security() {
 fn comprehensive_security_audit() {
     println!("📊 Comprehensive Security Audit");
     println!("===============================");
-    
+
     println!("🔍 Running security audit...");
-    
+
     // Check for security tools
     let security_tools = [
         ("rkhunter", "Rootkit Hunter"),
@@ -1252,7 +1295,7 @@ fn comprehensive_security_audit() {
         ("lynis", "Security auditing tool"),
         ("clamav", "Antivirus scanner"),
     ];
-    
+
     for (tool, description) in &security_tools {
         let check = Command::new("which").arg(tool).status();
         if check.is_ok() && check.unwrap().success() {
@@ -1261,14 +1304,16 @@ fn comprehensive_security_audit() {
             println!("  ❌ {} - {} (not installed)", tool, description);
         }
     }
-    
+
     println!("\n🔍 Basic security checks:");
     println!("1. Checking for suspicious processes...");
-    let _ = Command::new("ps").args(&["aux", "|", "grep", "-v", "grep"]).status();
-    
+    let _ = Command::new("ps")
+        .args(&["aux", "|", "grep", "-v", "grep"])
+        .status();
+
     println!("\n2. Checking network connections...");
     let _ = Command::new("netstat").args(&["-tuln"]).status();
-    
+
     println!("\n3. Checking system logs for anomalies...");
     let _ = Command::new("journalctl")
         .args(&["-p", "err", "--since", "today"])
@@ -1278,10 +1323,10 @@ fn comprehensive_security_audit() {
 fn file_encryption() {
     println!("🔐 File Encryption");
     println!("==================");
-    
+
     let encryption_options = [
         "🔒 Encrypt File/Directory",
-        "🔓 Decrypt File/Directory", 
+        "🔓 Decrypt File/Directory",
         "🗂️  Encrypted Archive",
         "💾 Disk Encryption Status",
         "⬅️  Back",
@@ -1300,12 +1345,10 @@ fn file_encryption() {
                 .with_prompt("Enter file/directory path to encrypt")
                 .interact_text()
                 .unwrap();
-            
+
             let gpg_check = Command::new("which").arg("gpg").status();
             if gpg_check.is_ok() && gpg_check.unwrap().success() {
-                let _ = Command::new("gpg")
-                    .args(&["-c", &file_path])
-                    .status();
+                let _ = Command::new("gpg").args(&["-c", &file_path]).status();
                 println!("✅ File encrypted with GPG");
             } else {
                 println!("❌ GPG not available");
@@ -1314,7 +1357,7 @@ fn file_encryption() {
         3 => {
             println!("💾 Disk encryption status:");
             let _ = Command::new("lsblk").args(&["-f"]).status();
-            
+
             println!("\n🔍 LUKS encrypted devices:");
             let _ = Command::new("cryptsetup").arg("status").status();
         }
@@ -1327,7 +1370,7 @@ fn file_encryption() {
 fn system_health_monitoring() {
     println!("📊 System Health Monitoring");
     println!("===========================");
-    
+
     let health_options = [
         "💓 System Vital Signs",
         "🌡️  Temperature Monitoring",
@@ -1359,19 +1402,19 @@ fn system_health_monitoring() {
 fn system_vital_signs() {
     println!("💓 System Vital Signs");
     println!("=====================");
-    
+
     println!("⚡ CPU usage:");
     let _ = Command::new("cat").arg("/proc/loadavg").status();
-    
+
     println!("\n💾 Memory usage:");
     let _ = Command::new("free").args(&["-h"]).status();
-    
+
     println!("\n💿 Disk usage:");
     let _ = Command::new("df").args(&["-h"]).status();
-    
+
     println!("\n🔄 Uptime:");
     let _ = Command::new("uptime").status();
-    
+
     println!("\n📊 System summary:");
     let _ = Command::new("uname").args(&["-a"]).status();
 }
@@ -1379,10 +1422,10 @@ fn system_vital_signs() {
 fn temperature_monitoring() {
     println!("🌡️  Temperature Monitoring");
     println!("===========================");
-    
+
     // Check if lm-sensors is available
     let sensors_check = Command::new("which").arg("sensors").status();
-    
+
     if sensors_check.is_ok() && sensors_check.unwrap().success() {
         println!("🌡️  Current temperatures:");
         let _ = Command::new("sensors").status();
@@ -1391,25 +1434,29 @@ fn temperature_monitoring() {
         let _ = Command::new("sudo")
             .args(&["pacman", "-S", "--needed", "--noconfirm", "lm_sensors"])
             .status();
-        
+
         println!("🔧 Running sensors-detect...");
-        let _ = Command::new("sudo").args(&["sensors-detect", "--auto"]).status();
+        let _ = Command::new("sudo")
+            .args(&["sensors-detect", "--auto"])
+            .status();
     }
-    
+
     println!("\n🔥 CPU thermal zones:");
-    let _ = Command::new("cat").arg("/sys/class/thermal/thermal_zone*/temp").status();
+    let _ = Command::new("cat")
+        .arg("/sys/class/thermal/thermal_zone*/temp")
+        .status();
 }
 
 fn disk_health() {
     println!("💾 Disk Health Analysis");
     println!("=======================");
-    
+
     println!("💿 Disk information:");
     let _ = Command::new("lsblk").args(&["-f"]).status();
-    
+
     // Check if smartctl is available
     let smart_check = Command::new("which").arg("smartctl").status();
-    
+
     if smart_check.is_ok() && smart_check.unwrap().success() {
         println!("\n🔍 SMART status:");
         let _ = Command::new("sudo")
@@ -1418,7 +1465,7 @@ fn disk_health() {
     } else {
         println!("\n📦 Install smartmontools for detailed disk health analysis");
     }
-    
+
     println!("\n📊 Disk usage by directory:");
     let _ = Command::new("du")
         .args(&["-sh", "/var", "/usr", "/home", "/opt"])
@@ -1428,17 +1475,17 @@ fn disk_health() {
 fn service_health() {
     println!("🔄 Service Health Check");
     println!("=======================");
-    
+
     println!("✅ Active services:");
     let _ = Command::new("systemctl")
         .args(&["list-units", "--type=service", "--state=active"])
         .status();
-    
+
     println!("\n❌ Failed services:");
     let _ = Command::new("systemctl")
         .args(&["list-units", "--type=service", "--state=failed"])
         .status();
-    
+
     println!("\n⏰ Service timers:");
     let _ = Command::new("systemctl").args(&["list-timers"]).status();
 }
@@ -1446,16 +1493,16 @@ fn service_health() {
 fn performance_metrics() {
     println!("📈 Performance Metrics");
     println!("======================");
-    
+
     println!("🔄 CPU statistics:");
     let _ = Command::new("cat").arg("/proc/cpuinfo").status();
-    
+
     println!("\n📊 I/O statistics:");
     let iostat_check = Command::new("which").arg("iostat").status();
     if iostat_check.is_ok() && iostat_check.unwrap().success() {
         let _ = Command::new("iostat").args(&["-x", "1", "1"]).status();
     }
-    
+
     println!("\n🌐 Network statistics:");
     let _ = Command::new("cat").arg("/proc/net/dev").status();
 }
@@ -1463,17 +1510,17 @@ fn performance_metrics() {
 fn system_alerts() {
     println!("⚠️  System Alerts & Issues");
     println!("==========================");
-    
+
     println!("🚨 System errors (last 24h):");
     let _ = Command::new("journalctl")
         .args(&["-p", "err", "--since", "yesterday"])
         .status();
-    
+
     println!("\n⚠️  Warning messages:");
     let _ = Command::new("journalctl")
         .args(&["-p", "warning", "--since", "today", "--lines=20"])
         .status();
-    
+
     println!("\n🔍 Kernel messages:");
     let _ = Command::new("dmesg").args(&["-l", "err,warn"]).status();
 }
@@ -1481,7 +1528,7 @@ fn system_alerts() {
 fn service_management() {
     println!("🔄 Advanced Service Management");
     println!("==============================");
-    
+
     let service_options = [
         "📊 Service Status Overview",
         "🔧 Service Configuration",
@@ -1511,17 +1558,17 @@ fn service_management() {
 fn service_status_overview() {
     println!("📊 Service Status Overview");
     println!("==========================");
-    
+
     println!("🟢 Running services:");
     let _ = Command::new("systemctl")
         .args(&["list-units", "--type=service", "--state=running"])
         .status();
-    
+
     println!("\n🔴 Failed services:");
     let _ = Command::new("systemctl")
         .args(&["list-units", "--type=service", "--state=failed"])
         .status();
-    
+
     println!("\n⏸️  Inactive services:");
     let _ = Command::new("systemctl")
         .args(&["list-units", "--type=service", "--state=inactive"])
@@ -1531,17 +1578,17 @@ fn service_status_overview() {
 fn service_configuration() {
     println!("🔧 Service Configuration");
     println!("========================");
-    
+
     let service_name: String = Input::new()
         .with_prompt("Enter service name")
         .interact_text()
         .unwrap();
-    
+
     println!("📋 Service details for '{}':", service_name);
     let _ = Command::new("systemctl")
         .args(&["show", &service_name])
         .status();
-    
+
     println!("\n📝 Service unit file:");
     let _ = Command::new("systemctl")
         .args(&["cat", &service_name])
@@ -1551,10 +1598,10 @@ fn service_configuration() {
 fn timer_management() {
     println!("⏰ Timer Management");
     println!("==================");
-    
+
     println!("📅 Active timers:");
     let _ = Command::new("systemctl").args(&["list-timers"]).status();
-    
+
     println!("\n⏰ All timers:");
     let _ = Command::new("systemctl")
         .args(&["list-timers", "--all"])
@@ -1564,25 +1611,25 @@ fn timer_management() {
 fn service_creation() {
     println!("🚀 Service Creation");
     println!("==================");
-    
+
     println!("💡 This feature guides you through creating a systemd service");
     println!("📝 Service unit files are created in /etc/systemd/system/");
-    
+
     let service_name: String = Input::new()
         .with_prompt("Enter service name (without .service)")
         .interact_text()
         .unwrap();
-    
+
     let description: String = Input::new()
         .with_prompt("Enter service description")
         .interact_text()
         .unwrap();
-    
+
     let exec_start: String = Input::new()
         .with_prompt("Enter command to execute")
         .interact_text()
         .unwrap();
-    
+
     let service_template = format!(
         r#"[Unit]
 Description={}
@@ -1599,7 +1646,7 @@ WantedBy=multi-user.target
 "#,
         description, exec_start
     );
-    
+
     let confirm = Confirm::new()
         .with_prompt("Create this service?")
         .default(true)
@@ -1611,7 +1658,9 @@ WantedBy=multi-user.target
         if let Ok(mut file) = std::fs::File::create(&service_file) {
             use std::io::Write;
             if file.write_all(service_template.as_bytes()).is_ok() {
-                let _ = Command::new("sudo").args(&["systemctl", "daemon-reload"]).status();
+                let _ = Command::new("sudo")
+                    .args(&["systemctl", "daemon-reload"])
+                    .status();
                 println!("✅ Service '{}' created", service_name);
                 println!("💡 Enable with: systemctl enable {}", service_name);
             }
@@ -1622,12 +1671,12 @@ WantedBy=multi-user.target
 fn service_logs() {
     println!("📝 Service Logs");
     println!("===============");
-    
+
     let service_name: String = Input::new()
         .with_prompt("Enter service name")
         .interact_text()
         .unwrap();
-    
+
     let log_options = [
         "📋 Recent logs",
         "📊 Follow logs",
@@ -1671,7 +1720,7 @@ fn service_logs() {
 fn log_management() {
     println!("📝 Log Analysis & Management");
     println!("============================");
-    
+
     let log_options = [
         "📊 Log Statistics",
         "🔍 Log Analysis",
@@ -1701,15 +1750,15 @@ fn log_management() {
 fn log_statistics() {
     println!("📊 Log Statistics");
     println!("=================");
-    
+
     println!("📈 Journal disk usage:");
     let _ = Command::new("journalctl").args(&["--disk-usage"]).status();
-    
+
     println!("\n📅 Log entries by time:");
     let _ = Command::new("journalctl")
         .args(&["--since", "yesterday", "--until", "today", "|", "wc", "-l"])
         .status();
-    
+
     println!("\n⚠️  Error counts:");
     let _ = Command::new("journalctl")
         .args(&["-p", "err", "--since", "yesterday", "|", "wc", "-l"])
@@ -1719,7 +1768,7 @@ fn log_statistics() {
 fn log_analysis() {
     println!("🔍 Log Analysis");
     println!("===============");
-    
+
     let analysis_options = [
         "🚨 System Errors",
         "⚠️  Warnings",
@@ -1757,9 +1806,7 @@ fn log_analysis() {
         }
         3 => {
             println!("🚀 Boot log analysis:");
-            let _ = Command::new("journalctl")
-                .args(&["-b", "0"])
-                .status();
+            let _ = Command::new("journalctl").args(&["-b", "0"]).status();
         }
         4 => {
             let search_term: String = Input::new()
@@ -1777,7 +1824,7 @@ fn log_analysis() {
 fn log_cleanup() {
     println!("🧹 Log Cleanup");
     println!("==============");
-    
+
     let cleanup_options = [
         "🗑️  Vacuum old logs (keep 7 days)",
         "📏 Limit journal size",
@@ -1818,7 +1865,13 @@ fn log_cleanup() {
         }
         2 => {
             let _ = Command::new("sudo")
-                .args(&["systemctl", "kill", "--kill-who=main", "--signal=SIGUSR2", "systemd-journald.service"])
+                .args(&[
+                    "systemctl",
+                    "kill",
+                    "--kill-who=main",
+                    "--signal=SIGUSR2",
+                    "systemd-journald.service",
+                ])
                 .status();
         }
         3 => {
@@ -1832,10 +1885,12 @@ fn log_cleanup() {
 fn log_configuration() {
     println!("⚙️  Log Configuration");
     println!("=====================");
-    
+
     println!("📋 Current journald configuration:");
-    let _ = Command::new("cat").arg("/etc/systemd/journald.conf").status();
-    
+    let _ = Command::new("cat")
+        .arg("/etc/systemd/journald.conf")
+        .status();
+
     println!("\n💡 Key configuration options:");
     println!("  SystemMaxUse=1G     - Maximum disk space");
     println!("  MaxRetentionSec=7d  - Maximum retention time");
@@ -1846,7 +1901,7 @@ fn log_configuration() {
 fn log_monitoring() {
     println!("📈 Log Monitoring");
     println!("=================");
-    
+
     let monitor_options = [
         "👁️  Real-time log monitoring",
         "🚨 Error alerting setup",
@@ -1892,7 +1947,7 @@ fn log_monitoring() {
 fn network_configuration() {
     println!("🌐 Advanced Network Configuration");
     println!("=================================");
-    
+
     let network_options = [
         "📊 Network Status",
         "🔧 Interface Configuration",
@@ -1924,16 +1979,16 @@ fn network_configuration() {
 fn network_status() {
     println!("📊 Network Status");
     println!("=================");
-    
+
     println!("🌐 Network interfaces:");
     let _ = Command::new("ip").args(&["addr", "show"]).status();
-    
+
     println!("\n🛣️  Routing table:");
     let _ = Command::new("ip").args(&["route", "show"]).status();
-    
+
     println!("\n🔗 Network connections:");
     let _ = Command::new("ss").args(&["-tuln"]).status();
-    
+
     println!("\n📡 Wireless status:");
     let _ = Command::new("iwconfig").status();
 }
@@ -1941,15 +1996,15 @@ fn network_status() {
 fn interface_configuration() {
     println!("🔧 Interface Configuration");
     println!("==========================");
-    
+
     println!("📋 Available interfaces:");
     let _ = Command::new("ip").args(&["link", "show"]).status();
-    
+
     let interface: String = Input::new()
         .with_prompt("Enter interface name (e.g., eth0, wlan0)")
         .interact_text()
         .unwrap();
-    
+
     let config_options = [
         "📊 Show interface details",
         "🔧 Bring interface up",
@@ -1968,7 +2023,9 @@ fn interface_configuration() {
 
     match choice {
         0 => {
-            let _ = Command::new("ip").args(&["addr", "show", &interface]).status();
+            let _ = Command::new("ip")
+                .args(&["addr", "show", &interface])
+                .status();
         }
         1 => {
             let _ = Command::new("sudo")
@@ -2005,13 +2062,13 @@ fn interface_configuration() {
 fn dns_configuration() {
     println!("🌐 DNS Configuration");
     println!("===================");
-    
+
     println!("📋 Current DNS configuration:");
     let _ = Command::new("cat").arg("/etc/resolv.conf").status();
-    
+
     println!("\n🔍 DNS resolution test:");
     let _ = Command::new("nslookup").arg("google.com").status();
-    
+
     let dns_options = [
         "🔧 Configure DNS servers",
         "🧪 Test DNS resolution",
@@ -2053,7 +2110,7 @@ fn dns_configuration() {
 fn firewall_management() {
     println!("🔥 Advanced Firewall Management");
     println!("===============================");
-    
+
     // This calls the same function as before but in the network context
     firewall_configuration();
 }
@@ -2061,7 +2118,7 @@ fn firewall_management() {
 fn network_monitoring() {
     println!("📈 Network Monitoring");
     println!("====================");
-    
+
     let monitor_options = [
         "📊 Real-time traffic",
         "📈 Bandwidth usage",
@@ -2084,7 +2141,9 @@ fn network_monitoring() {
                 let _ = Command::new("sudo").args(&["iftop"]).status();
             } else {
                 println!("📦 iftop not installed. Using alternative...");
-                let _ = Command::new("watch").args(&["-n1", "cat", "/proc/net/dev"]).status();
+                let _ = Command::new("watch")
+                    .args(&["-n1", "cat", "/proc/net/dev"])
+                    .status();
             }
         }
         1 => {
@@ -2108,7 +2167,7 @@ fn network_monitoring() {
 fn network_security() {
     println!("🛡️  Network Security");
     println!("====================");
-    
+
     let security_options = [
         "🔍 Port scan detection",
         "🚫 Block suspicious IPs",
@@ -2155,7 +2214,7 @@ fn network_security() {
 fn kernel_management() {
     println!("🚀 Kernel Management");
     println!("====================");
-    
+
     let kernel_options = [
         "📊 Kernel Information",
         "🔧 Kernel Parameters",
@@ -2185,19 +2244,19 @@ fn kernel_management() {
 fn kernel_information() {
     println!("📊 Kernel Information");
     println!("=====================");
-    
+
     println!("🔍 Kernel version:");
     let _ = Command::new("uname").args(&["-r"]).status();
-    
+
     println!("\n📋 Full system information:");
     let _ = Command::new("uname").args(&["-a"]).status();
-    
+
     println!("\n⚡ Kernel command line:");
     let _ = Command::new("cat").arg("/proc/cmdline").status();
-    
+
     println!("\n🏗️  Kernel build information:");
     let _ = Command::new("cat").arg("/proc/version").status();
-    
+
     println!("\n💾 Memory information:");
     let _ = Command::new("cat").arg("/proc/meminfo").status();
 }
@@ -2205,7 +2264,7 @@ fn kernel_information() {
 fn kernel_parameters_management() {
     println!("🔧 Kernel Parameters Management");
     println!("===============================");
-    
+
     // This reuses the kernel_parameters function from performance tuning
     println!("💡 Using advanced kernel parameter configuration...");
     crate::arch::perf::tune(); // Call the performance tuning function
@@ -2214,7 +2273,7 @@ fn kernel_parameters_management() {
 fn kernel_modules_management() {
     println!("📦 Kernel Modules Management");
     println!("============================");
-    
+
     // This reuses the module management functions
     configure_module_loading();
 }
@@ -2222,9 +2281,9 @@ fn kernel_modules_management() {
 fn boot_options() {
     println!("🚀 Boot Options Configuration");
     println!("=============================");
-    
+
     println!("📋 Current boot configuration:");
-    
+
     // Check bootloader
     if std::path::Path::new("/boot/grub/grub.cfg").exists() {
         println!("🥾 GRUB bootloader detected");
@@ -2233,7 +2292,7 @@ fn boot_options() {
         println!("🥾 systemd-boot detected");
         let _ = Command::new("ls").arg("/boot/loader/entries/").status();
     }
-    
+
     println!("\n💡 To modify boot options:");
     println!("  • GRUB: Edit /etc/default/grub, then run grub-mkconfig");
     println!("  • systemd-boot: Edit files in /boot/loader/entries/");
@@ -2242,13 +2301,17 @@ fn boot_options() {
 fn kernel_performance() {
     println!("📈 Kernel Performance Tuning");
     println!("============================");
-    
+
     println!("📊 Current kernel performance settings:");
-    let _ = Command::new("cat").arg("/proc/sys/kernel/sched_migration_cost_ns").status();
-    
+    let _ = Command::new("cat")
+        .arg("/proc/sys/kernel/sched_migration_cost_ns")
+        .status();
+
     println!("\n⚡ CPU governor:");
-    let _ = Command::new("cat").arg("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor").status();
-    
+    let _ = Command::new("cat")
+        .arg("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
+        .status();
+
     println!("\n🔧 Available performance tuning:");
     println!("  • Use the Performance Tuning menu for detailed options");
     println!("  • Configure CPU governors");

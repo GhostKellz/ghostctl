@@ -2,7 +2,7 @@ pub mod configuration;
 pub mod flakes;
 pub mod packages;
 
-use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use std::process::Command;
 
 // Define NixosAction enum

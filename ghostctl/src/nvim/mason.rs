@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, MultiSelect, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect, Select};
 use std::collections::HashMap;
 use std::process::Command;
 

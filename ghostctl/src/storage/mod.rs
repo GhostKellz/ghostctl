@@ -1,15 +1,15 @@
-pub mod s3_simple;
 pub mod local;
 pub mod network;
+pub mod s3_simple;
 pub use s3_simple as s3;
 
-use dialoguer::{Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Select};
 
 pub fn storage_menu() {
     loop {
         let options = vec![
             "S3/MinIO Storage Management",
-            "Local Storage Tools", 
+            "Local Storage Tools",
             "Network Storage (NFS/CIFS)",
             "Back",
         ];

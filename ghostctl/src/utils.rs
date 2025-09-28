@@ -1,24 +1,17 @@
-use std::process::{Command, Output};
 use std::io;
+use std::process::{Command, Output};
 
 pub fn run_command(command: &str, args: &[&str]) -> io::Result<Output> {
-    Command::new(command)
-        .args(args)
-        .output()
+    Command::new(command).args(args).output()
 }
 
 pub fn run_command_with_status(command: &str, args: &[&str]) -> io::Result<bool> {
-    let status = Command::new(command)
-        .args(args)
-        .status()?;
+    let status = Command::new(command).args(args).status()?;
     Ok(status.success())
 }
 
 pub fn run_bash_command(command: &str) -> io::Result<Output> {
-    Command::new("bash")
-        .arg("-c")
-        .arg(command)
-        .output()
+    Command::new("bash").arg("-c").arg(command).output()
 }
 
 pub fn check_command_exists(command: &str) -> bool {
@@ -31,7 +24,7 @@ pub fn check_command_exists(command: &str) -> bool {
 
 pub fn get_system_info() -> SystemInfo {
     let sysinfo = sysinfo::System::new_all();
-    
+
     SystemInfo {
         total_memory: sysinfo.total_memory(),
         available_memory: sysinfo.available_memory(),

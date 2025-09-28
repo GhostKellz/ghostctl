@@ -1,10 +1,10 @@
-use anyhow::{Result, Context};
-use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
+use anyhow::{Context, Result};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::process::Command;
 use std::fs;
 use std::net::{IpAddr, Ipv4Addr};
+use std::process::Command;
 
 /// Enterprise networking features for VLAN, SDN, and advanced network management
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,26 +38,26 @@ pub struct VlanConfig {
 pub struct DhcpRange {
     pub start: IpAddr,
     pub end: IpAddr,
-    pub lease_time: u32,    // seconds
+    pub lease_time: u32, // seconds
     pub dns_servers: Vec<IpAddr>,
     pub domain_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SecurityLevel {
-    Public,         // Internet-facing, minimal trust
-    Internal,       // Corporate network, standard security
-    Sensitive,      // Confidential data, enhanced security
-    Restricted,     // Highly sensitive, maximum security
-    Isolated,       // Air-gapped, no external access
+    Public,     // Internet-facing, minimal trust
+    Internal,   // Corporate network, standard security
+    Sensitive,  // Confidential data, enhanced security
+    Restricted, // Highly sensitive, maximum security
+    Isolated,   // Air-gapped, no external access
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum IsolationMode {
-    None,           // No isolation
-    PortBased,      // Port-based isolation
-    MacBased,       // MAC-based isolation
-    VlanBased,      // VLAN-based isolation
+    None,              // No isolation
+    PortBased,         // Port-based isolation
+    MacBased,          // MAC-based isolation
+    VlanBased,         // VLAN-based isolation
     MicroSegmentation, // Advanced micro-segmentation
 }
 
@@ -82,7 +82,7 @@ pub struct SdnNetwork {
     pub name: String,
     pub network_type: SdnType,
     pub overlay_protocol: OverlayProtocol,
-    pub vni: u32,           // VXLAN Network Identifier
+    pub vni: u32, // VXLAN Network Identifier
     pub multicast_group: Option<IpAddr>,
     pub endpoints: Vec<SdnEndpoint>,
     pub encryption: EncryptionConfig,
@@ -158,7 +158,7 @@ pub struct RoutingPolicy {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StaticRoute {
-    pub destination: String,    // CIDR
+    pub destination: String, // CIDR
     pub gateway: IpAddr,
     pub metric: u32,
     pub interface: Option<String>,
@@ -231,7 +231,7 @@ pub struct NetworkPolicyRule {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkSelector {
-    pub addresses: Vec<String>,     // IP addresses or CIDR blocks
+    pub addresses: Vec<String>, // IP addresses or CIDR blocks
     pub labels: HashMap<String, String>,
     pub zones: Vec<String>,
     pub exclude: Vec<String>,
@@ -302,10 +302,10 @@ pub enum ConditionOperator {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EnforcementMode {
-    Permissive,     // Log only
-    Monitor,        // Monitor and alert
-    Enforce,        // Block and log
-    Strict,         // Block, log, and quarantine
+    Permissive, // Log only
+    Monitor,    // Monitor and alert
+    Enforce,    // Block and log
+    Strict,     // Block, log, and quarantine
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -321,12 +321,12 @@ pub struct QosProfile {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrafficClass {
     pub name: String,
-    pub priority: u8,       // 0-7, higher is better
-    pub guaranteed_bandwidth: u32,  // Mbps
-    pub max_bandwidth: u32,         // Mbps
-    pub latency_target: u32,        // milliseconds
-    pub jitter_target: u32,         // milliseconds
-    pub packet_loss_target: f32,    // percentage
+    pub priority: u8,              // 0-7, higher is better
+    pub guaranteed_bandwidth: u32, // Mbps
+    pub max_bandwidth: u32,        // Mbps
+    pub latency_target: u32,       // milliseconds
+    pub jitter_target: u32,        // milliseconds
+    pub packet_loss_target: f32,   // percentage
     pub matching_rules: Vec<TrafficMatchRule>,
 }
 
@@ -341,23 +341,23 @@ pub struct TrafficMatchRule {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BandwidthAllocation {
-    pub total_bandwidth: u32,       // Mbps
+    pub total_bandwidth: u32, // Mbps
     pub reservation_mode: ReservationMode,
     pub oversubscription_ratio: f32,
-    pub burst_allowance: u32,       // seconds
+    pub burst_allowance: u32, // seconds
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ReservationMode {
-    Guaranteed,     // Hard guarantees
-    BestEffort,     // Soft guarantees
-    Hybrid,         // Mix of both
+    Guaranteed, // Hard guarantees
+    BestEffort, // Soft guarantees
+    Hybrid,     // Mix of both
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CongestionControl {
     pub algorithm: CongestionAlgorithm,
-    pub buffer_size: u32,           // KB
+    pub buffer_size: u32, // KB
     pub red_parameters: Option<RedParameters>,
     pub ecn_enabled: bool,
 }
@@ -397,7 +397,7 @@ pub struct SecurityZone {
     pub name: String,
     pub description: String,
     pub trust_level: TrustLevel,
-    pub networks: Vec<String>,      // CIDR blocks
+    pub networks: Vec<String>, // CIDR blocks
     pub interfaces: Vec<String>,
     pub default_policies: Vec<String>,
     pub inter_zone_rules: Vec<InterZoneRule>,
@@ -406,11 +406,11 @@ pub struct SecurityZone {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TrustLevel {
-    Untrusted = 0,      // External/Internet
-    Restricted = 1,     // DMZ
-    Internal = 2,       // Corporate LAN
-    Trusted = 3,        // Management network
-    Secure = 4,         // High-security zone
+    Untrusted = 0,  // External/Internet
+    Restricted = 1, // DMZ
+    Internal = 2,   // Corporate LAN
+    Trusted = 3,    // Management network
+    Secure = 4,     // High-security zone
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -444,10 +444,10 @@ pub struct LoadBalancerConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LoadBalancerType {
-    Layer4,         // TCP/UDP load balancing
-    Layer7,         // HTTP/HTTPS application load balancing
-    Global,         // Global server load balancing
-    Internal,       // Internal load balancing
+    Layer4,   // TCP/UDP load balancing
+    Layer7,   // HTTP/HTTPS application load balancing
+    Global,   // Global server load balancing
+    Internal, // Internal load balancing
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -480,7 +480,7 @@ pub struct RealServer {
     pub weight: u8,
     pub max_connections: Option<u32>,
     pub status: ServerStatus,
-    pub response_time: Option<u32>,  // milliseconds
+    pub response_time: Option<u32>, // milliseconds
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -496,8 +496,8 @@ pub enum ServerStatus {
 pub struct HealthCheck {
     pub name: String,
     pub check_type: HealthCheckType,
-    pub interval: u32,      // seconds
-    pub timeout: u32,       // seconds
+    pub interval: u32, // seconds
+    pub timeout: u32,  // seconds
     pub retry_count: u8,
     pub failure_threshold: u8,
     pub success_threshold: u8,
@@ -507,15 +507,15 @@ pub struct HealthCheck {
 pub enum HealthCheckType {
     Icmp,
     TcpConnect,
-    HttpGet(String),        // URL path
-    HttpsGet(String),       // URL path
-    CustomScript(String),   // Script path
+    HttpGet(String),      // URL path
+    HttpsGet(String),     // URL path
+    CustomScript(String), // Script path
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionPersistence {
     pub method: PersistenceMethod,
-    pub timeout: u32,       // seconds
+    pub timeout: u32, // seconds
     pub cookie_name: Option<String>,
     pub fallback_method: Option<PersistenceMethod>,
 }
@@ -727,7 +727,10 @@ fn create_vlan() {
     println!("  🌐 Subnet: {}", subnet);
     println!("  🚪 Gateway: {}", gateway);
     println!("  🛡️  Security Level: {}", security_levels[security_level]);
-    println!("  📡 DHCP: {}", if dhcp_enabled { "Enabled" } else { "Disabled" });
+    println!(
+        "  📡 DHCP: {}",
+        if dhcp_enabled { "Enabled" } else { "Disabled" }
+    );
     println!("  🔒 Isolation: {}", isolation_modes[isolation_mode]);
 
     let confirm = Confirm::with_theme(&ColorfulTheme::default())
@@ -777,14 +780,25 @@ fn configure_dhcp_settings() -> DhcpRange {
         start: start_ip.parse().unwrap(),
         end: end_ip.parse().unwrap(),
         lease_time: lease_time * 3600, // Convert hours to seconds
-        dns_servers: dns_servers.split(',')
+        dns_servers: dns_servers
+            .split(',')
             .filter_map(|s| s.trim().parse().ok())
             .collect(),
-        domain_name: if domain_name.is_empty() { None } else { Some(domain_name) },
+        domain_name: if domain_name.is_empty() {
+            None
+        } else {
+            Some(domain_name)
+        },
     }
 }
 
-fn create_vlan_configuration(vlan_id: u16, name: &str, subnet: &str, gateway: &str, dhcp: Option<DhcpRange>) {
+fn create_vlan_configuration(
+    vlan_id: u16,
+    name: &str,
+    subnet: &str,
+    gateway: &str,
+    dhcp: Option<DhcpRange>,
+) {
     // Create bridge interface
     let bridge_name = format!("vmbr{}", vlan_id);
 
@@ -809,14 +823,24 @@ fn create_vlan_configuration(vlan_id: u16, name: &str, subnet: &str, gateway: &s
         if vlan_id != 1 {
             let vlan_interface = format!("{}.{}", bridge_name, vlan_id);
             let _create_vlan = Command::new("ip")
-                .args(&["link", "add", "link", &bridge_name, "name", &vlan_interface, "type", "vlan", "id", &vlan_id.to_string()])
+                .args(&[
+                    "link",
+                    "add",
+                    "link",
+                    &bridge_name,
+                    "name",
+                    &vlan_interface,
+                    "type",
+                    "vlan",
+                    "id",
+                    &vlan_id.to_string(),
+                ])
                 .output();
             println!("  ✅ VLAN interface {} created", vlan_interface);
         }
 
         // Generate configuration files
         generate_vlan_config_files(vlan_id, name, subnet, gateway, &dhcp);
-
     } else {
         println!("  ❌ Failed to create bridge (may already exist or insufficient permissions)");
         println!("  💡 Configuration will be saved for manual application");
@@ -824,13 +848,20 @@ fn create_vlan_configuration(vlan_id: u16, name: &str, subnet: &str, gateway: &s
     }
 }
 
-fn generate_vlan_config_files(vlan_id: u16, name: &str, subnet: &str, gateway: &str, dhcp: &Option<DhcpRange>) {
+fn generate_vlan_config_files(
+    vlan_id: u16,
+    name: &str,
+    subnet: &str,
+    gateway: &str,
+    dhcp: &Option<DhcpRange>,
+) {
     let config_dir = "/etc/ghostctl/vlans";
     fs::create_dir_all(config_dir).unwrap_or_else(|_| {
         println!("  ⚠️  Could not create config directory, showing configuration instead:");
     });
 
-    let vlan_config = format!(r#"# VLAN {} Configuration - {}
+    let vlan_config = format!(
+        r#"# VLAN {} Configuration - {}
 # Generated by GhostCTL Enterprise Networking
 
 [vlan]
@@ -849,13 +880,16 @@ iface vmbr{} inet static
     bridge_fd 0
     bridge_maxwait 0
 
-"#, vlan_id, name, vlan_id, name, subnet, gateway, vlan_id, vlan_id, vlan_id, gateway);
+"#,
+        vlan_id, name, vlan_id, name, subnet, gateway, vlan_id, vlan_id, vlan_id, gateway
+    );
 
     println!("\n📄 Generated VLAN Configuration:");
     println!("{}", vlan_config);
 
     if let Some(dhcp_config) = dhcp {
-        let dhcp_config_text = format!(r#"
+        let dhcp_config_text = format!(
+            r#"
 [dhcp]
 enabled = true
 range_start = "{}"
@@ -873,15 +907,28 @@ dhcp-option=option:dns-server,{}
             dhcp_config.start,
             dhcp_config.end,
             dhcp_config.lease_time,
-            dhcp_config.dns_servers.iter().map(|ip| ip.to_string()).collect::<Vec<_>>().join(","),
-            dhcp_config.domain_name.as_ref().unwrap_or(&"local".to_string()),
+            dhcp_config
+                .dns_servers
+                .iter()
+                .map(|ip| ip.to_string())
+                .collect::<Vec<_>>()
+                .join(","),
+            dhcp_config
+                .domain_name
+                .as_ref()
+                .unwrap_or(&"local".to_string()),
             vlan_id,
             vlan_id,
             dhcp_config.start,
             dhcp_config.end,
             dhcp_config.lease_time / 3600,
             gateway,
-            dhcp_config.dns_servers.iter().map(|ip| ip.to_string()).collect::<Vec<_>>().join(",")
+            dhcp_config
+                .dns_servers
+                .iter()
+                .map(|ip| ip.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
         );
 
         println!("📡 DHCP Configuration:");
@@ -1054,8 +1101,17 @@ fn create_vxlan_network() {
         .unwrap();
 
     if confirm {
-        create_vxlan_configuration(&network_name, vni, &overlay_subnet, &multicast_group, encryption_config);
-        println!("\n✅ VXLAN network '{}' created successfully!", network_name);
+        create_vxlan_configuration(
+            &network_name,
+            vni,
+            &overlay_subnet,
+            &multicast_group,
+            encryption_config,
+        );
+        println!(
+            "\n✅ VXLAN network '{}' created successfully!",
+            network_name
+        );
     }
 }
 
@@ -1064,17 +1120,24 @@ fn create_vxlan_configuration(
     vni: u32,
     subnet: &str,
     multicast: &str,
-    encryption: Option<EncryptionConfig>
+    encryption: Option<EncryptionConfig>,
 ) {
     let interface_name = format!("vxlan{}", vni);
 
     // Create VXLAN interface
     let vni_str = vni.to_string();
     let mut cmd_args = vec![
-        "link", "add", &interface_name, "type", "vxlan",
-        "id", &vni_str,
-        "dev", "eth0",  // This should be configurable
-        "dstport", "4789",
+        "link",
+        "add",
+        &interface_name,
+        "type",
+        "vxlan",
+        "id",
+        &vni_str,
+        "dev",
+        "eth0", // This should be configurable
+        "dstport",
+        "4789",
     ];
 
     if !multicast.is_empty() {
@@ -1084,9 +1147,7 @@ fn create_vxlan_configuration(
         cmd_args.extend(&["nolearning"]);
     }
 
-    let create_vxlan = Command::new("ip")
-        .args(&cmd_args)
-        .output();
+    let create_vxlan = Command::new("ip").args(&cmd_args).output();
 
     if create_vxlan.is_ok() {
         println!("  ✅ VXLAN interface {} created", interface_name);
@@ -1110,7 +1171,6 @@ fn create_vxlan_configuration(
             .output();
 
         println!("  ✅ Bridge {} created and configured", bridge_name);
-
     } else {
         println!("  ❌ Failed to create VXLAN interface (may require root privileges)");
     }
@@ -1124,9 +1184,10 @@ fn generate_vxlan_config(
     vni: u32,
     subnet: &str,
     multicast: &str,
-    encryption: &Option<EncryptionConfig>
+    encryption: &Option<EncryptionConfig>,
 ) {
-    let config = format!(r#"# VXLAN Network Configuration: {}
+    let config = format!(
+        r#"# VXLAN Network Configuration: {}
 # Generated by GhostCTL Enterprise Networking
 
 [network]
@@ -1155,9 +1216,22 @@ FDBAgeingSec=300
 Name=br-{}
 Kind=bridge
 "#,
-    name, name, vni, subnet, multicast, vni, name, vni, vni,
-    if multicast.is_empty() { "0.0.0.0" } else { multicast }, name
-);
+        name,
+        name,
+        vni,
+        subnet,
+        multicast,
+        vni,
+        name,
+        vni,
+        vni,
+        if multicast.is_empty() {
+            "0.0.0.0"
+        } else {
+            multicast
+        },
+        name
+    );
 
     println!("\n📄 VXLAN Configuration:");
     println!("{}", config);
@@ -1171,33 +1245,87 @@ Kind=bridge
 }
 
 // Additional stub functions for comprehensive feature coverage
-fn configure_vlan_settings() { println!("📝 Configure VLAN Settings - Feature implementation needed"); }
-fn manage_vlan_interfaces() { println!("🔌 Manage VLAN Interfaces - Feature implementation needed"); }
-fn vlan_trunking_configuration() { println!("🌉 VLAN Trunking Configuration - Feature implementation needed"); }
-fn vlan_security_policies() { println!("🛡️  VLAN Security Policies - Feature implementation needed"); }
-fn vlan_traffic_analysis() { println!("📊 VLAN Traffic Analysis - Feature implementation needed"); }
-fn vlan_migration_tools() { println!("🔄 VLAN Migration Tools - Feature implementation needed"); }
-fn bulk_vlan_operations() { println!("⚙️  Bulk VLAN Operations - Feature implementation needed"); }
+fn configure_vlan_settings() {
+    println!("📝 Configure VLAN Settings - Feature implementation needed");
+}
+fn manage_vlan_interfaces() {
+    println!("🔌 Manage VLAN Interfaces - Feature implementation needed");
+}
+fn vlan_trunking_configuration() {
+    println!("🌉 VLAN Trunking Configuration - Feature implementation needed");
+}
+fn vlan_security_policies() {
+    println!("🛡️  VLAN Security Policies - Feature implementation needed");
+}
+fn vlan_traffic_analysis() {
+    println!("📊 VLAN Traffic Analysis - Feature implementation needed");
+}
+fn vlan_migration_tools() {
+    println!("🔄 VLAN Migration Tools - Feature implementation needed");
+}
+fn bulk_vlan_operations() {
+    println!("⚙️  Bulk VLAN Operations - Feature implementation needed");
+}
 
-fn sdn_controller_configuration() { println!("🔧 SDN Controller Configuration - Feature implementation needed"); }
-fn virtual_network_creation() { println!("🌉 Virtual Network Creation - Feature implementation needed"); }
-fn network_tunnel_management() { println!("🔗 Network Tunnel Management - Feature implementation needed"); }
-fn sdn_security_policies() { println!("🛡️  SDN Security Policies - Feature implementation needed"); }
-fn overlay_network_monitoring() { println!("📊 Overlay Network Monitoring - Feature implementation needed"); }
-fn multi_tenant_networking() { println!("⚙️  Multi-Tenant Networking - Feature implementation needed"); }
-fn network_service_chaining() { println!("🚀 Network Service Chaining - Feature implementation needed"); }
+fn sdn_controller_configuration() {
+    println!("🔧 SDN Controller Configuration - Feature implementation needed");
+}
+fn virtual_network_creation() {
+    println!("🌉 Virtual Network Creation - Feature implementation needed");
+}
+fn network_tunnel_management() {
+    println!("🔗 Network Tunnel Management - Feature implementation needed");
+}
+fn sdn_security_policies() {
+    println!("🛡️  SDN Security Policies - Feature implementation needed");
+}
+fn overlay_network_monitoring() {
+    println!("📊 Overlay Network Monitoring - Feature implementation needed");
+}
+fn multi_tenant_networking() {
+    println!("⚙️  Multi-Tenant Networking - Feature implementation needed");
+}
+fn network_service_chaining() {
+    println!("🚀 Network Service Chaining - Feature implementation needed");
+}
 
-fn configure_vxlan_settings() { println!("📝 Configure VXLAN Settings - Feature implementation needed"); }
-fn manage_vxlan_endpoints() { println!("🔗 Manage VXLAN Endpoints - Feature implementation needed"); }
-fn vxlan_security_configuration() { println!("🛡️  VXLAN Security Configuration - Feature implementation needed"); }
-fn vxlan_performance_analysis() { println!("📊 VXLAN Performance Analysis - Feature implementation needed"); }
-fn vxlan_troubleshooting() { println!("🔧 VXLAN Troubleshooting - Feature implementation needed"); }
+fn configure_vxlan_settings() {
+    println!("📝 Configure VXLAN Settings - Feature implementation needed");
+}
+fn manage_vxlan_endpoints() {
+    println!("🔗 Manage VXLAN Endpoints - Feature implementation needed");
+}
+fn vxlan_security_configuration() {
+    println!("🛡️  VXLAN Security Configuration - Feature implementation needed");
+}
+fn vxlan_performance_analysis() {
+    println!("📊 VXLAN Performance Analysis - Feature implementation needed");
+}
+fn vxlan_troubleshooting() {
+    println!("🔧 VXLAN Troubleshooting - Feature implementation needed");
+}
 
-fn network_security_zones() { println!("🛡️  Network Security Zones - Feature implementation needed"); }
-fn quality_of_service_management() { println!("⚡ Quality of Service (QoS) - Feature implementation needed"); }
-fn load_balancing_management() { println!("⚖️  Load Balancing & High Availability - Feature implementation needed"); }
-fn network_policy_management() { println!("📊 Network Policy Management - Feature implementation needed"); }
-fn network_performance_optimization() { println!("🔧 Network Performance Optimization - Feature implementation needed"); }
-fn advanced_network_monitoring() { println!("📈 Advanced Network Monitoring - Feature implementation needed"); }
-fn bridge_interface_management() { println!("🌉 Bridge & Interface Management - Feature implementation needed"); }
-fn network_automation_orchestration() { println!("🚀 Network Automation & Orchestration - Feature implementation needed"); }
+fn network_security_zones() {
+    println!("🛡️  Network Security Zones - Feature implementation needed");
+}
+fn quality_of_service_management() {
+    println!("⚡ Quality of Service (QoS) - Feature implementation needed");
+}
+fn load_balancing_management() {
+    println!("⚖️  Load Balancing & High Availability - Feature implementation needed");
+}
+fn network_policy_management() {
+    println!("📊 Network Policy Management - Feature implementation needed");
+}
+fn network_performance_optimization() {
+    println!("🔧 Network Performance Optimization - Feature implementation needed");
+}
+fn advanced_network_monitoring() {
+    println!("📈 Advanced Network Monitoring - Feature implementation needed");
+}
+fn bridge_interface_management() {
+    println!("🌉 Bridge & Interface Management - Feature implementation needed");
+}
+fn network_automation_orchestration() {
+    println!("🚀 Network Automation & Orchestration - Feature implementation needed");
+}

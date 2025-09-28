@@ -1,8 +1,8 @@
 use crate::{
-    arch, backup, btrfs, cloud, dev, docker, gaming, network, nvidia, nvim, proxmox, restore, scripts,
-    security, shell, storage, systemd, terminal,
+    arch, backup, btrfs, cloud, dev, docker, gaming, network, nvidia, nvim, proxmox, restore,
+    scripts, security, shell, storage, systemd, terminal,
 };
-use dialoguer::{Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Select};
 
 pub fn show() {
     loop {

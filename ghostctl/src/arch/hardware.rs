@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Input, Select, MultiSelect, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::process::Command;
 
 pub fn hardware_management() {
@@ -92,7 +92,9 @@ fn system_overview() {
     let _ = Command::new("uptime").status();
 
     println!("\n🔋 Power Supply:");
-    let _ = Command::new("upower").args(["-i", "/org/freedesktop/UPower/devices/BAT0"]).status();
+    let _ = Command::new("upower")
+        .args(["-i", "/org/freedesktop/UPower/devices/BAT0"])
+        .status();
 
     println!("\n🌡️  Temperature:");
     let _ = Command::new("sensors").status();
@@ -109,7 +111,9 @@ fn cpu_information() {
     let _ = Command::new("cat").arg("/proc/cpuinfo").status();
 
     println!("\n📈 CPU Usage:");
-    let _ = Command::new("top").args(["-bn1", "|", "head", "-20"]).status();
+    let _ = Command::new("top")
+        .args(["-bn1", "|", "head", "-20"])
+        .status();
 }
 
 fn memory_information() {
@@ -137,7 +141,9 @@ fn storage_devices() {
     let _ = Command::new("df").args(["-h"]).status();
 
     println!("\n🔍 Storage Health:");
-    let _ = Command::new("sudo").args(["smartctl", "-H", "/dev/sda"]).status();
+    let _ = Command::new("sudo")
+        .args(["smartctl", "-H", "/dev/sda"])
+        .status();
 }
 
 fn graphics_hardware() {
@@ -145,10 +151,14 @@ fn graphics_hardware() {
     println!("====================");
 
     println!("🖥️  Graphics Cards:");
-    let _ = Command::new("lspci").args(["|", "grep", "-i", "vga"]).status();
+    let _ = Command::new("lspci")
+        .args(["|", "grep", "-i", "vga"])
+        .status();
 
     println!("\n📱 Graphics Drivers:");
-    let _ = Command::new("lsmod").args(["|", "grep", "-E", "(nvidia|amdgpu|i915)"]).status();
+    let _ = Command::new("lsmod")
+        .args(["|", "grep", "-E", "(nvidia|amdgpu|i915)"])
+        .status();
 
     println!("\n🖼️  Display Information:");
     let _ = Command::new("xrandr").status();
@@ -165,7 +175,9 @@ fn network_interfaces() {
     let _ = Command::new("iwconfig").status();
 
     println!("\n🔌 Network Hardware:");
-    let _ = Command::new("lspci").args(["|", "grep", "-i", "network"]).status();
+    let _ = Command::new("lspci")
+        .args(["|", "grep", "-i", "network"])
+        .status();
 }
 
 fn audio_devices() {
@@ -173,13 +185,17 @@ fn audio_devices() {
     println!("================");
 
     println!("🎵 Audio Hardware:");
-    let _ = Command::new("lspci").args(["|", "grep", "-i", "audio"]).status();
+    let _ = Command::new("lspci")
+        .args(["|", "grep", "-i", "audio"])
+        .status();
 
     println!("\n🔊 Audio Cards:");
     let _ = Command::new("cat").arg("/proc/asound/cards").status();
 
     println!("\n🎚️  PulseAudio Devices:");
-    let _ = Command::new("pactl").args(["list", "short", "sinks"]).status();
+    let _ = Command::new("pactl")
+        .args(["list", "short", "sinks"])
+        .status();
 }
 
 fn pci_devices() {
@@ -198,7 +214,9 @@ fn usb_devices() {
     let _ = Command::new("lsusb").args(["-v"]).status();
 
     println!("\n🗂️  USB Mount Points:");
-    let _ = Command::new("lsblk").args(["-o", "NAME,MOUNTPOINT,FSTYPE,SIZE"]).status();
+    let _ = Command::new("lsblk")
+        .args(["-o", "NAME,MOUNTPOINT,FSTYPE,SIZE"])
+        .status();
 }
 
 fn full_hardware_report() {
@@ -225,7 +243,9 @@ fn full_hardware_report() {
         let _ = Command::new("lsblk").status();
 
         println!("\n🖼️  Graphics:");
-        let _ = Command::new("lspci").args(["|", "grep", "-i", "vga"]).status();
+        let _ = Command::new("lspci")
+            .args(["|", "grep", "-i", "vga"])
+            .status();
 
         println!("\n📶 Network:");
         let _ = Command::new("ip").args(["addr", "show"]).status();
@@ -274,7 +294,9 @@ fn detect_graphics_hardware() {
     println!("===========================");
 
     println!("🖼️  Graphics Cards Found:");
-    let output = Command::new("lspci").args(["-nn", "|", "grep", "-E", "(VGA|3D|Display)"]).output();
+    let output = Command::new("lspci")
+        .args(["-nn", "|", "grep", "-E", "(VGA|3D|Display)"])
+        .output();
 
     if let Ok(output) = output {
         let gpu_info = String::from_utf8_lossy(&output.stdout);
@@ -296,10 +318,14 @@ fn detect_graphics_hardware() {
     }
 
     println!("\n🖥️  Current Graphics Driver:");
-    let _ = Command::new("lsmod").args(["|", "grep", "-E", "(nvidia|amdgpu|radeon|i915|nouveau)"]).status();
+    let _ = Command::new("lsmod")
+        .args(["|", "grep", "-E", "(nvidia|amdgpu|radeon|i915|nouveau)"])
+        .status();
 
     println!("\n📱 OpenGL Information:");
-    let _ = Command::new("glxinfo").args(["|", "grep", "OpenGL"]).status();
+    let _ = Command::new("glxinfo")
+        .args(["|", "grep", "OpenGL"])
+        .status();
 }
 
 fn nvidia_driver_management() {
@@ -339,7 +365,9 @@ fn install_nvidia_drivers() {
     println!("=========================");
 
     // Check for NVIDIA GPU
-    let output = Command::new("lspci").args(["|", "grep", "-i", "nvidia"]).output();
+    let output = Command::new("lspci")
+        .args(["|", "grep", "-i", "nvidia"])
+        .output();
 
     match output {
         Ok(output) if !output.stdout.is_empty() => {
@@ -442,12 +470,18 @@ fn fix_nvidia_issues() {
         }
         2 => {
             println!("🔄 Resetting NVIDIA settings...");
-            let _ = Command::new("nvidia-settings").args(["--reset-to-defaults"]).status();
+            let _ = Command::new("nvidia-settings")
+                .args(["--reset-to-defaults"])
+                .status();
         }
         3 => {
             println!("🚫 Blacklisting nouveau driver...");
             let _ = Command::new("sudo")
-                .args(["bash", "-c", "echo 'blacklist nouveau' >> /etc/modprobe.d/blacklist-nouveau.conf"])
+                .args([
+                    "bash",
+                    "-c",
+                    "echo 'blacklist nouveau' >> /etc/modprobe.d/blacklist-nouveau.conf",
+                ])
                 .status();
         }
         4 => {
@@ -501,7 +535,14 @@ fn nvidia_gaming_optimizations() {
             4 => {
                 println!("📦 Installing gaming packages...");
                 let _ = Command::new("sudo")
-                    .args(["pacman", "-S", "--noconfirm", "lib32-nvidia-utils", "vulkan-icd-loader", "lib32-vulkan-icd-loader"])
+                    .args([
+                        "pacman",
+                        "-S",
+                        "--noconfirm",
+                        "lib32-nvidia-utils",
+                        "vulkan-icd-loader",
+                        "lib32-vulkan-icd-loader",
+                    ])
                     .status();
             }
             _ => {}
@@ -516,7 +557,9 @@ fn nvidia_wayland_support() {
     println!("⚙️  Enabling NVIDIA Wayland support...");
 
     // Check NVIDIA driver version
-    let output = Command::new("nvidia-smi").args(["--query-gpu=driver_version", "--format=csv,noheader"]).output();
+    let output = Command::new("nvidia-smi")
+        .args(["--query-gpu=driver_version", "--format=csv,noheader"])
+        .output();
 
     if let Ok(output) = output {
         let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -537,7 +580,11 @@ fn nvidia_wayland_support() {
 
             if confirm {
                 let _ = Command::new("sudo")
-                    .args(["bash", "-c", "echo 'options nvidia-drm modeset=1' >> /etc/modprobe.d/nvidia.conf"])
+                    .args([
+                        "bash",
+                        "-c",
+                        "echo 'options nvidia-drm modeset=1' >> /etc/modprobe.d/nvidia.conf",
+                    ])
                     .status();
 
                 println!("✅ Wayland support configured");
@@ -671,7 +718,9 @@ fn fix_amd_issues() {
         }
         3 => {
             println!("🔄 Resetting GPU settings...");
-            let _ = Command::new("sudo").args(["modprobe", "-r", "amdgpu"]).status();
+            let _ = Command::new("sudo")
+                .args(["modprobe", "-r", "amdgpu"])
+                .status();
             let _ = Command::new("sudo").args(["modprobe", "amdgpu"]).status();
         }
         _ => return,
@@ -706,7 +755,13 @@ fn amd_gaming_optimizations() {
             1 => {
                 println!("🔥 Enabling Vulkan support...");
                 let _ = Command::new("sudo")
-                    .args(["pacman", "-S", "--noconfirm", "vulkan-radeon", "lib32-vulkan-radeon"])
+                    .args([
+                        "pacman",
+                        "-S",
+                        "--noconfirm",
+                        "vulkan-radeon",
+                        "lib32-vulkan-radeon",
+                    ])
                     .status();
             }
             2 => {
@@ -728,11 +783,7 @@ fn intel_driver_management() {
     println!("==========================");
 
     println!("📦 Intel graphics drivers (usually pre-installed):");
-    let packages = [
-        "xf86-video-intel",
-        "mesa",
-        "vulkan-intel",
-    ];
+    let packages = ["xf86-video-intel", "mesa", "vulkan-intel"];
 
     let install = Confirm::new()
         .with_prompt("Install/update Intel graphics packages?")
@@ -797,9 +848,13 @@ fn configure_resolution() {
         .unwrap();
 
     if display == "auto" {
-        let _ = Command::new("xrandr").args(["--output", "auto", "--mode", &resolution]).status();
+        let _ = Command::new("xrandr")
+            .args(["--output", "auto", "--mode", &resolution])
+            .status();
     } else {
-        let _ = Command::new("xrandr").args(["--output", &display, "--mode", &resolution]).status();
+        let _ = Command::new("xrandr")
+            .args(["--output", &display, "--mode", &resolution])
+            .status();
     }
 
     println!("✅ Resolution set to {}", resolution);
@@ -842,7 +897,9 @@ fn rotate_display() {
 
     let rotation = rotations[choice];
 
-    let _ = Command::new("xrandr").args(["--output", "auto", "--rotate", rotation]).status();
+    let _ = Command::new("xrandr")
+        .args(["--output", "auto", "--rotate", rotation])
+        .status();
     println!("✅ Display rotated to {}", rotation);
 }
 
@@ -854,7 +911,9 @@ fn brightness_control() {
         .interact_text()
         .unwrap();
 
-    let _ = Command::new("xrandr").args(["--output", "auto", "--brightness", &brightness]).status();
+    let _ = Command::new("xrandr")
+        .args(["--output", "auto", "--brightness", &brightness])
+        .status();
     println!("✅ Brightness set to {}", brightness);
 }
 
@@ -914,18 +973,32 @@ fn vulkan_setup() {
     println!("📦 Installing Vulkan support...");
 
     // Auto-detect GPU and install appropriate Vulkan drivers
-    let output = Command::new("lspci").args(["|", "grep", "-i", "vga"]).output();
+    let output = Command::new("lspci")
+        .args(["|", "grep", "-i", "vga"])
+        .output();
 
     if let Ok(output) = output {
         let gpu_info = String::from_utf8_lossy(&output.stdout);
 
         if gpu_info.to_lowercase().contains("nvidia") {
             let _ = Command::new("sudo")
-                .args(["pacman", "-S", "--noconfirm", "vulkan-icd-loader", "lib32-vulkan-icd-loader"])
+                .args([
+                    "pacman",
+                    "-S",
+                    "--noconfirm",
+                    "vulkan-icd-loader",
+                    "lib32-vulkan-icd-loader",
+                ])
                 .status();
         } else if gpu_info.to_lowercase().contains("amd") {
             let _ = Command::new("sudo")
-                .args(["pacman", "-S", "--noconfirm", "vulkan-radeon", "lib32-vulkan-radeon"])
+                .args([
+                    "pacman",
+                    "-S",
+                    "--noconfirm",
+                    "vulkan-radeon",
+                    "lib32-vulkan-radeon",
+                ])
                 .status();
         } else if gpu_info.to_lowercase().contains("intel") {
             let _ = Command::new("sudo")
@@ -989,12 +1062,7 @@ fn gaming_performance_optimizations() {
 fn gaming_monitoring_tools() {
     println!("📊 Gaming Monitoring Tools");
 
-    let tools = [
-        "MangoHUD",
-        "GOverlay",
-        "GameMode",
-        "System monitoring",
-    ];
+    let tools = ["MangoHUD", "GOverlay", "GameMode", "System monitoring"];
 
     let selected = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Install monitoring tools")
@@ -1066,11 +1134,7 @@ fn wayland_x11_setup() {
 fn setup_wayland() {
     println!("🐧 Setup Wayland");
 
-    let wayland_packages = [
-        "wayland",
-        "wayland-protocols",
-        "xorg-xwayland",
-    ];
+    let wayland_packages = ["wayland", "wayland-protocols", "xorg-xwayland"];
 
     let _ = Command::new("sudo")
         .args(["pacman", "-S", "--noconfirm"])
@@ -1083,11 +1147,7 @@ fn setup_wayland() {
 fn setup_x11() {
     println!("🖥️  Setup X11");
 
-    let x11_packages = [
-        "xorg-server",
-        "xorg-xinit",
-        "xorg-xrandr",
-    ];
+    let x11_packages = ["xorg-server", "xorg-xinit", "xorg-xrandr"];
 
     let _ = Command::new("sudo")
         .args(["pacman", "-S", "--noconfirm"])

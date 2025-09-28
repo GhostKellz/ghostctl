@@ -1,14 +1,14 @@
-use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use reqwest::blocking::get;
 use std::process::Command;
 
+pub mod advanced_security;
+pub mod backup_rotation;
 pub mod enhanced;
+pub mod firewall_automation;
 pub mod helper;
 pub mod storage_migration;
 pub mod template_management;
-pub mod backup_rotation;
-pub mod firewall_automation;
-pub mod advanced_security;
 // pub mod vfio;
 // pub mod upgrade;
 // pub mod pbs;
@@ -66,7 +66,7 @@ pub fn proxmox_menu() {
                 "🎮 VFIO GPU Passthrough",
                 "🚀 PVE Upgrade (8→9)",
                 "🔐 Proxmox Backup Server (PBS)",
-                "🏢 CKTech Helper Scripts", 
+                "🏢 CKTech Helper Scripts",
                 "🌐 All Community Scripts",
                 "⬅️  Back",
             ])
@@ -82,7 +82,7 @@ pub fn proxmox_menu() {
                 println!("Features: GPU passthrough, vendor reset, diagnostics");
             }
             3 => {
-                println!("🚀 PVE Upgrade (8→9) - Coming in next build!");  
+                println!("🚀 PVE Upgrade (8→9) - Coming in next build!");
                 println!("Features: Cluster upgrades, repo management, node draining");
             }
             4 => {

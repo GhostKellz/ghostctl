@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Select};
 use std::process::Command;
 
 pub fn graphics_menu() {
@@ -40,7 +40,7 @@ fn graphics_driver_management() {
 
     let driver_options = [
         "🟢 NVIDIA Driver Management",
-        "🔴 AMD Driver Management", 
+        "🔴 AMD Driver Management",
         "🔵 Intel Driver Management",
         "📦 Install Common Graphics Libraries",
         "🔧 Driver Status Check",
@@ -67,7 +67,7 @@ fn graphics_driver_management() {
 fn nvidia_driver_management() {
     println!("🟢 NVIDIA Driver Management");
     println!("===========================");
-    
+
     let nvidia_options = [
         "📦 Install NVIDIA Drivers",
         "🐳 Install NVIDIA Container Toolkit",
@@ -131,7 +131,7 @@ fn install_nvidia_drivers() {
 
 fn install_nvidia_container_toolkit() {
     println!("🐳 Installing NVIDIA Container Toolkit");
-    
+
     let aur_helpers = ["yay", "paru", "trizen"];
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
@@ -140,7 +140,7 @@ fn install_nvidia_container_toolkit() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "nvidia-container-toolkit"])
                     .status();
-                
+
                 match install_status {
                     Ok(s) if s.success() => {
                         println!("✅ NVIDIA Container Toolkit installed");
@@ -151,13 +151,13 @@ fn install_nvidia_container_toolkit() {
             }
         }
     }
-    
+
     println!("❌ No AUR helper found. Install yay first.");
 }
 
 fn install_nvidia_performance_tools() {
     println!("⚡ Installing NVIDIA Performance Tools");
-    
+
     let tools = ["nvtop", "nvidia-ml-py"];
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -178,7 +178,7 @@ fn launch_nvidia_settings() {
 fn nvidia_status() {
     println!("📊 NVIDIA Status");
     println!("================");
-    
+
     let nvidia_smi = Command::new("nvidia-smi").status();
     match nvidia_smi {
         Ok(s) if s.success() => {
@@ -192,7 +192,7 @@ fn nvidia_status() {
 fn amd_driver_management() {
     println!("🔴 AMD Driver Management");
     println!("========================");
-    
+
     let amd_options = [
         "📦 Install AMD Drivers",
         "🌋 Install AMD Vulkan Drivers",
@@ -221,7 +221,7 @@ fn amd_driver_management() {
 
 fn install_amd_drivers() {
     println!("📦 Installing AMD Drivers");
-    
+
     let amd_packages = [
         "mesa",
         "lib32-mesa",
@@ -246,7 +246,7 @@ fn install_amd_drivers() {
 
 fn install_amd_vulkan() {
     println!("🌋 Installing AMD Vulkan Drivers");
-    
+
     let vulkan_packages = [
         "vulkan-radeon",
         "lib32-vulkan-radeon",
@@ -268,9 +268,9 @@ fn install_amd_vulkan() {
 
 fn install_amd_performance_tools() {
     println!("⚡ Installing AMD Performance Tools");
-    
+
     let _tools = ["radeontop", "corectrl"];
-    
+
     // Install from repos
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm", "radeontop"])
@@ -290,7 +290,7 @@ fn install_amd_performance_tools() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "corectrl"])
                     .status();
-                
+
                 match install_status {
                     Ok(s) if s.success() => {
                         println!("  ✅ corectrl installed");
@@ -307,12 +307,12 @@ fn install_amd_performance_tools() {
 fn amd_gpu_configuration() {
     println!("🔧 AMD GPU Configuration");
     println!("========================");
-    
+
     println!("💡 AMD GPU optimizations:");
     println!("  • Enable GPU scheduling: echo 'amdgpu.gpu_recovery=1' | sudo tee -a /etc/modprobe.d/amdgpu.conf");
     println!("  • Force performance mode: echo 'performance' | sudo tee /sys/class/drm/card0/device/power_dpm_force_performance_level");
     println!("  • Configure fan curves with corectrl");
-    
+
     let apply_optimizations = Confirm::new()
         .with_prompt("Apply basic AMD optimizations?")
         .default(false)
@@ -326,11 +326,11 @@ fn amd_gpu_configuration() {
 
 fn apply_amd_optimizations() {
     println!("🔧 Applying AMD optimizations...");
-    
+
     // Create modprobe config
     let modprobe_config = "options amdgpu gpu_recovery=1\n";
     let config_path = "/etc/modprobe.d/amdgpu.conf";
-    
+
     let status = Command::new("sudo")
         .arg("sh")
         .arg("-c")
@@ -346,16 +346,14 @@ fn apply_amd_optimizations() {
 fn amd_status() {
     println!("📊 AMD Status");
     println!("=============");
-    
-    let lspci_output = Command::new("lspci")
-        .args(&["-k"])
-        .output();
-    
+
+    let lspci_output = Command::new("lspci").args(&["-k"]).output();
+
     if let Ok(output) = lspci_output {
         let lspci = String::from_utf8_lossy(&output.stdout);
         if lspci.contains("AMD") || lspci.contains("Radeon") {
             println!("✅ AMD GPU detected");
-            
+
             let glxinfo = Command::new("glxinfo").args(&["-B"]).status();
             match glxinfo {
                 Ok(s) if s.success() => println!("✅ AMD graphics working"),
@@ -370,7 +368,7 @@ fn amd_status() {
 fn intel_driver_management() {
     println!("🔵 Intel Driver Management");
     println!("==========================");
-    
+
     let intel_packages = [
         "mesa",
         "lib32-mesa",
@@ -402,7 +400,7 @@ fn intel_driver_management() {
 fn install_graphics_libraries() {
     println!("📦 Installing Common Graphics Libraries");
     println!("=======================================");
-    
+
     let graphics_libs = [
         "mesa",
         "lib32-mesa",
@@ -427,13 +425,15 @@ fn install_graphics_libraries() {
 fn driver_status_check() {
     println!("🔧 Graphics Driver Status");
     println!("=========================");
-    
+
     println!("🖥️  Hardware detected:");
-    let _ = Command::new("lspci").args(&["-k", "|", "grep", "-A", "2", "-E", "(VGA|3D)"]).status();
-    
+    let _ = Command::new("lspci")
+        .args(&["-k", "|", "grep", "-A", "2", "-E", "(VGA|3D)"])
+        .status();
+
     println!("\n🎮 OpenGL status:");
     let _ = Command::new("glxinfo").args(&["-B"]).status();
-    
+
     println!("\n🌋 Vulkan status:");
     let _ = Command::new("vulkaninfo").args(&["--summary"]).status();
 }
@@ -472,7 +472,7 @@ fn vulkan_setup() {
 
 fn install_vulkan_drivers() {
     println!("📦 Installing Vulkan Drivers");
-    
+
     let vulkan_packages = [
         "vulkan-tools",
         "vulkan-mesa-layers",
@@ -494,12 +494,12 @@ fn install_vulkan_drivers() {
 fn vulkan_layer_config() {
     println!("🔧 Vulkan Layer Configuration");
     println!("=============================");
-    
+
     println!("💡 Vulkan layers for gaming:");
     println!("  • VK_LAYER_MESA_overlay - Performance overlay");
     println!("  • VK_LAYER_KHRONOS_validation - Debugging");
     println!("  • VK_LAYER_LUNARG_monitor - Frame rate limiting");
-    
+
     println!("\n🔧 Environment variables:");
     println!("  export VK_LAYER_PATH=/usr/share/vulkan/explicit_layer.d");
     println!("  export VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay");
@@ -507,11 +507,8 @@ fn vulkan_layer_config() {
 
 fn vulkan_validation_layers() {
     println!("📊 Installing Vulkan Validation Layers");
-    
-    let validation_packages = [
-        "vulkan-validation-layers",
-        "vulkan-extra-layers",
-    ];
+
+    let validation_packages = ["vulkan-validation-layers", "vulkan-extra-layers"];
 
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -527,13 +524,13 @@ fn vulkan_validation_layers() {
 fn vulkan_performance_tuning() {
     println!("⚡ Vulkan Performance Tuning");
     println!("============================");
-    
+
     println!("💡 Vulkan optimization environment variables:");
     println!("  export VK_LAYER_MESA_OVERLAY_CONFIG=fps");
-    println!("  export RADV_PERFTEST=aco");  // AMD specific
+    println!("  export RADV_PERFTEST=aco"); // AMD specific
     println!("  export ACO_DEBUG=validateir,validatera");
-    println!("  export MESA_VK_WSI_PRESENT_MODE=fifo");  // VSync
-    
+    println!("  export MESA_VK_WSI_PRESENT_MODE=fifo"); // VSync
+
     let apply_config = Confirm::new()
         .with_prompt("Add Vulkan optimizations to ~/.profile?")
         .default(false)
@@ -560,7 +557,11 @@ export MESA_VK_WSI_PRESENT_MODE=fifo
     use std::fs::OpenOptions;
     use std::io::Write;
 
-    if let Ok(mut file) = OpenOptions::new().append(true).create(true).open(&profile_path) {
+    if let Ok(mut file) = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&profile_path)
+    {
         if let Err(_) = writeln!(file, "{}", vulkan_env) {
             println!("❌ Failed to write to profile");
         } else {
@@ -571,7 +572,7 @@ export MESA_VK_WSI_PRESENT_MODE=fifo
 
 fn vulkan_testing_tools() {
     println!("🧪 Installing Vulkan Testing Tools");
-    
+
     let test_tools = ["vkcube", "vulkan-tools"];
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -590,13 +591,13 @@ fn vulkan_testing_tools() {
 fn vulkan_status() {
     println!("📋 Vulkan Status");
     println!("================");
-    
+
     let vulkaninfo = Command::new("vulkaninfo").arg("--summary").status();
     match vulkaninfo {
         Ok(s) if s.success() => println!("✅ Vulkan working"),
         _ => println!("❌ Vulkan not working"),
     }
-    
+
     println!("\n🔧 Available Vulkan devices:");
     let _ = Command::new("vulkaninfo").args(&["--summary"]).status();
 }
@@ -632,7 +633,7 @@ fn opengl_configuration() {
 fn opengl_status() {
     println!("📊 OpenGL Status & Information");
     println!("==============================");
-    
+
     let glxinfo = Command::new("glxinfo").status();
     match glxinfo {
         Ok(s) if s.success() => {
@@ -646,13 +647,13 @@ fn opengl_status() {
 fn opengl_performance_settings() {
     println!("⚡ OpenGL Performance Settings");
     println!("==============================");
-    
+
     println!("💡 OpenGL optimization environment variables:");
     println!("  export __GL_THREADED_OPTIMIZATIONS=1");
     println!("  export __GL_SHADER_DISK_CACHE=1");
     println!("  export __GL_SHADER_DISK_CACHE_PATH=~/.cache/gl_shader");
     println!("  export MESA_GL_VERSION_OVERRIDE=4.6");
-    
+
     let apply_config = Confirm::new()
         .with_prompt("Add OpenGL optimizations to ~/.profile?")
         .default(false)
@@ -679,7 +680,11 @@ export __GL_SHADER_DISK_CACHE_PATH=~/.cache/gl_shader
     use std::fs::OpenOptions;
     use std::io::Write;
 
-    if let Ok(mut file) = OpenOptions::new().append(true).create(true).open(&profile_path) {
+    if let Ok(mut file) = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&profile_path)
+    {
         if let Err(_) = writeln!(file, "{}", opengl_env) {
             println!("❌ Failed to write to profile");
         } else {
@@ -691,23 +696,23 @@ export __GL_SHADER_DISK_CACHE_PATH=~/.cache/gl_shader
 fn mesa_configuration() {
     println!("🔧 Mesa Configuration");
     println!("=====================");
-    
+
     println!("💡 Mesa environment variables:");
     println!("  export MESA_GL_VERSION_OVERRIDE=4.6");
     println!("  export MESA_GLSL_VERSION_OVERRIDE=460");
-    println!("  export RADV_PERFTEST=aco");  // AMD specific
+    println!("  export RADV_PERFTEST=aco"); // AMD specific
     println!("  export MESA_VK_WSI_PRESENT_MODE=fifo");
 }
 
 fn opengl_testing() {
     println!("🧪 OpenGL Testing");
     println!("=================");
-    
+
     println!("🧪 OpenGL test commands:");
     println!("  glxgears         # Simple OpenGL test");
     println!("  glxinfo -B       # OpenGL information");
     println!("  mesa-demos       # Mesa demo applications");
-    
+
     let install_demos = Confirm::new()
         .with_prompt("Install mesa-demos for testing?")
         .default(false)
@@ -762,12 +767,12 @@ fn graphics_performance_tuning() {
 fn gpu_frequency_scaling() {
     println!("🚀 GPU Frequency Scaling");
     println!("========================");
-    
+
     println!("💡 GPU frequency control:");
     println!("  • NVIDIA: nvidia-settings, nvidia-smi");
     println!("  • AMD: corectrl, amdgpu-clocks");
     println!("  • Intel: intel-gpu-tools");
-    
+
     println!("\n⚠️  GPU overclocking can damage hardware!");
     println!("Always monitor temperatures and start conservative.");
 }
@@ -775,12 +780,12 @@ fn gpu_frequency_scaling() {
 fn temperature_management() {
     println!("🌡️  Temperature Management");
     println!("==========================");
-    
+
     println!("💡 GPU temperature monitoring:");
     println!("  • sensors - System temperatures");
     println!("  • nvidia-smi - NVIDIA GPU temp");
     println!("  • radeontop - AMD GPU monitoring");
-    
+
     let install_sensors = Confirm::new()
         .with_prompt("Install temperature monitoring tools?")
         .default(true)
@@ -804,25 +809,25 @@ fn temperature_management() {
 fn power_management() {
     println!("⚡ Graphics Power Management");
     println!("============================");
-    
+
     println!("💡 Power management modes:");
     println!("  • Performance - Maximum performance");
     println!("  • Balanced - Balance power and performance");
     println!("  • Power saving - Minimum power consumption");
-    
+
     println!("\n🔧 For gaming, use performance mode");
 }
 
 fn gaming_specific_tweaks() {
     println!("🔧 Gaming-specific Graphics Tweaks");
     println!("===================================");
-    
+
     println!("💡 Gaming optimizations:");
     println!("  • Disable compositor during gaming");
     println!("  • Force discrete GPU for games");
     println!("  • Enable GPU scheduling");
     println!("  • Configure shader cache");
-    
+
     let gaming_tweaks = [
         "🎮 Setup Gaming GPU Profile",
         "🔧 Configure Shader Cache",
@@ -850,7 +855,7 @@ fn gaming_specific_tweaks() {
 fn setup_gaming_gpu_profile() {
     println!("🎮 Setting up Gaming GPU Profile");
     println!("================================");
-    
+
     println!("💡 Creating performance profile for gaming...");
     println!("This will optimize GPU settings for maximum performance");
 }
@@ -858,7 +863,7 @@ fn setup_gaming_gpu_profile() {
 fn configure_shader_cache() {
     println!("🔧 Configuring Shader Cache");
     println!("===========================");
-    
+
     let cache_dir = std::env::home_dir()
         .map(|h| h.join(".cache/gl_shader"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/.cache/gl_shader"));
@@ -871,7 +876,7 @@ fn configure_shader_cache() {
     }
 
     println!("✅ Shader cache directory created: {}", cache_dir.display());
-    
+
     let shader_env = format!("export __GL_SHADER_DISK_CACHE_PATH={}", cache_dir.display());
     println!("💡 Add to ~/.profile: {}", shader_env);
 }
@@ -879,7 +884,7 @@ fn configure_shader_cache() {
 fn gpu_scheduling_tweaks() {
     println!("⚡ GPU Scheduling Tweaks");
     println!("========================");
-    
+
     println!("💡 GPU scheduling optimizations:");
     println!("  • Enable GPU preemption");
     println!("  • Configure GPU priorities");
@@ -889,12 +894,12 @@ fn gpu_scheduling_tweaks() {
 fn compositor_settings() {
     println!("🖥️  Compositor Settings for Gaming");
     println!("==================================");
-    
+
     println!("💡 Desktop environment compositor settings:");
     println!("  • GNOME: Disable animations in Tweaks");
     println!("  • KDE: System Settings > Display > Compositor");
     println!("  • i3/Sway: Disable compositor during gaming");
-    
+
     println!("\n🎮 For best gaming performance:");
     println!("  • Disable compositor");
     println!("  • Use fullscreen exclusive mode");
@@ -904,11 +909,11 @@ fn compositor_settings() {
 fn performance_monitoring() {
     println!("📊 Graphics Performance Monitoring");
     println!("==================================");
-    
+
     let monitoring_tools = [
         "📊 Install MangoHud",
         "🔍 Install GPU Monitoring Tools",
-        "📈 Setup Performance Logging", 
+        "📈 Setup Performance Logging",
         "⬅️  Back",
     ];
 
@@ -929,7 +934,7 @@ fn performance_monitoring() {
 
 fn install_mangohud() {
     println!("📊 Installing MangoHud");
-    
+
     let mangohud_packages = ["mangohud", "lib32-mangohud"];
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -948,7 +953,7 @@ fn install_mangohud() {
 
 fn install_gpu_monitoring_tools() {
     println!("🔍 Installing GPU Monitoring Tools");
-    
+
     let tools = ["nvtop", "radeontop", "intel-gpu-tools"];
     for tool in &tools {
         let status = Command::new("sudo")
@@ -965,7 +970,7 @@ fn install_gpu_monitoring_tools() {
 fn setup_performance_logging() {
     println!("📈 Setting up Performance Logging");
     println!("=================================");
-    
+
     println!("💡 Performance logging options:");
     println!("  • MangoHud logging to file");
     println!("  • Custom performance scripts");
@@ -978,7 +983,7 @@ fn multi_gpu_setup() {
 
     let multi_gpu_options = [
         "🔍 Detect Multiple GPUs",
-        "🎮 Configure Gaming GPU Priority", 
+        "🎮 Configure Gaming GPU Priority",
         "⚡ NVIDIA/AMD Hybrid Setup",
         "🔧 GPU Switching Configuration",
         "📊 Multi-GPU Status",
@@ -1005,10 +1010,12 @@ fn multi_gpu_setup() {
 fn detect_multiple_gpus() {
     println!("🔍 Detecting Multiple GPUs");
     println!("==========================");
-    
+
     println!("🖥️  Detected graphics devices:");
-    let _ = Command::new("lspci").args(&["-k", "|", "grep", "-A", "2", "-E", "(VGA|3D)"]).status();
-    
+    let _ = Command::new("lspci")
+        .args(&["-k", "|", "grep", "-A", "2", "-E", "(VGA|3D)"])
+        .status();
+
     println!("\n🌋 Vulkan devices:");
     let _ = Command::new("vulkaninfo").args(&["--summary"]).status();
 }
@@ -1016,7 +1023,7 @@ fn detect_multiple_gpus() {
 fn configure_gaming_gpu_priority() {
     println!("🎮 Configuring Gaming GPU Priority");
     println!("===================================");
-    
+
     println!("💡 GPU priority configuration:");
     println!("  • Set discrete GPU as default for games");
     println!("  • Configure GPU environment variables");
@@ -1026,7 +1033,7 @@ fn configure_gaming_gpu_priority() {
 fn nvidia_amd_hybrid_setup() {
     println!("⚡ NVIDIA/AMD Hybrid Setup");
     println!("==========================");
-    
+
     println!("💡 Hybrid GPU configuration:");
     println!("  • PRIME configuration for NVIDIA/Intel");
     println!("  • DRI_PRIME for AMD/Intel");
@@ -1036,7 +1043,7 @@ fn nvidia_amd_hybrid_setup() {
 fn gpu_switching_configuration() {
     println!("🔧 GPU Switching Configuration");
     println!("==============================");
-    
+
     println!("💡 GPU switching methods:");
     println!("  • Runtime GPU switching");
     println!("  • Application-specific GPU selection");
@@ -1046,13 +1053,17 @@ fn gpu_switching_configuration() {
 fn multi_gpu_status() {
     println!("📊 Multi-GPU Status");
     println!("===================");
-    
+
     println!("🖥️  GPU Hardware:");
-    let _ = Command::new("lspci").args(&["|", "grep", "-i", "vga"]).status();
-    
+    let _ = Command::new("lspci")
+        .args(&["|", "grep", "-i", "vga"])
+        .status();
+
     println!("\n⚡ GPU Power Status:");
     // Check GPU power states if available
-    let _ = Command::new("cat").arg("/sys/class/drm/card*/device/power_state").status();
+    let _ = Command::new("cat")
+        .arg("/sys/class/drm/card*/device/power_state")
+        .status();
 }
 
 fn game_specific_fixes() {
@@ -1086,7 +1097,7 @@ fn game_specific_fixes() {
 fn directx_dxvk_fixes() {
     println!("🎯 DirectX/DXVK Fixes");
     println!("=====================");
-    
+
     println!("💡 Common DXVK fixes:");
     println!("  • DXVK_HUD=fps - Show performance overlay");
     println!("  • DXVK_LOG_LEVEL=info - Enable logging");
@@ -1097,7 +1108,7 @@ fn directx_dxvk_fixes() {
 fn vulkan_game_fixes() {
     println!("🌋 Vulkan Game Fixes");
     println!("===================");
-    
+
     println!("💡 Vulkan game workarounds:");
     println!("  • VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay");
     println!("  • RADV_PERFTEST=aco (AMD)");
@@ -1107,7 +1118,7 @@ fn vulkan_game_fixes() {
 fn opengl_game_fixes() {
     println!("🔧 OpenGL Game Fixes");
     println!("===================");
-    
+
     println!("💡 OpenGL compatibility fixes:");
     println!("  • MESA_GL_VERSION_OVERRIDE=4.6");
     println!("  • MESA_GLSL_VERSION_OVERRIDE=460");
@@ -1117,7 +1128,7 @@ fn opengl_game_fixes() {
 fn specific_game_workarounds() {
     println!("📱 Specific Game Workarounds");
     println!("============================");
-    
+
     println!("💡 Game-specific environment variables:");
     println!("  • Cyberpunk 2077: PROTON_NO_ESYNC=1");
     println!("  • GTA V: WINEDEBUG=-all,+wgl");
@@ -1160,29 +1171,38 @@ fn graphics_diagnostics() {
 fn hardware_information() {
     println!("🔍 Graphics Hardware Information");
     println!("===============================");
-    
+
     println!("🖥️  PCI Graphics Devices:");
-    let _ = Command::new("lspci").args(&["-vnn", "|", "grep", "-A", "10", "-E", "(VGA|3D)"]).status();
-    
+    let _ = Command::new("lspci")
+        .args(&["-vnn", "|", "grep", "-A", "10", "-E", "(VGA|3D)"])
+        .status();
+
     println!("\n💾 Graphics Memory:");
-    let _ = Command::new("cat").arg("/proc/meminfo").args(&["|", "grep", "-i", "vmalloc"]).status();
+    let _ = Command::new("cat")
+        .arg("/proc/meminfo")
+        .args(&["|", "grep", "-i", "vmalloc"])
+        .status();
 }
 
 fn graphics_driver_diagnostics() {
     println!("🎮 Graphics Driver Diagnostics");
     println!("==============================");
-    
+
     println!("🔧 Loaded kernel modules:");
-    let _ = Command::new("lsmod").args(&["|", "grep", "-E", "(nvidia|radeon|amdgpu|i915)"]).status();
-    
+    let _ = Command::new("lsmod")
+        .args(&["|", "grep", "-E", "(nvidia|radeon|amdgpu|i915)"])
+        .status();
+
     println!("\n📦 Installed graphics packages:");
-    let _ = Command::new("pacman").args(&["-Q", "|", "grep", "-E", "(mesa|nvidia|vulkan)"]).status();
+    let _ = Command::new("pacman")
+        .args(&["-Q", "|", "grep", "-E", "(mesa|nvidia|vulkan)"])
+        .status();
 }
 
 fn vulkan_diagnostics() {
     println!("🌋 Vulkan Diagnostics");
     println!("=====================");
-    
+
     let vulkaninfo = Command::new("vulkaninfo").status();
     match vulkaninfo {
         Ok(s) if s.success() => {
@@ -1199,7 +1219,7 @@ fn vulkan_diagnostics() {
 fn opengl_diagnostics() {
     println!("🔧 OpenGL Diagnostics");
     println!("=====================");
-    
+
     let glxinfo = Command::new("glxinfo").status();
     match glxinfo {
         Ok(s) if s.success() => {
@@ -1216,7 +1236,7 @@ fn opengl_diagnostics() {
 fn performance_analysis() {
     println!("⚡ Graphics Performance Analysis");
     println!("===============================");
-    
+
     println!("📊 Performance monitoring tools:");
     println!("  • MangoHud - In-game overlay");
     println!("  • nvtop/radeontop - GPU monitoring");
@@ -1227,7 +1247,7 @@ fn performance_analysis() {
 fn graphics_tests() {
     println!("🧪 Graphics Tests");
     println!("=================");
-    
+
     let test_options = [
         "🔧 OpenGL Test (glxgears)",
         "🌋 Vulkan Test (vkcube)",
@@ -1253,7 +1273,7 @@ fn graphics_tests() {
 fn run_opengl_test() {
     println!("🔧 Running OpenGL Test");
     println!("======================");
-    
+
     let glxgears = Command::new("glxgears").status();
     match glxgears {
         Ok(s) if s.success() => println!("✅ OpenGL test completed"),
@@ -1264,7 +1284,7 @@ fn run_opengl_test() {
 fn run_vulkan_test() {
     println!("🌋 Running Vulkan Test");
     println!("======================");
-    
+
     let vkcube = Command::new("vkcube").status();
     match vkcube {
         Ok(s) if s.success() => println!("✅ Vulkan test completed"),
@@ -1275,12 +1295,12 @@ fn run_vulkan_test() {
 fn run_benchmark_test() {
     println!("📊 Running Benchmark Test");
     println!("=========================");
-    
+
     println!("💡 Available benchmarks:");
     println!("  • glmark2 - OpenGL benchmark");
     println!("  • vkmark - Vulkan benchmark");
     println!("  • Unigine Heaven/Valley");
-    
+
     let install_glmark2 = Confirm::new()
         .with_prompt("Install and run glmark2 benchmark?")
         .default(false)

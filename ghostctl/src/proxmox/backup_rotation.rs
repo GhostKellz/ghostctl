@@ -1,4 +1,4 @@
-use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme, MultiSelect};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use std::fs;
 use std::process::Command;
 
@@ -6,7 +6,7 @@ pub fn backup_rotation_menu() {
     loop {
         let options = vec![
             "Backup Job Management",
-            "Retention Policy Setup", 
+            "Retention Policy Setup",
             "Automated Pruning",
             "Backup Verification",
             "Storage Analysis",
@@ -93,7 +93,13 @@ fn create_backup_job() {
     // Select VMs/CTs to backup
     let backup_scope = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Backup scope")
-        .items(&["All VMs", "All Containers", "Specific VMs/CTs", "By Pool", "By Tag"])
+        .items(&[
+            "All VMs",
+            "All Containers",
+            "Specific VMs/CTs",
+            "By Pool",
+            "By Tag",
+        ])
         .default(0)
         .interact()
         .unwrap();
@@ -103,28 +109,28 @@ fn create_backup_job() {
         1 => {
             // Get container list
             get_ct_list()
-        },
+        }
         2 => {
             let vmids: String = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter VM/CT IDs (comma separated)")
                 .interact()
                 .unwrap();
             vmids
-        },
+        }
         3 => {
             let pool: String = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Pool name")
                 .interact()
                 .unwrap();
             format!("pool:{}", pool)
-        },
+        }
         4 => {
             let tag: String = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Tag name")
                 .interact()
                 .unwrap();
             format!("tag:{}", tag)
-        },
+        }
         _ => "all".to_string(),
     };
 
@@ -151,7 +157,7 @@ fn create_backup_job() {
 
     let mail_option = match mailnotification {
         0 => "always",
-        1 => "failure", 
+        1 => "failure",
         2 => "never",
         _ => "failure",
     };
@@ -189,29 +195,40 @@ fn create_backup_job() {
 
     let mode_option = match mode {
         0 => "snapshot",
-        1 => "suspend", 
+        1 => "suspend",
         2 => "stop",
         _ => "snapshot",
     };
 
     println!("🔄 Creating backup job...");
 
-    let retention_setting = if let Some((keep_last, keep_daily, keep_weekly, keep_monthly)) = retention_config {
-        Some(format!("keep-last={},keep-daily={},keep-weekly={},keep-monthly={}", 
-            keep_last, keep_daily, keep_weekly, keep_monthly))
-    } else {
-        None
-    };
+    let retention_setting =
+        if let Some((keep_last, keep_daily, keep_weekly, keep_monthly)) = retention_config {
+            Some(format!(
+                "keep-last={},keep-daily={},keep-weekly={},keep-monthly={}",
+                keep_last, keep_daily, keep_weekly, keep_monthly
+            ))
+        } else {
+            None
+        };
 
     let mut create_args = vec![
-        "create", "/cluster/backup",
-        "--id", &job_id,
-        "--vmid", &vmid_selection,
-        "--storage", &storage,
-        "--schedule", &schedule,
-        "--mailnotification", mail_option,
-        "--compress", compress_option,
-        "--mode", mode_option,
+        "create",
+        "/cluster/backup",
+        "--id",
+        &job_id,
+        "--vmid",
+        &vmid_selection,
+        "--storage",
+        &storage,
+        "--schedule",
+        &schedule,
+        "--mailnotification",
+        mail_option,
+        "--compress",
+        compress_option,
+        "--mode",
+        mode_option,
     ];
 
     // Add retention settings
@@ -227,7 +244,7 @@ fn create_backup_job() {
 
     if result.map(|s| s.success()).unwrap_or(false) {
         println!("✅ Backup job '{}' created successfully!", job_id);
-        
+
         // Show the created job
         let _ = Command::new("pvesh")
             .args(&["get", &format!("/cluster/backup/{}", job_id)])
@@ -334,7 +351,12 @@ fn modify_schedule(job_id: &str) {
         .unwrap();
 
     let result = Command::new("pvesh")
-        .args(&["set", &format!("/cluster/backup/{}", job_id), "--schedule", &new_schedule])
+        .args(&[
+            "set",
+            &format!("/cluster/backup/{}", job_id),
+            "--schedule",
+            &new_schedule,
+        ])
         .status();
 
     if result.map(|s| s.success()).unwrap_or(false) {
@@ -346,11 +368,18 @@ fn modify_schedule(job_id: &str) {
 
 fn modify_retention(job_id: &str) {
     if let Some((keep_last, keep_daily, keep_weekly, keep_monthly)) = configure_retention() {
-        let retention_string = format!("keep-last={},keep-daily={},keep-weekly={},keep-monthly={}", 
-            keep_last, keep_daily, keep_weekly, keep_monthly);
+        let retention_string = format!(
+            "keep-last={},keep-daily={},keep-weekly={},keep-monthly={}",
+            keep_last, keep_daily, keep_weekly, keep_monthly
+        );
 
         let result = Command::new("pvesh")
-            .args(&["set", &format!("/cluster/backup/{}", job_id), "--prune-backups", &retention_string])
+            .args(&[
+                "set",
+                &format!("/cluster/backup/{}", job_id),
+                "--prune-backups",
+                &retention_string,
+            ])
             .status();
 
         if result.map(|s| s.success()).unwrap_or(false) {
@@ -368,7 +397,12 @@ fn modify_storage(job_id: &str) {
         .unwrap();
 
     let result = Command::new("pvesh")
-        .args(&["set", &format!("/cluster/backup/{}", job_id), "--storage", &new_storage])
+        .args(&[
+            "set",
+            &format!("/cluster/backup/{}", job_id),
+            "--storage",
+            &new_storage,
+        ])
         .status();
 
     if result.map(|s| s.success()).unwrap_or(false) {
@@ -385,7 +419,12 @@ fn modify_vmid_selection(job_id: &str) {
         .unwrap();
 
     let result = Command::new("pvesh")
-        .args(&["set", &format!("/cluster/backup/{}", job_id), "--vmid", &new_vmids])
+        .args(&[
+            "set",
+            &format!("/cluster/backup/{}", job_id),
+            "--vmid",
+            &new_vmids,
+        ])
         .status();
 
     if result.map(|s| s.success()).unwrap_or(false) {
@@ -446,7 +485,12 @@ fn modify_compression(job_id: &str) {
     };
 
     let result = Command::new("pvesh")
-        .args(&["set", &format!("/cluster/backup/{}", job_id), "--compress", compress_option])
+        .args(&[
+            "set",
+            &format!("/cluster/backup/{}", job_id),
+            "--compress",
+            compress_option,
+        ])
         .status();
 
     if result.map(|s| s.success()).unwrap_or(false) {
@@ -508,11 +552,24 @@ fn toggle_backup_job() {
     };
 
     let result = Command::new("pvesh")
-        .args(&["set", &format!("/cluster/backup/{}", job_id), "--enabled", enabled])
+        .args(&[
+            "set",
+            &format!("/cluster/backup/{}", job_id),
+            "--enabled",
+            enabled,
+        ])
         .status();
 
     if result.map(|s| s.success()).unwrap_or(false) {
-        println!("✅ Backup job '{}' {} successfully", job_id, if enabled == "1" { "enabled" } else { "disabled" });
+        println!(
+            "✅ Backup job '{}' {} successfully",
+            job_id,
+            if enabled == "1" {
+                "enabled"
+            } else {
+                "disabled"
+            }
+        );
     } else {
         println!("❌ Failed to modify backup job");
     }
@@ -535,9 +592,12 @@ fn test_backup_job() {
         .unwrap()
     {
         println!("🚀 Starting backup job '{}'...", job_id);
-        
+
         let result = Command::new("pvesh")
-            .args(&["create", &format!("/cluster/backup/{}/included_volumes", job_id)])
+            .args(&[
+                "create",
+                &format!("/cluster/backup/{}/included_volumes", job_id),
+            ])
             .status();
 
         if result.map(|s| s.success()).unwrap_or(false) {
@@ -554,7 +614,14 @@ fn job_status_history() {
 
     println!("📋 Recent backup tasks:");
     let _ = Command::new("pvesh")
-        .args(&["get", "/nodes/localhost/tasks", "--typefilter", "backup", "--limit", "20"])
+        .args(&[
+            "get",
+            "/nodes/localhost/tasks",
+            "--typefilter",
+            "backup",
+            "--limit",
+            "20",
+        ])
         .status();
 
     println!("\n📈 Backup statistics:");
@@ -610,9 +677,9 @@ fn global_retention_policy() {
         .unwrap();
 
     let (keep_last, keep_daily, keep_weekly, keep_monthly) = match selection {
-        0 => (7, 14, 8, 24),     // Conservative
-        1 => (3, 7, 4, 12),      // Balanced
-        2 => (1, 3, 2, 6),       // Aggressive
+        0 => (7, 14, 8, 24), // Conservative
+        1 => (3, 7, 4, 12),  // Balanced
+        2 => (1, 3, 2, 6),   // Aggressive
         _ => {
             // Custom
             let keep_last: u32 = Input::with_theme(&ColorfulTheme::default())
@@ -659,7 +726,12 @@ fn global_retention_policy() {
     }
 }
 
-fn apply_global_retention_policy(keep_last: u32, keep_daily: u32, keep_weekly: u32, keep_monthly: u32) {
+fn apply_global_retention_policy(
+    keep_last: u32,
+    keep_daily: u32,
+    keep_weekly: u32,
+    keep_monthly: u32,
+) {
     println!("🔄 Applying global retention policy...");
 
     // Get all backup jobs
@@ -670,9 +742,11 @@ fn apply_global_retention_policy(keep_last: u32, keep_daily: u32, keep_weekly: u
     if let Ok(output) = output {
         let jobs_json = String::from_utf8_lossy(&output.stdout);
         // Parse jobs and update each one (simplified for demo)
-        
-        let retention_string = format!("keep-last={},keep-daily={},keep-weekly={},keep-monthly={}", 
-            keep_last, keep_daily, keep_weekly, keep_monthly);
+
+        let retention_string = format!(
+            "keep-last={},keep-daily={},keep-weekly={},keep-monthly={}",
+            keep_last, keep_daily, keep_weekly, keep_monthly
+        );
 
         println!("📊 Updating backup jobs with new retention policy...");
         // In real implementation, parse JSON and update each job
@@ -691,11 +765,18 @@ fn per_job_retention_policy() {
         .unwrap();
 
     if let Some((keep_last, keep_daily, keep_weekly, keep_monthly)) = configure_retention() {
-        let retention_string = format!("keep-last={},keep-daily={},keep-weekly={},keep-monthly={}", 
-            keep_last, keep_daily, keep_weekly, keep_monthly);
+        let retention_string = format!(
+            "keep-last={},keep-daily={},keep-weekly={},keep-monthly={}",
+            keep_last, keep_daily, keep_weekly, keep_monthly
+        );
 
         let result = Command::new("pvesh")
-            .args(&["set", &format!("/cluster/backup/{}", job_id), "--prune-backups", &retention_string])
+            .args(&[
+                "set",
+                &format!("/cluster/backup/{}", job_id),
+                "--prune-backups",
+                &retention_string,
+            ])
             .status();
 
         if result.map(|s| s.success()).unwrap_or(false) {
@@ -755,9 +836,18 @@ fn retention_calculator() {
 
     println!("\n📅 Retention timeline:");
     println!("   Most recent: {} backups", keep_last);
-    println!("   Daily (1-{} days ago): {} backups", keep_daily, keep_daily);
-    println!("   Weekly (1-{} weeks ago): {} backups", keep_weekly, keep_weekly);
-    println!("   Monthly (1-{} months ago): {} backups", keep_monthly, keep_monthly);
+    println!(
+        "   Daily (1-{} days ago): {} backups",
+        keep_daily, keep_daily
+    );
+    println!(
+        "   Weekly (1-{} weeks ago): {} backups",
+        keep_weekly, keep_weekly
+    );
+    println!(
+        "   Monthly (1-{} months ago): {} backups",
+        keep_monthly, keep_monthly
+    );
 
     if storage_required > 1000.0 {
         println!("\n⚠️  Warning: High storage requirements detected");
@@ -769,11 +859,26 @@ fn policy_templates() {
     println!("📋 Retention Policy Templates\n");
 
     let templates = vec![
-        ("Development", "keep-last=1,keep-daily=3,keep-weekly=2,keep-monthly=0"),
-        ("Production", "keep-last=3,keep-daily=7,keep-weekly=4,keep-monthly=12"),
-        ("Critical", "keep-last=7,keep-daily=14,keep-weekly=8,keep-monthly=24"),
-        ("Archive", "keep-last=1,keep-daily=1,keep-weekly=4,keep-monthly=36"),
-        ("Testing", "keep-last=2,keep-daily=1,keep-weekly=0,keep-monthly=0"),
+        (
+            "Development",
+            "keep-last=1,keep-daily=3,keep-weekly=2,keep-monthly=0",
+        ),
+        (
+            "Production",
+            "keep-last=3,keep-daily=7,keep-weekly=4,keep-monthly=12",
+        ),
+        (
+            "Critical",
+            "keep-last=7,keep-daily=14,keep-weekly=8,keep-monthly=24",
+        ),
+        (
+            "Archive",
+            "keep-last=1,keep-daily=1,keep-weekly=4,keep-monthly=36",
+        ),
+        (
+            "Testing",
+            "keep-last=2,keep-daily=1,keep-weekly=0,keep-monthly=0",
+        ),
     ];
 
     println!("📋 Available templates:");
@@ -789,9 +894,12 @@ fn policy_templates() {
         .unwrap();
 
     let (template_name, template_policy) = templates[selection];
-    
+
     if Confirm::new()
-        .with_prompt(&format!("Apply '{}' template to backup jobs?", template_name))
+        .with_prompt(&format!(
+            "Apply '{}' template to backup jobs?",
+            template_name
+        ))
         .default(true)
         .interact()
         .unwrap()
@@ -807,12 +915,10 @@ fn storage_impact_analysis() {
     println!("🔍 Analyzing current backup storage usage...");
 
     // Get storage usage information
-    let _ = Command::new("pvesm")
-        .args(&["status"])
-        .status();
+    let _ = Command::new("pvesm").args(&["status"]).status();
 
     println!("\n💾 Backup storage breakdown:");
-    
+
     // Analyze backup files by age
     let backup_analysis = analyze_backup_storage();
     display_backup_analysis(backup_analysis);
@@ -892,7 +998,11 @@ fn run_manual_prune() {
 
     let prune_type = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Pruning type")
-        .items(&["All backups (apply retention)", "Specific VM/CT", "By backup type"])
+        .items(&[
+            "All backups (apply retention)",
+            "Specific VM/CT",
+            "By backup type",
+        ])
         .default(0)
         .interact()
         .unwrap();
@@ -900,14 +1010,22 @@ fn run_manual_prune() {
     match prune_type {
         0 => {
             if Confirm::new()
-                .with_prompt(&format!("Prune all backups on storage '{}' according to retention policies?", storage))
+                .with_prompt(&format!(
+                    "Prune all backups on storage '{}' according to retention policies?",
+                    storage
+                ))
                 .default(false)
                 .interact()
                 .unwrap()
             {
                 println!("🔄 Starting pruning operation...");
                 let result = Command::new("pvesh")
-                    .args(&["create", "/nodes/localhost/prune-backups", "--storage", &storage])
+                    .args(&[
+                        "create",
+                        "/nodes/localhost/prune-backups",
+                        "--storage",
+                        &storage,
+                    ])
                     .status();
 
                 if result.map(|s| s.success()).unwrap_or(false) {
@@ -916,7 +1034,7 @@ fn run_manual_prune() {
                     println!("❌ Failed to start pruning operation");
                 }
             }
-        },
+        }
         1 => {
             let vmid: String = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("VM/CT ID to prune backups for")
@@ -924,7 +1042,14 @@ fn run_manual_prune() {
                 .unwrap();
 
             let result = Command::new("pvesh")
-                .args(&["create", "/nodes/localhost/prune-backups", "--storage", &storage, "--vmid", &vmid])
+                .args(&[
+                    "create",
+                    "/nodes/localhost/prune-backups",
+                    "--storage",
+                    &storage,
+                    "--vmid",
+                    &vmid,
+                ])
                 .status();
 
             if result.map(|s| s.success()).unwrap_or(false) {
@@ -932,7 +1057,7 @@ fn run_manual_prune() {
             } else {
                 println!("❌ Failed to start pruning operation");
             }
-        },
+        }
         2 => {
             let backup_type = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Backup type to prune")
@@ -941,15 +1066,18 @@ fn run_manual_prune() {
                 .interact()
                 .unwrap();
 
-            println!("🔄 Pruning {} backups...", match backup_type {
-                0 => "VZDump archives",
-                1 => "LXC templates", 
-                2 => "ISO images",
-                _ => "VZDump archives",
-            });
+            println!(
+                "🔄 Pruning {} backups...",
+                match backup_type {
+                    0 => "VZDump archives",
+                    1 => "LXC templates",
+                    2 => "ISO images",
+                    _ => "VZDump archives",
+                }
+            );
 
             println!("✅ Backup type pruning completed");
-        },
+        }
         _ => {}
     }
 }
@@ -970,7 +1098,10 @@ fn schedule_automated_pruning() {
         .unwrap();
 
     // Create cron job for automated pruning
-    let cron_command = format!("pvesh create /nodes/localhost/prune-backups --storage {}", storage);
+    let cron_command = format!(
+        "pvesh create /nodes/localhost/prune-backups --storage {}",
+        storage
+    );
     let cron_entry = format!("{} root {}\n", schedule, cron_command);
 
     if Confirm::new()
@@ -981,7 +1112,7 @@ fn schedule_automated_pruning() {
     {
         // Write to temporary cron file
         fs::write("/tmp/proxmox_prune_cron.txt", cron_entry).ok();
-        
+
         println!("✅ Automated pruning scheduled!");
         println!("📋 Schedule: {}", schedule);
         println!("💾 Storage: {}", storage);
@@ -1020,27 +1151,42 @@ fn prune_specific_storage() {
     match retention_choice {
         0 => {
             let result = Command::new("pvesh")
-                .args(&["create", "/nodes/localhost/prune-backups", "--storage", &storage])
+                .args(&[
+                    "create",
+                    "/nodes/localhost/prune-backups",
+                    "--storage",
+                    &storage,
+                ])
                 .status();
 
             if result.map(|s| s.success()).unwrap_or(false) {
                 println!("✅ Pruning with existing policies started");
             }
-        },
+        }
         1 => {
-            if let Some((keep_last, keep_daily, keep_weekly, keep_monthly)) = configure_retention() {
-                let retention_args = format!("keep-last={},keep-daily={},keep-weekly={},keep-monthly={}", 
-                    keep_last, keep_daily, keep_weekly, keep_monthly);
+            if let Some((keep_last, keep_daily, keep_weekly, keep_monthly)) = configure_retention()
+            {
+                let retention_args = format!(
+                    "keep-last={},keep-daily={},keep-weekly={},keep-monthly={}",
+                    keep_last, keep_daily, keep_weekly, keep_monthly
+                );
 
                 let result = Command::new("pvesh")
-                    .args(&["create", "/nodes/localhost/prune-backups", "--storage", &storage, "--prune-backups", &retention_args])
+                    .args(&[
+                        "create",
+                        "/nodes/localhost/prune-backups",
+                        "--storage",
+                        &storage,
+                        "--prune-backups",
+                        &retention_args,
+                    ])
                     .status();
 
                 if result.map(|s| s.success()).unwrap_or(false) {
                     println!("✅ Pruning with custom retention started");
                 }
             }
-        },
+        }
         2 => {
             let days_old: u32 = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Remove backups older than N days")
@@ -1049,7 +1195,10 @@ fn prune_specific_storage() {
                 .unwrap();
 
             if Confirm::new()
-                .with_prompt(&format!("Really remove ALL backups older than {} days?", days_old))
+                .with_prompt(&format!(
+                    "Really remove ALL backups older than {} days?",
+                    days_old
+                ))
                 .default(false)
                 .interact()
                 .unwrap()
@@ -1058,7 +1207,7 @@ fn prune_specific_storage() {
                 // Implementation would use find command or API to remove old backups
                 println!("✅ Old backups removed");
             }
-        },
+        }
         _ => {}
     }
 }
@@ -1083,7 +1232,10 @@ fn prune_by_date_range() {
         .unwrap();
 
     if Confirm::new()
-        .with_prompt(&format!("Remove backups between {} and {} on storage '{}'?", start_date, end_date, storage))
+        .with_prompt(&format!(
+            "Remove backups between {} and {} on storage '{}'?",
+            start_date, end_date, storage
+        ))
         .default(false)
         .interact()
         .unwrap()
@@ -1108,7 +1260,7 @@ fn prune_dry_run() {
     // Simulate dry run output
     println!("\n📋 Backups that would be removed:");
     println!("   • vzdump-qemu-100-2024-01-01_02:00:15.vma.zst (15 days old)");
-    println!("   • vzdump-lxc-101-2024-01-02_02:00:22.tar.zst (14 days old)"); 
+    println!("   • vzdump-lxc-101-2024-01-02_02:00:22.tar.zst (14 days old)");
     println!("   • vzdump-qemu-102-2023-12-01_02:00:33.vma.zst (68 days old)");
 
     println!("\n📊 Summary:");
@@ -1124,7 +1276,14 @@ fn prune_status_logs() {
 
     println!("📋 Recent pruning operations:");
     let _ = Command::new("pvesh")
-        .args(&["get", "/nodes/localhost/tasks", "--typefilter", "prune-backups", "--limit", "10"])
+        .args(&[
+            "get",
+            "/nodes/localhost/tasks",
+            "--typefilter",
+            "prune-backups",
+            "--limit",
+            "10",
+        ])
         .status();
 
     println!("\n📈 Pruning statistics:");
@@ -1189,7 +1348,10 @@ fn verify_recent_backups() {
     let backups = vec![
         ("vzdump-qemu-100-2024-01-10_02:00:15.vma.zst", "✅ Valid"),
         ("vzdump-lxc-101-2024-01-09_02:00:22.tar.zst", "✅ Valid"),
-        ("vzdump-qemu-102-2024-01-08_02:00:33.vma.zst", "❌ Corrupted"),
+        (
+            "vzdump-qemu-102-2024-01-08_02:00:33.vma.zst",
+            "❌ Corrupted",
+        ),
         ("vzdump-lxc-103-2024-01-07_02:00:45.tar.zst", "✅ Valid"),
     ];
 
@@ -1198,7 +1360,10 @@ fn verify_recent_backups() {
         println!("   • {}: {}", backup, status);
     }
 
-    let valid_count = backups.iter().filter(|(_, status)| status.contains("Valid")).count();
+    let valid_count = backups
+        .iter()
+        .filter(|(_, status)| status.contains("Valid"))
+        .count();
     let corrupted_count = backups.len() - valid_count;
 
     println!("\n📊 Summary:");
@@ -1206,7 +1371,10 @@ fn verify_recent_backups() {
     println!("   • Corrupted backups: {}", corrupted_count);
 
     if corrupted_count > 0 {
-        println!("\n⚠️  Warning: {} corrupted backup(s) detected!", corrupted_count);
+        println!(
+            "\n⚠️  Warning: {} corrupted backup(s) detected!",
+            corrupted_count
+        );
         println!("💡 Consider running new backups for affected VMs/CTs");
     }
 }
@@ -1224,10 +1392,10 @@ fn deep_backup_verification() {
         .with_prompt("Select verification types")
         .items(&[
             "File integrity check",
-            "Archive structure validation", 
+            "Archive structure validation",
             "Metadata verification",
             "Deduplication analysis",
-            "Performance benchmarking"
+            "Performance benchmarking",
         ])
         .interact()
         .unwrap();
@@ -1238,7 +1406,7 @@ fn deep_backup_verification() {
         let check_name = match check_type {
             0 => "File integrity check",
             1 => "Archive structure validation",
-            2 => "Metadata verification", 
+            2 => "Metadata verification",
             3 => "Deduplication analysis",
             4 => "Performance benchmarking",
             _ => "Unknown check",
@@ -1263,7 +1431,12 @@ fn restore_test() {
 
     println!("📋 Available recent backups:");
     let _ = Command::new("pvesh")
-        .args(&["get", "/nodes/localhost/storage/local/backup", "--limit", "10"])
+        .args(&[
+            "get",
+            "/nodes/localhost/storage/local/backup",
+            "--limit",
+            "10",
+        ])
         .status();
 
     let backup_file: String = Input::with_theme(&ColorfulTheme::default())
@@ -1303,22 +1476,25 @@ fn restore_test() {
                 println!("📁 Performing full restore test...");
                 // Full restore simulation
                 println!("✅ Full restore test completed successfully");
-            },
+            }
             1 => {
                 println!("⚙️  Testing configuration restore...");
-                // Config restore simulation  
+                // Config restore simulation
                 println!("✅ Configuration restore test completed");
-            },
+            }
             2 => {
                 println!("💿 Testing single disk restore...");
                 // Single disk restore simulation
                 println!("✅ Single disk restore test completed");
-            },
+            }
             _ => {}
         }
 
         if Confirm::new()
-            .with_prompt(&format!("Delete test VM/CT {} after verification?", test_vmid))
+            .with_prompt(&format!(
+                "Delete test VM/CT {} after verification?",
+                test_vmid
+            ))
             .default(true)
             .interact()
             .unwrap()
@@ -1334,7 +1510,11 @@ fn backup_integrity_check() {
 
     let check_type = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Integrity check type")
-        .items(&["Quick check (file sizes)", "Medium check (checksums)", "Full check (extract & verify)"])
+        .items(&[
+            "Quick check (file sizes)",
+            "Medium check (checksums)",
+            "Full check (extract & verify)",
+        ])
         .default(1)
         .interact()
         .unwrap();
@@ -1351,25 +1531,25 @@ fn backup_integrity_check() {
         0 => {
             println!("📏 Checking file sizes...");
             println!("✅ File size check completed - all files have expected sizes");
-        },
+        }
         1 => {
             println!("🔐 Calculating and verifying checksums...");
             println!("✅ Checksum verification completed - all files intact");
-        },
+        }
         2 => {
             println!("📦 Extracting and verifying backup contents...");
             println!("   • Testing archive extraction...");
             println!("   • Verifying file structures...");
             println!("   • Checking metadata consistency...");
             println!("✅ Full integrity check completed - all backups verified");
-        },
+        }
         _ => {}
     }
 
     println!("\n📊 Integrity check results:");
     println!("   • Backups checked: 42");
     println!("   • Corrupted files: 0");
-    println!("   • Missing files: 0"); 
+    println!("   • Missing files: 0");
     println!("   • Integrity score: 100%");
 }
 
@@ -1378,7 +1558,11 @@ fn checksum_validation() {
 
     let action = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Checksum action")
-        .items(&["Generate checksums", "Verify existing checksums", "Update checksum database"])
+        .items(&[
+            "Generate checksums",
+            "Verify existing checksums",
+            "Update checksum database",
+        ])
         .default(1)
         .interact()
         .unwrap();
@@ -1391,22 +1575,25 @@ fn checksum_validation() {
 
     match action {
         0 => {
-            println!("🔄 Generating checksums for all backups on '{}'...", storage);
+            println!(
+                "🔄 Generating checksums for all backups on '{}'...",
+                storage
+            );
             println!("   • Using SHA-256 algorithm");
             println!("   • Processing backup files...");
             println!("✅ Checksums generated and saved to checksum database");
-        },
+        }
         1 => {
             println!("🔍 Verifying existing checksums on '{}'...", storage);
             println!("   • Comparing stored vs. calculated checksums...");
             println!("✅ All checksums verified successfully");
-        },
+        }
         2 => {
             println!("🔄 Updating checksum database for '{}'...", storage);
             println!("   • Scanning for new backup files...");
             println!("   • Updating changed files...");
             println!("✅ Checksum database updated");
-        },
+        }
         _ => {}
     }
 }

@@ -1,9 +1,9 @@
-use anyhow::{Result, Context};
-use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
+use anyhow::{Context, Result};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::process::Command;
 use std::fs;
+use std::process::Command;
 
 /// Enterprise-grade nftables management with advanced features
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,12 +31,12 @@ pub struct NftTable {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TableFamily {
-    Inet,       // IPv4 and IPv6
-    Ip,         // IPv4 only
-    Ip6,        // IPv6 only
-    Bridge,     // Bridge family
-    Arp,        // ARP family
-    Netdev,     // Network device family
+    Inet,   // IPv4 and IPv6
+    Ip,     // IPv4 only
+    Ip6,    // IPv6 only
+    Bridge, // Bridge family
+    Arp,    // ARP family
+    Netdev, // Network device family
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,7 +47,7 @@ pub struct NftChain {
     pub priority: Option<i32>,
     pub policy: Option<ChainPolicy>,
     pub rules: Vec<NftRule>,
-    pub device: Option<String>,  // For netdev family
+    pub device: Option<String>, // For netdev family
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,8 +64,8 @@ pub enum Hook {
     Forward,
     Output,
     Postrouting,
-    Ingress,    // For netdev family
-    Egress,     // For netdev family
+    Ingress, // For netdev family
+    Egress,  // For netdev family
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -92,25 +92,66 @@ pub struct RuleExpression {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Match {
-    Protocol { protocol: Protocol },
-    SourceAddress { address: AddressMatch },
-    DestinationAddress { address: AddressMatch },
-    SourcePort { port: PortMatch },
-    DestinationPort { port: PortMatch },
-    Interface { interface: InterfaceMatch },
-    ConnectionState { states: Vec<ConntrackState> },
-    Mark { mark: u32, mask: Option<u32> },
-    TcpFlags { flags: TcpFlags },
-    IcmpType { icmp_type: u8 },
-    Length { length: LengthMatch },
-    Dscp { dscp: u8 },
-    Set { set_name: String, operation: SetOperation },
-    Map { map_name: String, key: String },
-    Counter { counter_name: String },
-    Quota { quota_name: String },
-    Limit { limit_name: String },
-    Time { time_range: TimeRange },
-    Custom { expression: String },
+    Protocol {
+        protocol: Protocol,
+    },
+    SourceAddress {
+        address: AddressMatch,
+    },
+    DestinationAddress {
+        address: AddressMatch,
+    },
+    SourcePort {
+        port: PortMatch,
+    },
+    DestinationPort {
+        port: PortMatch,
+    },
+    Interface {
+        interface: InterfaceMatch,
+    },
+    ConnectionState {
+        states: Vec<ConntrackState>,
+    },
+    Mark {
+        mark: u32,
+        mask: Option<u32>,
+    },
+    TcpFlags {
+        flags: TcpFlags,
+    },
+    IcmpType {
+        icmp_type: u8,
+    },
+    Length {
+        length: LengthMatch,
+    },
+    Dscp {
+        dscp: u8,
+    },
+    Set {
+        set_name: String,
+        operation: SetOperation,
+    },
+    Map {
+        map_name: String,
+        key: String,
+    },
+    Counter {
+        counter_name: String,
+    },
+    Quota {
+        quota_name: String,
+    },
+    Limit {
+        limit_name: String,
+    },
+    Time {
+        time_range: TimeRange,
+    },
+    Custom {
+        expression: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,7 +170,7 @@ pub enum Protocol {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddressMatch {
-    pub addresses: Vec<String>,  // IP addresses or CIDR blocks
+    pub addresses: Vec<String>, // IP addresses or CIDR blocks
     pub negated: bool,
 }
 
@@ -143,7 +184,7 @@ pub struct PortMatch {
 pub enum PortSpec {
     Single(u16),
     Range(u16, u16),
-    Set(String),  // Reference to a set
+    Set(String), // Reference to a set
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -183,9 +224,9 @@ pub enum SetOperation {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TimeRange {
-    pub start_time: Option<String>,  // HH:MM format
+    pub start_time: Option<String>, // HH:MM format
     pub end_time: Option<String>,
-    pub days_of_week: Vec<u8>,       // 0-6, Sunday = 0
+    pub days_of_week: Vec<u8>, // 0-6, Sunday = 0
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -258,20 +299,12 @@ pub enum LogLevel {
 pub enum RuleVerdict {
     Accept,
     Drop,
-    Reject {
-        reject_type: Option<RejectType>,
-    },
-    Queue {
-        queue_num: u16,
-    },
+    Reject { reject_type: Option<RejectType> },
+    Queue { queue_num: u16 },
     Continue,
     Return,
-    Jump {
-        target: String,
-    },
-    Goto {
-        target: String,
-    },
+    Jump { target: String },
+    Goto { target: String },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -287,10 +320,10 @@ pub enum RejectType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PerformanceHint {
-    EarlyDrop,      // Place rule early in chain for common drops
-    LastResort,     // Place rule late in chain
-    CacheFriendly,  // Optimize for CPU cache
-    HighVolume,     // Optimize for high packet rates
+    EarlyDrop,     // Place rule early in chain for common drops
+    LastResort,    // Place rule late in chain
+    CacheFriendly, // Optimize for CPU cache
+    HighVolume,    // Optimize for high packet rates
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -299,8 +332,8 @@ pub struct NftSet {
     pub set_type: SetType,
     pub elements: Vec<String>,
     pub flags: Vec<SetFlag>,
-    pub timeout: Option<u32>,  // seconds
-    pub gc_interval: Option<u32>,  // seconds
+    pub timeout: Option<u32>,     // seconds
+    pub gc_interval: Option<u32>, // seconds
     pub size: Option<u32>,
     pub policy: Option<SetPolicy>,
 }
@@ -322,16 +355,16 @@ pub enum SetType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SetFlag {
-    Constant,     // Set is read-only
-    Interval,     // Set contains intervals
-    Timeout,      // Elements can timeout
-    Dynamic,      // Elements can be added/removed at runtime
+    Constant, // Set is read-only
+    Interval, // Set contains intervals
+    Timeout,  // Elements can timeout
+    Dynamic,  // Elements can be added/removed at runtime
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SetPolicy {
-    Performance,  // Optimize for lookup speed
-    Memory,       // Optimize for memory usage
+    Performance, // Optimize for lookup speed
+    Memory,      // Optimize for memory usage
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -357,7 +390,7 @@ pub struct NftFlowtable {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FlowtableFlag {
-    Offload,      // Hardware offloading
+    Offload, // Hardware offloading
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -407,7 +440,7 @@ pub struct PerformanceSettings {
     pub flow_offloading: bool,
     pub connection_tracking_optimization: ConntrackOptimization,
     pub hash_table_sizing: HashTableSizing,
-    pub cpu_affinity: Vec<u8>,  // CPU cores to use
+    pub cpu_affinity: Vec<u8>, // CPU cores to use
     pub memory_limits: MemoryLimits,
     pub gc_settings: GarbageCollectionSettings,
 }
@@ -415,7 +448,7 @@ pub struct PerformanceSettings {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConntrackOptimization {
     pub max_connections: u32,
-    pub timeout_established: u32,  // seconds
+    pub timeout_established: u32, // seconds
     pub timeout_syn_sent: u32,
     pub timeout_syn_recv: u32,
     pub timeout_fin_wait: u32,
@@ -441,7 +474,7 @@ pub struct HashTableSizing {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemoryLimits {
-    pub conntrack_max_memory: u64,  // bytes
+    pub conntrack_max_memory: u64, // bytes
     pub rule_max_memory: u64,
     pub set_max_memory: u64,
     pub log_max_memory: u64,
@@ -449,8 +482,8 @@ pub struct MemoryLimits {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GarbageCollectionSettings {
-    pub interval: u32,      // seconds
-    pub threshold: f32,     // percentage
+    pub interval: u32,  // seconds
+    pub threshold: f32, // percentage
     pub batch_size: u32,
     pub priority: GcPriority,
 }
@@ -467,7 +500,7 @@ pub enum GcPriority {
 pub struct FlowOffloadingConfig {
     pub enabled: bool,
     pub devices: Vec<String>,
-    pub flow_timeout: u32,      // seconds
+    pub flow_timeout: u32, // seconds
     pub hardware_offload: bool,
     pub software_offload: bool,
     pub offload_flags: Vec<OffloadFlag>,
@@ -501,7 +534,7 @@ pub struct ConntrackHelper {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConntrackExpectations {
     pub max_expectations: u32,
-    pub timeout: u32,       // seconds
+    pub timeout: u32, // seconds
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -526,7 +559,7 @@ pub struct MonitoringConfig {
     pub latency_monitoring: bool,
     pub throughput_monitoring: bool,
     pub export_format: MonitoringFormat,
-    pub export_interval: u32,  // seconds
+    pub export_interval: u32, // seconds
     pub alert_thresholds: AlertThresholds,
 }
 
@@ -610,14 +643,33 @@ pub enum ConditionOperator {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AutomationAction {
-    AddRule { rule: NftRule },
-    RemoveRule { rule_handle: u64 },
-    UpdateSet { set_name: String, elements: Vec<String> },
-    SendAlert { message: String, severity: AlertSeverity },
-    ExecuteScript { script_path: String, args: Vec<String> },
-    FlushChain { chain_name: String },
-    BackupConfiguration { backup_path: String },
-    RestoreConfiguration { backup_path: String },
+    AddRule {
+        rule: NftRule,
+    },
+    RemoveRule {
+        rule_handle: u64,
+    },
+    UpdateSet {
+        set_name: String,
+        elements: Vec<String>,
+    },
+    SendAlert {
+        message: String,
+        severity: AlertSeverity,
+    },
+    ExecuteScript {
+        script_path: String,
+        args: Vec<String>,
+    },
+    FlushChain {
+        chain_name: String,
+    },
+    BackupConfiguration {
+        backup_path: String,
+    },
+    RestoreConfiguration {
+        backup_path: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -762,7 +814,12 @@ fn setup_flow_offloading() {
         .unwrap();
 
     // Create flowtable configuration
-    create_flowtable_config(&selected_interfaces, &interfaces, hardware_offload, flow_timeout);
+    create_flowtable_config(
+        &selected_interfaces,
+        &interfaces,
+        hardware_offload,
+        flow_timeout,
+    );
 
     println!("\n✅ Flow offloading configured successfully!");
     println!("📊 Expected performance improvements:");
@@ -784,9 +841,7 @@ fn check_flow_offloading_support() -> bool {
 }
 
 fn get_available_interfaces() -> Vec<String> {
-    let output = Command::new("ip")
-        .args(&["link", "show"])
-        .output();
+    let output = Command::new("ip").args(&["link", "show"]).output();
 
     if let Ok(result) = output {
         let output_str = String::from_utf8_lossy(&result.stdout);
@@ -814,14 +869,13 @@ fn create_flowtable_config(
     selected_indices: &[usize],
     interfaces: &[String],
     hardware_offload: bool,
-    flow_timeout: u32
+    flow_timeout: u32,
 ) {
-    let selected_interfaces: Vec<&String> = selected_indices
-        .iter()
-        .map(|&i| &interfaces[i])
-        .collect();
+    let selected_interfaces: Vec<&String> =
+        selected_indices.iter().map(|&i| &interfaces[i]).collect();
 
-    let config = format!(r#"# nftables Flow Offloading Configuration
+    let config = format!(
+        r#"# nftables Flow Offloading Configuration
 # Generated by GhostCTL Enterprise nftables Management
 
 table inet offload {{
@@ -850,17 +904,29 @@ echo {} > /proc/sys/net/netfilter/nf_flowtable_udp_timeout
 
 # Hardware offloading {}
 {}"#,
-    selected_interfaces.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "),
-    if hardware_offload { "flags offload;" } else { "" },
-    flow_timeout,
-    flow_timeout / 2,  // UDP timeout is typically half of TCP
-    if hardware_offload { "enabled" } else { "disabled" },
-    if hardware_offload {
-        "ethtool -K eth0 hw-tc-offload on"
-    } else {
-        "# Hardware offloading disabled"
-    }
-);
+        selected_interfaces
+            .iter()
+            .map(|s| s.as_str())
+            .collect::<Vec<_>>()
+            .join(", "),
+        if hardware_offload {
+            "flags offload;"
+        } else {
+            ""
+        },
+        flow_timeout,
+        flow_timeout / 2, // UDP timeout is typically half of TCP
+        if hardware_offload {
+            "enabled"
+        } else {
+            "disabled"
+        },
+        if hardware_offload {
+            "ethtool -K eth0 hw-tc-offload on"
+        } else {
+            "# Hardware offloading disabled"
+        }
+    );
 
     println!("\n📄 Generated Flow Offloading Configuration:");
     println!("{}", config);
@@ -881,9 +947,7 @@ fn apply_flowtable_config(config: &str) {
     let temp_file = "/tmp/nft_flowtable.conf";
     if fs::write(temp_file, config).is_ok() {
         // Apply nftables configuration
-        let apply_result = Command::new("nft")
-            .args(&["-f", temp_file])
-            .output();
+        let apply_result = Command::new("nft").args(&["-f", temp_file]).output();
 
         match apply_result {
             Ok(result) if result.status.success() => {
@@ -891,11 +955,11 @@ fn apply_flowtable_config(config: &str) {
 
                 // Clean up temp file
                 let _ = fs::remove_file(temp_file);
-            },
+            }
             Ok(result) => {
                 println!("❌ Failed to apply configuration:");
                 println!("{}", String::from_utf8_lossy(&result.stderr));
-            },
+            }
             Err(e) => {
                 println!("❌ Error executing nft command: {}", e);
                 println!("💡 Make sure nftables is installed and you have root privileges");
@@ -915,8 +979,14 @@ fn tune_connection_tracking() {
     let current_buckets = get_conntrack_setting("nf_conntrack_buckets");
 
     println!("📊 Current Connection Tracking Settings:");
-    println!("  Max connections: {}", current_max.unwrap_or("unknown".to_string()));
-    println!("  Hash buckets: {}", current_buckets.unwrap_or("unknown".to_string()));
+    println!(
+        "  Max connections: {}",
+        current_max.unwrap_or("unknown".to_string())
+    );
+    println!(
+        "  Hash buckets: {}",
+        current_buckets.unwrap_or("unknown".to_string())
+    );
 
     let optimization_profiles = vec![
         "🏠 Home/Small Office (< 100 connections)",
@@ -962,11 +1032,13 @@ fn tune_connection_tracking() {
 
 fn get_conntrack_setting(setting: &str) -> Option<String> {
     let proc_path = format!("/proc/sys/net/netfilter/{}", setting);
-    fs::read_to_string(proc_path).ok().map(|s| s.trim().to_string())
+    fs::read_to_string(proc_path)
+        .ok()
+        .map(|s| s.trim().to_string())
 }
 
 fn get_home_timeouts() -> (u32, u32, u32) {
-    (7200, 60, 30)  // established, syn, udp
+    (7200, 60, 30) // established, syn, udp
 }
 
 fn get_corporate_timeouts() -> (u32, u32, u32) {
@@ -1012,7 +1084,11 @@ fn get_custom_conntrack_config() -> (u32, u32, (u32, u32, u32)) {
         .interact()
         .unwrap();
 
-    (max_connections, buckets, (tcp_established, tcp_syn, udp_timeout))
+    (
+        max_connections,
+        buckets,
+        (tcp_established, tcp_syn, udp_timeout),
+    )
 }
 
 fn apply_conntrack_settings(max_connections: u32, buckets: u32, timeouts: (u32, u32, u32)) {
@@ -1021,7 +1097,10 @@ fn apply_conntrack_settings(max_connections: u32, buckets: u32, timeouts: (u32, 
     let settings = vec![
         ("nf_conntrack_max", max_connections.to_string()),
         ("nf_conntrack_buckets", buckets.to_string()),
-        ("nf_conntrack_tcp_timeout_established", timeouts.0.to_string()),
+        (
+            "nf_conntrack_tcp_timeout_established",
+            timeouts.0.to_string(),
+        ),
         ("nf_conntrack_tcp_timeout_syn_sent", timeouts.1.to_string()),
         ("nf_conntrack_udp_timeout", timeouts.2.to_string()),
     ];
@@ -1035,7 +1114,8 @@ fn apply_conntrack_settings(max_connections: u32, buckets: u32, timeouts: (u32, 
     }
 
     // Generate sysctl configuration for persistence
-    let sysctl_config = format!(r#"# Connection tracking optimization
+    let sysctl_config = format!(
+        r#"# Connection tracking optimization
 # Generated by GhostCTL Enterprise nftables Management
 
 net.netfilter.nf_conntrack_max = {}
@@ -1048,7 +1128,9 @@ net.netfilter.nf_conntrack_udp_timeout = {}
 net.netfilter.nf_conntrack_tcp_loose = 0
 net.netfilter.nf_conntrack_tcp_be_liberal = 0
 net.netfilter.nf_conntrack_checksum = 1
-"#, max_connections, buckets, timeouts.0, timeouts.1, timeouts.2);
+"#,
+        max_connections, buckets, timeouts.0, timeouts.1, timeouts.2
+    );
 
     println!("\n📄 Persistent Configuration (save to /etc/sysctl.d/99-conntrack.conf):");
     println!("{}", sysctl_config);
@@ -1061,19 +1143,49 @@ net.netfilter.nf_conntrack_checksum = 1
 }
 
 // Additional stub functions for comprehensive enterprise features
-fn advanced_monitoring_menu() { println!("📊 Advanced Monitoring & Analytics - Feature implementation needed"); }
-fn automation_orchestration_menu() { println!("🤖 Automation & Orchestration - Feature implementation needed"); }
-fn flow_offloading_menu() { println!("⚡ Flow Offloading Management - Feature implementation needed"); }
-fn connection_tracking_menu() { println!("🔗 Connection Tracking Optimization - Feature implementation needed"); }
-fn rule_performance_analysis() { println!("📈 Rule Performance Analysis - Feature implementation needed"); }
-fn advanced_rule_builder() { println!("🛠️  Advanced Rule Builder - Feature implementation needed"); }
-fn set_map_management() { println!("🗃️  Set & Map Management - Feature implementation needed"); }
-fn flowtable_configuration() { println!("🌊 Flowtable Configuration - Feature implementation needed"); }
-fn configuration_management() { println!("🔄 Configuration Management - Feature implementation needed"); }
+fn advanced_monitoring_menu() {
+    println!("📊 Advanced Monitoring & Analytics - Feature implementation needed");
+}
+fn automation_orchestration_menu() {
+    println!("🤖 Automation & Orchestration - Feature implementation needed");
+}
+fn flow_offloading_menu() {
+    println!("⚡ Flow Offloading Management - Feature implementation needed");
+}
+fn connection_tracking_menu() {
+    println!("🔗 Connection Tracking Optimization - Feature implementation needed");
+}
+fn rule_performance_analysis() {
+    println!("📈 Rule Performance Analysis - Feature implementation needed");
+}
+fn advanced_rule_builder() {
+    println!("🛠️  Advanced Rule Builder - Feature implementation needed");
+}
+fn set_map_management() {
+    println!("🗃️  Set & Map Management - Feature implementation needed");
+}
+fn flowtable_configuration() {
+    println!("🌊 Flowtable Configuration - Feature implementation needed");
+}
+fn configuration_management() {
+    println!("🔄 Configuration Management - Feature implementation needed");
+}
 
-fn optimize_hash_tables() { println!("🧮 Hash Table Optimization - Feature implementation needed"); }
-fn optimize_memory_usage() { println!("💾 Memory Usage Optimization - Feature implementation needed"); }
-fn tune_garbage_collection() { println!("🗑️  Garbage Collection Tuning - Feature implementation needed"); }
-fn configure_cpu_affinity() { println!("🎯 CPU Affinity Configuration - Feature implementation needed"); }
-fn performance_benchmarking() { println!("📈 Performance Benchmarking - Feature implementation needed"); }
-fn automatic_optimization() { println!("🔧 Automatic Optimization - Feature implementation needed"); }
+fn optimize_hash_tables() {
+    println!("🧮 Hash Table Optimization - Feature implementation needed");
+}
+fn optimize_memory_usage() {
+    println!("💾 Memory Usage Optimization - Feature implementation needed");
+}
+fn tune_garbage_collection() {
+    println!("🗑️  Garbage Collection Tuning - Feature implementation needed");
+}
+fn configure_cpu_affinity() {
+    println!("🎯 CPU Affinity Configuration - Feature implementation needed");
+}
+fn performance_benchmarking() {
+    println!("📈 Performance Benchmarking - Feature implementation needed");
+}
+fn automatic_optimization() {
+    println!("🔧 Automatic Optimization - Feature implementation needed");
+}

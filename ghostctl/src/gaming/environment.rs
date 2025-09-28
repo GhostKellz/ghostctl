@@ -1,11 +1,11 @@
-use dialoguer::{Confirm, Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Confirm, Select};
 use std::process::Command;
 
 pub fn environment_menu() {
     loop {
         let options = [
             "🔧 System Environment Setup",
-            "🎮 Gaming-specific Environment Variables", 
+            "🎮 Gaming-specific Environment Variables",
             "📚 Library & Runtime Setup",
             "🔊 Audio Environment",
             "🖥️  Display Environment",
@@ -35,13 +35,13 @@ pub fn environment_menu() {
 fn system_environment_setup() {
     println!("🔧 System Environment Setup");
     println!("===========================");
-    
+
     println!("💡 Gaming system optimizations:");
     println!("  • Enable multilib repository");
     println!("  • Install gaming libraries");
     println!("  • Configure kernel parameters");
     println!("  • Set up gaming groups");
-    
+
     let setup_multilib = Confirm::new()
         .with_prompt("Setup multilib repository for 32-bit game support?")
         .default(true)
@@ -65,7 +65,7 @@ fn system_environment_setup() {
 
 fn setup_multilib_repo() {
     println!("📦 Setting up multilib repository...");
-    
+
     let multilib_check = Command::new("grep")
         .args(&["-E", "^\\[multilib\\]", "/etc/pacman.conf"])
         .output();
@@ -75,9 +75,13 @@ fn setup_multilib_repo() {
             println!("🔧 Enabling multilib repository...");
             let status = Command::new("sudo")
                 .arg("sed")
-                .args(&["-i", "/^#\\[multilib\\]/,/^#Include = \\/etc\\/pacman.d\\/mirrorlist/ s/^#//", "/etc/pacman.conf"])
+                .args(&[
+                    "-i",
+                    "/^#\\[multilib\\]/,/^#Include = \\/etc\\/pacman.d\\/mirrorlist/ s/^#//",
+                    "/etc/pacman.conf",
+                ])
                 .status();
-            
+
             match status {
                 Ok(s) if s.success() => {
                     println!("✅ Multilib repository enabled");
@@ -93,11 +97,11 @@ fn setup_multilib_repo() {
 
 fn install_gaming_libraries() {
     println!("📚 Installing essential gaming libraries...");
-    
+
     let libraries = [
         "lib32-mesa",
         "lib32-vulkan-radeon",
-        "lib32-vulkan-intel", 
+        "lib32-vulkan-intel",
         "lib32-vulkan-mesa-layers",
         "lib32-alsa-plugins",
         "lib32-libpulse",
@@ -122,7 +126,7 @@ fn install_gaming_libraries() {
 fn gaming_environment_variables() {
     println!("🎮 Gaming Environment Variables");
     println!("===============================");
-    
+
     println!("💡 Common gaming environment variables:");
     println!("  export DXVK_HUD=fps                    # Show FPS counter");
     println!("  export DXVK_LOG_LEVEL=info             # DXVK logging");
@@ -131,14 +135,14 @@ fn gaming_environment_variables() {
     println!("  export WINE_LARGE_ADDRESS_AWARE=1      # Wine memory");
     println!("  export __GL_SHADER_DISK_CACHE=1        # NVIDIA shader cache");
     println!("  export __GL_THREADED_OPTIMIZATIONS=1   # NVIDIA threading");
-    
+
     println!("\n🔧 GameMode variables:");
     println!("  export GAMEMODERUNEXEC=gamemoderun     # GameMode execution");
-    
+
     println!("\n📊 MangoHud variables:");
     println!("  export MANGOHUD=1                      # Enable MangoHud");
     println!("  export MANGOHUD_CONFIG=fps,cpu,gpu     # Configure overlay");
-    
+
     let setup_profile = Confirm::new()
         .with_prompt("Add gaming environment to ~/.profile?")
         .default(false)
@@ -167,7 +171,11 @@ export __GL_THREADED_OPTIMIZATIONS=1
     use std::fs::OpenOptions;
     use std::io::Write;
 
-    if let Ok(mut file) = OpenOptions::new().append(true).create(true).open(&profile_path) {
+    if let Ok(mut file) = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&profile_path)
+    {
         if let Err(_) = writeln!(file, "{}", gaming_env) {
             println!("❌ Failed to write to profile");
         } else {
@@ -182,11 +190,11 @@ export __GL_THREADED_OPTIMIZATIONS=1
 fn library_runtime_setup() {
     println!("📚 Library & Runtime Setup");
     println!("==========================");
-    
+
     let setup_options = [
         "🍷 Wine & Proton Dependencies",
         "🎮 Steam Runtime",
-        "📦 Flatpak Gaming Runtimes", 
+        "📦 Flatpak Gaming Runtimes",
         "🔧 System Libraries Check",
         "⬅️  Back",
     ];
@@ -209,7 +217,7 @@ fn library_runtime_setup() {
 
 fn setup_wine_dependencies() {
     println!("🍷 Setting up Wine & Proton Dependencies");
-    
+
     let wine_deps = [
         "wine",
         "winetricks",
@@ -233,7 +241,7 @@ fn setup_wine_dependencies() {
 fn setup_steam_runtime() {
     println!("🎮 Steam Runtime Setup");
     println!("======================");
-    
+
     println!("💡 Steam runtime is managed automatically by Steam");
     println!("🔧 You can force runtime refresh by:");
     println!("  rm -rf ~/.steam/steam/ubuntu12_32/steam-runtime/");
@@ -243,7 +251,7 @@ fn setup_steam_runtime() {
 fn setup_flatpak_runtimes() {
     println!("📦 Flatpak Gaming Runtimes");
     println!("==========================");
-    
+
     let flatpak_check = Command::new("which").arg("flatpak").status();
     match flatpak_check {
         Ok(s) if s.success() => {
@@ -258,7 +266,7 @@ fn setup_flatpak_runtimes() {
                 let install_status = Command::new("flatpak")
                     .args(&["install", "-y", "flathub", runtime])
                     .status();
-                
+
                 match install_status {
                     Ok(s) if s.success() => println!("  ✅ {}", runtime),
                     _ => println!("  ❌ Failed: {}", runtime),
@@ -272,7 +280,7 @@ fn setup_flatpak_runtimes() {
 fn check_system_libraries() {
     println!("🔧 System Libraries Check");
     println!("=========================");
-    
+
     let libraries = [
         ("OpenGL", "glxinfo"),
         ("Vulkan", "vulkaninfo"),
@@ -295,12 +303,12 @@ fn check_system_libraries() {
 fn audio_environment() {
     println!("🔊 Audio Environment Setup");
     println!("==========================");
-    
+
     println!("💡 Audio system recommendations:");
     println!("  • PipeWire (modern, low-latency)");
     println!("  • PulseAudio (traditional, stable)");
     println!("  • JACK (professional audio)");
-    
+
     let audio_options = [
         "🎵 Setup PipeWire",
         "🔊 Setup PulseAudio",
@@ -327,7 +335,7 @@ fn audio_environment() {
 
 fn setup_pipewire() {
     println!("🎵 Setting up PipeWire");
-    
+
     let pipewire_packages = [
         "pipewire",
         "pipewire-pulse",
@@ -353,7 +361,7 @@ fn setup_pipewire() {
 
 fn setup_pulseaudio() {
     println!("🔊 Setting up PulseAudio");
-    
+
     let pulse_packages = [
         "pulseaudio",
         "pulseaudio-alsa",
@@ -375,7 +383,7 @@ fn setup_pulseaudio() {
 fn setup_jack() {
     println!("🎚️  Setting up JACK");
     println!("💡 JACK is for professional audio, usually not needed for gaming");
-    
+
     let jack_packages = ["jack2", "qjackctl"];
     let status = Command::new("sudo")
         .args(&["pacman", "-S", "--needed", "--noconfirm"])
@@ -391,7 +399,7 @@ fn setup_jack() {
 fn audio_status() {
     println!("📋 Audio System Status");
     println!("======================");
-    
+
     // Check audio systems
     let audio_systems = [
         ("PipeWire", "pipewire"),
@@ -411,11 +419,11 @@ fn audio_status() {
 fn display_environment() {
     println!("🖥️  Display Environment Setup");
     println!("=============================");
-    
+
     println!("💡 Display server options:");
     println!("  • X11 (traditional, widely compatible)");
     println!("  • Wayland (modern, secure)");
-    
+
     let display_options = [
         "🔍 Display Server Status",
         "🎮 Gaming Display Optimizations",
@@ -443,29 +451,31 @@ fn display_environment() {
 fn display_server_status() {
     println!("🔍 Display Server Status");
     println!("========================");
-    
+
     if let Ok(display) = std::env::var("DISPLAY") {
         println!("📺 X11 Display: {}", display);
     }
-    
+
     if let Ok(wayland) = std::env::var("WAYLAND_DISPLAY") {
         println!("🌊 Wayland Display: {}", wayland);
     }
-    
-    println!("🖥️  Session Type: {}", 
-        std::env::var("XDG_SESSION_TYPE").unwrap_or_else(|_| "unknown".to_string()));
+
+    println!(
+        "🖥️  Session Type: {}",
+        std::env::var("XDG_SESSION_TYPE").unwrap_or_else(|_| "unknown".to_string())
+    );
 }
 
 fn gaming_display_optimizations() {
     println!("🎮 Gaming Display Optimizations");
     println!("===============================");
-    
+
     println!("💡 Recommended optimizations:");
     println!("  • Disable compositor during gaming");
     println!("  • Use fullscreen exclusive mode");
     println!("  • Configure variable refresh rate (VRR)");
     println!("  • Set optimal resolution and refresh rate");
-    
+
     println!("\n🔧 For GNOME/KDE:");
     println!("  • GNOME: Disable animations in settings");
     println!("  • KDE: System Settings > Display > Compositor");
@@ -474,10 +484,10 @@ fn gaming_display_optimizations() {
 fn monitor_configuration() {
     println!("📊 Monitor Configuration");
     println!("=======================");
-    
+
     println!("🖥️  Detected displays:");
     let _ = Command::new("xrandr").arg("--listmonitors").status();
-    
+
     println!("\n💡 Gaming monitor tips:");
     println!("  • Use native resolution");
     println!("  • Enable highest refresh rate");
@@ -487,12 +497,16 @@ fn monitor_configuration() {
 fn graphics_driver_status() {
     println!("🔧 Graphics Driver Status");
     println!("=========================");
-    
-    let _ = Command::new("lspci").args(&["-k", "|", "grep", "-A", "2", "-i", "VGA"]).status();
-    
+
+    let _ = Command::new("lspci")
+        .args(&["-k", "|", "grep", "-A", "2", "-i", "VGA"])
+        .status();
+
     println!("\n🎮 OpenGL info:");
-    let _ = Command::new("glxinfo").args(&["|", "grep", "OpenGL"]).status();
-    
+    let _ = Command::new("glxinfo")
+        .args(&["|", "grep", "OpenGL"])
+        .status();
+
     println!("\n🌋 Vulkan info:");
     let _ = Command::new("vulkaninfo").args(&["--summary"]).status();
 }
@@ -500,16 +514,16 @@ fn graphics_driver_status() {
 fn environment_status() {
     println!("📋 Gaming Environment Status");
     println!("============================");
-    
+
     println!("🔧 System Environment:");
     system_environment_check();
-    
+
     println!("\n🎮 Gaming Libraries:");
     gaming_libraries_check();
-    
+
     println!("\n🔊 Audio Environment:");
     audio_environment_check();
-    
+
     println!("\n🖥️  Display Environment:");
     display_environment_check();
 }
@@ -523,7 +537,7 @@ fn system_environment_check() {
         Ok(out) if !out.stdout.is_empty() => println!("  ✅ Multilib enabled"),
         _ => println!("  ❌ Multilib disabled"),
     }
-    
+
     // Check gaming groups
     let groups_output = Command::new("groups").output();
     if let Ok(output) = groups_output {
@@ -533,7 +547,7 @@ fn system_environment_check() {
         } else {
             println!("  ⚠️  User not in audio group");
         }
-        
+
         if groups.contains("video") {
             println!("  ✅ User in video group");
         } else {
@@ -572,11 +586,11 @@ fn display_environment_check() {
     if std::env::var("DISPLAY").is_ok() {
         println!("  ✅ X11 available");
     }
-    
+
     if std::env::var("WAYLAND_DISPLAY").is_ok() {
         println!("  ✅ Wayland available");
     }
-    
+
     let opengl_check = Command::new("glxinfo").arg("-B").status();
     match opengl_check {
         Ok(s) if s.success() => println!("  ✅ OpenGL working"),
