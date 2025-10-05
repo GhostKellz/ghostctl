@@ -312,11 +312,11 @@ pub fn build_cli() -> Command {
                 )
                 .subcommand(
                     Command::new("bouncer")
-                        .about("Fix and bounce back from issues")
+                        .about("Fix and bounce back from issues (auto-detects if no target)")
                         .arg(
                             Arg::new("target")
-                                .required(true)
-                                .help("Target to fix (pacman, keyring, mirrors, all)"),
+                                .required(false)
+                                .help("Optional target to fix (pacman, keyring, mirrors, all). Omit for auto-detection."),
                         ),
                 )
                 .subcommand(Command::new("aur").about("AUR package management"))
@@ -847,7 +847,9 @@ fn handle_arch_commands(matches: &ArgMatches) {
         }
         Some(("bouncer", sub_matches)) => {
             if let Some(target) = sub_matches.get_one::<String>("target") {
-                handle_arch_bouncer(target);
+                handle_arch_bouncer(Some(target));
+            } else {
+                handle_arch_bouncer(None);
             }
         }
         Some(("aur", _)) => arch::aur::aur_helper_management(),
@@ -1494,39 +1496,86 @@ fn handle_arch_clean(target: &str) {
     }
 }
 
-fn handle_arch_bouncer(target: &str) {
-    println!("🏀 Bouncing back from issues with target: {}", target);
+fn handle_arch_bouncer(target: Option<&String>) {
+    use arch::diagnostics::{SystemDiagnostics, FixAction};
+
     match target {
-        "pacman" => {
-            arch::reset_pacman_locks();
-            arch::archfix::fix();
+        Some(target_str) => {
+            // Manual target mode
+            println!("🏀 Bouncing back from issues with target: {}", target_str);
+            match target_str.as_str() {
+                "pacman" => {
+                    arch::reset_pacman_locks();
+                    arch::archfix::fix();
+                }
+                "keyring" => {
+                    arch::fix_gpg_keys();
+                    arch::archfix::fix();
+                }
+                "mirrors" => {
+                    arch::optimize_mirrors();
+                    println!("🔄 Testing mirror connectivity...");
+                    let _ = std::process::Command::new("sudo")
+                        .args(&["pacman", "-Sy"])
+                        .status();
+                }
+                "all" => {
+                    println!("🏀 Full system bounce-back sequence...");
+                    arch::reset_pacman_locks();
+                    arch::fix_gpg_keys();
+                    arch::optimize_mirrors();
+                    arch::archfix::fix();
+                    println!("✅ System bounce-back complete!");
+                }
+                _ => {
+                    println!("❌ Unknown bouncer target: {}", target_str);
+                    println!("📋 Available bouncer targets:");
+                    println!("  (none)   - Auto-detect and fix issues (recommended)");
+                    println!("  pacman   - Fix pacman database and bounce back");
+                    println!("  keyring  - Fix keyring issues and bounce back");
+                    println!("  mirrors  - Fix mirrors and test connectivity");
+                    println!("  all      - Full system recovery sequence");
+                }
+            }
         }
-        "keyring" => {
-            arch::fix_gpg_keys();
-            arch::archfix::fix();
-        }
-        "mirrors" => {
-            arch::optimize_mirrors();
-            println!("🔄 Testing mirror connectivity...");
+        None => {
+            // Auto-detect mode (default)
+            println!("🏀 Auto-Bouncer: Detecting and fixing issues...");
+            println!("==============================================\n");
+
+            // Run diagnostics
+            let diag = SystemDiagnostics::scan();
+            diag.print_summary();
+
+            if !diag.has_issues() {
+                println!("✅ No issues detected! System is healthy.");
+                println!("💡 Running a quick sync to be safe...");
+                let _ = std::process::Command::new("sudo")
+                    .args(&["pacman", "-Sy"])
+                    .status();
+                return;
+            }
+
+            // Get and execute fix sequence
+            let actions = diag.get_fix_sequence();
+            println!("🔧 Executing {} fix action(s)...\n", actions.len());
+
+            for (idx, action) in actions.iter().enumerate() {
+                println!("[{}/{}] {}", idx + 1, actions.len(), action.description());
+                if action.execute() {
+                    println!("  ✅ Success");
+                } else {
+                    println!("  ⚠️  Had issues (continuing...)");
+                }
+                println!();
+            }
+
+            println!("🎯 Running final system sync...");
             let _ = std::process::Command::new("sudo")
                 .args(&["pacman", "-Sy"])
                 .status();
-        }
-        "all" => {
-            println!("🏀 Full system bounce-back sequence...");
-            arch::reset_pacman_locks();
-            arch::fix_gpg_keys();
-            arch::optimize_mirrors();
-            arch::archfix::fix();
-            println!("✅ System bounce-back complete!");
-        }
-        _ => {
-            println!("❌ Unknown bouncer target: {}", target);
-            println!("📋 Available bouncer targets:");
-            println!("  pacman   - Fix pacman database and bounce back");
-            println!("  keyring  - Fix keyring issues and bounce back");
-            println!("  mirrors  - Fix mirrors and test connectivity");
-            println!("  all      - Full system recovery sequence");
+
+            println!("\n✅ Auto-bouncer complete! Your system should be back on track.");
         }
     }
 }

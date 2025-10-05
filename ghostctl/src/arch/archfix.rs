@@ -1,5 +1,6 @@
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::Select;
+use super::diagnostics::{SystemDiagnostics, FixAction};
 
 #[allow(dead_code)]
 pub fn fix_pacman() {
@@ -12,37 +13,53 @@ pub fn fix_pacman() {
 }
 
 pub fn fix() {
-    println!("ghostctl :: Arch System Fix");
-    // Remove pacman lock if present
-    let _ = std::process::Command::new("sudo")
-        .args(["rm", "/var/lib/pacman/db.lck"])
-        .status();
-    // Full sync/upgrade
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("sudo pacman -Syyu --noconfirm")
-        .status();
-    match status {
-        Ok(s) if s.success() => println!("System fully upgraded."),
-        _ => println!("Failed to upgrade system."),
+    println!("ghostctl :: Arch System Fix with Auto-Detection");
+    println!("==============================================\n");
+
+    // Run diagnostics
+    let diag = SystemDiagnostics::scan();
+    diag.print_summary();
+
+    if !diag.has_issues() {
+        println!("🎉 System is healthy! Running standard upgrade...");
+        upgrade_system();
+        return;
     }
-    // Refresh keyring
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("sudo pacman -S --noconfirm archlinux-keyring")
-        .status();
-    match status {
-        Ok(s) if s.success() => println!("Keyring refreshed."),
-        _ => println!("Failed to refresh keyring."),
+
+    // Get fix sequence
+    let actions = diag.get_fix_sequence();
+
+    println!("🔧 Applying fixes in optimal order...\n");
+
+    for action in actions {
+        println!("▶ {}", action.description());
+        action.execute();
+        println!();
     }
-    // Optionally refresh mirrorlist
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("command -v reflector && sudo reflector --latest 20 --sort rate --save /etc/pacman.d/mirrorlist || echo 'reflector not installed'")
+
+    // After fixes, run upgrade
+    println!("🚀 Running system upgrade...");
+    upgrade_system();
+
+    println!("\n✅ System fix complete!");
+}
+
+fn upgrade_system() {
+    let status = std::process::Command::new("sudo")
+        .args(&["pacman", "-Syyu", "--noconfirm"])
         .status();
     match status {
-        Ok(s) if s.success() => println!("Mirrorlist refreshed (if reflector installed)."),
-        _ => println!("Could not refresh mirrorlist (reflector missing?)."),
+        Ok(s) if s.success() => println!("  ✅ System fully upgraded"),
+        _ => println!("  ⚠️  Upgrade had issues"),
+    }
+
+    // Refresh keyring after upgrade
+    let status = std::process::Command::new("sudo")
+        .args(&["pacman", "-S", "--noconfirm", "archlinux-keyring"])
+        .status();
+    match status {
+        Ok(s) if s.success() => println!("  ✅ Keyring refreshed"),
+        _ => {}
     }
 }
 

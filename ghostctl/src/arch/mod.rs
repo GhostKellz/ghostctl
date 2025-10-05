@@ -1,6 +1,7 @@
 pub mod archfix;
 pub mod aur;
 pub mod boot;
+pub mod diagnostics;
 pub mod dotfiles;
 pub mod hardware;
 pub mod health;
