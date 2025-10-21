@@ -34,3 +34,5 @@ crossterm = "0.28"
 tokio = { version = "1.0", features = ["full"] }
 regex = "1.10"
 ipnet = "2.9"
+indicatif = "0.17"
+rayon = "1.10"

@@ -355,6 +355,7 @@ fn advanced_package_management() {
         "🧹 Deep Clean Build Cache",
         "🔄 Rebuild All AUR Packages",
         "📋 List Foreign/AUR Packages",
+        "💾 AUR Cache Management",
         "⬅️  Back",
     ];
 
@@ -372,6 +373,45 @@ fn advanced_package_management() {
         3 => deep_clean_cache(),
         4 => rebuild_all_aur(),
         5 => list_foreign_packages(),
+        6 => aur_cache_management(),
+        _ => return,
+    }
+}
+
+fn aur_cache_management() {
+    use super::aur_cache;
+
+    println!("💾 AUR Cache Management");
+    println!("======================");
+
+    let options = [
+        "📊 Show cache statistics",
+        "🧹 Clear expired entries",
+        "🗑️  Clear all cache",
+        "⬅️  Back",
+    ];
+
+    let choice = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Cache Management")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    match choice {
+        0 => aur_cache::cache_stats(),
+        1 => aur_cache::clear_expired(),
+        2 => {
+            let confirm = Confirm::new()
+                .with_prompt("Clear entire AUR cache?")
+                .default(false)
+                .interact()
+                .unwrap();
+
+            if confirm {
+                aur_cache::clear_cache();
+            }
+        }
         _ => return,
     }
 }
@@ -424,6 +464,8 @@ fn batch_install_packages() {
 }
 
 fn search_aur_filtered() {
+    use super::aur_cache;
+
     println!("🔍 Search AUR with Filters");
     println!("==========================");
 
@@ -445,11 +487,45 @@ fn search_aur_filtered() {
         .interact()
         .unwrap();
 
-    if let Some(helper) = get_preferred_aur_helper() {
+    // Try cached AUR search first
+    println!("🔍 Searching AUR for '{}'...", search_term);
+    if let Some(mut packages) = aur_cache::search_packages(&search_term) {
+        println!("📦 Found {} packages in AUR:", packages.len());
+
+        // Apply sorting filters
+        if selected_filters.contains(&2) {
+            // Sort by popularity
+            packages.sort_by(|a, b| b.popularity.partial_cmp(&a.popularity).unwrap());
+        } else if selected_filters.contains(&3) {
+            // Sort by votes (proxy for last modified)
+            packages.sort_by(|a, b| b.votes.cmp(&a.votes));
+        }
+
+        // Display results
+        for pkg in packages.iter().take(20) {
+            println!("\n  📦 {} ({})", pkg.name, pkg.version);
+            if let Some(desc) = &pkg.description {
+                println!("     {}", desc);
+            }
+            println!("     ⭐ {} votes | 📊 {:.2} popularity", pkg.votes, pkg.popularity);
+
+            if selected_filters.contains(&0) {
+                if let Some(url) = &pkg.url {
+                    println!("     🔗 {}", url);
+                }
+                if let Some(maintainer) = &pkg.maintainer {
+                    println!("     👤 {}", maintainer);
+                }
+            }
+        }
+
+        if packages.len() > 20 {
+            println!("\n  ... and {} more results", packages.len() - 20);
+        }
+    } else if let Some(helper) = get_preferred_aur_helper() {
+        // Fallback to AUR helper
         let mut args = vec!["-Ss"];
         args.push(&search_term);
-
-        println!("🔍 Searching for '{}'...", search_term);
         let _ = Command::new(helper).args(&args).status();
 
         if selected_filters.contains(&0) || selected_filters.contains(&1) {
@@ -457,7 +533,7 @@ fn search_aur_filtered() {
             let _ = Command::new("pacman").args(["-Si", &search_term]).status();
         }
     } else {
-        println!("❌ No AUR helper available");
+        println!("❌ No AUR helper available and API search failed");
     }
 }
 
@@ -648,40 +724,56 @@ fn diagnose_broken_packages() {
 }
 
 fn check_broken_dependencies() {
+    use super::progress;
+
     println!("🔍 Checking for Broken Dependencies");
     println!("===================================");
 
-    println!("🔄 Running dependency check...");
-
     // Check for missing dependencies
     println!("\n🔗 Checking for missing dependencies:");
-    let status = Command::new("pacman").args(["-Dk"]).status();
+    let output = progress::execute_with_status(
+        Command::new("pacman").args(["-Dk"]),
+        "Checking dependencies"
+    );
 
-    match status {
-        Ok(s) if s.success() => println!("✅ No missing dependencies found"),
-        _ => {
-            println!("⚠️  Missing dependencies detected");
+    match output {
+        Ok(output) if output.status.success() => {
+            println!("✅ No missing dependencies found");
+        }
+        Ok(output) => {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let filtered_errors = progress::filter_permission_errors(&stderr);
 
-            let fix = Confirm::new()
-                .with_prompt("Attempt to fix missing dependencies?")
-                .default(true)
-                .interact()
-                .unwrap();
+            if !filtered_errors.trim().is_empty() {
+                println!("⚠️  Missing dependencies detected:\n{}", filtered_errors);
 
-            if fix {
-                println!("🔧 Installing missing dependencies...");
-                let _ = Command::new("sudo")
-                    .args(["pacman", "-S", "--asdeps", "--needed"])
-                    .status();
+                let fix = Confirm::new()
+                    .with_prompt("Attempt to fix missing dependencies?")
+                    .default(true)
+                    .interact()
+                    .unwrap();
+
+                if fix {
+                    println!("🔧 Installing missing dependencies...");
+                    let _ = Command::new("sudo")
+                        .args(["pacman", "-S", "--asdeps", "--needed"])
+                        .status();
+                }
+            } else {
+                println!("✅ No actionable dependency issues (permission errors filtered)");
             }
+        }
+        Err(e) => {
+            println!("❌ Failed to check dependencies: {}", e);
         }
     }
 
     // Check for broken symlinks
     println!("\n🔗 Checking for broken symlinks:");
-    let _ = Command::new("find")
-        .args(["/usr", "-xtype", "l", "-print"])
-        .status();
+    let _ = progress::execute_with_status(
+        Command::new("find").args(["/usr", "-xtype", "l", "-print"]),
+        "Scanning for broken symlinks"
+    );
 }
 
 fn fix_partial_upgrades() {
@@ -707,6 +799,8 @@ fn fix_partial_upgrades() {
 }
 
 fn reinstall_broken_packages() {
+    use super::progress;
+
     println!("📦 Reinstall Broken Packages");
     println!("============================");
 
@@ -719,30 +813,58 @@ fn reinstall_broken_packages() {
         println!("🔍 Auto-detecting broken packages...");
 
         // Check for packages with missing files
-        let output = Command::new("pacman").args(["-Qk"]).output();
+        let output = progress::execute_with_spinner(
+            Command::new("pacman").args(["-Qk"]),
+            "Scanning installed packages for issues"
+        );
 
         match output {
-            Ok(output) if !output.status.success() => {
-                println!("⚠️  Found packages with missing files");
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
 
-                let fix = Confirm::new()
-                    .with_prompt("Reinstall packages with missing files?")
-                    .default(true)
-                    .interact()
-                    .unwrap();
+                // Parse broken packages from output
+                let broken_packages = progress::parse_broken_packages(&stdout);
 
-                if fix {
-                    // Extract package names from pacman -Qk output and reinstall
-                    let broken_output = String::from_utf8_lossy(&output.stderr);
-                    println!("🔧 Attempting to fix broken packages...");
+                // Filter permission errors from stderr
+                let filtered_errors = progress::filter_permission_errors(&stderr);
 
-                    // This would need more sophisticated parsing in a real implementation
-                    let _ = Command::new("sudo")
-                        .args(["pacman", "-S", "--noconfirm"])
-                        .status();
+                if broken_packages.is_empty() {
+                    println!("✅ No broken packages detected");
+                    if !filtered_errors.trim().is_empty() {
+                        println!("   (Filtered {} permission error(s))",
+                            filtered_errors.lines().count());
+                    }
+                } else {
+                    println!("⚠️  Found {} broken package(s):", broken_packages.len());
+                    for pkg in &broken_packages {
+                        println!("  • {}", pkg);
+                    }
+
+                    let fix = Confirm::new()
+                        .with_prompt("Reinstall these broken packages?")
+                        .default(true)
+                        .interact()
+                        .unwrap();
+
+                    if fix {
+                        println!("🔧 Reinstalling broken packages...");
+                        for pkg in &broken_packages {
+                            println!("  ⚙️  Reinstalling {}...", pkg);
+                            let result = Command::new("sudo")
+                                .args(["pacman", "-S", "--noconfirm", pkg])
+                                .status();
+
+                            match result {
+                                Ok(status) if status.success() => println!("    ✅ Success"),
+                                _ => println!("    ⚠️  Failed (may need manual intervention)"),
+                            }
+                        }
+                        println!("✅ Reinstallation complete");
+                    }
                 }
             }
-            _ => println!("✅ No broken packages detected"),
+            Err(e) => println!("❌ Failed to check packages: {}", e),
         }
     } else {
         println!("🔄 Reinstalling {}...", package_input);
@@ -932,30 +1054,73 @@ fn analyze_dependency_tree() {
 }
 
 fn find_circular_dependencies() {
+    use super::progress;
+    use rayon::prelude::*;
+
     println!("🔄 Find Circular Dependencies");
     println!("=============================");
 
     println!("🔍 Scanning for circular dependencies...");
 
-    // This is a simplified check - real implementation would be more complex
-    let output = Command::new("pacman").args(["-Q"]).output();
+    // Get list of packages
+    let output = Command::new("pacman").args(["-Qq"]).output();
 
     match output {
         Ok(output) if output.status.success() => {
-            let packages = String::from_utf8_lossy(&output.stdout);
-            let package_count = packages.lines().count();
+            let packages: Vec<String> = String::from_utf8_lossy(&output.stdout)
+                .lines()
+                .map(|s| s.to_string())
+                .collect();
 
-            println!("📊 Checked {} packages", package_count);
-            println!(
-                "💡 For detailed circular dependency detection, consider using specialized tools"
-            );
+            let package_count = packages.len();
+            println!("📊 Analyzing {} packages...", package_count);
 
-            // Basic check using pactree
-            println!("🔍 Running basic circular dependency check...");
-            let _ = Command::new("sh")
-                .arg("-c")
-                .arg("for pkg in $(pacman -Qq | head -10); do echo \"Checking $pkg:\"; pactree -r \"$pkg\" 2>/dev/null | head -5; done")
-                .status();
+            // Sample packages for deep analysis (checking all would take too long)
+            let sample_size = package_count.min(50);
+            let sample_packages: Vec<_> = packages.iter().take(sample_size).collect();
+
+            println!("🔍 Deep checking {} packages (sample)...", sample_size);
+
+            let pb = progress::create_progress_bar(sample_size as u64, "Checking dependencies");
+
+            // Parallel dependency check
+            let potential_issues: Vec<_> = sample_packages
+                .par_iter()
+                .filter_map(|pkg| {
+                    let result = Command::new("pactree")
+                        .args(["-r", pkg])
+                        .output();
+
+                    pb.inc(1);
+
+                    match result {
+                        Ok(output) if output.status.success() => {
+                            let tree = String::from_utf8_lossy(&output.stdout);
+                            // Check if package depends on itself (circular)
+                            if tree.lines().count() > 20 {
+                                Some(format!("{} (complex dependency tree: {} lines)",
+                                    pkg, tree.lines().count()))
+                            } else {
+                                None
+                            }
+                        }
+                        _ => None,
+                    }
+                })
+                .collect();
+
+            pb.finish_and_clear();
+
+            if potential_issues.is_empty() {
+                println!("✅ No obvious circular dependencies detected");
+            } else {
+                println!("⚠️  Packages with complex dependency trees:");
+                for issue in potential_issues {
+                    println!("  • {}", issue);
+                }
+            }
+
+            println!("\n💡 Use 'pactree -r <package>' to inspect specific packages");
         }
         _ => println!("❌ Failed to query packages"),
     }

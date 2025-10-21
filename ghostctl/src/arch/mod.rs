@@ -1,5 +1,6 @@
 pub mod archfix;
 pub mod aur;
+pub mod aur_cache;
 pub mod boot;
 pub mod diagnostics;
 pub mod dotfiles;
@@ -8,6 +9,7 @@ pub mod health;
 pub mod mirror;
 pub mod perf;
 pub mod pkgfix;
+pub mod progress;
 pub mod recovery;
 pub mod services;
 pub mod swap;
