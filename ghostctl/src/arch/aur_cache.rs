@@ -118,7 +118,10 @@ pub fn get_package_info(package: &str) -> Option<AurPackageInfo> {
 
 /// Fetch package info from AUR API
 fn fetch_from_aur(package: &str) -> Option<AurPackageInfo> {
-    let url = format!("https://aur.archlinux.org/rpc/?v=5&type=info&arg={}", package);
+    let url = format!(
+        "https://aur.archlinux.org/rpc/?v=5&type=info&arg={}",
+        package
+    );
 
     let response = reqwest::blocking::get(&url).ok()?;
     let json: serde_json::Value = response.json().ok()?;
@@ -149,7 +152,10 @@ fn fetch_from_aur(package: &str) -> Option<AurPackageInfo> {
 
 /// Search AUR packages (with optional caching for popular queries)
 pub fn search_packages(query: &str) -> Option<Vec<AurPackageInfo>> {
-    let url = format!("https://aur.archlinux.org/rpc/?v=5&type=search&arg={}", query);
+    let url = format!(
+        "https://aur.archlinux.org/rpc/?v=5&type=search&arg={}",
+        query
+    );
 
     let response = reqwest::blocking::get(&url).ok()?;
     let json: serde_json::Value = response.json().ok()?;
@@ -215,5 +221,9 @@ pub fn cache_stats() {
     println!("  Total entries: {}", total);
     println!("  Valid entries: {}", total - expired);
     println!("  Expired entries: {}", expired);
-    println!("  TTL: {} seconds ({} minutes)", cache.ttl_seconds, cache.ttl_seconds / 60);
+    println!(
+        "  TTL: {} seconds ({} minutes)",
+        cache.ttl_seconds,
+        cache.ttl_seconds / 60
+    );
 }

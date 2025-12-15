@@ -1,6 +1,6 @@
+use super::diagnostics::SystemDiagnostics;
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::Select;
-use super::diagnostics::{SystemDiagnostics, FixAction};
 
 #[allow(dead_code)]
 pub fn fix_pacman() {

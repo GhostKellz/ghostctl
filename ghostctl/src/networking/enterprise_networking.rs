@@ -1,9 +1,9 @@
-use anyhow::{Context, Result};
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use anyhow::Result;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::IpAddr;
 use std::process::Command;
 
 /// Enterprise networking features for VLAN, SDN, and advanced network management

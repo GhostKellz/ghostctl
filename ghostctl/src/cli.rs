@@ -1497,7 +1497,7 @@ fn handle_arch_clean(target: &str) {
 }
 
 fn handle_arch_bouncer(target: Option<&String>) {
-    use arch::diagnostics::{SystemDiagnostics, FixAction};
+    use arch::diagnostics::SystemDiagnostics;
 
     match target {
         Some(target_str) => {

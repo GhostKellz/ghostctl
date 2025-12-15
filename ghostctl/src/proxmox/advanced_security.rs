@@ -1,9 +1,7 @@
-use anyhow::{Context, Result};
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
 use std::process::Command;
 
 /// Comprehensive PVE security management and automation

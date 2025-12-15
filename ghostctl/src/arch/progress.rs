@@ -51,10 +51,7 @@ pub fn execute_with_status(cmd: &mut Command, message: &str) -> std::io::Result<
 
 /// Filter expected permission errors from pacman output
 pub fn filter_permission_errors(stderr: &str) -> String {
-    let permission_patterns = [
-        "Permission denied",
-        "failed to calculate SHA256 checksum",
-    ];
+    let permission_patterns = ["Permission denied", "failed to calculate SHA256 checksum"];
 
     let protected_paths = [
         "/etc/audit/",
@@ -77,9 +74,7 @@ pub fn filter_permission_errors(stderr: &str) -> String {
             }
 
             // If it's a permission error, only filter if it's on a protected path
-            let is_protected = protected_paths
-                .iter()
-                .any(|path| line.contains(path));
+            let is_protected = protected_paths.iter().any(|path| line.contains(path));
 
             !is_protected
         })

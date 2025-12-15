@@ -1,0 +1,108 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '30 7 * * *'  # 7:30 AM UTC daily
+  workflow_dispatch:
+
+env:
+  CARGO: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo
+  RUSTC: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc
+
+jobs:
+  nightly:
+    name: Nightly Validation
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Environment
+        run: |
+          set -euo pipefail
+          echo "=== Nightly Build $(date -u +%Y-%m-%d) ==="
+          $RUSTC --version
+          $CARGO --version
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ghostctl
+          key: ghostctl-nightly
+
+      - name: Full build
+        run: cd ghostctl && $CARGO build --release
+
+      - name: Full test sweep
+        run: cd ghostctl && $CARGO test
+
+      - name: Clippy strict (pedantic)
+        run: |
+          cd ghostctl && $CARGO clippy --release -- \
+            -W clippy::all \
+            -W clippy::pedantic \
+            -A clippy::needless-borrows-for-generic-args \
+            -A clippy::single-char-add-str \
+            -A clippy::redundant-field-names \
+            -A clippy::module-name-repetitions \
+            -A clippy::too-many-lines \
+            -A clippy::missing-errors-doc \
+            -A clippy::missing-panics-doc \
+            -A clippy::must-use-candidate \
+            -A clippy::struct-excessive-bools \
+            -A clippy::similar-names \
+            -A clippy::doc-markdown \
+            -A clippy::wildcard-imports
+
+      - name: Format check
+        run: cd ghostctl && $CARGO fmt --check
+
+      - name: Extended CLI Tests
+        run: |
+          set -euo pipefail
+          GHOSTCTL="./ghostctl/target/release/ghostctl"
+
+          echo "=== Extended CLI Tests ==="
+          $GHOSTCTL version
+          $GHOSTCTL --help
+
+          echo ""
+          echo "=== All Subcommands ==="
+          for cmd in system dev pve docker scripts ssl nginx nvim terminal ghost homelab btrfs nvidia security backup restore shell systemd arch network cloud tools scan; do
+            echo "Testing: $cmd"
+            $GHOSTCTL $cmd --help > /dev/null
+          done
+
+          echo ""
+          echo "=== Repeated queries (stability check) ==="
+          for i in 1 2 3 4 5; do
+            $GHOSTCTL list > /dev/null 2>&1
+            echo "Query $i: OK"
+          done
+
+          echo ""
+          echo "Extended CLI tests passed"
+
+      - name: Binary size check
+        run: |
+          set -euo pipefail
+          GHOSTCTL="./ghostctl/target/release/ghostctl"
+          SIZE=$(stat -c%s "$GHOSTCTL" 2>/dev/null || stat -f%z "$GHOSTCTL")
+          SIZE_MB=$((SIZE / 1024 / 1024))
+          echo "Binary size: ${SIZE_MB}MB ($SIZE bytes)"
+          if [ "$SIZE_MB" -gt 100 ]; then
+            echo "::warning::Binary size exceeds 100MB"
+          fi
+
+      - name: Nightly Summary
+        run: |
+          echo "### Nightly Build $(date -u +%Y-%m-%d)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | Pass |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | Pass |" >> $GITHUB_STEP_SUMMARY
+          echo "| Clippy (pedantic) | Pass |" >> $GITHUB_STEP_SUMMARY
+          echo "| CLI Tests | Pass |" >> $GITHUB_STEP_SUMMARY
+          echo "| Binary | $(ls -lh ./ghostctl/target/release/ghostctl | awk '{print $5}') |" >> $GITHUB_STEP_SUMMARY

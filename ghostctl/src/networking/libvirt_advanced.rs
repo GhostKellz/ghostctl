@@ -1,7 +1,5 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
-use serde_json;
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use std::fs;
-use std::path::Path;
 use std::process::Command;
 
 pub fn libvirt_advanced_menu() {
@@ -1380,5 +1378,3 @@ fn advanced_network_features() {
 fn network_configuration_backup() {
     println!("💾 Network Configuration Backup - Coming next...");
 }
-
-use std::collections::HashMap;

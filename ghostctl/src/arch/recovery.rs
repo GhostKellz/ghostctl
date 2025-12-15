@@ -1,5 +1,4 @@
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
-use std::fs;
 use std::path::Path;
 use std::process::Command;
 

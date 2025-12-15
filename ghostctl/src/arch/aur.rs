@@ -507,7 +507,10 @@ fn search_aur_filtered() {
             if let Some(desc) = &pkg.description {
                 println!("     {}", desc);
             }
-            println!("     ⭐ {} votes | 📊 {:.2} popularity", pkg.votes, pkg.popularity);
+            println!(
+                "     ⭐ {} votes | 📊 {:.2} popularity",
+                pkg.votes, pkg.popularity
+            );
 
             if selected_filters.contains(&0) {
                 if let Some(url) = &pkg.url {
@@ -733,7 +736,7 @@ fn check_broken_dependencies() {
     println!("\n🔗 Checking for missing dependencies:");
     let output = progress::execute_with_status(
         Command::new("pacman").args(["-Dk"]),
-        "Checking dependencies"
+        "Checking dependencies",
     );
 
     match output {
@@ -772,7 +775,7 @@ fn check_broken_dependencies() {
     println!("\n🔗 Checking for broken symlinks:");
     let _ = progress::execute_with_status(
         Command::new("find").args(["/usr", "-xtype", "l", "-print"]),
-        "Scanning for broken symlinks"
+        "Scanning for broken symlinks",
     );
 }
 
@@ -815,7 +818,7 @@ fn reinstall_broken_packages() {
         // Check for packages with missing files
         let output = progress::execute_with_spinner(
             Command::new("pacman").args(["-Qk"]),
-            "Scanning installed packages for issues"
+            "Scanning installed packages for issues",
         );
 
         match output {
@@ -832,8 +835,10 @@ fn reinstall_broken_packages() {
                 if broken_packages.is_empty() {
                     println!("✅ No broken packages detected");
                     if !filtered_errors.trim().is_empty() {
-                        println!("   (Filtered {} permission error(s))",
-                            filtered_errors.lines().count());
+                        println!(
+                            "   (Filtered {} permission error(s))",
+                            filtered_errors.lines().count()
+                        );
                     }
                 } else {
                     println!("⚠️  Found {} broken package(s):", broken_packages.len());
@@ -1087,9 +1092,7 @@ fn find_circular_dependencies() {
             let potential_issues: Vec<_> = sample_packages
                 .par_iter()
                 .filter_map(|pkg| {
-                    let result = Command::new("pactree")
-                        .args(["-r", pkg])
-                        .output();
+                    let result = Command::new("pactree").args(["-r", pkg]).output();
 
                     pb.inc(1);
 
@@ -1098,8 +1101,11 @@ fn find_circular_dependencies() {
                             let tree = String::from_utf8_lossy(&output.stdout);
                             // Check if package depends on itself (circular)
                             if tree.lines().count() > 20 {
-                                Some(format!("{} (complex dependency tree: {} lines)",
-                                    pkg, tree.lines().count()))
+                                Some(format!(
+                                    "{} (complex dependency tree: {} lines)",
+                                    pkg,
+                                    tree.lines().count()
+                                ))
                             } else {
                                 None
                             }

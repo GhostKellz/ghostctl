@@ -1,4 +1,3 @@
-use anyhow::{Context, Result};
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

@@ -1,0 +1,216 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  CARGO: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo
+  RUSTC: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc
+
+jobs:
+  release-linux:
+    name: Build Linux Release
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Environment
+        run: |
+          echo "=== Linux Release Build ==="
+          echo "Tag: ${{ github.ref_name }}"
+          $RUSTC --version
+          $CARGO --version
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ghostctl
+          key: ghostctl-release-linux
+
+      - name: Run Tests
+        run: cd ghostctl && $CARGO test
+
+      - name: Build Linux Release
+        run: cd ghostctl && $CARGO build --release
+
+      - name: Create Linux Archive
+        run: |
+          set -euo pipefail
+          VERSION="${{ github.ref_name }}"
+          TARGET="x86_64-unknown-linux-gnu"
+          ARCHIVE_DIR="ghostctl-${VERSION}-${TARGET}"
+          BINARY="./ghostctl/target/release/ghostctl"
+
+          mkdir -p "$ARCHIVE_DIR"
+          cp "$BINARY" "$ARCHIVE_DIR/ghostctl"
+          cp README.md "$ARCHIVE_DIR/" 2>/dev/null || true
+          cp LICENSE "$ARCHIVE_DIR/" 2>/dev/null || true
+          cp COMMANDS.md "$ARCHIVE_DIR/" 2>/dev/null || true
+          cp DOCS.md "$ARCHIVE_DIR/" 2>/dev/null || true
+          cp install.sh "$ARCHIVE_DIR/" 2>/dev/null || true
+
+          tar -czvf "ghostctl-${VERSION}-${TARGET}.tar.gz" "$ARCHIVE_DIR"
+
+          echo "=== Linux Archive Contents ==="
+          tar -tzvf "ghostctl-${VERSION}-${TARGET}.tar.gz"
+          ls -lh "ghostctl-${VERSION}-${TARGET}.tar.gz"
+
+      - name: Generate SHA256 Checksum
+        run: |
+          VERSION="${{ github.ref_name }}"
+          TARGET="x86_64-unknown-linux-gnu"
+          sha256sum "ghostctl-${VERSION}-${TARGET}.tar.gz" > "ghostctl-${VERSION}-${TARGET}.tar.gz.sha256"
+          cat "ghostctl-${VERSION}-${TARGET}.tar.gz.sha256"
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: |
+            ghostctl-${{ github.ref_name }}-x86_64-unknown-linux-gnu.tar.gz
+            ghostctl-${{ github.ref_name }}-x86_64-unknown-linux-gnu.tar.gz.sha256
+
+  release-windows:
+    name: Build Windows Release
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Environment
+        run: |
+          echo "=== Windows Cross-Compile Build ==="
+          echo "Tag: ${{ github.ref_name }}"
+          $RUSTC --version
+          $CARGO --version
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ghostctl
+          key: ghostctl-release-windows
+
+      - name: Build Windows Release
+        run: cd ghostctl && $CARGO build --release --target x86_64-pc-windows-gnu
+
+      - name: Create Windows Archive
+        run: |
+          set -euo pipefail
+          VERSION="${{ github.ref_name }}"
+          ARCHIVE_DIR="ghostctl-${VERSION}-windows"
+          BINARY="./ghostctl/target/x86_64-pc-windows-gnu/release/ghostctl.exe"
+
+          mkdir -p "$ARCHIVE_DIR"
+          cp "$BINARY" "$ARCHIVE_DIR/ghostctl.exe"
+          cp README.md "$ARCHIVE_DIR/" 2>/dev/null || true
+          cp LICENSE "$ARCHIVE_DIR/" 2>/dev/null || true
+          cp COMMANDS.md "$ARCHIVE_DIR/" 2>/dev/null || true
+
+          zip -r "ghostctl-${VERSION}-windows-x86_64.zip" "$ARCHIVE_DIR"
+
+          echo "=== Windows Archive Contents ==="
+          unzip -l "ghostctl-${VERSION}-windows-x86_64.zip"
+          ls -lh "ghostctl-${VERSION}-windows-x86_64.zip"
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: ghostctl-${{ github.ref_name }}-windows-x86_64.zip
+
+  create-release:
+    name: Create GitHub Release
+    needs: [release-linux, release-windows]
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: List Artifacts
+        run: |
+          echo "=== Release Artifacts ==="
+          find release-artifacts -type f -ls
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-artifacts/linux-release/*
+            release-artifacts/windows-release/*
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          generate_release_notes: true
+          body: |
+            ## GhostCTL ${{ github.ref_name }}
+
+            Ghost Infrastructure Control - Complete system and homelab management toolkit.
+
+            ### Downloads
+
+            | Platform | File | Checksum |
+            |----------|------|----------|
+            | **Linux (x86_64)** | `ghostctl-${{ github.ref_name }}-x86_64-unknown-linux-gnu.tar.gz` | `.sha256` |
+            | **Windows (x86_64)** | `ghostctl-${{ github.ref_name }}-windows-x86_64.zip` | - |
+
+            ### Quick Install
+
+            **Linux (curl)**
+            ```bash
+            curl -sSL https://raw.githubusercontent.com/ghostkellz/ghostctl/main/install.sh | bash
+            ```
+
+            **Linux (manual)**
+            ```bash
+            tar -xzf ghostctl-${{ github.ref_name }}-x86_64-unknown-linux-gnu.tar.gz
+            sudo cp ghostctl-${{ github.ref_name }}-x86_64-unknown-linux-gnu/ghostctl /usr/local/bin/
+            ghostctl version
+            ```
+
+            **Arch Linux (AUR)**
+            ```bash
+            yay -S ghostctl
+            # or
+            paru -S ghostctl
+            ```
+
+            **Windows (PowerShell)**
+            ```powershell
+            Expand-Archive ghostctl-${{ github.ref_name }}-windows-x86_64.zip -DestinationPath .
+            .\ghostctl-${{ github.ref_name }}-windows\ghostctl.exe version
+            ```
+
+            ### Verify Checksum
+
+            ```bash
+            sha256sum -c ghostctl-${{ github.ref_name }}-x86_64-unknown-linux-gnu.tar.gz.sha256
+            ```
+
+            ### Documentation
+
+            - [Getting Started](https://github.com/ghostkellz/ghostctl#readme)
+            - [Commands Reference](https://github.com/ghostkellz/ghostctl/blob/main/COMMANDS.md)
+            - [Documentation](https://github.com/ghostkellz/ghostctl/blob/main/DOCS.md)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release Summary
+        run: |
+          echo "### Release ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Platform | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Linux x86_64 | Published |" >> $GITHUB_STEP_SUMMARY
+          echo "| Windows x86_64 | Published |" >> $GITHUB_STEP_SUMMARY

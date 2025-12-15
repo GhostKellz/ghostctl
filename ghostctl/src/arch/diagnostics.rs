@@ -360,11 +360,16 @@ impl FixAction {
                     let result = Command::new("sudo")
                         .args(&[
                             "reflector",
-                            "--country", "US,Canada",
-                            "--latest", "20",
-                            "--protocol", "https",
-                            "--sort", "rate",
-                            "--save", "/etc/pacman.d/mirrorlist",
+                            "--country",
+                            "US,Canada",
+                            "--latest",
+                            "20",
+                            "--protocol",
+                            "https",
+                            "--sort",
+                            "rate",
+                            "--save",
+                            "/etc/pacman.d/mirrorlist",
                         ])
                         .status();
                     match result {
@@ -422,9 +427,7 @@ impl FixAction {
             }
             FixAction::SyncDatabase => {
                 println!("🔧 Syncing package database...");
-                let result = Command::new("sudo")
-                    .args(&["pacman", "-Sy"])
-                    .status();
+                let result = Command::new("sudo").args(&["pacman", "-Sy"]).status();
                 match result {
                     Ok(status) if status.success() => {
                         println!("  ✅ Database synced");
@@ -440,9 +443,7 @@ impl FixAction {
                 println!("🔧 Removing orphaned packages...");
 
                 // Get list of orphans
-                let orphans = Command::new("pacman")
-                    .args(&["-Qtdq"])
-                    .output();
+                let orphans = Command::new("pacman").args(&["-Qtdq"]).output();
 
                 match orphans {
                     Ok(output) if !output.stdout.is_empty() => {

@@ -8,44 +8,114 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo
+  RUSTC: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc
+  RUSTFMT: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt
 
 jobs:
-  test:
-    name: Test and Build
+  build-and-test:
+    name: Build & Test
     runs-on: self-hosted
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
+      - name: Verify Environment
+        run: |
+          echo "=== Rust Toolchain ==="
+          $RUSTC --version
+          $CARGO --version
 
-      - name: Cache dependencies
-        uses: actions/cache@v4
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/
-            ~/.cargo/git/
-            ghostctl/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          workspaces: ghostctl
+          key: ghostctl-ci
 
       - name: Check formatting
-        run: cd ghostctl && cargo fmt --check
+        run: cd ghostctl && $CARGO fmt --check
 
       - name: Run clippy
-        run: cd ghostctl && cargo clippy --all-targets --all-features -- -W clippy::all -A dead_code -A unused_imports -A clippy::needless_borrows_for_generic_args
-
-      - name: Run tests
-        run: cd ghostctl && cargo test
+        run: cd ghostctl && $CARGO clippy --release -- -D warnings
 
       - name: Build release
-        run: cd ghostctl && cargo build --release
+        run: cd ghostctl && $CARGO build --release
 
-      - name: Test binary
+      - name: Run tests
+        run: cd ghostctl && $CARGO test
+
+      - name: CLI Smoke Test
         run: |
-          cd ghostctl
-          ./target/release/ghostctl version
-          ./target/release/ghostctl help
+          set -euo pipefail
+          GHOSTCTL="./ghostctl/target/release/ghostctl"
+
+          echo "=== Basic Commands ==="
+          $GHOSTCTL version
+          $GHOSTCTL --help > /dev/null
+
+          echo ""
+          echo "=== Command Help ==="
+          $GHOSTCTL system --help > /dev/null
+          $GHOSTCTL docker --help > /dev/null
+          $GHOSTCTL arch --help > /dev/null
+          $GHOSTCTL network --help > /dev/null
+
+          echo ""
+          echo "=== List Commands ==="
+          $GHOSTCTL list
+
+          echo ""
+          echo "CLI smoke tests passed"
+
+      - name: CLI Test Suite
+        run: |
+          set -euo pipefail
+          GHOSTCTL="./ghostctl/target/release/ghostctl"
+          PASSED=0
+          FAILED=0
+
+          test_cmd() {
+            local name="$1"
+            local cmd="$2"
+            if $GHOSTCTL $cmd > /dev/null 2>&1; then
+              echo "[PASS] $name"
+              PASSED=$((PASSED + 1))
+            else
+              echo "[FAIL] $name"
+              FAILED=$((FAILED + 1))
+            fi
+          }
+
+          echo "=== CLI Commands ==="
+          test_cmd "version" "version"
+          test_cmd "help" "--help"
+          test_cmd "list" "list"
+          test_cmd "system help" "system --help"
+          test_cmd "dev help" "dev --help"
+          test_cmd "docker help" "docker --help"
+          test_cmd "arch help" "arch --help"
+          test_cmd "network help" "network --help"
+          test_cmd "security help" "security --help"
+          test_cmd "backup help" "backup --help"
+          test_cmd "nvidia help" "nvidia --help"
+          test_cmd "btrfs help" "btrfs --help"
+          test_cmd "cloud help" "cloud --help"
+          test_cmd "tools help" "tools --help"
+
+          echo ""
+          echo "Results: $PASSED passed, $FAILED failed"
+
+          if [[ $FAILED -gt 0 ]]; then
+            exit 1
+          fi
+
+      - name: Build Summary
+        run: |
+          echo "### Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Binary | $(ls -lh ./ghostctl/target/release/ghostctl | awk '{print $5}') |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rust | $($RUSTC --version | cut -d' ' -f2) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | Passed |" >> $GITHUB_STEP_SUMMARY

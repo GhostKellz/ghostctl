@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use std::process::Command;
 
 pub fn troubleshoot_menu() {
