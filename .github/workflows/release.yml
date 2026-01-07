@@ -82,58 +82,9 @@ jobs:
             ghostctl-${{ github.ref_name }}-x86_64-unknown-linux-gnu.tar.gz
             ghostctl-${{ github.ref_name }}-x86_64-unknown-linux-gnu.tar.gz.sha256
 
-  release-windows:
-    name: Build Windows Release
-    runs-on: self-hosted
-    timeout-minutes: 30
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Verify Environment
-        run: |
-          echo "=== Windows Cross-Compile Build ==="
-          echo "Tag: ${{ github.ref_name }}"
-          $RUSTC --version
-          $CARGO --version
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ghostctl
-          key: ghostctl-release-windows
-
-      - name: Build Windows Release
-        run: cd ghostctl && $CARGO build --release --target x86_64-pc-windows-gnu
-
-      - name: Create Windows Archive
-        run: |
-          set -euo pipefail
-          VERSION="${{ github.ref_name }}"
-          ARCHIVE_DIR="ghostctl-${VERSION}-windows"
-          BINARY="./ghostctl/target/x86_64-pc-windows-gnu/release/ghostctl.exe"
-
-          mkdir -p "$ARCHIVE_DIR"
-          cp "$BINARY" "$ARCHIVE_DIR/ghostctl.exe"
-          cp README.md "$ARCHIVE_DIR/" 2>/dev/null || true
-          cp LICENSE "$ARCHIVE_DIR/" 2>/dev/null || true
-          cp COMMANDS.md "$ARCHIVE_DIR/" 2>/dev/null || true
-
-          zip -r "ghostctl-${VERSION}-windows-x86_64.zip" "$ARCHIVE_DIR"
-
-          echo "=== Windows Archive Contents ==="
-          unzip -l "ghostctl-${VERSION}-windows-x86_64.zip"
-          ls -lh "ghostctl-${VERSION}-windows-x86_64.zip"
-
-      - name: Upload Windows Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-release
-          path: ghostctl-${{ github.ref_name }}-windows-x86_64.zip
-
   create-release:
     name: Create GitHub Release
-    needs: [release-linux, release-windows]
+    needs: [release-linux]
     runs-on: self-hosted
     steps:
       - name: Checkout
@@ -154,7 +105,6 @@ jobs:
         with:
           files: |
             release-artifacts/linux-release/*
-            release-artifacts/windows-release/*
           draft: false
           prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
           generate_release_notes: true
@@ -168,7 +118,6 @@ jobs:
             | Platform | File | Checksum |
             |----------|------|----------|
             | **Linux (x86_64)** | `ghostctl-${{ github.ref_name }}-x86_64-unknown-linux-gnu.tar.gz` | `.sha256` |
-            | **Windows (x86_64)** | `ghostctl-${{ github.ref_name }}-windows-x86_64.zip` | - |
 
             ### Quick Install
 
@@ -189,12 +138,6 @@ jobs:
             yay -S ghostctl
             # or
             paru -S ghostctl
-            ```
-
-            **Windows (PowerShell)**
-            ```powershell
-            Expand-Archive ghostctl-${{ github.ref_name }}-windows-x86_64.zip -DestinationPath .
-            .\ghostctl-${{ github.ref_name }}-windows\ghostctl.exe version
             ```
 
             ### Verify Checksum
@@ -218,4 +161,3 @@ jobs:
           echo "| Platform | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Linux x86_64 | Published |" >> $GITHUB_STEP_SUMMARY
-          echo "| Windows x86_64 | Published |" >> $GITHUB_STEP_SUMMARY
