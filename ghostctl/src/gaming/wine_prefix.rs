@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -567,18 +567,27 @@ fn apply_gaming_optimizations(prefix_path: &str) {
     println!("🎮 Applying Gaming Optimizations");
 
     // Enable CSMT
-    let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D' /v csmt /t REG_DWORD /d 1 /f", prefix_path);
+    let cmd = format!(
+        "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D' /v csmt /t REG_DWORD /d 1 /f",
+        prefix_path
+    );
     Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
     // Enable Large Address Aware
     unsafe { std::env::set_var("WINE_LARGE_ADDRESS_AWARE", "1") };
 
     // Disable debugging
-    let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Debug' /v RelayExclude /d 'ntdll.RtlEnterCriticalSection;ntdll.RtlLeaveCriticalSection' /f", prefix_path);
+    let cmd = format!(
+        "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Debug' /v RelayExclude /d 'ntdll.RtlEnterCriticalSection;ntdll.RtlLeaveCriticalSection' /f",
+        prefix_path
+    );
     Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
     // Optimize heap allocation
-    let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager' /v HeapDeCommitFreeBlockThreshold /t REG_DWORD /d 262144 /f", prefix_path);
+    let cmd = format!(
+        "WINEPREFIX={} wine reg add 'HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager' /v HeapDeCommitFreeBlockThreshold /t REG_DWORD /d 262144 /f",
+        prefix_path
+    );
     Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
     println!("✅ Gaming optimizations applied");
@@ -643,18 +652,26 @@ fn configure_display(prefix_path: &str) {
                 .interact()
                 .unwrap();
 
-            let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Control Panel\\Desktop' /v LogPixels /t REG_DWORD /d {} /f",
-                prefix_path, dpi);
+            let cmd = format!(
+                "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Control Panel\\Desktop' /v LogPixels /t REG_DWORD /d {} /f",
+                prefix_path, dpi
+            );
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
             println!("✅ DPI set to {}", dpi);
         }
         3 => {
-            let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver' /v Decorated /d Y /f", prefix_path);
+            let cmd = format!(
+                "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver' /v Decorated /d Y /f",
+                prefix_path
+            );
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
             println!("✅ Window decorations enabled");
         }
         4 => {
-            let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver' /v Decorated /d N /f", prefix_path);
+            let cmd = format!(
+                "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver' /v Decorated /d N /f",
+                prefix_path
+            );
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
             println!("✅ Window decorations disabled");
         }

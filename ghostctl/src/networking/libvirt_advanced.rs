@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::fs;
 use std::process::Command;
 
@@ -407,13 +407,15 @@ fn get_available_bridges() -> Vec<String> {
     if let Ok(ip_out) = ip_output {
         let ip_bridges = String::from_utf8_lossy(&ip_out.stdout);
         for line in ip_bridges.lines() {
-            if line.contains(": ") && line.contains("bridge")
-                && let Some(name_part) = line.split(':').nth(1) {
-                    let name = name_part.split('@').next().unwrap_or("").trim();
-                    if !name.is_empty() && !bridges.contains(&name.to_string()) {
-                        bridges.push(name.to_string());
-                    }
+            if line.contains(": ")
+                && line.contains("bridge")
+                && let Some(name_part) = line.split(':').nth(1)
+            {
+                let name = name_part.split('@').next().unwrap_or("").trim();
+                if !name.is_empty() && !bridges.contains(&name.to_string()) {
+                    bridges.push(name.to_string());
                 }
+            }
         }
     }
 

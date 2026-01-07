@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn rust_development() {
@@ -39,33 +39,34 @@ fn install_rust_toolchain() {
 
     // Check if rustup is installed
     if Command::new("which").arg("rustup").status().is_ok()
-        && let Ok(output) = Command::new("rustc").arg("--version").output() {
-            let version = String::from_utf8_lossy(&output.stdout);
-            println!("✅ Rust is installed: {}", version.trim());
+        && let Ok(output) = Command::new("rustc").arg("--version").output()
+    {
+        let version = String::from_utf8_lossy(&output.stdout);
+        println!("✅ Rust is installed: {}", version.trim());
 
-            let actions = [
-                "🔄 Update Rust",
-                "🎯 Add targets",
-                "🔧 Add components",
-                "📋 Show toolchain info",
-            ];
+        let actions = [
+            "🔄 Update Rust",
+            "🎯 Add targets",
+            "🔧 Add components",
+            "📋 Show toolchain info",
+        ];
 
-            let action = Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("Rust Actions")
-                .items(&actions)
-                .default(0)
-                .interact()
-                .unwrap();
+        let action = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Rust Actions")
+            .items(&actions)
+            .default(0)
+            .interact()
+            .unwrap();
 
-            match action {
-                0 => update_rust(),
-                1 => add_rust_targets(),
-                2 => add_rust_components(),
-                3 => show_rust_info(),
-                _ => return,
-            }
-            return;
+        match action {
+            0 => update_rust(),
+            1 => add_rust_targets(),
+            2 => add_rust_components(),
+            3 => show_rust_info(),
+            _ => return,
         }
+        return;
+    }
 
     // Install Rust
     let install_methods = [

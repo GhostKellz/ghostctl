@@ -5,16 +5,16 @@ use std::time::{Duration, Instant};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 use ratatui::{
+    Frame, Terminal,
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{BarChart, Block, Borders, Gauge, List, ListItem, ListState, Paragraph, Tabs},
-    Frame, Terminal,
 };
 
 #[derive(Debug, Clone)]
@@ -167,41 +167,43 @@ impl ScannerApp {
             terminal.draw(|f| self.ui(f))?;
 
             if event::poll(Duration::from_millis(250))?
-                && let Event::Key(key) = event::read()? {
-                    match key.code {
-                        KeyCode::Char('q') => {
-                            self.should_quit = true;
-                            return Ok(());
-                        }
-                        KeyCode::Right => {
-                            self.current_tab = (self.current_tab + 1) % 4;
-                        }
-                        KeyCode::Left => {
-                            self.current_tab = if self.current_tab > 0 {
-                                self.current_tab - 1
-                            } else {
-                                3
-                            };
-                        }
-                        KeyCode::Down => {
-                            if let Some(selected) = self.list_state.selected() {
-                                let results = self.results.lock().unwrap();
-                                if selected < results.len().saturating_sub(1) {
-                                    self.list_state.select(Some(selected + 1));
-                                }
-                            } else {
-                                self.list_state.select(Some(0));
-                            }
-                        }
-                        KeyCode::Up => {
-                            if let Some(selected) = self.list_state.selected()
-                                && selected > 0 {
-                                    self.list_state.select(Some(selected - 1));
-                                }
-                        }
-                        _ => {}
+                && let Event::Key(key) = event::read()?
+            {
+                match key.code {
+                    KeyCode::Char('q') => {
+                        self.should_quit = true;
+                        return Ok(());
                     }
+                    KeyCode::Right => {
+                        self.current_tab = (self.current_tab + 1) % 4;
+                    }
+                    KeyCode::Left => {
+                        self.current_tab = if self.current_tab > 0 {
+                            self.current_tab - 1
+                        } else {
+                            3
+                        };
+                    }
+                    KeyCode::Down => {
+                        if let Some(selected) = self.list_state.selected() {
+                            let results = self.results.lock().unwrap();
+                            if selected < results.len().saturating_sub(1) {
+                                self.list_state.select(Some(selected + 1));
+                            }
+                        } else {
+                            self.list_state.select(Some(0));
+                        }
+                    }
+                    KeyCode::Up => {
+                        if let Some(selected) = self.list_state.selected()
+                            && selected > 0
+                        {
+                            self.list_state.select(Some(selected - 1));
+                        }
+                    }
+                    _ => {}
                 }
+            }
 
             // Check if scan is complete
             let stats = self.stats.lock().unwrap();

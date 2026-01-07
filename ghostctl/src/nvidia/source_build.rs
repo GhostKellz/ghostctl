@@ -6,7 +6,7 @@
 //! Supports building from the `open-gpu-kernel-modules` repository.
 
 use anyhow::{Context, Result};
-use dialoguer::{theme::ColorfulTheme, Confirm, Select};
+use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -76,17 +76,18 @@ pub fn detect_source_tree() -> Result<SourceTreeInfo> {
 
     // Priority 1: Config-specified path
     if let Some(ref nvidia_config) = config.nvidia
-        && let Some(ref path_str) = nvidia_config.kernel_module_path {
-            let path = PathBuf::from(path_str);
-            if validate_source_tree(&path) {
-                log::info!("Using config-specified source tree: {:?}", path);
-                return Ok(create_source_info(path));
-            }
-            log::warn!(
-                "Config-specified path {:?} is not a valid source tree",
-                path
-            );
+        && let Some(ref path_str) = nvidia_config.kernel_module_path
+    {
+        let path = PathBuf::from(path_str);
+        if validate_source_tree(&path) {
+            log::info!("Using config-specified source tree: {:?}", path);
+            return Ok(create_source_info(path));
         }
+        log::warn!(
+            "Config-specified path {:?} is not a valid source tree",
+            path
+        );
+    }
 
     // Priority 2: Environment variable
     if let Ok(env_path) = std::env::var("NVIDIA_SRC") {
@@ -172,14 +173,16 @@ fn extract_version(path: &Path) -> Option<String> {
     // Try version.mk
     let version_mk = path.join("version.mk");
     if version_mk.exists()
-        && let Ok(content) = std::fs::read_to_string(&version_mk) {
-            for line in content.lines() {
-                if (line.starts_with("NVIDIA_VERSION") || line.starts_with("VERSION"))
-                    && let Some(ver) = line.split('=').nth(1) {
-                        return Some(ver.trim().to_string());
-                    }
+        && let Ok(content) = std::fs::read_to_string(&version_mk)
+    {
+        for line in content.lines() {
+            if (line.starts_with("NVIDIA_VERSION") || line.starts_with("VERSION"))
+                && let Some(ver) = line.split('=').nth(1)
+            {
+                return Some(ver.trim().to_string());
             }
         }
+    }
 
     // Try git describe
     let output = Command::new("git")
@@ -267,10 +270,11 @@ pub fn get_installed_kernels(all_kernels: bool) -> Vec<String> {
     if !all_kernels {
         // Return only the running kernel
         if let Ok(output) = Command::new("uname").arg("-r").output()
-            && output.status.success() {
-                let kernel = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                return vec![kernel];
-            }
+            && output.status.success()
+        {
+            let kernel = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            return vec![kernel];
+        }
         return Vec::new();
     }
 
@@ -283,9 +287,10 @@ pub fn get_installed_kernels(all_kernels: bool) -> Vec<String> {
             if path.is_dir() {
                 // Check if this looks like a valid kernel directory
                 if (path.join("modules.dep").exists() || path.join("build").exists())
-                    && let Some(name) = path.file_name() {
-                        kernels.push(name.to_string_lossy().to_string());
-                    }
+                    && let Some(name) = path.file_name()
+                {
+                    kernels.push(name.to_string_lossy().to_string());
+                }
             }
         }
     }
@@ -430,9 +435,10 @@ fn install_via_dkms(source_path: &Path, target_kernel: &str, dry_run: bool) -> R
 
     // Ignore "already added" errors
     if let Ok(r) = result
-        && !r.success {
-            log::warn!("DKMS add returned non-zero (module may already be added)");
-        }
+        && !r.success
+    {
+        log::warn!("DKMS add returned non-zero (module may already be added)");
+    }
 
     // DKMS build
     println!("Building via DKMS for kernel {}...", target_kernel);

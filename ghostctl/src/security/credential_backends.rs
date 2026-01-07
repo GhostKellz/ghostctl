@@ -147,9 +147,10 @@ impl CredentialBackend for PassBackend {
             let entry = entry?;
             let path = entry.path();
             if path.extension().map(|e| e == "gpg").unwrap_or(false)
-                && let Some(stem) = path.file_stem() {
-                    keys.push(stem.to_string_lossy().to_string());
-                }
+                && let Some(stem) = path.file_stem()
+            {
+                keys.push(stem.to_string_lossy().to_string());
+            }
         }
 
         Ok(keys)
@@ -336,9 +337,10 @@ impl CredentialBackend for AgeBackend {
             let entry = entry?;
             let path = entry.path();
             if path.extension().map(|e| e == "age").unwrap_or(false)
-                && let Some(stem) = path.file_stem() {
-                    keys.push(stem.to_string_lossy().to_string());
-                }
+                && let Some(stem) = path.file_stem()
+            {
+                keys.push(stem.to_string_lossy().to_string());
+            }
         }
 
         Ok(keys)

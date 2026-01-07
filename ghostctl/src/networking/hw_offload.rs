@@ -231,17 +231,18 @@ pub fn get_recommendations(nic: &NicInfo) -> Vec<OffloadRecommendation> {
     if let Some(profile) = match_profile(nic) {
         for (setting, recommended) in &profile.recommended_offloads {
             if let Some(&current) = nic.current_offloads.get(*setting)
-                && current != *recommended {
-                    let state = if *recommended { "on" } else { "off" };
-                    recommendations.push(OffloadRecommendation {
-                        interface: nic.interface.clone(),
-                        setting: setting.to_string(),
-                        current,
-                        recommended: *recommended,
-                        reason: format!("Recommended {} for {} chipset", state, profile.family),
-                        command: format!("sudo ethtool -K {} {} {}", nic.interface, setting, state),
-                    });
-                }
+                && current != *recommended
+            {
+                let state = if *recommended { "on" } else { "off" };
+                recommendations.push(OffloadRecommendation {
+                    interface: nic.interface.clone(),
+                    setting: setting.to_string(),
+                    current,
+                    recommended: *recommended,
+                    reason: format!("Recommended {} for {} chipset", state, profile.family),
+                    command: format!("sudo ethtool -K {} {} {}", nic.interface, setting, state),
+                });
+            }
         }
     }
 

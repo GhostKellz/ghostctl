@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Select};
+use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn graphics_menu() {
@@ -136,19 +136,20 @@ fn install_nvidia_container_toolkit() {
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
         if let Ok(s) = helper_check
-            && s.success() {
-                let install_status = Command::new(helper)
-                    .args(&["-S", "--noconfirm", "nvidia-container-toolkit"])
-                    .status();
+            && s.success()
+        {
+            let install_status = Command::new(helper)
+                .args(&["-S", "--noconfirm", "nvidia-container-toolkit"])
+                .status();
 
-                match install_status {
-                    Ok(s) if s.success() => {
-                        println!("✅ NVIDIA Container Toolkit installed");
-                        return;
-                    }
-                    _ => println!("❌ Failed to install with {}", helper),
+            match install_status {
+                Ok(s) if s.success() => {
+                    println!("✅ NVIDIA Container Toolkit installed");
+                    return;
                 }
+                _ => println!("❌ Failed to install with {}", helper),
             }
+        }
     }
 
     println!("❌ No AUR helper found. Install yay first.");
@@ -285,19 +286,20 @@ fn install_amd_performance_tools() {
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
         if let Ok(s) = helper_check
-            && s.success() {
-                let install_status = Command::new(helper)
-                    .args(&["-S", "--noconfirm", "corectrl"])
-                    .status();
+            && s.success()
+        {
+            let install_status = Command::new(helper)
+                .args(&["-S", "--noconfirm", "corectrl"])
+                .status();
 
-                match install_status {
-                    Ok(s) if s.success() => {
-                        println!("  ✅ corectrl installed");
-                        return;
-                    }
-                    _ => continue,
+            match install_status {
+                Ok(s) if s.success() => {
+                    println!("  ✅ corectrl installed");
+                    return;
                 }
+                _ => continue,
             }
+        }
     }
     println!("  💡 corectrl available via AUR");
 }
@@ -307,8 +309,12 @@ fn amd_gpu_configuration() {
     println!("========================");
 
     println!("💡 AMD GPU optimizations:");
-    println!("  • Enable GPU scheduling: echo 'amdgpu.gpu_recovery=1' | sudo tee -a /etc/modprobe.d/amdgpu.conf");
-    println!("  • Force performance mode: echo 'performance' | sudo tee /sys/class/drm/card0/device/power_dpm_force_performance_level");
+    println!(
+        "  • Enable GPU scheduling: echo 'amdgpu.gpu_recovery=1' | sudo tee -a /etc/modprobe.d/amdgpu.conf"
+    );
+    println!(
+        "  • Force performance mode: echo 'performance' | sudo tee /sys/class/drm/card0/device/power_dpm_force_performance_level"
+    );
     println!("  • Configure fan curves with corectrl");
 
     let apply_optimizations = Confirm::new()

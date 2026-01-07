@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Input, Select};
+use dialoguer::{Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 /// Pure restic CLI wrapper functions

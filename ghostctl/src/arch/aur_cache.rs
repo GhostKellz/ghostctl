@@ -45,9 +45,10 @@ impl AurCache {
         let cache_path = Self::get_cache_path();
 
         if let Ok(content) = fs::read_to_string(&cache_path)
-            && let Ok(cache) = serde_json::from_str::<AurCache>(&content) {
-                return cache;
-            }
+            && let Ok(cache) = serde_json::from_str::<AurCache>(&content)
+        {
+            return cache;
+        }
 
         // Default TTL: 1 hour
         Self::new(3600)
@@ -71,9 +72,10 @@ impl AurCache {
 
     fn get(&self, package: &str) -> Option<AurPackageInfo> {
         if let Some(info) = self.packages.get(package)
-            && !self.is_expired(info.cached_at) {
-                return Some(info.clone());
-            }
+            && !self.is_expired(info.cached_at)
+        {
+            return Some(info.clone());
+        }
         None
     }
 
@@ -125,24 +127,25 @@ fn fetch_from_aur(package: &str) -> Option<AurPackageInfo> {
     let json: serde_json::Value = response.json().ok()?;
 
     if let Some(results) = json["results"].as_array()
-        && let Some(result) = results.first() {
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
+        && let Some(result) = results.first()
+    {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
 
-            return Some(AurPackageInfo {
-                name: result["Name"].as_str()?.to_string(),
-                version: result["Version"].as_str()?.to_string(),
-                description: result["Description"].as_str().map(|s| s.to_string()),
-                maintainer: result["Maintainer"].as_str().map(|s| s.to_string()),
-                url: result["URL"].as_str().map(|s| s.to_string()),
-                votes: result["NumVotes"].as_i64().unwrap_or(0) as i32,
-                popularity: result["Popularity"].as_f64().unwrap_or(0.0),
-                out_of_date: result["OutOfDate"].as_i64(),
-                cached_at: now,
-            });
-        }
+        return Some(AurPackageInfo {
+            name: result["Name"].as_str()?.to_string(),
+            version: result["Version"].as_str()?.to_string(),
+            description: result["Description"].as_str().map(|s| s.to_string()),
+            maintainer: result["Maintainer"].as_str().map(|s| s.to_string()),
+            url: result["URL"].as_str().map(|s| s.to_string()),
+            votes: result["NumVotes"].as_i64().unwrap_or(0) as i32,
+            popularity: result["Popularity"].as_f64().unwrap_or(0.0),
+            out_of_date: result["OutOfDate"].as_i64(),
+            cached_at: now,
+        });
+    }
 
     None
 }

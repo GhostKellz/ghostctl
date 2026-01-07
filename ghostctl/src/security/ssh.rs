@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -188,13 +188,15 @@ fn list_ssh_keys() -> Result<()> {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_file() && path.extension().is_none_or(|ext| ext != "pub")
-                && let Some(filename) = path.file_name() {
-                    let filename_str = filename.to_string_lossy();
-                    if filename_str.starts_with("id_") || filename_str.contains("key") {
-                        println!("  📄 {}", filename_str);
-                    }
+            if path.is_file()
+                && path.extension().is_none_or(|ext| ext != "pub")
+                && let Some(filename) = path.file_name()
+            {
+                let filename_str = filename.to_string_lossy();
+                if filename_str.starts_with("id_") || filename_str.contains("key") {
+                    println!("  📄 {}", filename_str);
                 }
+            }
         }
     }
 
@@ -203,18 +205,19 @@ fn list_ssh_keys() -> Result<()> {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().is_some_and(|ext| ext == "pub")
-                && let Some(filename) = path.file_name() {
-                    println!("  📄 {}", filename.to_string_lossy());
+                && let Some(filename) = path.file_name()
+            {
+                println!("  📄 {}", filename.to_string_lossy());
 
-                    // Show key fingerprint
-                    if let Ok(output) = Command::new("ssh-keygen")
-                        .args(&["-lf", path.to_str().unwrap()])
-                        .output()
-                    {
-                        let fingerprint = String::from_utf8_lossy(&output.stdout);
-                        println!("    🔍 {}", fingerprint.trim());
-                    }
+                // Show key fingerprint
+                if let Ok(output) = Command::new("ssh-keygen")
+                    .args(&["-lf", path.to_str().unwrap()])
+                    .output()
+                {
+                    let fingerprint = String::from_utf8_lossy(&output.stdout);
+                    println!("    🔍 {}", fingerprint.trim());
                 }
+            }
         }
     }
 
@@ -238,9 +241,10 @@ fn copy_public_key() -> Result<()> {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().is_some_and(|ext| ext == "pub")
-                && let Some(filename) = path.file_name() {
-                    pub_keys.push((filename.to_string_lossy().to_string(), path));
-                }
+                && let Some(filename) = path.file_name()
+            {
+                pub_keys.push((filename.to_string_lossy().to_string(), path));
+            }
         }
     }
 
@@ -279,14 +283,15 @@ fn copy_public_key() -> Result<()> {
                 }
 
                 if let Ok(mut child) = cmd.stdin(std::process::Stdio::piped()).spawn()
-                    && let Some(stdin) = child.stdin.take() {
-                        use std::io::Write;
-                        if writeln!(&stdin, "{}", content.trim()).is_ok() && child.wait().is_ok() {
-                            println!("✅ Public key copied to clipboard using {}", tool);
-                            copied = true;
-                            break;
-                        }
+                    && let Some(stdin) = child.stdin.take()
+                {
+                    use std::io::Write;
+                    if writeln!(&stdin, "{}", content.trim()).is_ok() && child.wait().is_ok() {
+                        println!("✅ Public key copied to clipboard using {}", tool);
+                        copied = true;
+                        break;
                     }
+                }
             }
         }
 
@@ -316,13 +321,15 @@ fn add_to_agent() {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_file() && path.extension().is_none_or(|ext| ext != "pub")
-                && let Some(filename) = path.file_name() {
-                    let filename_str = filename.to_string_lossy();
-                    if filename_str.starts_with("id_") || filename_str.contains("key") {
-                        private_keys.push((filename_str.to_string(), path));
-                    }
+            if path.is_file()
+                && path.extension().is_none_or(|ext| ext != "pub")
+                && let Some(filename) = path.file_name()
+            {
+                let filename_str = filename.to_string_lossy();
+                if filename_str.starts_with("id_") || filename_str.contains("key") {
+                    private_keys.push((filename_str.to_string(), path));
                 }
+            }
         }
     }
 
@@ -484,9 +491,10 @@ fn configure_key_auth() {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().is_some_and(|ext| ext == "pub")
-                && let Some(filename) = path.file_name() {
-                    pub_keys.push((filename.to_string_lossy().to_string(), path));
-                }
+                && let Some(filename) = path.file_name()
+            {
+                pub_keys.push((filename.to_string_lossy().to_string(), path));
+            }
         }
     }
 

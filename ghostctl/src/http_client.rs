@@ -6,8 +6,8 @@
 use crate::config::GhostConfig;
 use crate::logging::GhostLogger;
 use anyhow::{Context, Result};
-use reqwest::blocking::{Client, Response};
 use reqwest::StatusCode;
+use reqwest::blocking::{Client, Response};
 use std::thread;
 use std::time::Duration;
 
@@ -125,14 +125,14 @@ impl RobustHttpClient {
                     if let Some(status) = extract_status_code(&e)
                         && (status == StatusCode::FORBIDDEN
                             || status == StatusCode::TOO_MANY_REQUESTS)
-                        {
-                            GhostLogger::log_action(
-                                "http_rate_limited",
-                                false,
-                                Some(&format!("url:{} status:{}", url, status.as_u16())),
-                            );
-                            break; // Skip remaining retries, try fallback
-                        }
+                    {
+                        GhostLogger::log_action(
+                            "http_rate_limited",
+                            false,
+                            Some(&format!("url:{} status:{}", url, status.as_u16())),
+                        );
+                        break; // Skip remaining retries, try fallback
+                    }
                     last_error = Some(e);
                 }
             }
@@ -140,9 +140,10 @@ impl RobustHttpClient {
 
         // Try fallback mirrors if this is a GitHub URL
         if is_github_url(url)
-            && let Some(content) = self.try_fallback_mirrors(url) {
-                return Ok(content);
-            }
+            && let Some(content) = self.try_fallback_mirrors(url)
+        {
+            return Ok(content);
+        }
 
         Err(last_error.unwrap_or_else(|| anyhow::anyhow!("Failed to fetch URL after all retries")))
     }

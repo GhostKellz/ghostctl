@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect, Select};
+use dialoguer::{Confirm, MultiSelect, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn cleanup_menu() {
@@ -370,9 +370,10 @@ fn image_cleanup() {
                     // Parse and remove large images
                     for line in images.lines().skip(1) {
                         if (line.contains("GB") || (line.contains("MB") && !line.contains("MB")))
-                            && let Some(image) = line.split_whitespace().next() {
-                                let _ = Command::new("docker").args(&["rmi", "-f", image]).status();
-                            }
+                            && let Some(image) = line.split_whitespace().next()
+                        {
+                            let _ = Command::new("docker").args(&["rmi", "-f", image]).status();
+                        }
                     }
                     println!("✅ Removed large images");
                 }

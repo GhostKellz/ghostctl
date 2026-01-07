@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn performance_menu() {
@@ -122,7 +122,9 @@ fn enable_gamemode() {
                             .args(&["usermod", "-a", "-G", "gamemode", &username])
                             .status();
 
-                        println!("💡 You may need to log out and back in for group membership to take effect");
+                        println!(
+                            "💡 You may need to log out and back in for group membership to take effect"
+                        );
                         println!("🎮 Use: gamemoderun <game_command> to run games with GameMode");
                     }
                     _ => println!("❌ Failed to install GameMode"),
@@ -1574,21 +1576,22 @@ fn install_corectrl() {
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
         if let Ok(s) = helper_check
-            && s.success() {
-                println!("🔧 Using {} to install CoreCtrl...", helper);
-                let install_status = Command::new(helper)
-                    .args(&["-S", "--noconfirm", "corectrl"])
-                    .status();
+            && s.success()
+        {
+            println!("🔧 Using {} to install CoreCtrl...", helper);
+            let install_status = Command::new(helper)
+                .args(&["-S", "--noconfirm", "corectrl"])
+                .status();
 
-                match install_status {
-                    Ok(s) if s.success() => {
-                        println!("✅ CoreCtrl installed successfully!");
-                        println!("💡 Launch CoreCtrl to configure your AMD GPU");
-                        return;
-                    }
-                    _ => println!("❌ Failed to install with {}", helper),
+            match install_status {
+                Ok(s) if s.success() => {
+                    println!("✅ CoreCtrl installed successfully!");
+                    println!("💡 Launch CoreCtrl to configure your AMD GPU");
+                    return;
                 }
+                _ => println!("❌ Failed to install with {}", helper),
             }
+        }
     }
 
     println!("❌ No AUR helper found. Install yay first:");
@@ -1960,14 +1963,16 @@ fn thermal_throttling_analysis() {
     let thermal_zones = std::fs::read_dir("/sys/class/thermal/").map(|entries| {
         for entry in entries.flatten() {
             if let Some(name) = entry.file_name().to_str()
-                && name.starts_with("thermal_zone") {
-                    let temp_path = entry.path().join("temp");
-                    if let Ok(temp) = std::fs::read_to_string(&temp_path)
-                        && let Ok(temp_millic) = temp.trim().parse::<i32>() {
-                            let temp_c = temp_millic / 1000;
-                            println!("  {}: {}°C", name, temp_c);
-                        }
+                && name.starts_with("thermal_zone")
+            {
+                let temp_path = entry.path().join("temp");
+                if let Ok(temp) = std::fs::read_to_string(&temp_path)
+                    && let Ok(temp_millic) = temp.trim().parse::<i32>()
+                {
+                    let temp_c = temp_millic / 1000;
+                    println!("  {}: {}°C", name, temp_c);
                 }
+            }
         }
     });
 
@@ -2446,10 +2451,11 @@ fn local_network_test() {
     if let Ok(output) = gateway_result {
         let gateway_info = String::from_utf8_lossy(&output.stdout);
         if let Some(line) = gateway_info.lines().next()
-            && let Some(gateway_ip) = line.split_whitespace().nth(2) {
-                println!("🎯 Testing latency to gateway ({})...", gateway_ip);
-                let _ = Command::new("ping").args(&["-c", "5", gateway_ip]).status();
-            }
+            && let Some(gateway_ip) = line.split_whitespace().nth(2)
+        {
+            println!("🎯 Testing latency to gateway ({})...", gateway_ip);
+            let _ = Command::new("ping").args(&["-c", "5", gateway_ip]).status();
+        }
     }
 }
 
@@ -3412,12 +3418,16 @@ fn generate_performance_recommendations() {
         if let Some(mem_line) = free_info.lines().nth(1) {
             let parts: Vec<&str> = mem_line.split_whitespace().collect();
             if parts.len() >= 3
-                && let (Ok(total), Ok(used)) = (parts[1].parse::<u64>(), parts[2].parse::<u64>()) {
-                    let usage_percent = (used * 100) / total;
-                    if usage_percent > 80 {
-                        println!("  💾 High memory usage ({}%) - consider closing background applications", usage_percent);
-                    }
+                && let (Ok(total), Ok(used)) = (parts[1].parse::<u64>(), parts[2].parse::<u64>())
+            {
+                let usage_percent = (used * 100) / total;
+                if usage_percent > 80 {
+                    println!(
+                        "  💾 High memory usage ({}%) - consider closing background applications",
+                        usage_percent
+                    );
                 }
+            }
         }
     }
 

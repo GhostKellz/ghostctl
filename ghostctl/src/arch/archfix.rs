@@ -1,6 +1,6 @@
 use super::diagnostics::SystemDiagnostics;
-use dialoguer::theme::ColorfulTheme;
 use dialoguer::Select;
+use dialoguer::theme::ColorfulTheme;
 
 #[allow(dead_code)]
 pub fn fix_pacman() {
@@ -169,9 +169,10 @@ pub fn pkgfix() {
             .args(&["-sb", dir])
             .output()
             && let Ok(size_str) = String::from_utf8(output.stdout)
-                && let Some(size) = size_str.split_whitespace().next() {
-                    total_size += size.parse::<u64>().unwrap_or(0);
-                }
+            && let Some(size) = size_str.split_whitespace().next()
+        {
+            total_size += size.parse::<u64>().unwrap_or(0);
+        }
     }
 
     println!("  🗂️  Found {} build director(ies):", found_dirs.len());

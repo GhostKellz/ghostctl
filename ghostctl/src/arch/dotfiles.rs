@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Input, MultiSelect, Select};
+use dialoguer::{Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -70,9 +70,11 @@ pub fn find_dotfiles() {
             let path = entry.path();
             if let Some(name) = path.file_name()
                 && let Some(name_str) = name.to_str()
-                    && name_str.starts_with('.') && path.is_dir() {
-                        dotfiles.push(path.display().to_string());
-                    }
+                && name_str.starts_with('.')
+                && path.is_dir()
+            {
+                dotfiles.push(path.display().to_string());
+            }
         }
     }
 
@@ -292,25 +294,26 @@ pub fn sync_dotfiles() {
         .output();
 
     if let Ok(output) = output
-        && output.stdout.is_empty() {
-            println!("⚠️  No remote repository configured.");
-            let add_remote = dialoguer::Confirm::with_theme(&ColorfulTheme::default())
-                .with_prompt("Would you like to add a remote?")
+        && output.stdout.is_empty()
+    {
+        println!("⚠️  No remote repository configured.");
+        let add_remote = dialoguer::Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Would you like to add a remote?")
+            .interact()
+            .unwrap();
+
+        if add_remote {
+            let remote_url: String = Input::with_theme(&ColorfulTheme::default())
+                .with_prompt("Remote URL (e.g., git@github.com:username/dotfiles.git)")
                 .interact()
                 .unwrap();
 
-            if add_remote {
-                let remote_url: String = Input::with_theme(&ColorfulTheme::default())
-                    .with_prompt("Remote URL (e.g., git@github.com:username/dotfiles.git)")
-                    .interact()
-                    .unwrap();
-
-                let _ = Command::new("git")
-                    .current_dir(&dotfiles_dir)
-                    .args(["remote", "add", "origin", &remote_url])
-                    .status();
-            }
+            let _ = Command::new("git")
+                .current_dir(&dotfiles_dir)
+                .args(["remote", "add", "origin", &remote_url])
+                .status();
         }
+    }
 
     // Pull latest changes
     println!("⬇️  Pulling latest changes...");

@@ -107,17 +107,18 @@ pub fn parse_broken_packages(output: &str) -> Vec<String> {
             // Extract package name from warning lines
             // Format: "warning: package: file (reason)"
             if let Some(rest) = line.strip_prefix("warning: ")
-                && let Some(pkg_end) = rest.find(':') {
-                    let package = rest[..pkg_end].trim();
-                    if !broken_packages.contains(&package.to_string()) {
-                        // Only add if not from permission errors
-                        let is_permission_error = line.contains("Permission denied")
-                            || line.contains("failed to calculate SHA256");
-                        if !is_permission_error {
-                            broken_packages.push(package.to_string());
-                        }
+                && let Some(pkg_end) = rest.find(':')
+            {
+                let package = rest[..pkg_end].trim();
+                if !broken_packages.contains(&package.to_string()) {
+                    // Only add if not from permission errors
+                    let is_permission_error = line.contains("Permission denied")
+                        || line.contains("failed to calculate SHA256");
+                    if !is_permission_error {
+                        broken_packages.push(package.to_string());
                     }
                 }
+            }
         }
     }
 

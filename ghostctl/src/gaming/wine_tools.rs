@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -117,9 +117,10 @@ fn automatic_dependency_resolution() {
         let result = String::from_utf8_lossy(&out.stdout);
         for line in result.lines() {
             if line.contains("not found")
-                && let Some(dll) = line.split_whitespace().next() {
-                    missing_dlls.push(dll.to_string());
-                }
+                && let Some(dll) = line.split_whitespace().next()
+            {
+                missing_dlls.push(dll.to_string());
+            }
         }
     }
 
@@ -139,9 +140,10 @@ fn automatic_dependency_resolution() {
 
     for dll in &missing_dlls {
         if let Some(package) = dll_packages.get(dll.as_str())
-            && !packages_to_install.contains(package) {
-                packages_to_install.push(package.clone());
-            }
+            && !packages_to_install.contains(package)
+        {
+            packages_to_install.push(package.clone());
+        }
     }
 
     if !packages_to_install.is_empty() {
@@ -1103,14 +1105,15 @@ fn dependency_analyzer() {
     println!("\n📋 .NET Framework:");
     let dotnet_key = format!("{}/drive_c/windows/Microsoft.NET/Framework", wine_prefix);
     if Path::new(&dotnet_key).exists()
-        && let Ok(entries) = fs::read_dir(&dotnet_key) {
-            for entry in entries.flatten() {
-                let name = entry.file_name().to_string_lossy().to_string();
-                if name.starts_with("v") {
-                    println!("  ✅ .NET {}", name);
-                }
+        && let Ok(entries) = fs::read_dir(&dotnet_key)
+    {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with("v") {
+                println!("  ✅ .NET {}", name);
             }
         }
+    }
 
     // Check fonts
     println!("\n📋 Fonts:");
@@ -1364,10 +1367,11 @@ fn clone_wine_bottle() {
             // Update metadata
             let metadata_path = format!("{}/bottle.json", dest_path);
             if Path::new(&metadata_path).exists()
-                && let Ok(mut content) = fs::read_to_string(&metadata_path) {
-                    content = content.replace(&source_name, &dest_name);
-                    fs::write(&metadata_path, content).ok();
-                }
+                && let Ok(mut content) = fs::read_to_string(&metadata_path)
+            {
+                content = content.replace(&source_name, &dest_name);
+                fs::write(&metadata_path, content).ok();
+            }
         }
         _ => println!("❌ Failed to clone bottle"),
     }

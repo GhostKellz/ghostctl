@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -533,9 +533,10 @@ fn list_available_profiles() {
         println!("🗂️  Saved profiles:");
         for entry in entries.flatten() {
             if let Some(name) = entry.file_name().to_str()
-                && name.ends_with(".json") {
-                    println!("   📄 {}", name.strip_suffix(".json").unwrap());
-                }
+                && name.ends_with(".json")
+            {
+                println!("   📄 {}", name.strip_suffix(".json").unwrap());
+            }
         }
     } else {
         println!("📁 No profiles found. Create your first profile!");
@@ -678,21 +679,22 @@ fn apply_profile() {
     }
 
     if let Ok(content) = fs::read_to_string(&profile_path)
-        && let Ok(profile) = serde_json::from_str::<FirewallProfile>(&content) {
-            println!("📋 Profile: {}", profile.name);
-            println!("📝 Description: {}", profile.description);
-            println!("🔒 Default Policy: {}", profile.default_policy);
-            println!("📊 Rules: {}", profile.rules.len());
+        && let Ok(profile) = serde_json::from_str::<FirewallProfile>(&content)
+    {
+        println!("📋 Profile: {}", profile.name);
+        println!("📝 Description: {}", profile.description);
+        println!("🔒 Default Policy: {}", profile.default_policy);
+        println!("📊 Rules: {}", profile.rules.len());
 
-            if Confirm::new()
-                .with_prompt("Apply this profile?")
-                .default(false)
-                .interact()
-                .unwrap()
-            {
-                apply_profile_rules(&profile);
-            }
+        if Confirm::new()
+            .with_prompt("Apply this profile?")
+            .default(false)
+            .interact()
+            .unwrap()
+        {
+            apply_profile_rules(&profile);
         }
+    }
 }
 
 fn apply_profile_rules(profile: &FirewallProfile) {

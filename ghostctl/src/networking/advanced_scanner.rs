@@ -284,9 +284,10 @@ impl NetworkRange {
         for exclude_range in &self.exclude_ranges {
             if let Ok(exclude_net) = exclude_range.parse::<Ipv4Net>()
                 && let IpAddr::V4(ipv4) = ip
-                    && exclude_net.contains(&ipv4) {
-                        return true;
-                    }
+                && exclude_net.contains(&ipv4)
+            {
+                return true;
+            }
         }
         false
     }
@@ -466,17 +467,19 @@ async fn send_probe_and_analyze(
 
 fn extract_version(captures: &regex::Captures, extract_pattern: &Option<String>) -> Option<String> {
     if let Some(pattern) = extract_pattern
-        && let Some(version_match) = captures.get(1) {
-            return Some(version_match.as_str().to_string());
-        }
+        && let Some(version_match) = captures.get(1)
+    {
+        return Some(version_match.as_str().to_string());
+    }
     None
 }
 
 fn extract_product(captures: &regex::Captures, extract_pattern: &Option<String>) -> Option<String> {
     if let Some(pattern) = extract_pattern
-        && let Some(product_match) = captures.get(2) {
-            return Some(product_match.as_str().to_string());
-        }
+        && let Some(product_match) = captures.get(2)
+    {
+        return Some(product_match.as_str().to_string());
+    }
     None
 }
 
@@ -495,20 +498,21 @@ fn analyze_banner_for_service(banner: &str, port: u16) -> Option<ServiceInfo> {
 
     for (pattern, service) in &patterns {
         if let Ok(regex) = Regex::new(pattern)
-            && let Some(captures) = regex.captures(banner) {
-                return Some(ServiceInfo {
-                    name: service.to_string(),
-                    version: captures.get(1).map(|m| m.as_str().to_string()),
-                    product: None,
-                    extrainfo: None,
-                    hostname: None,
-                    ostype: None,
-                    confidence: 0.8,
-                    cpe: vec![],
-                    banner: Some(banner.to_string()),
-                    ssl_info: None,
-                });
-            }
+            && let Some(captures) = regex.captures(banner)
+        {
+            return Some(ServiceInfo {
+                name: service.to_string(),
+                version: captures.get(1).map(|m| m.as_str().to_string()),
+                product: None,
+                extrainfo: None,
+                hostname: None,
+                ostype: None,
+                confidence: 0.8,
+                cpe: vec![],
+                banner: Some(banner.to_string()),
+                ssl_info: None,
+            });
+        }
     }
 
     None

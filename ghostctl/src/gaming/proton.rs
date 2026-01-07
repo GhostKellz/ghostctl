@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -526,12 +526,13 @@ fn install_wine_ge() {
             let status = Command::new("sh").arg("-c").arg(download_cmd).status();
 
             if let Ok(s) = status
-                && s.success() {
-                    println!("📂 Installing Wine-GE...");
-                    let install_cmd = "mkdir -p ~/.local/share/lutris/runners/wine && cd ~/.local/share/lutris/runners/wine && tar -xf /tmp/wine-lutris-GE-Proton8-26-x86_64.tar.xz";
-                    Command::new("sh").arg("-c").arg(install_cmd).status().ok();
-                    println!("✅ Wine-GE installed");
-                }
+                && s.success()
+            {
+                println!("📂 Installing Wine-GE...");
+                let install_cmd = "mkdir -p ~/.local/share/lutris/runners/wine && cd ~/.local/share/lutris/runners/wine && tar -xf /tmp/wine-lutris-GE-Proton8-26-x86_64.tar.xz";
+                Command::new("sh").arg("-c").arg(install_cmd).status().ok();
+                println!("✅ Wine-GE installed");
+            }
         }
         _ => {}
     }
@@ -553,7 +554,9 @@ fn install_wine_dependencies() {
         .unwrap();
 
     let cmd = match distro {
-        0 => "sudo pacman -S wine-staging winetricks wine-mono wine-gecko lib32-gnutls lib32-libldap lib32-libgpg-error lib32-sqlite lib32-libpulse lib32-alsa-lib",
+        0 => {
+            "sudo pacman -S wine-staging winetricks wine-mono wine-gecko lib32-gnutls lib32-libldap lib32-libgpg-error lib32-sqlite lib32-libpulse lib32-alsa-lib"
+        }
         1 => "sudo apt install wine64 wine32 winetricks winbind",
         2 => "sudo dnf install wine winetricks wine-mono wine-gecko",
         _ => {
@@ -682,8 +685,10 @@ fn dll_overrides_management() {
 
             let mode_str = ["native", "builtin", "native,builtin", "builtin,native", ""][mode];
 
-            let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides' /v {} /d {} /f",
-                            wine_prefix, dll, mode_str);
+            let cmd = format!(
+                "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides' /v {} /d {} /f",
+                wine_prefix, dll, mode_str
+            );
 
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
             println!("✅ DLL override added: {} = {}", dll, mode_str);
@@ -694,8 +699,10 @@ fn dll_overrides_management() {
                 .interact()
                 .unwrap();
 
-            let cmd = format!("WINEPREFIX={} wine reg delete 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides' /v {} /f",
-                            wine_prefix, dll);
+            let cmd = format!(
+                "WINEPREFIX={} wine reg delete 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides' /v {} /f",
+                wine_prefix, dll
+            );
 
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
             println!("✅ DLL override removed: {}", dll);
@@ -722,8 +729,10 @@ fn dll_overrides_management() {
             ];
 
             for (dll, mode) in &overrides {
-                let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides' /v {} /d {} /f",
-                                wine_prefix, dll, mode);
+                let cmd = format!(
+                    "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides' /v {} /d {} /f",
+                    wine_prefix, dll, mode
+                );
                 Command::new("sh").arg("-c").arg(&cmd).status().ok();
                 println!("  ✅ {} = {}", dll, mode);
             }
@@ -750,7 +759,10 @@ fn configure_wine_gaming() {
 
     // Enable CSMT
     println!("  Enabling CSMT (Command Stream Multi-Threading)...");
-    let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D' /v csmt /t REG_DWORD /d 1 /f", wine_prefix);
+    let cmd = format!(
+        "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D' /v csmt /t REG_DWORD /d 1 /f",
+        wine_prefix
+    );
     Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
     // Large address aware
@@ -792,8 +804,10 @@ fn audio_configuration() {
     };
 
     if !driver.is_empty() {
-        let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Drivers' /v Audio /d {} /f",
-                        wine_prefix, driver);
+        let cmd = format!(
+            "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Drivers' /v Audio /d {} /f",
+            wine_prefix, driver
+        );
         Command::new("sh").arg("-c").arg(&cmd).status().ok();
         println!("✅ Audio system set to: {}", driver);
     }
@@ -805,8 +819,10 @@ fn audio_configuration() {
         .interact()
         .unwrap();
 
-    let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\DirectSound' /v DefaultSampleRate /t REG_DWORD /d {} /f",
-                    wine_prefix, sample_rate);
+    let cmd = format!(
+        "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\DirectSound' /v DefaultSampleRate /t REG_DWORD /d {} /f",
+        wine_prefix, sample_rate
+    );
     Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
     println!("✅ Audio configuration updated");
@@ -866,8 +882,10 @@ fn display_settings() {
                 .interact()
                 .unwrap();
 
-            let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Control Panel\\Desktop' /v LogPixels /t REG_DWORD /d {} /f",
-                            wine_prefix, dpi);
+            let cmd = format!(
+                "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Control Panel\\Desktop' /v LogPixels /t REG_DWORD /d {} /f",
+                wine_prefix, dpi
+            );
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
             println!("✅ DPI set to: {}", dpi);
         }
@@ -879,7 +897,10 @@ fn display_settings() {
                 .unwrap();
 
             if disable {
-                let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver' /v Decorated /d N /f", wine_prefix);
+                let cmd = format!(
+                    "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\X11 Driver' /v Decorated /d N /f",
+                    wine_prefix
+                );
                 Command::new("sh").arg("-c").arg(&cmd).status().ok();
                 println!("✅ Window decorations disabled");
             }
@@ -1042,7 +1063,10 @@ fn common_game_fixes() {
             unsafe { std::env::set_var("DXVK_NVAPI_DRIVER_VERSION", "0") };
             println!("  Setting windowed mode...");
             println!("  Disabling fullscreen optimizations...");
-            let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D' /v ForceWindowedMode /t REG_DWORD /d 1 /f", wine_prefix);
+            let cmd = format!(
+                "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D' /v ForceWindowedMode /t REG_DWORD /d 1 /f",
+                wine_prefix
+            );
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
             println!("✅ Black screen fixes applied");
         }
@@ -1060,7 +1084,10 @@ fn common_game_fixes() {
             println!("  Setting pulse latency...");
             unsafe { std::env::set_var("PULSE_LATENCY_MSEC", "60") };
             println!("  Configuring sample rate...");
-            let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\DirectSound' /v HelBuflen /t REG_DWORD /d 512 /f", wine_prefix);
+            let cmd = format!(
+                "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\DirectSound' /v HelBuflen /t REG_DWORD /d 512 /f",
+                wine_prefix
+            );
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
             println!("✅ Audio fixes applied");
         }
@@ -1074,7 +1101,10 @@ fn common_game_fixes() {
         4 => {
             println!("🌐 Fixing multiplayer connection...");
             println!("  Configuring network settings...");
-            let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Services\\Tcpip\\Parameters' /v TcpTimedWaitDelay /t REG_DWORD /d 30 /f", wine_prefix);
+            let cmd = format!(
+                "WINEPREFIX={} wine reg add 'HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Services\\Tcpip\\Parameters' /v TcpTimedWaitDelay /t REG_DWORD /d 30 /f",
+                wine_prefix
+            );
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
             println!("✅ Network fixes applied");
         }

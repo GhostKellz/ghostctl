@@ -3,7 +3,7 @@ pub mod config;
 pub mod proxy;
 pub mod ssl;
 
-use dialoguer::{theme::ColorfulTheme, Confirm, Select};
+use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn nginx_menu() {

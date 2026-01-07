@@ -51,9 +51,10 @@ pub fn arch_menu() {
             1 => {
                 if let Some(target) =
                     tui::input("Enter target to fix (pacman/orphans/mirrors/all)", None)
-                    && !target.is_empty() {
-                        fix_target(&target);
-                    }
+                    && !target.is_empty()
+                {
+                    fix_target(&target);
+                }
             }
             2 => archfix::tui_menu(),
             3 => recovery::recovery_menu(),
@@ -250,21 +251,23 @@ pub fn fix_gpg_keys() {
     // Step 1: Try refreshing keys first (least destructive)
     tui::status("📡", "Attempting to refresh keys from keyserver...");
     if let Ok(result) = sudo_run("pacman-key", &["--refresh-keys"])
-        && result.success {
-            tui::success("Keys refreshed successfully from keyserver");
-            return;
-        }
+        && result.success
+    {
+        tui::success("Keys refreshed successfully from keyserver");
+        return;
+    }
     tui::warn("Key refresh failed, trying keyring reinstall...");
 
     // Step 2: Try reinstalling archlinux-keyring
     tui::status("📦", "Reinstalling archlinux-keyring...");
     if let Ok(result) = sudo_run_interactive("pacman", &["-S", "--noconfirm", "archlinux-keyring"])
-        && result.success {
-            tui::success("Keyring reinstalled successfully");
-            // Try refresh again after reinstall
-            let _ = sudo_run("pacman-key", &["--populate", "archlinux"]);
-            return;
-        }
+        && result.success
+    {
+        tui::success("Keyring reinstalled successfully");
+        // Try refresh again after reinstall
+        let _ = sudo_run("pacman-key", &["--populate", "archlinux"]);
+        return;
+    }
     tui::warn("Keyring reinstall failed, full reset required...");
 
     // Step 3: Full keyring reset (most destructive - requires confirmation)
@@ -293,14 +296,15 @@ pub fn fix_gpg_keys() {
     // Initialize new keyring
     tui::status("🔧", "Initializing new keyring...");
     if let Ok(result) = sudo_run("pacman-key", &["--init"])
-        && !result.success {
-            tui::error("Failed to initialize keyring");
-            tui::info(&format!(
-                "You can restore from backup: sudo cp -a {} /etc/pacman.d/gnupg",
-                backup_path
-            ));
-            return;
-        }
+        && !result.success
+    {
+        tui::error("Failed to initialize keyring");
+        tui::info(&format!(
+            "You can restore from backup: sudo cp -a {} /etc/pacman.d/gnupg",
+            backup_path
+        ));
+        return;
+    }
 
     // Populate keyring
     tui::status("📥", "Populating keyring...");

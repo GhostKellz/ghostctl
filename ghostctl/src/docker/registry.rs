@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::fs;
 use std::process::Command;
 
@@ -547,49 +547,50 @@ fn remove_mirror() {
         fs::read_to_string("/etc/docker/daemon.json").unwrap_or_else(|_| "{}".to_string());
 
     if let Ok(config) = serde_json::from_str::<serde_json::Value>(&current_config)
-        && let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array()) {
-            let mirror_strings: Vec<String> = mirrors
-                .iter()
-                .filter_map(|m| m.as_str().map(String::from))
-                .collect();
+        && let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array())
+    {
+        let mirror_strings: Vec<String> = mirrors
+            .iter()
+            .filter_map(|m| m.as_str().map(String::from))
+            .collect();
 
-            if mirror_strings.is_empty() {
-                println!("No mirrors configured");
-                return;
-            }
-
-            let mirrors_to_remove = MultiSelect::with_theme(&ColorfulTheme::default())
-                .with_prompt("Select mirrors to remove")
-                .items(&mirror_strings)
-                .interact()
-                .unwrap();
-
-            // Remove selected mirrors
-            let mut remaining_mirrors = mirror_strings;
-            for &idx in mirrors_to_remove.iter().rev() {
-                remaining_mirrors.remove(idx);
-            }
-
-            // Update config
-            let mut new_config = config.as_object().unwrap().clone();
-            new_config.insert(
-                "registry-mirrors".to_string(),
-                serde_json::Value::Array(
-                    remaining_mirrors
-                        .into_iter()
-                        .map(serde_json::Value::String)
-                        .collect(),
-                ),
-            );
-
-            fs::write(
-                "/etc/docker/daemon.json",
-                serde_json::to_string_pretty(&serde_json::Value::Object(new_config)).unwrap(),
-            )
-            .ok();
-            println!("✅ Mirrors removed!");
-            restart_docker_daemon();
+        if mirror_strings.is_empty() {
+            println!("No mirrors configured");
+            return;
         }
+
+        let mirrors_to_remove = MultiSelect::with_theme(&ColorfulTheme::default())
+            .with_prompt("Select mirrors to remove")
+            .items(&mirror_strings)
+            .interact()
+            .unwrap();
+
+        // Remove selected mirrors
+        let mut remaining_mirrors = mirror_strings;
+        for &idx in mirrors_to_remove.iter().rev() {
+            remaining_mirrors.remove(idx);
+        }
+
+        // Update config
+        let mut new_config = config.as_object().unwrap().clone();
+        new_config.insert(
+            "registry-mirrors".to_string(),
+            serde_json::Value::Array(
+                remaining_mirrors
+                    .into_iter()
+                    .map(serde_json::Value::String)
+                    .collect(),
+            ),
+        );
+
+        fs::write(
+            "/etc/docker/daemon.json",
+            serde_json::to_string_pretty(&serde_json::Value::Object(new_config)).unwrap(),
+        )
+        .ok();
+        println!("✅ Mirrors removed!");
+        restart_docker_daemon();
+    }
 }
 
 fn show_mirror_status() {
@@ -604,33 +605,34 @@ fn show_mirror_status() {
 
     // Test mirror connectivity
     if let Ok(config) = serde_json::from_str::<serde_json::Value>(&current_config)
-        && let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array()) {
-            println!("\n🔍 Testing mirror connectivity:");
-            for mirror in mirrors {
-                if let Some(mirror_url) = mirror.as_str() {
-                    println!("Testing {}...", mirror_url);
-                    let result = Command::new("curl")
-                        .args(&[
-                            "-s",
-                            "-o",
-                            "/dev/null",
-                            "-w",
-                            "%{http_code}",
-                            &format!("{}/v2/", mirror_url),
-                        ])
-                        .output();
+        && let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array())
+    {
+        println!("\n🔍 Testing mirror connectivity:");
+        for mirror in mirrors {
+            if let Some(mirror_url) = mirror.as_str() {
+                println!("Testing {}...", mirror_url);
+                let result = Command::new("curl")
+                    .args(&[
+                        "-s",
+                        "-o",
+                        "/dev/null",
+                        "-w",
+                        "%{http_code}",
+                        &format!("{}/v2/", mirror_url),
+                    ])
+                    .output();
 
-                    if let Ok(output) = result {
-                        let status_code = String::from_utf8_lossy(&output.stdout);
-                        if status_code == "200" || status_code == "401" {
-                            println!("  ✅ {} - Healthy", mirror_url);
-                        } else {
-                            println!("  ❌ {} - Unhealthy (HTTP {})", mirror_url, status_code);
-                        }
+                if let Ok(output) = result {
+                    let status_code = String::from_utf8_lossy(&output.stdout);
+                    if status_code == "200" || status_code == "401" {
+                        println!("  ✅ {} - Healthy", mirror_url);
+                    } else {
+                        println!("  ❌ {} - Unhealthy (HTTP {})", mirror_url, status_code);
                     }
                 }
             }
         }
+    }
 
     // Show Docker info
     println!("\n🐳 Docker daemon info:");
@@ -1351,37 +1353,38 @@ fn registry_health_check() {
         fs::read_to_string("/etc/docker/daemon.json").unwrap_or_else(|_| "{}".to_string());
 
     if let Ok(config) = serde_json::from_str::<serde_json::Value>(&current_config)
-        && let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array()) {
-            println!("\n🪞 Mirror health check:");
-            for mirror in mirrors {
-                if let Some(mirror_url) = mirror.as_str() {
-                    print!("Checking {}... ", mirror_url);
-                    let result = Command::new("curl")
-                        .args(&[
-                            "-s",
-                            "-o",
-                            "/dev/null",
-                            "-w",
-                            "%{http_code}",
-                            "--max-time",
-                            "10",
-                            &format!("{}/v2/", mirror_url),
-                        ])
-                        .output();
+        && let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array())
+    {
+        println!("\n🪞 Mirror health check:");
+        for mirror in mirrors {
+            if let Some(mirror_url) = mirror.as_str() {
+                print!("Checking {}... ", mirror_url);
+                let result = Command::new("curl")
+                    .args(&[
+                        "-s",
+                        "-o",
+                        "/dev/null",
+                        "-w",
+                        "%{http_code}",
+                        "--max-time",
+                        "10",
+                        &format!("{}/v2/", mirror_url),
+                    ])
+                    .output();
 
-                    if let Ok(output) = result {
-                        let status_code = String::from_utf8_lossy(&output.stdout);
-                        match status_code.as_ref() {
-                            "200" | "401" => println!("✅ Healthy"),
-                            "000" => println!("❌ Timeout/Connection failed"),
-                            _ => println!("⚠️  HTTP {}", status_code),
-                        }
-                    } else {
-                        println!("❌ Test failed");
+                if let Ok(output) = result {
+                    let status_code = String::from_utf8_lossy(&output.stdout);
+                    match status_code.as_ref() {
+                        "200" | "401" => println!("✅ Healthy"),
+                        "000" => println!("❌ Timeout/Connection failed"),
+                        _ => println!("⚠️  HTTP {}", status_code),
                     }
+                } else {
+                    println!("❌ Test failed");
                 }
             }
         }
+    }
 
     // Test Docker pull
     println!("\n🧪 Testing Docker pull performance:");

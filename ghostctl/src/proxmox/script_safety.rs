@@ -1,7 +1,7 @@
 use crate::http_client::RobustHttpClient;
 use crate::logging::GhostLogger;
 use anyhow::{Context, Result};
-use dialoguer::{theme::ColorfulTheme, Confirm, Select};
+use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs;
@@ -115,15 +115,16 @@ impl SafeScriptExecutor {
     pub fn fetch_script(&self, url: &str) -> Result<String> {
         // Check cache first
         if self.config.cache_scripts
-            && let Some(cached) = self.get_cached_script(url) {
-                println!("  Using cached script (cached at {})", cached.cached_at);
-                GhostLogger::log_action(
-                    "script_fetch",
-                    true,
-                    Some(&format!("cached: {} sha256:{}", url, cached.sha256)),
-                );
-                return Ok(cached.content);
-            }
+            && let Some(cached) = self.get_cached_script(url)
+        {
+            println!("  Using cached script (cached at {})", cached.cached_at);
+            GhostLogger::log_action(
+                "script_fetch",
+                true,
+                Some(&format!("cached: {} sha256:{}", url, cached.sha256)),
+            );
+            return Ok(cached.content);
+        }
 
         println!("  Fetching script from: {}", url);
 
@@ -479,17 +480,18 @@ impl SafeScriptExecutor {
 
         // Check cache age (expire after 1 hour)
         if let Ok(metadata) = fs::metadata(&cache_file)
-            && let Ok(modified) = metadata.modified() {
-                let age = std::time::SystemTime::now()
-                    .duration_since(modified)
-                    .unwrap_or_default();
+            && let Ok(modified) = metadata.modified()
+        {
+            let age = std::time::SystemTime::now()
+                .duration_since(modified)
+                .unwrap_or_default();
 
-                if age.as_secs() > 3600 {
-                    // Cache expired
-                    let _ = fs::remove_file(&cache_file);
-                    return None;
-                }
+            if age.as_secs() > 3600 {
+                // Cache expired
+                let _ = fs::remove_file(&cache_file);
+                return None;
             }
+        }
 
         if let Ok(content) = fs::read_to_string(&cache_file) {
             let sha256 = Self::compute_sha256(&content);

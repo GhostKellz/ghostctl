@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Select};
+use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use std::process::Command;
 use std::sync::OnceLock;
 
@@ -145,21 +145,22 @@ fn install_additional_wine_versions() {
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
         if let Ok(s) = helper_check
-            && s.success() {
-                println!("🔧 Using {} to install additional Wine versions...", helper);
+            && s.success()
+        {
+            println!("🔧 Using {} to install additional Wine versions...", helper);
 
-                for package in &wine_packages {
-                    let install_status = Command::new(helper)
-                        .args(&["-S", "--noconfirm", package])
-                        .status();
+            for package in &wine_packages {
+                let install_status = Command::new(helper)
+                    .args(&["-S", "--noconfirm", package])
+                    .status();
 
-                    match install_status {
-                        Ok(s) if s.success() => println!("  ✅ {} installed", package),
-                        _ => println!("  ⚠️  Failed to install {}", package),
-                    }
+                match install_status {
+                    Ok(s) if s.success() => println!("  ✅ {} installed", package),
+                    _ => println!("  ⚠️  Failed to install {}", package),
                 }
-                return;
             }
+            return;
+        }
     }
 
     println!("💡 No AUR helper found. Install yay for additional Wine versions:");
@@ -786,20 +787,21 @@ fn install_heroic_aur() {
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
         if let Ok(s) = helper_check
-            && s.success() {
-                println!("🔧 Using {} to install Heroic...", helper);
-                let install_status = Command::new(helper)
-                    .args(&["-S", "--noconfirm", "heroic-games-launcher-bin"])
-                    .status();
+            && s.success()
+        {
+            println!("🔧 Using {} to install Heroic...", helper);
+            let install_status = Command::new(helper)
+                .args(&["-S", "--noconfirm", "heroic-games-launcher-bin"])
+                .status();
 
-                match install_status {
-                    Ok(s) if s.success() => {
-                        println!("✅ Heroic installed successfully!");
-                        return;
-                    }
-                    _ => println!("❌ Failed to install with {}", helper),
+            match install_status {
+                Ok(s) if s.success() => {
+                    println!("✅ Heroic installed successfully!");
+                    return;
                 }
+                _ => println!("❌ Failed to install with {}", helper),
             }
+        }
     }
 
     println!("❌ No AUR helper found. Install yay first:");
@@ -1043,19 +1045,20 @@ fn install_bottles_aur() {
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
         if let Ok(s) = helper_check
-            && s.success() {
-                let install_status = Command::new(helper)
-                    .args(&["-S", "--noconfirm", "bottles"])
-                    .status();
+            && s.success()
+        {
+            let install_status = Command::new(helper)
+                .args(&["-S", "--noconfirm", "bottles"])
+                .status();
 
-                match install_status {
-                    Ok(s) if s.success() => {
-                        println!("✅ Bottles installed via AUR");
-                        return;
-                    }
-                    _ => println!("❌ Failed to install with {}", helper),
+            match install_status {
+                Ok(s) if s.success() => {
+                    println!("✅ Bottles installed via AUR");
+                    return;
                 }
+                _ => println!("❌ Failed to install with {}", helper),
             }
+        }
     }
 
     println!("❌ No AUR helper found");
@@ -1326,16 +1329,17 @@ fn install_aur_package(package: &str) {
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
         if let Ok(s) = helper_check
-            && s.success() {
-                let install_status = Command::new(helper)
-                    .args(&["-S", "--noconfirm", package])
-                    .status();
+            && s.success()
+        {
+            let install_status = Command::new(helper)
+                .args(&["-S", "--noconfirm", package])
+                .status();
 
-                match install_status {
-                    Ok(s) if s.success() => return,
-                    _ => {}
-                }
+            match install_status {
+                Ok(s) if s.success() => return,
+                _ => {}
             }
+        }
     }
     println!("  ❌ No AUR helper found for {}", package);
 }

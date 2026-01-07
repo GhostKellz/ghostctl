@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn hardware_management() {
@@ -488,7 +488,9 @@ fn fix_nvidia_issues() {
             println!("🖥️  Fixing display issues...");
             println!("💡 Try these commands:");
             println!("  xrandr --auto");
-            println!("  nvidia-settings --assign CurrentMetaMode=\"nvidia-auto-select +0+0 {{ ForceFullCompositionPipeline = On }}\"");
+            println!(
+                "  nvidia-settings --assign CurrentMetaMode=\"nvidia-auto-select +0+0 {{ ForceFullCompositionPipeline = On }}\""
+            );
         }
         _ => return,
     }

@@ -7,16 +7,16 @@ use bluer::{Adapter, Address, Device, Session};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use futures::StreamExt;
 use ratatui::{
+    Frame, Terminal,
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
-    Frame, Terminal,
 };
 use std::{
     io,
@@ -195,21 +195,26 @@ pub fn bluetooth_tui() -> Result<()> {
 
     // Spawn tick generator
     let tx_tick = tx.clone();
-    std::thread::spawn(move || loop {
-        std::thread::sleep(Duration::from_millis(100));
-        if tx_tick.send(AppEvent::Tick).is_err() {
-            break;
+    std::thread::spawn(move || {
+        loop {
+            std::thread::sleep(Duration::from_millis(100));
+            if tx_tick.send(AppEvent::Tick).is_err() {
+                break;
+            }
         }
     });
 
     // Spawn key event handler
     let tx_key = tx.clone();
-    std::thread::spawn(move || loop {
-        if event::poll(Duration::from_millis(50)).unwrap_or(false)
-            && let Ok(Event::Key(key)) = event::read()
-                && tx_key.send(AppEvent::Key(key)).is_err() {
-                    break;
-                }
+    std::thread::spawn(move || {
+        loop {
+            if event::poll(Duration::from_millis(50)).unwrap_or(false)
+                && let Ok(Event::Key(key)) = event::read()
+                && tx_key.send(AppEvent::Key(key)).is_err()
+            {
+                break;
+            }
+        }
     });
 
     // Main loop
@@ -236,10 +241,11 @@ pub fn bluetooth_tui() -> Result<()> {
                         app.adapter_state.select(Some(0));
                         // Auto-select first adapter
                         if let Some(session) = &app.session
-                            && let Ok(adapter) = session.adapter(&app.adapters[0]) {
-                                let adapter = Arc::new(adapter);
-                                let _ = tx.send(AppEvent::AdapterSelected(adapter));
-                            }
+                            && let Ok(adapter) = session.adapter(&app.adapters[0])
+                        {
+                            let adapter = Arc::new(adapter);
+                            let _ = tx.send(AppEvent::AdapterSelected(adapter));
+                        }
                     }
                 }
                 AppEvent::AdapterSelected(adapter) => {
@@ -391,22 +397,25 @@ fn handle_adapter_keys(
     match key.code {
         KeyCode::Up | KeyCode::Char('k') => {
             if let Some(selected) = app.adapter_state.selected()
-                && selected > 0 {
-                    app.adapter_state.select(Some(selected - 1));
-                }
+                && selected > 0
+            {
+                app.adapter_state.select(Some(selected - 1));
+            }
         }
         KeyCode::Down | KeyCode::Char('j') => {
             if let Some(selected) = app.adapter_state.selected()
-                && selected < app.adapters.len().saturating_sub(1) {
-                    app.adapter_state.select(Some(selected + 1));
-                }
+                && selected < app.adapters.len().saturating_sub(1)
+            {
+                app.adapter_state.select(Some(selected + 1));
+            }
         }
         KeyCode::Enter => {
             if let (Some(session), Some(idx)) = (&app.session, app.adapter_state.selected())
                 && let Some(name) = app.adapters.get(idx)
-                    && let Ok(adapter) = session.adapter(name) {
-                        let _ = tx.send(AppEvent::AdapterSelected(Arc::new(adapter)));
-                    }
+                && let Ok(adapter) = session.adapter(name)
+            {
+                let _ = tx.send(AppEvent::AdapterSelected(Arc::new(adapter)));
+            }
         }
         KeyCode::Char('p') => {
             // Toggle power
@@ -483,15 +492,17 @@ fn handle_paired_keys(
     match key.code {
         KeyCode::Up | KeyCode::Char('k') => {
             if let Some(selected) = app.paired_state.selected()
-                && selected > 0 {
-                    app.paired_state.select(Some(selected - 1));
-                }
+                && selected > 0
+            {
+                app.paired_state.select(Some(selected - 1));
+            }
         }
         KeyCode::Down | KeyCode::Char('j') => {
             if let Some(selected) = app.paired_state.selected()
-                && selected < app.paired_devices.len().saturating_sub(1) {
-                    app.paired_state.select(Some(selected + 1));
-                }
+                && selected < app.paired_devices.len().saturating_sub(1)
+            {
+                app.paired_state.select(Some(selected + 1));
+            }
         }
         KeyCode::Enter | KeyCode::Char('c') => {
             // Connect/disconnect
@@ -580,15 +591,17 @@ fn handle_discovered_keys(
     match key.code {
         KeyCode::Up | KeyCode::Char('k') => {
             if let Some(selected) = app.discovered_state.selected()
-                && selected > 0 {
-                    app.discovered_state.select(Some(selected - 1));
-                }
+                && selected > 0
+            {
+                app.discovered_state.select(Some(selected - 1));
+            }
         }
         KeyCode::Down | KeyCode::Char('j') => {
             if let Some(selected) = app.discovered_state.selected()
-                && selected < app.discovered_devices.len().saturating_sub(1) {
-                    app.discovered_state.select(Some(selected + 1));
-                }
+                && selected < app.discovered_devices.len().saturating_sub(1)
+            {
+                app.discovered_state.select(Some(selected + 1));
+            }
         }
         KeyCode::Enter | KeyCode::Char('c') => {
             // Pair and connect
@@ -603,10 +616,11 @@ fn handle_discovered_keys(
                     if let Ok(device) = adapter.device(addr) {
                         // Try to pair first
                         if !device.is_paired().await.unwrap_or(false)
-                            && let Err(e) = device.pair().await {
-                                let _ = tx.send(AppEvent::Error(format!("Pairing failed: {}", e)));
-                                return;
-                            }
+                            && let Err(e) = device.pair().await
+                        {
+                            let _ = tx.send(AppEvent::Error(format!("Pairing failed: {}", e)));
+                            return;
+                        }
 
                         // Then connect
                         if let Err(e) = device.connect().await {

@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Select};
+use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn automated_setup() {
@@ -386,19 +386,20 @@ fn install_heroic_if_possible() {
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
         if let Ok(s) = helper_check
-            && s.success() {
-                let install_status = Command::new(helper)
-                    .args(&["-S", "--noconfirm", "heroic-games-launcher-bin"])
-                    .status();
+            && s.success()
+        {
+            let install_status = Command::new(helper)
+                .args(&["-S", "--noconfirm", "heroic-games-launcher-bin"])
+                .status();
 
-                match install_status {
-                    Ok(s) if s.success() => {
-                        println!("    ✅ Heroic Games Launcher installed");
-                        return;
-                    }
-                    _ => continue,
+            match install_status {
+                Ok(s) if s.success() => {
+                    println!("    ✅ Heroic Games Launcher installed");
+                    return;
                 }
+                _ => continue,
             }
+        }
     }
     println!("    💡 Heroic installation skipped (no AUR helper found)");
 }
@@ -477,12 +478,13 @@ echo "✅ Gaming optimizations applied!"
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&profile_path)
-            && file.write_all(profile_content.as_bytes()).is_ok() {
-                let _ = Command::new("chmod")
-                    .args(&["+x", &profile_path.to_string_lossy()])
-                    .status();
-                println!("    ✅ Gaming performance profile created");
-            }
+            && file.write_all(profile_content.as_bytes()).is_ok()
+        {
+            let _ = Command::new("chmod")
+                .args(&["+x", &profile_path.to_string_lossy()])
+                .status();
+            println!("    ✅ Gaming performance profile created");
+        }
     }
 }
 
@@ -562,9 +564,10 @@ toggle_hud=F12
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&config_file)
-            && file.write_all(default_config.as_bytes()).is_ok() {
-                println!("    ✅ MangoHud configuration created");
-            }
+            && file.write_all(default_config.as_bytes()).is_ok()
+        {
+            println!("    ✅ MangoHud configuration created");
+        }
     }
 }
 
@@ -666,9 +669,10 @@ Categories=Game;
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&desktop_file)
-            && file.write_all(desktop_content.as_bytes()).is_ok() {
-                println!("    ✅ Gaming profile desktop entry created");
-            }
+            && file.write_all(desktop_content.as_bytes()).is_ok()
+        {
+            println!("    ✅ Gaming profile desktop entry created");
+        }
     }
 }
 
@@ -762,18 +766,19 @@ fn enable_multilib_quick() {
         .output();
 
     if let Ok(out) = multilib_check
-        && out.stdout.is_empty() {
-            println!("🔧 Enabling multilib repository...");
-            let _ = Command::new("sudo")
-                .arg("sed")
-                .args(&[
-                    "-i",
-                    "/^#\\[multilib\\]/,/^#Include = \\/etc\\/pacman.d\\/mirrorlist/ s/^#//",
-                    "/etc/pacman.conf",
-                ])
-                .status();
-            let _ = Command::new("sudo").args(&["pacman", "-Sy"]).status();
-        }
+        && out.stdout.is_empty()
+    {
+        println!("🔧 Enabling multilib repository...");
+        let _ = Command::new("sudo")
+            .arg("sed")
+            .args(&[
+                "-i",
+                "/^#\\[multilib\\]/,/^#Include = \\/etc\\/pacman.d\\/mirrorlist/ s/^#//",
+                "/etc/pacman.conf",
+            ])
+            .status();
+        let _ = Command::new("sudo").args(&["pacman", "-Sy"]).status();
+    }
 }
 
 fn quick_setup_gamemode() {
@@ -1352,20 +1357,21 @@ fn install_protonup_qt() {
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
         if let Ok(s) = helper_check
-            && s.success() {
-                println!("📦 Installing ProtonUp-Qt...");
-                let install_status = Command::new(helper)
-                    .args(&["-S", "--noconfirm", "protonup-qt"])
-                    .status();
+            && s.success()
+        {
+            println!("📦 Installing ProtonUp-Qt...");
+            let install_status = Command::new(helper)
+                .args(&["-S", "--noconfirm", "protonup-qt"])
+                .status();
 
-                match install_status {
-                    Ok(s) if s.success() => {
-                        println!("  ✅ ProtonUp-Qt installed");
-                        return;
-                    }
-                    _ => continue,
+            match install_status {
+                Ok(s) if s.success() => {
+                    println!("  ✅ ProtonUp-Qt installed");
+                    return;
                 }
+                _ => continue,
             }
+        }
     }
     println!("  💡 ProtonUp-Qt requires AUR helper (install yay)");
 }
@@ -1406,13 +1412,14 @@ steam "$@"
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&script_path)
-            && file.write_all(script_content.as_bytes()).is_ok() {
-                let _ = Command::new("chmod")
-                    .args(&["+x", &script_path.to_string_lossy()])
-                    .status();
-                println!("  ✅ Steam optimization script created");
-                println!("  💡 Use: ~/bin/steam-optimized to launch Steam with optimizations");
-            }
+            && file.write_all(script_content.as_bytes()).is_ok()
+        {
+            let _ = Command::new("chmod")
+                .args(&["+x", &script_path.to_string_lossy()])
+                .status();
+            println!("  ✅ Steam optimization script created");
+            println!("  💡 Use: ~/bin/steam-optimized to launch Steam with optimizations");
+        }
     }
 }
 
@@ -1482,9 +1489,10 @@ fsync = True
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&config_file)
-            && file.write_all(config_content.as_bytes()).is_ok() {
-                println!("  ✅ Lutris configuration created");
-            }
+            && file.write_all(config_content.as_bytes()).is_ok()
+        {
+            println!("  ✅ Lutris configuration created");
+        }
     }
 }
 
@@ -1900,13 +1908,14 @@ echo "💡 Start your games now for best performance"
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&script_path)
-            && file.write_all(gaming_script.as_bytes()).is_ok() {
-                let _ = Command::new("chmod")
-                    .args(&["+x", &script_path.to_string_lossy()])
-                    .status();
-                println!("✅ Ultimate gaming optimization script created");
-                println!("💡 Run: ~/.config/ghostctl/profiles/gaming-ultimate.sh");
-            }
+            && file.write_all(gaming_script.as_bytes()).is_ok()
+        {
+            let _ = Command::new("chmod")
+                .args(&["+x", &script_path.to_string_lossy()])
+                .status();
+            println!("✅ Ultimate gaming optimization script created");
+            println!("💡 Run: ~/.config/ghostctl/profiles/gaming-ultimate.sh");
+        }
     }
 }
 
@@ -1970,12 +1979,13 @@ echo "💡 Remember to re-enable compositor after gaming"
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&script_path)
-            && file.write_all(display_script.as_bytes()).is_ok() {
-                let _ = Command::new("chmod")
-                    .args(&["+x", &script_path.to_string_lossy()])
-                    .status();
-                println!("✅ Display gaming optimization script created");
-            }
+            && file.write_all(display_script.as_bytes()).is_ok()
+        {
+            let _ = Command::new("chmod")
+                .args(&["+x", &script_path.to_string_lossy()])
+                .status();
+            println!("✅ Display gaming optimization script created");
+        }
     }
 }
 
@@ -2026,12 +2036,13 @@ echo "✅ Audio optimized for gaming!"
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&script_path)
-            && file.write_all(audio_script.as_bytes()).is_ok() {
-                let _ = Command::new("chmod")
-                    .args(&["+x", &script_path.to_string_lossy()])
-                    .status();
-                println!("✅ Gaming audio optimization script created");
-            }
+            && file.write_all(audio_script.as_bytes()).is_ok()
+        {
+            let _ = Command::new("chmod")
+                .args(&["+x", &script_path.to_string_lossy()])
+                .status();
+            println!("✅ Gaming audio optimization script created");
+        }
     }
 }
 
@@ -2134,13 +2145,14 @@ fi
         use std::io::Write;
 
         if let Ok(mut file) = File::create(&script_path)
-            && file.write_all(monitoring_script.as_bytes()).is_ok() {
-                let _ = Command::new("chmod")
-                    .args(&["+x", &script_path.to_string_lossy()])
-                    .status();
-                println!("✅ Gaming monitoring dashboard script created");
-                println!("💡 Run: ~/bin/gaming-monitor");
-            }
+            && file.write_all(monitoring_script.as_bytes()).is_ok()
+        {
+            let _ = Command::new("chmod")
+                .args(&["+x", &script_path.to_string_lossy()])
+                .status();
+            println!("✅ Gaming monitoring dashboard script created");
+            println!("💡 Run: ~/bin/gaming-monitor");
+        }
     }
 }
 

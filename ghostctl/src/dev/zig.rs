@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn zig_development_menu() {
@@ -447,17 +447,18 @@ fn add_zig_to_path() {
     for shell_file in &shell_files {
         if std::path::Path::new(shell_file).exists()
             && let Ok(content) = std::fs::read_to_string(shell_file)
-                && !content.contains("/opt/zig") {
-                    let mut file = std::fs::OpenOptions::new()
-                        .append(true)
-                        .open(shell_file)
-                        .unwrap();
+            && !content.contains("/opt/zig")
+        {
+            let mut file = std::fs::OpenOptions::new()
+                .append(true)
+                .open(shell_file)
+                .unwrap();
 
-                    use std::io::Write;
-                    writeln!(file, "\n# Zig compiler").unwrap();
-                    writeln!(file, "{}", zig_path_export).unwrap();
+            use std::io::Write;
+            writeln!(file, "\n# Zig compiler").unwrap();
+            writeln!(file, "{}", zig_path_export).unwrap();
 
-                    println!("✅ Added Zig to PATH in {}", shell_file);
-                }
+            println!("✅ Added Zig to PATH in {}", shell_file);
+        }
     }
 }

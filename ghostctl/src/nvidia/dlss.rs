@@ -11,7 +11,7 @@
 //! through official channels (game installations, NVIDIA SDK, or Proton's automatic
 //! download via PROTON_DLSS_UPGRADE).
 
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -371,9 +371,10 @@ fn extract_dlss_version(path: &Path, filename: &str) -> String {
         if let Ok(out) = output {
             let info = String::from_utf8_lossy(&out.stdout);
             if let Some(version) = info.lines().next()
-                && let Some(v) = version.split(':').nth(1) {
-                    return v.trim().to_string();
-                }
+                && let Some(v) = version.split(':').nth(1)
+            {
+                return v.trim().to_string();
+            }
         }
     }
 
@@ -962,9 +963,10 @@ pub fn quick_dlss_status() -> String {
     let mut status = String::new();
 
     if !system_libs.is_empty()
-        && let Some(lib) = system_libs.first() {
-            status.push_str(&format!("System: v{}", lib.version));
-        }
+        && let Some(lib) = system_libs.first()
+    {
+        status.push_str(&format!("System: v{}", lib.version));
+    }
 
     if !proton_libs.is_empty() {
         if !status.is_empty() {

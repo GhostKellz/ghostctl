@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -129,11 +129,12 @@ fn scan_game_libraries() {
                         // Calculate size
                         if let Ok(size_out) = Command::new("du").args(&["-sb", path]).output()
                             && let Ok(size_str) = String::from_utf8(size_out.stdout)
-                                && let Some(size_part) = size_str.split_whitespace().next()
-                                    && let Ok(size) = size_part.parse::<u64>() {
-                                        total_size += size;
-                                        println!("  📊 Size: {} GB", size / 1024 / 1024 / 1024);
-                                    }
+                            && let Some(size_part) = size_str.split_whitespace().next()
+                            && let Ok(size) = size_part.parse::<u64>()
+                        {
+                            total_size += size;
+                            println!("  📊 Size: {} GB", size / 1024 / 1024 / 1024);
+                        }
 
                         // Show top 5 largest games/prefixes
                         println!("  📂 Largest items:");
@@ -267,15 +268,18 @@ fn find_duplicates_by_name(paths: &[String]) {
             && let Ok(out) = Command::new("find")
                 .args(&[path, "-maxdepth", "2", "-type", "d"])
                 .output()
-            {
-                for line in String::from_utf8_lossy(&out.stdout).lines() {
-                    if let Some(dir_name) = Path::new(line).file_name()
-                        && let Some(name) = dir_name.to_str()
-                            && !name.is_empty() && name != "common" && name != "prefixes" {
-                                all_games.push((name.to_lowercase(), line.to_string()));
-                            }
+        {
+            for line in String::from_utf8_lossy(&out.stdout).lines() {
+                if let Some(dir_name) = Path::new(line).file_name()
+                    && let Some(name) = dir_name.to_str()
+                    && !name.is_empty()
+                    && name != "common"
+                    && name != "prefixes"
+                {
+                    all_games.push((name.to_lowercase(), line.to_string()));
                 }
             }
+        }
     }
 
     // Simple duplicate detection by exact name match
@@ -349,9 +353,10 @@ fn get_directory_size(path: &str) -> u64 {
 
     if let Ok(out) = du_result
         && let Ok(output_str) = String::from_utf8(out.stdout)
-            && let Some(size_str) = output_str.split_whitespace().next() {
-                return size_str.parse().unwrap_or(0);
-            }
+        && let Some(size_str) = output_str.split_whitespace().next()
+    {
+        return size_str.parse().unwrap_or(0);
+    }
     0
 }
 
@@ -433,12 +438,12 @@ fn find_duplicates_by_hash(paths: &[String]) {
                         && let Some(hash) = String::from_utf8_lossy(&hash_out.stdout)
                             .split_whitespace()
                             .next()
-                        {
-                            hash_map
-                                .entry(hash.to_string())
-                                .or_default()
-                                .push(exe_path.to_string());
-                        }
+                    {
+                        hash_map
+                            .entry(hash.to_string())
+                            .or_default()
+                            .push(exe_path.to_string());
+                    }
                 }
             }
         }
@@ -736,10 +741,11 @@ fn storage_usage_analysis() {
 
                 for line in &lines {
                     if line.ends_with(path)
-                        && let Some(size_str) = line.split_whitespace().next() {
-                            platform_total = parse_size_string(size_str);
-                            total_usage += platform_total;
-                        }
+                        && let Some(size_str) = line.split_whitespace().next()
+                    {
+                        platform_total = parse_size_string(size_str);
+                        total_usage += platform_total;
+                    }
                 }
 
                 println!("  📦 Total: {} GB", platform_total / 1024 / 1024 / 1024);
@@ -1719,9 +1725,10 @@ fn check_proton_versions() {
 
             for dir in wine_dirs {
                 if dir != lutris_path
-                    && let Some(name) = Path::new(dir).file_name() {
-                        println!("  ✅ {}", name.to_string_lossy());
-                    }
+                    && let Some(name) = Path::new(dir).file_name()
+                {
+                    println!("  ✅ {}", name.to_string_lossy());
+                }
             }
         }
     } else {
@@ -2098,7 +2105,10 @@ fn clean_prefix_temp_files(prefix_path: &str) -> u64 {
             let before_size = get_directory_size(parent_dir);
 
             // Clean temp files
-            let clean_cmd = format!("find {} -name 'tmp*' -o -name '*.tmp' -o -name '*.temp' | head -100 | xargs rm -f 2>/dev/null || true", parent_dir);
+            let clean_cmd = format!(
+                "find {} -name 'tmp*' -o -name '*.tmp' -o -name '*.temp' | head -100 | xargs rm -f 2>/dev/null || true",
+                parent_dir
+            );
             Command::new("sh").arg("-c").arg(&clean_cmd).status().ok();
 
             // Get size after cleaning
@@ -2159,10 +2169,11 @@ fn reset_specific_prefix() {
                 if let Ok(out) = find_result {
                     for dir in String::from_utf8_lossy(&out.stdout).lines() {
                         if dir != *location
-                            && let Some(name) = Path::new(dir).file_name() {
-                                available_prefixes
-                                    .push((name.to_string_lossy().to_string(), dir.to_string()));
-                            }
+                            && let Some(name) = Path::new(dir).file_name()
+                        {
+                            available_prefixes
+                                .push((name.to_string_lossy().to_string(), dir.to_string()));
+                        }
                     }
                 }
             }
@@ -2308,32 +2319,33 @@ fn list_bottles() {
 
         for bottle in bottles {
             if bottle != bottles_path
-                && let Some(name) = Path::new(bottle).file_name() {
-                    let size = get_directory_size(bottle);
-                    let config_path = format!("{}/bottle.yml", bottle);
+                && let Some(name) = Path::new(bottle).file_name()
+            {
+                let size = get_directory_size(bottle);
+                let config_path = format!("{}/bottle.yml", bottle);
 
-                    println!("\n📦 {}", name.to_string_lossy());
-                    println!("  📁 Path: {}", bottle);
-                    println!("  📊 Size: {} MB", size / 1024 / 1024);
+                println!("\n📦 {}", name.to_string_lossy());
+                println!("  📁 Path: {}", bottle);
+                println!("  📊 Size: {} MB", size / 1024 / 1024);
 
-                    if Path::new(&config_path).exists() {
-                        println!("  ✅ Configuration exists");
+                if Path::new(&config_path).exists() {
+                    println!("  ✅ Configuration exists");
 
-                        // Try to read some basic info from config
-                        if let Ok(config_content) = std::fs::read_to_string(&config_path) {
-                            for line in config_content.lines().take(10) {
-                                if line.contains("name:")
-                                    || line.contains("runner:")
-                                    || line.contains("arch:")
-                                {
-                                    println!("  📋 {}", line.trim());
-                                }
+                    // Try to read some basic info from config
+                    if let Ok(config_content) = std::fs::read_to_string(&config_path) {
+                        for line in config_content.lines().take(10) {
+                            if line.contains("name:")
+                                || line.contains("runner:")
+                                || line.contains("arch:")
+                            {
+                                println!("  📋 {}", line.trim());
                             }
                         }
-                    } else {
-                        println!("  ⚠️ Configuration missing");
                     }
+                } else {
+                    println!("  ⚠️ Configuration missing");
                 }
+            }
         }
     }
 }
@@ -2379,14 +2391,15 @@ fn remove_bottle() {
     if let Ok(out) = find_result {
         for bottle in String::from_utf8_lossy(&out.stdout).lines() {
             if bottle != bottles_path
-                && let Some(name) = Path::new(bottle).file_name() {
-                    let size = get_directory_size(bottle);
-                    available_bottles.push((
-                        name.to_string_lossy().to_string(),
-                        bottle.to_string(),
-                        size,
-                    ));
-                }
+                && let Some(name) = Path::new(bottle).file_name()
+            {
+                let size = get_directory_size(bottle);
+                available_bottles.push((
+                    name.to_string_lossy().to_string(),
+                    bottle.to_string(),
+                    size,
+                ));
+            }
         }
     }
 
@@ -2463,10 +2476,11 @@ fn bottles_storage_analysis() {
 
             for bottle in String::from_utf8_lossy(&out.stdout).lines() {
                 if bottle != bottles_dir
-                    && let Some(name) = Path::new(bottle).file_name() {
-                        let size = get_directory_size(bottle);
-                        bottle_info.push((name.to_string_lossy().to_string(), size));
-                    }
+                    && let Some(name) = Path::new(bottle).file_name()
+                {
+                    let size = get_directory_size(bottle);
+                    bottle_info.push((name.to_string_lossy().to_string(), size));
+                }
             }
 
             // Sort by size
@@ -2631,34 +2645,35 @@ fn check_bottle_health() {
     if let Ok(out) = find_result {
         for bottle in String::from_utf8_lossy(&out.stdout).lines() {
             if bottle != bottles_dir
-                && let Some(name) = Path::new(bottle).file_name() {
-                    println!("🔍 Checking bottle: {}", name.to_string_lossy());
+                && let Some(name) = Path::new(bottle).file_name()
+            {
+                println!("🔍 Checking bottle: {}", name.to_string_lossy());
 
-                    // Check for essential files
-                    let config_file = format!("{}/bottle.yml", bottle);
-                    let drive_c = format!("{}/drive_c", bottle);
-                    let system32 = format!("{}/drive_c/windows/system32", bottle);
+                // Check for essential files
+                let config_file = format!("{}/bottle.yml", bottle);
+                let drive_c = format!("{}/drive_c", bottle);
+                let system32 = format!("{}/drive_c/windows/system32", bottle);
 
-                    if Path::new(&config_file).exists() {
-                        println!("  ✅ Configuration file present");
-                    } else {
-                        println!("  ❌ Configuration file missing");
-                    }
-
-                    if Path::new(&drive_c).exists() {
-                        println!("  ✅ drive_c directory present");
-                    } else {
-                        println!("  ❌ drive_c directory missing");
-                    }
-
-                    if Path::new(&system32).exists() {
-                        println!("  ✅ system32 directory present");
-                    } else {
-                        println!("  ❌ system32 directory missing");
-                    }
-
-                    println!();
+                if Path::new(&config_file).exists() {
+                    println!("  ✅ Configuration file present");
+                } else {
+                    println!("  ❌ Configuration file missing");
                 }
+
+                if Path::new(&drive_c).exists() {
+                    println!("  ✅ drive_c directory present");
+                } else {
+                    println!("  ❌ drive_c directory missing");
+                }
+
+                if Path::new(&system32).exists() {
+                    println!("  ✅ system32 directory present");
+                } else {
+                    println!("  ❌ system32 directory missing");
+                }
+
+                println!();
+            }
         }
     }
 }
@@ -3156,16 +3171,17 @@ fn lutris_games_storage() {
                 if let Ok(out) = find_result {
                     for game_dir in String::from_utf8_lossy(&out.stdout).lines() {
                         if game_dir != *path
-                            && let Some(game_name) = Path::new(game_dir).file_name() {
-                                let game_size = get_directory_size(game_dir);
-                                if game_size > 100 * 1024 * 1024 {
-                                    println!(
-                                        "  🎮 {}: {} MB",
-                                        game_name.to_string_lossy(),
-                                        game_size / 1024 / 1024
-                                    );
-                                }
+                            && let Some(game_name) = Path::new(game_dir).file_name()
+                        {
+                            let game_size = get_directory_size(game_dir);
+                            if game_size > 100 * 1024 * 1024 {
+                                println!(
+                                    "  🎮 {}: {} MB",
+                                    game_name.to_string_lossy(),
+                                    game_size / 1024 / 1024
+                                );
                             }
+                        }
                     }
                 }
             }
@@ -3239,21 +3255,21 @@ fn list_lutris_runners() {
 
                 for runner in runners {
                     if runner != runners_path
-                        && let Some(name) = Path::new(runner).file_name() {
-                            let size = get_directory_size(runner);
-                            println!("  📦 {}: {} MB", name.to_string_lossy(), size / 1024 / 1024);
+                        && let Some(name) = Path::new(runner).file_name()
+                    {
+                        let size = get_directory_size(runner);
+                        println!("  📦 {}: {} MB", name.to_string_lossy(), size / 1024 / 1024);
 
-                            let wine_bin = format!("{}/bin/wine", runner);
-                            if Path::new(&wine_bin).exists() {
-                                let version_check =
-                                    Command::new(&wine_bin).arg("--version").output();
+                        let wine_bin = format!("{}/bin/wine", runner);
+                        if Path::new(&wine_bin).exists() {
+                            let version_check = Command::new(&wine_bin).arg("--version").output();
 
-                                if let Ok(ver_out) = version_check {
-                                    let version = String::from_utf8_lossy(&ver_out.stdout);
-                                    println!("    📋 Version: {}", version.trim());
-                                }
+                            if let Ok(ver_out) = version_check {
+                                let version = String::from_utf8_lossy(&ver_out.stdout);
+                                println!("    📋 Version: {}", version.trim());
                             }
                         }
+                    }
                 }
             }
         }
@@ -3317,23 +3333,24 @@ fn install_wine_ge_lutris() {
 
             if let Some(start) = json_str.find("browser_download_url")
                 && let Some(url_start) = json_str[start..].find("https://")
-                    && let Some(url_end) = json_str[start + url_start..].find("\"") {
-                        let url = &json_str[start + url_start..start + url_start + url_end];
+                && let Some(url_end) = json_str[start + url_start..].find("\"")
+            {
+                let url = &json_str[start + url_start..start + url_start + url_end];
 
-                        if url.ends_with(".tar.xz") {
-                            println!("📋 Found: {}", url);
+                if url.ends_with(".tar.xz") {
+                    println!("📋 Found: {}", url);
 
-                            let download = Confirm::with_theme(&ColorfulTheme::default())
-                                .with_prompt("Download and install this Wine-GE version?")
-                                .default(true)
-                                .interact()
-                                .unwrap();
+                    let download = Confirm::with_theme(&ColorfulTheme::default())
+                        .with_prompt("Download and install this Wine-GE version?")
+                        .default(true)
+                        .interact()
+                        .unwrap();
 
-                            if download {
-                                download_and_install_runner(url, &runners_path);
-                            }
-                        }
+                    if download {
+                        download_and_install_runner(url, &runners_path);
                     }
+                }
+            }
         }
         Err(_) => {
             println!("❌ Failed to fetch release info");
@@ -3536,9 +3553,10 @@ fn download_and_install_runner(url: &str, runners_path: &str) {
                     if let Ok(out) = find_result {
                         for new_dir in String::from_utf8_lossy(&out.stdout).lines() {
                             if new_dir != runners_path
-                                && let Some(name) = Path::new(new_dir).file_name() {
-                                    println!("📦 Installed: {}", name.to_string_lossy());
-                                }
+                                && let Some(name) = Path::new(new_dir).file_name()
+                            {
+                                println!("📦 Installed: {}", name.to_string_lossy());
+                            }
                         }
                     }
                 }
@@ -3595,14 +3613,15 @@ fn remove_old_runners() {
     if let Ok(out) = find_result {
         for runner in String::from_utf8_lossy(&out.stdout).lines() {
             if runner != runners_path
-                && let Some(name) = Path::new(runner).file_name() {
-                    let size = get_directory_size(runner);
-                    available_runners.push((
-                        name.to_string_lossy().to_string(),
-                        runner.to_string(),
-                        size,
-                    ));
-                }
+                && let Some(name) = Path::new(runner).file_name()
+            {
+                let size = get_directory_size(runner);
+                available_runners.push((
+                    name.to_string_lossy().to_string(),
+                    runner.to_string(),
+                    size,
+                ));
+            }
         }
     }
 
@@ -5089,14 +5108,11 @@ fn clean_unused_lutris_prefixes() {
     if let Ok(out) = find_result {
         for prefix in String::from_utf8_lossy(&out.stdout).lines() {
             if prefix != prefixes_dir
-                && let Some(name) = Path::new(prefix).file_name() {
-                    let size = get_directory_size(prefix);
-                    old_prefixes.push((
-                        name.to_string_lossy().to_string(),
-                        prefix.to_string(),
-                        size,
-                    ));
-                }
+                && let Some(name) = Path::new(prefix).file_name()
+            {
+                let size = get_directory_size(prefix);
+                old_prefixes.push((name.to_string_lossy().to_string(), prefix.to_string(), size));
+            }
         }
     }
 
@@ -5172,16 +5188,17 @@ fn clean_old_lutris_runners() {
     if let Ok(out) = find_result {
         for runner in String::from_utf8_lossy(&out.stdout).lines() {
             if runner != runners_dir
-                && let Some(name) = Path::new(runner).file_name() {
-                    let size = get_directory_size(runner);
-                    let modified_time = get_last_access_time(runner);
-                    all_runners.push((
-                        name.to_string_lossy().to_string(),
-                        runner.to_string(),
-                        size,
-                        modified_time,
-                    ));
-                }
+                && let Some(name) = Path::new(runner).file_name()
+            {
+                let size = get_directory_size(runner);
+                let modified_time = get_last_access_time(runner);
+                all_runners.push((
+                    name.to_string_lossy().to_string(),
+                    runner.to_string(),
+                    size,
+                    modified_time,
+                ));
+            }
         }
     }
 
@@ -5502,12 +5519,13 @@ fn show_large_subdirectories(path: &str, category: &str) {
 
         for subdir in String::from_utf8_lossy(&out.stdout).lines() {
             if subdir != path
-                && let Some(name) = Path::new(subdir).file_name() {
-                    let size = get_directory_size(subdir);
-                    if size > 1024 * 1024 * 1024 {
-                        subdirs.push((name.to_string_lossy().to_string(), size));
-                    }
+                && let Some(name) = Path::new(subdir).file_name()
+            {
+                let size = get_directory_size(subdir);
+                if size > 1024 * 1024 * 1024 {
+                    subdirs.push((name.to_string_lossy().to_string(), size));
                 }
+            }
         }
 
         if !subdirs.is_empty() {

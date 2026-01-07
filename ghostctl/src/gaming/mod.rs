@@ -11,7 +11,7 @@ pub mod steam;
 pub mod wine_prefix;
 pub mod wine_tools;
 
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 
 pub fn gaming_menu() {
     loop {

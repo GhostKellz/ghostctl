@@ -3,7 +3,7 @@ pub mod credentials;
 pub mod gpg;
 pub mod ssh;
 
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 
 pub fn security_menu() {
     println!("🔐 Security Management");

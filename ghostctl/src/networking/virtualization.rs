@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::path::Path;
 use std::process::Command;
 
@@ -772,7 +772,9 @@ fn fix_docker_networking() {
             let config_exists = Path::new("/etc/docker/daemon.json").exists();
 
             if config_exists {
-                println!("📝 Docker daemon config exists. Please manually check DNS settings in /etc/docker/daemon.json");
+                println!(
+                    "📝 Docker daemon config exists. Please manually check DNS settings in /etc/docker/daemon.json"
+                );
             } else {
                 println!("📝 Creating Docker daemon DNS configuration...");
                 let config = r#"{
@@ -1008,19 +1010,20 @@ fn port_mapping_analysis() {
                     for line in String::from_utf8_lossy(&port_out.stdout).lines() {
                         if line.contains("0.0.0.0:")
                             && let Some(port_part) = line.split("0.0.0.0:").nth(1)
-                                && let Some(port) = port_part.split_whitespace().next() {
-                                    println!("Testing port {}...", port);
-                                    let test = Command::new("nc")
-                                        .args(&["-zv", "localhost", port])
-                                        .output();
+                            && let Some(port) = port_part.split_whitespace().next()
+                        {
+                            println!("Testing port {}...", port);
+                            let test = Command::new("nc")
+                                .args(&["-zv", "localhost", port])
+                                .output();
 
-                                    match test {
-                                        Ok(t) if t.status.success() => {
-                                            println!("  ✅ Port {} accessible", port)
-                                        }
-                                        _ => println!("  ❌ Port {} not accessible", port),
-                                    }
+                            match test {
+                                Ok(t) if t.status.success() => {
+                                    println!("  ✅ Port {} accessible", port)
                                 }
+                                _ => println!("  ❌ Port {} not accessible", port),
+                            }
+                        }
                     }
                 }
             }
@@ -1319,31 +1322,32 @@ fn test_container_to_host() {
                     // Check if iperf3 is available on host
                     let iperf_check = Command::new("which").arg("iperf3").status();
                     if let Ok(s) = iperf_check
-                        && s.success() {
-                            println!("\n🚀 Starting iperf3 server on host...");
-                            println!("Note: You need to manually start 'iperf3 -s' on the host");
+                        && s.success()
+                    {
+                        println!("\n🚀 Starting iperf3 server on host...");
+                        println!("Note: You need to manually start 'iperf3 -s' on the host");
 
-                            let proceed = Confirm::with_theme(&ColorfulTheme::default())
-                                .with_prompt("Is iperf3 server running on host?")
-                                .default(false)
-                                .interact()
-                                .unwrap();
+                        let proceed = Confirm::with_theme(&ColorfulTheme::default())
+                            .with_prompt("Is iperf3 server running on host?")
+                            .default(false)
+                            .interact()
+                            .unwrap();
 
-                            if proceed {
-                                Command::new("docker")
-                                    .args(&[
-                                        "exec",
-                                        test_container,
-                                        "iperf3",
-                                        "-c",
-                                        gateway,
-                                        "-t",
-                                        "10",
-                                    ])
-                                    .status()
-                                    .ok();
-                            }
+                        if proceed {
+                            Command::new("docker")
+                                .args(&[
+                                    "exec",
+                                    test_container,
+                                    "iperf3",
+                                    "-c",
+                                    gateway,
+                                    "-t",
+                                    "10",
+                                ])
+                                .status()
+                                .ok();
                         }
+                    }
                 }
                 break;
             }
@@ -1568,10 +1572,11 @@ fn create_bridge_interface() {
         .output();
 
     if let Ok(out) = bridge_check
-        && out.status.success() {
-            println!("⚠️ Bridge {} already exists", bridge_name);
-            return;
-        }
+        && out.status.success()
+    {
+        println!("⚠️ Bridge {} already exists", bridge_name);
+        return;
+    }
 
     println!("🔧 Creating bridge {}...", bridge_name);
 
@@ -2193,19 +2198,20 @@ fn diagnose_vm_network_issues() {
     // Check default libvirt network
     let virsh_check = Command::new("which").arg("virsh").status();
     if let Ok(s) = virsh_check
-        && s.success() {
-            println!("Libvirt networks:");
-            Command::new("virsh")
-                .args(&["net-list", "--all"])
-                .status()
-                .ok();
+        && s.success()
+    {
+        println!("Libvirt networks:");
+        Command::new("virsh")
+            .args(&["net-list", "--all"])
+            .status()
+            .ok();
 
-            println!("\nDefault network details:");
-            Command::new("virsh")
-                .args(&["net-dumpxml", "default"])
-                .status()
-                .ok();
-        }
+        println!("\nDefault network details:");
+        Command::new("virsh")
+            .args(&["net-dumpxml", "default"])
+            .status()
+            .ok();
+    }
 }
 
 fn check_bridge_connectivity() {
@@ -2272,25 +2278,27 @@ fn check_bridge_connectivity() {
     if let Ok(out) = members {
         let output_str = String::from_utf8_lossy(&out.stdout);
         for line in output_str.lines() {
-            if line.contains("master") && line.contains(&bridge)
-                && let Some(interface) = line.split_whitespace().nth(1) {
-                    let clean_interface = interface.trim_end_matches(':');
-                    println!("\n🔌 Testing member interface: {}", clean_interface);
+            if line.contains("master")
+                && line.contains(&bridge)
+                && let Some(interface) = line.split_whitespace().nth(1)
+            {
+                let clean_interface = interface.trim_end_matches(':');
+                println!("\n🔌 Testing member interface: {}", clean_interface);
 
-                    // Check if interface is up
-                    let if_status = Command::new("ip")
-                        .args(&["link", "show", clean_interface])
-                        .output();
+                // Check if interface is up
+                let if_status = Command::new("ip")
+                    .args(&["link", "show", clean_interface])
+                    .output();
 
-                    if let Ok(if_out) = if_status {
-                        let if_str = String::from_utf8_lossy(&if_out.stdout);
-                        if if_str.contains("state UP") {
-                            println!("  ✅ Interface {} is UP", clean_interface);
-                        } else {
-                            println!("  ❌ Interface {} is DOWN", clean_interface);
-                        }
+                if let Ok(if_out) = if_status {
+                    let if_str = String::from_utf8_lossy(&if_out.stdout);
+                    if if_str.contains("state UP") {
+                        println!("  ✅ Interface {} is UP", clean_interface);
+                    } else {
+                        println!("  ❌ Interface {} is DOWN", clean_interface);
                     }
                 }
+            }
         }
     }
 
@@ -2324,27 +2332,28 @@ fn troubleshoot_tap_interfaces() {
         let output_str = String::from_utf8_lossy(&out.stdout);
         for line in output_str.lines() {
             if line.contains("tap")
-                && let Some(tap_name) = line.split(':').next() {
-                    println!("\n--- TAP Interface: {} ---", tap_name);
+                && let Some(tap_name) = line.split(':').next()
+            {
+                println!("\n--- TAP Interface: {} ---", tap_name);
 
-                    // Show TAP details
-                    Command::new("ip")
-                        .args(&["addr", "show", tap_name])
-                        .status()
-                        .ok();
+                // Show TAP details
+                Command::new("ip")
+                    .args(&["addr", "show", tap_name])
+                    .status()
+                    .ok();
 
-                    // Check if attached to bridge
-                    Command::new("bridge")
-                        .args(&["link", "show", "dev", tap_name])
-                        .status()
-                        .ok();
+                // Check if attached to bridge
+                Command::new("bridge")
+                    .args(&["link", "show", "dev", tap_name])
+                    .status()
+                    .ok();
 
-                    // Check permissions
-                    let tap_path = format!("/dev/{}", tap_name);
-                    if Path::new(&tap_path).exists() {
-                        Command::new("ls").args(&["-l", &tap_path]).status().ok();
-                    }
+                // Check permissions
+                let tap_path = format!("/dev/{}", tap_name);
+                if Path::new(&tap_path).exists() {
+                    Command::new("ls").args(&["-l", &tap_path]).status().ok();
                 }
+            }
         }
     }
 
@@ -2467,27 +2476,28 @@ fn check_qemu_network_config() {
     let virsh_available = Command::new("which").arg("virsh").status();
 
     if let Ok(s) = virsh_available
-        && s.success() {
-            println!("📋 Libvirt networks:");
-            Command::new("virsh")
-                .args(&["net-list", "--all"])
-                .status()
-                .ok();
+        && s.success()
+    {
+        println!("📋 Libvirt networks:");
+        Command::new("virsh")
+            .args(&["net-list", "--all"])
+            .status()
+            .ok();
 
-            // Show default network config
-            println!("\n📝 Default network configuration:");
-            Command::new("virsh")
-                .args(&["net-dumpxml", "default"])
-                .status()
-                .ok();
+        // Show default network config
+        println!("\n📝 Default network configuration:");
+        Command::new("virsh")
+            .args(&["net-dumpxml", "default"])
+            .status()
+            .ok();
 
-            // Check network autostart
-            println!("\n🔄 Network autostart status:");
-            Command::new("virsh")
-                .args(&["net-autostart", "default"])
-                .status()
-                .ok();
-        }
+        // Check network autostart
+        println!("\n🔄 Network autostart status:");
+        Command::new("virsh")
+            .args(&["net-autostart", "default"])
+            .status()
+            .ok();
+    }
 
     // Check QEMU helper scripts
     println!("\n4️⃣ QEMU Helper Scripts:");
@@ -2535,7 +2545,9 @@ fn check_qemu_network_config() {
     println!("  -netdev bridge,id=net0,br=br0 -device virtio-net-pci,netdev=net0");
 
     println!("\n🔌 TAP networking:");
-    println!("  -netdev tap,id=net0,ifname=tap0,script=no,downscript=no -device virtio-net-pci,netdev=net0");
+    println!(
+        "  -netdev tap,id=net0,ifname=tap0,script=no,downscript=no -device virtio-net-pci,netdev=net0"
+    );
 
     println!("\n🖥️ User networking (SLIRP):");
     println!("  -netdev user,id=net0 -device virtio-net-pci,netdev=net0");
@@ -2620,10 +2632,11 @@ fn vm_performance_testing() {
                     .status();
 
                 if let Ok(s) = if_exists
-                    && s.success() {
-                        println!("\n--- Monitoring {} ---", interface);
-                        monitor_bridge_performance(interface, 10);
-                    }
+                    && s.success()
+                {
+                    println!("\n--- Monitoring {} ---", interface);
+                    monitor_bridge_performance(interface, 10);
+                }
             }
         }
         3 => {
@@ -2962,7 +2975,9 @@ fn migration_notice() {
     println!("ℹ️ Feature Migration Notice");
     println!("============================\n");
 
-    println!("🔄 Advanced virtualization networking features have been moved to specialized modules for better organization and functionality:");
+    println!(
+        "🔄 Advanced virtualization networking features have been moved to specialized modules for better organization and functionality:"
+    );
     println!();
 
     println!("🆕 New Module Locations:");

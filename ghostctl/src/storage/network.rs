@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::fs;
 use std::process::Command;
 
@@ -246,11 +246,12 @@ fn setup_nfs_client() {
             let fstab_line = format!("{} {} nfs {} 0 0\n", nfs_share, local_mount, mount_options);
 
             if let Ok(mut fstab) = fs::read_to_string("/etc/fstab")
-                && !fstab.contains(&nfs_share) {
-                    fstab.push_str(&fstab_line);
-                    let _ = fs::write("/etc/fstab", fstab);
-                    println!("✅ Added to /etc/fstab");
-                }
+                && !fstab.contains(&nfs_share)
+            {
+                fstab.push_str(&fstab_line);
+                let _ = fs::write("/etc/fstab", fstab);
+                println!("✅ Added to /etc/fstab");
+            }
         }
     } else {
         println!("❌ NFS mount failed!");
@@ -402,11 +403,12 @@ fn mount_windows_share() {
             );
 
             if let Ok(mut fstab) = fs::read_to_string("/etc/fstab")
-                && !fstab.contains(&share_path) {
-                    fstab.push_str(&fstab_line);
-                    let _ = fs::write("/etc/fstab", fstab);
-                    println!("✅ Added to /etc/fstab");
-                }
+                && !fstab.contains(&share_path)
+            {
+                fstab.push_str(&fstab_line);
+                let _ = fs::write("/etc/fstab", fstab);
+                println!("✅ Added to /etc/fstab");
+            }
         }
     } else {
         println!("❌ Failed to mount Windows share!");

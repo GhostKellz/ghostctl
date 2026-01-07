@@ -4,7 +4,7 @@ pub mod snapshot;
 use crate::tui;
 use crate::utils::{is_headless, sudo_run};
 // TODO: Remove these imports once all functions are converted to use tui helpers
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 // We'll use the BtrfsAction enum from main.rs

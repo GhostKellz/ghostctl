@@ -3,7 +3,7 @@ pub mod mesh;
 pub mod netcat;
 pub mod scan;
 
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 
 pub fn network_menu() {
     println!("🌐 Network Management");

@@ -2,20 +2,20 @@
 //!
 //! Interactive terminal interface for browsing kernel parameters.
 
-use super::{get_all_parameters, KernelParam};
+use super::{KernelParam, get_all_parameters};
 use anyhow::Result;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{
+    Frame, Terminal,
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
-    Frame, Terminal,
 };
 use std::{collections::HashMap, io, time::Duration};
 
@@ -150,9 +150,10 @@ pub fn sysctl_tui() -> Result<()> {
         terminal.draw(|f| ui(f, &mut app))?;
 
         if event::poll(Duration::from_millis(100))?
-            && let Event::Key(key) = event::read()? {
-                handle_key_event(&mut app, key);
-            }
+            && let Event::Key(key) = event::read()?
+        {
+            handle_key_event(&mut app, key);
+        }
     }
 
     disable_raw_mode()?;
@@ -213,25 +214,27 @@ fn handle_category_keys(app: &mut App, key: event::KeyEvent) {
     match key.code {
         KeyCode::Up | KeyCode::Char('k') => {
             if let Some(selected) = app.category_state.selected()
-                && selected > 0 {
-                    let new_idx = selected - 1;
-                    app.category_state.select(Some(new_idx));
-                    let cat = app.categories.get(new_idx).cloned();
-                    if let Some(cat) = cat {
-                        app.filter_by_category(&cat);
-                    }
+                && selected > 0
+            {
+                let new_idx = selected - 1;
+                app.category_state.select(Some(new_idx));
+                let cat = app.categories.get(new_idx).cloned();
+                if let Some(cat) = cat {
+                    app.filter_by_category(&cat);
                 }
+            }
         }
         KeyCode::Down | KeyCode::Char('j') => {
             if let Some(selected) = app.category_state.selected()
-                && selected < app.categories.len().saturating_sub(1) {
-                    let new_idx = selected + 1;
-                    app.category_state.select(Some(new_idx));
-                    let cat = app.categories.get(new_idx).cloned();
-                    if let Some(cat) = cat {
-                        app.filter_by_category(&cat);
-                    }
+                && selected < app.categories.len().saturating_sub(1)
+            {
+                let new_idx = selected + 1;
+                app.category_state.select(Some(new_idx));
+                let cat = app.categories.get(new_idx).cloned();
+                if let Some(cat) = cat {
+                    app.filter_by_category(&cat);
                 }
+            }
         }
         KeyCode::Enter => {
             app.focused = FocusedBlock::Parameters;
@@ -244,15 +247,17 @@ fn handle_param_keys(app: &mut App, key: event::KeyEvent) {
     match key.code {
         KeyCode::Up | KeyCode::Char('k') => {
             if let Some(selected) = app.param_state.selected()
-                && selected > 0 {
-                    app.param_state.select(Some(selected - 1));
-                }
+                && selected > 0
+            {
+                app.param_state.select(Some(selected - 1));
+            }
         }
         KeyCode::Down | KeyCode::Char('j') => {
             if let Some(selected) = app.param_state.selected()
-                && selected < app.filtered_params.len().saturating_sub(1) {
-                    app.param_state.select(Some(selected + 1));
-                }
+                && selected < app.filtered_params.len().saturating_sub(1)
+            {
+                app.param_state.select(Some(selected + 1));
+            }
         }
         KeyCode::PageUp => {
             if let Some(selected) = app.param_state.selected() {

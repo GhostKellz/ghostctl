@@ -170,9 +170,10 @@ impl SystemDiagnostics {
 
         // Check file size
         if let Ok(metadata) = std::fs::metadata(&pubring)
-            && metadata.len() < 100 {
-                return true;
-            }
+            && metadata.len() < 100
+        {
+            return true;
+        }
 
         false
     }
@@ -317,10 +318,11 @@ impl FixAction {
                 println!("🔧 Fixing working directory...");
                 // Try to change to home directory
                 if let Ok(home) = std::env::var("HOME")
-                    && std::env::set_current_dir(&home).is_ok() {
-                        println!("  ✅ Changed to home directory");
-                        return true;
-                    }
+                    && std::env::set_current_dir(&home).is_ok()
+                {
+                    println!("  ✅ Changed to home directory");
+                    return true;
+                }
                 // Fallback to /tmp
                 if std::env::set_current_dir("/tmp").is_ok() {
                     println!("  ✅ Changed to /tmp");
@@ -377,17 +379,18 @@ impl FixAction {
                         .status();
 
                     if let Ok(status) = result
-                        && status.success() {
-                            println!("  ✅ NetworkManager restarted");
-                            // Wait for connection
-                            std::thread::sleep(std::time::Duration::from_secs(3));
+                        && status.success()
+                    {
+                        println!("  ✅ NetworkManager restarted");
+                        // Wait for connection
+                        std::thread::sleep(std::time::Duration::from_secs(3));
 
-                            // Check if connection is now working
-                            if SystemDiagnostics::test_connectivity() {
-                                println!("  ✅ Network connectivity restored");
-                                fixed = true;
-                            }
+                        // Check if connection is now working
+                        if SystemDiagnostics::test_connectivity() {
+                            println!("  ✅ Network connectivity restored");
+                            fixed = true;
                         }
+                    }
                 }
 
                 // Try systemd-networkd
@@ -449,18 +452,19 @@ impl FixAction {
                         let output_str = String::from_utf8_lossy(&output.stdout);
                         for line in output_str.lines() {
                             if line.contains("state DOWN")
-                                && let Some(iface) = line.split(':').nth(1) {
-                                    let iface = iface.trim();
-                                    if iface.starts_with("en")
-                                        || iface.starts_with("eth")
-                                        || iface.starts_with("wl")
-                                    {
-                                        println!("  📡 Bringing up interface: {}", iface);
-                                        let _ = Command::new("sudo")
-                                            .args(&["ip", "link", "set", iface, "up"])
-                                            .status();
-                                    }
+                                && let Some(iface) = line.split(':').nth(1)
+                            {
+                                let iface = iface.trim();
+                                if iface.starts_with("en")
+                                    || iface.starts_with("eth")
+                                    || iface.starts_with("wl")
+                                {
+                                    println!("  📡 Bringing up interface: {}", iface);
+                                    let _ = Command::new("sudo")
+                                        .args(&["ip", "link", "set", iface, "up"])
+                                        .status();
                                 }
+                            }
                         }
                     }
 
@@ -479,7 +483,9 @@ impl FixAction {
                     println!("     1. Check physical connection (cable/wifi)");
                     println!("     2. Verify interface is up: ip link show");
                     println!("     3. Check IP address: ip addr show");
-                    println!("     4. Test gateway: ping $(ip route | grep default | awk '{{print $3}}')");
+                    println!(
+                        "     4. Test gateway: ping $(ip route | grep default | awk '{{print $3}}')"
+                    );
                     println!("     5. Test DNS: ping 1.1.1.1 && ping archlinux.org");
                     println!();
                     println!("  🔧 Common fixes:");
@@ -545,10 +551,11 @@ impl FixAction {
                     .status();
 
                 if let Ok(status) = refresh
-                    && status.success() {
-                        println!("  ✅ Keys refreshed from keyserver");
-                        return true;
-                    }
+                    && status.success()
+                {
+                    println!("  ✅ Keys refreshed from keyserver");
+                    return true;
+                }
 
                 // Step 2: Try reinstalling archlinux-keyring
                 println!("  📦 Trying keyring package reinstall...");
@@ -557,13 +564,14 @@ impl FixAction {
                     .status();
 
                 if let Ok(status) = keyring_install
-                    && status.success() {
-                        let _ = Command::new("sudo")
-                            .args(&["pacman-key", "--populate", "archlinux"])
-                            .status();
-                        println!("  ✅ Keyring reinstalled and populated");
-                        return true;
-                    }
+                    && status.success()
+                {
+                    let _ = Command::new("sudo")
+                        .args(&["pacman-key", "--populate", "archlinux"])
+                        .status();
+                    println!("  ✅ Keyring reinstalled and populated");
+                    return true;
+                }
 
                 // Step 3: Full reset (backup first)
                 println!("  ⚠️  Full keyring reset required...");
@@ -589,7 +597,9 @@ impl FixAction {
 
                 if init.is_err() || !init.unwrap().success() {
                     println!("  ❌ Failed to initialize keyring");
-                    println!("  💡 Restore backup: sudo cp -a /etc/pacman.d/gnupg.backup /etc/pacman.d/gnupg");
+                    println!(
+                        "  💡 Restore backup: sudo cp -a /etc/pacman.d/gnupg.backup /etc/pacman.d/gnupg"
+                    );
                     return false;
                 }
 
@@ -605,7 +615,9 @@ impl FixAction {
                     }
                     _ => {
                         println!("  ❌ Failed to populate keyring");
-                        println!("  💡 Restore backup: sudo cp -a /etc/pacman.d/gnupg.backup /etc/pacman.d/gnupg");
+                        println!(
+                            "  💡 Restore backup: sudo cp -a /etc/pacman.d/gnupg.backup /etc/pacman.d/gnupg"
+                        );
                         false
                     }
                 }

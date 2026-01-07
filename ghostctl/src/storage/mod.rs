@@ -3,7 +3,7 @@ pub mod network;
 pub mod s3_simple;
 pub use s3_simple as s3;
 
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 
 pub fn storage_menu() {
     loop {

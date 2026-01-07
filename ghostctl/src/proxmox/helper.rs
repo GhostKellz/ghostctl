@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 use reqwest::blocking::get;
 
 // Repository URLs
@@ -71,9 +71,10 @@ fn load_cktech_lxc_scripts() {
 
                     for file in files {
                         if let Some(name) = file["name"].as_str()
-                            && name.ends_with(".sh") {
-                                script_names.push(name.to_string());
-                            }
+                            && name.ends_with(".sh")
+                        {
+                            script_names.push(name.to_string());
+                        }
                     }
 
                     if !script_names.is_empty() {
@@ -126,9 +127,10 @@ fn load_cktech_vm_scripts() {
 
                     for file in files {
                         if let Some(name) = file["name"].as_str()
-                            && name.ends_with(".sh") {
-                                script_names.push(name.to_string());
-                            }
+                            && name.ends_with(".sh")
+                        {
+                            script_names.push(name.to_string());
+                        }
                     }
 
                     if !script_names.is_empty() {
@@ -180,11 +182,12 @@ fn load_community_lxc_scripts() {
 
                     for file in files {
                         if let Some(name) = file["name"].as_str()
-                            && name.ends_with(".sh") {
-                                // Remove .sh extension for display
-                                let display_name = name.trim_end_matches(".sh");
-                                script_names.push((display_name.to_string(), name.to_string()));
-                            }
+                            && name.ends_with(".sh")
+                        {
+                            // Remove .sh extension for display
+                            let display_name = name.trim_end_matches(".sh");
+                            script_names.push((display_name.to_string(), name.to_string()));
+                        }
                     }
 
                     if !script_names.is_empty() {
@@ -241,10 +244,11 @@ fn load_community_vm_scripts() {
 
                     for file in files {
                         if let Some(name) = file["name"].as_str()
-                            && name.ends_with(".sh") {
-                                let display_name = name.trim_end_matches(".sh");
-                                script_names.push((display_name.to_string(), name.to_string()));
-                            }
+                            && name.ends_with(".sh")
+                        {
+                            let display_name = name.trim_end_matches(".sh");
+                            script_names.push((display_name.to_string(), name.to_string()));
+                        }
                     }
 
                     if !script_names.is_empty() {
@@ -301,10 +305,11 @@ fn load_community_misc_scripts() {
 
                     for file in files {
                         if let Some(name) = file["name"].as_str()
-                            && name.ends_with(".sh") {
-                                let display_name = name.trim_end_matches(".sh");
-                                script_names.push((display_name.to_string(), name.to_string()));
-                            }
+                            && name.ends_with(".sh")
+                        {
+                            let display_name = name.trim_end_matches(".sh");
+                            script_names.push((display_name.to_string(), name.to_string()));
+                        }
                     }
 
                     if !script_names.is_empty() {
@@ -361,10 +366,11 @@ fn load_pve_tools() {
 
                     for file in files {
                         if let Some(name) = file["name"].as_str()
-                            && name.ends_with(".sh") {
-                                let display_name = name.trim_end_matches(".sh");
-                                script_names.push((display_name.to_string(), name.to_string()));
-                            }
+                            && name.ends_with(".sh")
+                        {
+                            let display_name = name.trim_end_matches(".sh");
+                            script_names.push((display_name.to_string(), name.to_string()));
+                        }
                     }
 
                     if !script_names.is_empty() {

@@ -5,7 +5,7 @@ use crate::{
     sysctl, systemd, tools, wifi,
 };
 use clap::{Arg, ArgAction, ArgMatches, Command};
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 
 // Command-line interface setup
 pub fn build_cli() -> Command {
@@ -1295,7 +1295,7 @@ fn handle_nvidia_commands(matches: &ArgMatches) {
         Some(("status", _)) => nvidia::status(),
         Some(("info", _)) => nvidia::info(),
         Some(("build-source", sub_matches)) => {
-            use crate::nvidia::source_build::{source_build_workflow, SourceBuildOptions};
+            use crate::nvidia::source_build::{SourceBuildOptions, source_build_workflow};
             use crate::utils::is_dry_run;
 
             let opts = SourceBuildOptions {

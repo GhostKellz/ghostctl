@@ -78,7 +78,9 @@ fn init_repository() {
             let config_path = config_dir.join("restic.env");
             if let Err(e) = create_secure_env_file(&config_path) {
                 println!("⚠️  Warning: Could not create temporary env file: {}", e);
-                println!("💡 Credentials are stored securely but you'll need to set environment variables manually:");
+                println!(
+                    "💡 Credentials are stored securely but you'll need to set environment variables manually:"
+                );
                 println!("   export RESTIC_REPOSITORY=\"{}\"", repo_url);
                 println!("   export RESTIC_PASSWORD=\"<your-password>\"");
             } else {

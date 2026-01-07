@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::fs;
 use std::process::Command;
 
@@ -414,19 +414,20 @@ fn get_nvidia_pci_ids() -> Vec<(String, String)> {
         for line in lspci_output.lines() {
             if (line.to_lowercase().contains("vga") || line.to_lowercase().contains("3d"))
                 && line.to_lowercase().contains("nvidia")
-                && let Some(pci_id) = line.split_whitespace().next() {
-                    let name = line
-                        .split("NVIDIA Corporation")
-                        .nth(1)
-                        .unwrap_or("Unknown NVIDIA GPU")
-                        .trim()
-                        .split('[')
-                        .next()
-                        .unwrap_or("Unknown")
-                        .trim();
+                && let Some(pci_id) = line.split_whitespace().next()
+            {
+                let name = line
+                    .split("NVIDIA Corporation")
+                    .nth(1)
+                    .unwrap_or("Unknown NVIDIA GPU")
+                    .trim()
+                    .split('[')
+                    .next()
+                    .unwrap_or("Unknown")
+                    .trim();
 
-                    gpu_ids.push((pci_id.to_string(), name.to_string()));
-                }
+                gpu_ids.push((pci_id.to_string(), name.to_string()));
+            }
         }
     }
 
@@ -968,12 +969,13 @@ fn setup_looking_glass_shm() {
 
     // Check if already in fstab
     if let Ok(fstab_content) = fs::read_to_string("/etc/fstab")
-        && !fstab_content.contains("looking-glass") {
-            let _ = fs::write("/tmp/fstab_append", fstab_entry);
-            let _ = Command::new("sudo")
-                .args(&["sh", "-c", "cat /tmp/fstab_append >> /etc/fstab"])
-                .status();
-        }
+        && !fstab_content.contains("looking-glass")
+    {
+        let _ = fs::write("/tmp/fstab_append", fstab_entry);
+        let _ = Command::new("sudo")
+            .args(&["sh", "-c", "cat /tmp/fstab_append >> /etc/fstab"])
+            .status();
+    }
 
     // Create shared memory file
     let _ = Command::new("sudo")

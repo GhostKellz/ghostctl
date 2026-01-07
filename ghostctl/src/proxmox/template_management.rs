@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -108,12 +108,29 @@ fn list_vm_iso_templates() {
 }
 
 fn download_iso_template() {
-    let distros = [("Ubuntu Server 22.04 LTS", "https://releases.ubuntu.com/22.04/ubuntu-22.04.3-live-server-amd64.iso"),
-        ("Ubuntu Server 20.04 LTS", "https://releases.ubuntu.com/20.04/ubuntu-20.04.6-live-server-amd64.iso"),
-        ("Debian 12 (Bookworm)", "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-12.2.0-amd64-netinst.iso"),
-        ("Rocky Linux 9", "https://download.rockylinux.org/pub/rocky/9/isos/x86_64/Rocky-9.2-x86_64-minimal.iso"),
-        ("Alpine Linux", "https://dl-cdn.alpinelinux.org/alpine/v3.18/releases/x86_64/alpine-standard-3.18.4-x86_64.iso"),
-        ("Custom URL", "custom")];
+    let distros = [
+        (
+            "Ubuntu Server 22.04 LTS",
+            "https://releases.ubuntu.com/22.04/ubuntu-22.04.3-live-server-amd64.iso",
+        ),
+        (
+            "Ubuntu Server 20.04 LTS",
+            "https://releases.ubuntu.com/20.04/ubuntu-20.04.6-live-server-amd64.iso",
+        ),
+        (
+            "Debian 12 (Bookworm)",
+            "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-12.2.0-amd64-netinst.iso",
+        ),
+        (
+            "Rocky Linux 9",
+            "https://download.rockylinux.org/pub/rocky/9/isos/x86_64/Rocky-9.2-x86_64-minimal.iso",
+        ),
+        (
+            "Alpine Linux",
+            "https://dl-cdn.alpinelinux.org/alpine/v3.18/releases/x86_64/alpine-standard-3.18.4-x86_64.iso",
+        ),
+        ("Custom URL", "custom"),
+    ];
 
     let distro_names: Vec<&str> = distros.iter().map(|(name, _)| *name).collect();
 
@@ -324,17 +341,19 @@ fn search_and_download_template() {
             .unwrap();
 
         if let Ok(idx) = index.parse::<usize>()
-            && idx > 0 && idx <= matching_lines.len() {
-                let selected_line = matching_lines[idx - 1];
-                let template_id = selected_line.split_whitespace().next().unwrap_or("");
+            && idx > 0
+            && idx <= matching_lines.len()
+        {
+            let selected_line = matching_lines[idx - 1];
+            let template_id = selected_line.split_whitespace().next().unwrap_or("");
 
-                if !template_id.is_empty() {
-                    println!("📥 Downloading: {}", template_id);
-                    let _ = Command::new("pveam")
-                        .args(&["download", "local", template_id])
-                        .status();
-                }
+            if !template_id.is_empty() {
+                println!("📥 Downloading: {}", template_id);
+                let _ = Command::new("pveam")
+                    .args(&["download", "local", template_id])
+                    .status();
             }
+        }
     }
 }
 
@@ -398,11 +417,12 @@ fn template_information() {
 
             let template_path = format!("/var/lib/vz/template/cache/{}", template_id);
             if Path::new(&template_path).exists()
-                && let Ok(metadata) = fs::metadata(&template_path) {
-                    println!("📁 Path: {}", template_path);
-                    println!("📏 Size: {} bytes", metadata.len());
-                    println!("📅 Modified: {:?}", metadata.modified().unwrap());
-                }
+                && let Ok(metadata) = fs::metadata(&template_path)
+            {
+                println!("📁 Path: {}", template_path);
+                println!("📏 Size: {} bytes", metadata.len());
+                println!("📅 Modified: {:?}", metadata.modified().unwrap());
+            }
         } else {
             println!("📍 Status: Not installed locally");
 

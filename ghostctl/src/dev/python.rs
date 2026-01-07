@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn python_development_menu() {
@@ -977,20 +977,21 @@ fn setup_pyenv_environment() {
     for shell_file in &shell_files {
         if std::path::Path::new(shell_file).exists()
             && let Ok(content) = std::fs::read_to_string(shell_file)
-                && !content.contains("PYENV_ROOT") {
-                    let mut file = std::fs::OpenOptions::new()
-                        .append(true)
-                        .open(shell_file)
-                        .unwrap();
+            && !content.contains("PYENV_ROOT")
+        {
+            let mut file = std::fs::OpenOptions::new()
+                .append(true)
+                .open(shell_file)
+                .unwrap();
 
-                    use std::io::Write;
-                    writeln!(file, "\n# pyenv").unwrap();
-                    for line in &pyenv_setup {
-                        writeln!(file, "{}", line).unwrap();
-                    }
+            use std::io::Write;
+            writeln!(file, "\n# pyenv").unwrap();
+            for line in &pyenv_setup {
+                writeln!(file, "{}", line).unwrap();
+            }
 
-                    println!("✅ Added pyenv to {}", shell_file);
-                }
+            println!("✅ Added pyenv to {}", shell_file);
+        }
     }
 }
 
@@ -1005,17 +1006,18 @@ fn setup_conda_environment() {
     for shell_file in &shell_files {
         if std::path::Path::new(shell_file).exists()
             && let Ok(content) = std::fs::read_to_string(shell_file)
-                && !content.contains("miniconda3") {
-                    let mut file = std::fs::OpenOptions::new()
-                        .append(true)
-                        .open(shell_file)
-                        .unwrap();
+            && !content.contains("miniconda3")
+        {
+            let mut file = std::fs::OpenOptions::new()
+                .append(true)
+                .open(shell_file)
+                .unwrap();
 
-                    use std::io::Write;
-                    writeln!(file, "\n# Miniconda").unwrap();
-                    writeln!(file, "export PATH=\"{}:$PATH\"", conda_path).unwrap();
+            use std::io::Write;
+            writeln!(file, "\n# Miniconda").unwrap();
+            writeln!(file, "export PATH=\"{}:$PATH\"", conda_path).unwrap();
 
-                    println!("✅ Added conda to {}", shell_file);
-                }
+            println!("✅ Added conda to {}", shell_file);
+        }
     }
 }

@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect, Select};
+use dialoguer::{Confirm, MultiSelect, Select, theme::ColorfulTheme};
 use std::process::Command;
 use which::which;
 
@@ -521,12 +521,13 @@ fn show_tool_info(name: &str, repo: &str) {
     );
 
     if which(name).is_ok()
-        && let Ok(output) = Command::new(name).arg("--version").output() {
-            println!(
-                "📄 Version: {}",
-                String::from_utf8_lossy(&output.stdout).trim()
-            );
-        }
+        && let Ok(output) = Command::new(name).arg("--version").output()
+    {
+        println!(
+            "📄 Version: {}",
+            String::from_utf8_lossy(&output.stdout).trim()
+        );
+    }
 
     println!("🌐 More info: https://github.com/{}", repo);
 }

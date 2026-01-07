@@ -7,7 +7,7 @@
 //! - Consistent theming
 
 use crate::utils::{is_dry_run, is_headless, is_plain_mode};
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Password, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Password, Select, theme::ColorfulTheme};
 use std::fmt::Display;
 
 /// Icon constants for plain mode
@@ -15,102 +15,46 @@ pub mod icons {
     use super::is_plain_mode;
 
     pub fn success() -> &'static str {
-        if is_plain_mode() {
-            "[OK]"
-        } else {
-            "✅"
-        }
+        if is_plain_mode() { "[OK]" } else { "✅" }
     }
     pub fn error() -> &'static str {
-        if is_plain_mode() {
-            "[ERROR]"
-        } else {
-            "❌"
-        }
+        if is_plain_mode() { "[ERROR]" } else { "❌" }
     }
     pub fn warn() -> &'static str {
-        if is_plain_mode() {
-            "[WARN]"
-        } else {
-            "⚠️"
-        }
+        if is_plain_mode() { "[WARN]" } else { "⚠️" }
     }
     pub fn info() -> &'static str {
-        if is_plain_mode() {
-            "[INFO]"
-        } else {
-            "ℹ️"
-        }
+        if is_plain_mode() { "[INFO]" } else { "ℹ️" }
     }
     pub fn question() -> &'static str {
-        if is_plain_mode() {
-            "[?]"
-        } else {
-            "❓"
-        }
+        if is_plain_mode() { "[?]" } else { "❓" }
     }
     pub fn key() -> &'static str {
-        if is_plain_mode() {
-            "[KEY]"
-        } else {
-            "🔑"
-        }
+        if is_plain_mode() { "[KEY]" } else { "🔑" }
     }
     pub fn select() -> &'static str {
-        if is_plain_mode() {
-            "[SELECT]"
-        } else {
-            "📋"
-        }
+        if is_plain_mode() { "[SELECT]" } else { "📋" }
     }
     pub fn input() -> &'static str {
-        if is_plain_mode() {
-            "[INPUT]"
-        } else {
-            "📝"
-        }
+        if is_plain_mode() { "[INPUT]" } else { "📝" }
     }
     pub fn back() -> &'static str {
-        if is_plain_mode() {
-            "[BACK]"
-        } else {
-            "⬅️"
-        }
+        if is_plain_mode() { "[BACK]" } else { "⬅️" }
     }
     pub fn robot() -> &'static str {
-        if is_plain_mode() {
-            "[AUTO]"
-        } else {
-            "🤖"
-        }
+        if is_plain_mode() { "[AUTO]" } else { "🤖" }
     }
     pub fn search() -> &'static str {
-        if is_plain_mode() {
-            "[SEARCH]"
-        } else {
-            "🔍"
-        }
+        if is_plain_mode() { "[SEARCH]" } else { "🔍" }
     }
     pub fn update() -> &'static str {
-        if is_plain_mode() {
-            "[UPDATE]"
-        } else {
-            "🔄"
-        }
+        if is_plain_mode() { "[UPDATE]" } else { "🔄" }
     }
     pub fn status() -> &'static str {
-        if is_plain_mode() {
-            "[STATUS]"
-        } else {
-            "📊"
-        }
+        if is_plain_mode() { "[STATUS]" } else { "📊" }
     }
     pub fn docker() -> &'static str {
-        if is_plain_mode() {
-            "[DOCKER]"
-        } else {
-            "🐳"
-        }
+        if is_plain_mode() { "[DOCKER]" } else { "🐳" }
     }
     pub fn tools() -> &'static str {
         if is_plain_mode() {
@@ -127,60 +71,28 @@ pub mod icons {
         }
     }
     pub fn network() -> &'static str {
-        if is_plain_mode() {
-            "[NET]"
-        } else {
-            "🌐"
-        }
+        if is_plain_mode() { "[NET]" } else { "🌐" }
     }
     pub fn send() -> &'static str {
-        if is_plain_mode() {
-            "[SEND]"
-        } else {
-            "📤"
-        }
+        if is_plain_mode() { "[SEND]" } else { "📤" }
     }
     pub fn receive() -> &'static str {
-        if is_plain_mode() {
-            "[RECV]"
-        } else {
-            "📥"
-        }
+        if is_plain_mode() { "[RECV]" } else { "📥" }
     }
     pub fn chat() -> &'static str {
-        if is_plain_mode() {
-            "[CHAT]"
-        } else {
-            "💬"
-        }
+        if is_plain_mode() { "[CHAT]" } else { "💬" }
     }
     pub fn run() -> &'static str {
-        if is_plain_mode() {
-            "[RUN]"
-        } else {
-            "🏃"
-        }
+        if is_plain_mode() { "[RUN]" } else { "🏃" }
     }
     pub fn lock() -> &'static str {
-        if is_plain_mode() {
-            "[LOCK]"
-        } else {
-            "🔐"
-        }
+        if is_plain_mode() { "[LOCK]" } else { "🔐" }
     }
     pub fn ghost() -> &'static str {
-        if is_plain_mode() {
-            "[GHOST]"
-        } else {
-            "👻"
-        }
+        if is_plain_mode() { "[GHOST]" } else { "👻" }
     }
     pub fn home() -> &'static str {
-        if is_plain_mode() {
-            "[HOME]"
-        } else {
-            "🏠"
-        }
+        if is_plain_mode() { "[HOME]" } else { "🏠" }
     }
     pub fn build() -> &'static str {
         if is_plain_mode() {
@@ -190,32 +102,16 @@ pub mod icons {
         }
     }
     pub fn folder() -> &'static str {
-        if is_plain_mode() {
-            "[DIR]"
-        } else {
-            "📁"
-        }
+        if is_plain_mode() { "[DIR]" } else { "📁" }
     }
     pub fn rocket() -> &'static str {
-        if is_plain_mode() {
-            "[LAUNCH]"
-        } else {
-            "🚀"
-        }
+        if is_plain_mode() { "[LAUNCH]" } else { "🚀" }
     }
     pub fn lightbulb() -> &'static str {
-        if is_plain_mode() {
-            "[TIP]"
-        } else {
-            "💡"
-        }
+        if is_plain_mode() { "[TIP]" } else { "💡" }
     }
     pub fn disk() -> &'static str {
-        if is_plain_mode() {
-            "[DISK]"
-        } else {
-            "💾"
-        }
+        if is_plain_mode() { "[DISK]" } else { "💾" }
     }
 }
 
@@ -425,10 +321,11 @@ pub fn password(prompt: &str, env_var: Option<&str>) -> Option<String> {
     // In headless mode, try to get from environment
     if is_headless() {
         if let Some(var) = env_var
-            && let Ok(pass) = std::env::var(var) {
-                println!("{} {} [from environment: {}]", icons::key(), prompt, var);
-                return Some(pass);
-            }
+            && let Ok(pass) = std::env::var(var)
+        {
+            println!("{} {} [from environment: {}]", icons::key(), prompt, var);
+            return Some(pass);
+        }
         println!(
             "{} {} [skipped in headless mode - set {} env var]",
             icons::key(),

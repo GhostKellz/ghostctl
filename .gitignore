@@ -19,5 +19,8 @@ Thumbs.db
 # Build artifacts
 ghostctl/target/CLAUDE.md
 
-archive/ 
+archive/
+
+# Work files
+CR_CHECKLIST.md 
 

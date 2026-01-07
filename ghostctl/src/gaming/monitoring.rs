@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Select};
+use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn monitoring_menu() {
@@ -313,20 +313,21 @@ fn install_goverlay_tool() {
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
         if let Ok(s) = helper_check
-            && s.success() {
-                let install_status = Command::new(helper)
-                    .args(&["-S", "--noconfirm", "goverlay"])
-                    .status();
+            && s.success()
+        {
+            let install_status = Command::new(helper)
+                .args(&["-S", "--noconfirm", "goverlay"])
+                .status();
 
-                match install_status {
-                    Ok(s) if s.success() => {
-                        println!("✅ GOverlay installed");
-                        println!("🎮 Launch with: goverlay");
-                        return;
-                    }
-                    _ => continue,
+            match install_status {
+                Ok(s) if s.success() => {
+                    println!("✅ GOverlay installed");
+                    println!("🎮 Launch with: goverlay");
+                    return;
                 }
+                _ => continue,
             }
+        }
     }
 
     println!("❌ No AUR helper found. Install yay first:");

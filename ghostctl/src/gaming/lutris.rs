@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use serde::{Deserialize, Serialize};
 use serde_yaml;
 use std::fs;
@@ -103,16 +103,15 @@ fn list_installed_games() {
                         let path = entry.path();
                         if path.extension().and_then(|s| s.to_str()) == Some("yml")
                             && let Ok(content) = fs::read_to_string(&path)
-                                && let Ok(config) =
-                                    serde_yaml::from_str::<serde_yaml::Value>(&content)
-                                    && let Some(name) = config.get("name").and_then(|v| v.as_str())
-                                    {
-                                        let runner = config
-                                            .get("runner")
-                                            .and_then(|v| v.as_str())
-                                            .unwrap_or("unknown");
-                                        println!("  🎮 {} ({})", name, runner);
-                                    }
+                            && let Ok(config) = serde_yaml::from_str::<serde_yaml::Value>(&content)
+                            && let Some(name) = config.get("name").and_then(|v| v.as_str())
+                        {
+                            let runner = config
+                                .get("runner")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("unknown");
+                            println!("  🎮 {} ({})", name, runner);
+                        }
                     }
                 }
             }

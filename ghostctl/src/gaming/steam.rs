@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Select};
+use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn steam_menu() {
@@ -96,7 +96,9 @@ pub fn install_steam() {
     match install_status {
         Ok(s) if s.success() => {
             println!("✅ Steam and dependencies installed successfully!");
-            println!("💡 You can now launch Steam from your application menu or by running 'steam' in the terminal");
+            println!(
+                "💡 You can now launch Steam from your application menu or by running 'steam' in the terminal"
+            );
 
             let launch_steam = Confirm::new()
                 .with_prompt("Launch Steam now?")
@@ -242,21 +244,22 @@ fn install_protonup_qt_aur() {
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
         if let Ok(s) = helper_check
-            && s.success() {
-                println!("🔧 Using {} to install ProtonUp-Qt...", helper);
-                let install_status = Command::new(helper)
-                    .args(&["-S", "--noconfirm", "protonup-qt"])
-                    .status();
+            && s.success()
+        {
+            println!("🔧 Using {} to install ProtonUp-Qt...", helper);
+            let install_status = Command::new(helper)
+                .args(&["-S", "--noconfirm", "protonup-qt"])
+                .status();
 
-                match install_status {
-                    Ok(s) if s.success() => {
-                        println!("✅ ProtonUp-Qt installed successfully!");
-                        installed = true;
-                        break;
-                    }
-                    _ => println!("❌ Failed to install with {}", helper),
+            match install_status {
+                Ok(s) if s.success() => {
+                    println!("✅ ProtonUp-Qt installed successfully!");
+                    installed = true;
+                    break;
                 }
+                _ => println!("❌ Failed to install with {}", helper),
             }
+        }
     }
 
     if !installed {

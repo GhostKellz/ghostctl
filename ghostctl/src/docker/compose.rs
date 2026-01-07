@@ -1,5 +1,5 @@
 use crate::tui;
-use dialoguer::{theme::ColorfulTheme, Input, Select};
+use dialoguer::{Input, Select, theme::ColorfulTheme};
 use std::fs;
 use std::process::Command;
 
@@ -185,20 +185,21 @@ fn find_compose_stacks() -> Vec<std::path::PathBuf> {
     for dir in &search_dirs {
         let path = std::path::Path::new(dir);
         if path.exists()
-            && let Ok(entries) = fs::read_dir(path) {
-                for entry in entries.flatten() {
-                    let entry_path = entry.path();
-                    if entry_path.is_dir() {
-                        // Check if directory contains docker-compose.yml
-                        let compose_file = entry_path.join("docker-compose.yml");
-                        let compose_file_alt = entry_path.join("docker-compose.yaml");
+            && let Ok(entries) = fs::read_dir(path)
+        {
+            for entry in entries.flatten() {
+                let entry_path = entry.path();
+                if entry_path.is_dir() {
+                    // Check if directory contains docker-compose.yml
+                    let compose_file = entry_path.join("docker-compose.yml");
+                    let compose_file_alt = entry_path.join("docker-compose.yaml");
 
-                        if compose_file.exists() || compose_file_alt.exists() {
-                            stacks.push(entry_path);
-                        }
+                    if compose_file.exists() || compose_file_alt.exists() {
+                        stacks.push(entry_path);
                     }
                 }
             }
+        }
     }
 
     stacks

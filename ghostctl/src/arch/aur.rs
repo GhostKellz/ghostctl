@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn aur_helper_management() {
@@ -659,14 +659,13 @@ fn rebuild_all_aur() {
                 .interact()
                 .unwrap();
 
-            if confirm
-                && let Some(helper) = get_preferred_aur_helper() {
-                    println!("🔨 Rebuilding packages with {}...", helper);
-                    let _ = Command::new(&helper)
-                        .args(["-S", "--rebuild"])
-                        .args(&packages)
-                        .status();
-                }
+            if confirm && let Some(helper) = get_preferred_aur_helper() {
+                println!("🔨 Rebuilding packages with {}...", helper);
+                let _ = Command::new(&helper)
+                    .args(["-S", "--rebuild"])
+                    .args(&packages)
+                    .status();
+            }
         }
         _ => println!("❌ Failed to query foreign packages"),
     }
@@ -683,10 +682,11 @@ fn list_foreign_packages() {
     let output = Command::new("pacman").args(["-Qm"]).output();
 
     if let Ok(output) = output
-        && output.status.success() {
-            let count = String::from_utf8_lossy(&output.stdout).lines().count();
-            println!("  Total foreign packages: {}", count);
-        }
+        && output.status.success()
+    {
+        let count = String::from_utf8_lossy(&output.stdout).lines().count();
+        println!("  Total foreign packages: {}", count);
+    }
 
     println!("\n🔍 Explicitly installed packages:");
     let _ = Command::new("pacman").args(["-Qe"]).status();
@@ -1171,10 +1171,11 @@ fn optimize_dependency_cache() {
         .output();
 
     if let Ok(output) = output
-        && output.status.success() {
-            let size = String::from_utf8_lossy(&output.stdout);
-            println!("📊 Current cache size: {}", size.trim());
-        }
+        && output.status.success()
+    {
+        let size = String::from_utf8_lossy(&output.stdout);
+        println!("📊 Current cache size: {}", size.trim());
+    }
 
     let optimize_options = [
         "🗑️  Remove all cached packages except installed versions",
@@ -1369,15 +1370,16 @@ fn resolve_file_conflicts() {
                 .output();
 
             if let Ok(output) = output
-                && output.status.success() {
-                    let owner_info = String::from_utf8_lossy(&output.stdout);
-                    if let Some(package) = owner_info.split_whitespace().nth(4) {
-                        println!("🔄 Reinstalling {}...", package);
-                        let _ = Command::new("sudo")
-                            .args(["pacman", "-S", "--noconfirm", package])
-                            .status();
-                    }
+                && output.status.success()
+            {
+                let owner_info = String::from_utf8_lossy(&output.stdout);
+                if let Some(package) = owner_info.split_whitespace().nth(4) {
+                    println!("🔄 Reinstalling {}...", package);
+                    let _ = Command::new("sudo")
+                        .args(["pacman", "-S", "--noconfirm", package])
+                        .status();
                 }
+            }
         }
         1 => {
             let confirm = Confirm::new()
@@ -1433,7 +1435,9 @@ fn fix_broken_packages_conflicts() {
         match choice {
             0 | 1 => {
                 println!("🔄 This would attempt to fix broken packages...");
-                println!("💡 Run 'sudo pacman -S $(pacman -Qkk 2>&1 | grep 'warning' | awk '{{print $2}}' | sort -u)' manually");
+                println!(
+                    "💡 Run 'sudo pacman -S $(pacman -Qkk 2>&1 | grep 'warning' | awk '{{print $2}}' | sort -u)' manually"
+                );
             }
             2 => {
                 println!("🔧 Attempting automatic fix...");

@@ -208,10 +208,11 @@ fn scan_for_devices() {
                     Ok(adapter) => {
                         // Ensure adapter is powered
                         if !adapter.is_powered().await.unwrap_or(false)
-                            && let Err(e) = adapter.set_powered(true).await {
-                                error(&format!("Failed to power on adapter: {}", e));
-                                return;
-                            }
+                            && let Err(e) = adapter.set_powered(true).await
+                        {
+                            error(&format!("Failed to power on adapter: {}", e));
+                            return;
+                        }
 
                         // Start discovery
                         match adapter.discover_devices().await {
@@ -231,28 +232,29 @@ fn scan_for_devices() {
                                     {
                                         Ok(Some(event)) => {
                                             if let bluer::AdapterEvent::DeviceAdded(addr) = event
-                                                && let Ok(device) = adapter.device(addr) {
-                                                    let name = device
-                                                        .name()
-                                                        .await
-                                                        .ok()
-                                                        .flatten()
-                                                        .unwrap_or_else(|| "Unknown".to_string());
-                                                    let rssi = device
-                                                        .rssi()
-                                                        .await
-                                                        .ok()
-                                                        .flatten()
-                                                        .map(|r| format!("{}dBm", r))
-                                                        .unwrap_or_else(|| "N/A".to_string());
-                                                    println!(
-                                                        "  {} {} ({}) [RSSI: {}]",
-                                                        icons::success(),
-                                                        name,
-                                                        addr,
-                                                        rssi
-                                                    );
-                                                }
+                                                && let Ok(device) = adapter.device(addr)
+                                            {
+                                                let name = device
+                                                    .name()
+                                                    .await
+                                                    .ok()
+                                                    .flatten()
+                                                    .unwrap_or_else(|| "Unknown".to_string());
+                                                let rssi = device
+                                                    .rssi()
+                                                    .await
+                                                    .ok()
+                                                    .flatten()
+                                                    .map(|r| format!("{}dBm", r))
+                                                    .unwrap_or_else(|| "N/A".to_string());
+                                                println!(
+                                                    "  {} {} ({}) [RSSI: {}]",
+                                                    icons::success(),
+                                                    name,
+                                                    addr,
+                                                    rssi
+                                                );
+                                            }
                                         }
                                         Ok(None) => break,
                                         Err(_) => {

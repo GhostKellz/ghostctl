@@ -160,7 +160,7 @@ pub fn info() {
 }
 
 pub fn nvidia_menu() {
-    use dialoguer::{theme::ColorfulTheme, Select};
+    use dialoguer::{Select, theme::ColorfulTheme};
 
     println!("🎮 NVIDIA Management");
     println!("===================");

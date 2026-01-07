@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, MultiSelect, Select};
+use dialoguer::{Confirm, MultiSelect, Select, theme::ColorfulTheme};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -72,9 +72,10 @@ pub fn check_disk_space() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 5
                 && let Ok(usage) = parts[4].trim_end_matches('%').parse::<u32>()
-                    && usage >= 90 {
-                        println!("\n⚠️  WARNING: {} is {}% full!", parts[5], usage);
-                    }
+                && usage >= 90
+            {
+                println!("\n⚠️  WARNING: {} is {}% full!", parts[5], usage);
+            }
         }
     }
 
@@ -477,9 +478,10 @@ fn clean_old_configs() {
                 let output = Command::new("pacman").args(&["-Qs", &dir_name]).output();
 
                 if let Ok(output) = output
-                    && output.stdout.is_empty() {
-                        println!("  ? {} (no matching package)", path.display());
-                    }
+                    && output.stdout.is_empty()
+                {
+                    println!("  ? {} (no matching package)", path.display());
+                }
             }
         }
     }

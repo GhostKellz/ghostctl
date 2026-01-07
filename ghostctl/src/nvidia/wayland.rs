@@ -12,7 +12,9 @@ pub fn configure() {
                 println!("[OK] nvidia-drm.modeset=1 is set in kernel params");
             } else {
                 println!("[WARN] nvidia-drm.modeset=1 is NOT set in kernel params");
-                println!("To enable, add 'nvidia-drm.modeset=1' to your kernel command line (GRUB/loader).\nExample: GRUB_CMDLINE_LINUX=\"... nvidia-drm.modeset=1\"");
+                println!(
+                    "To enable, add 'nvidia-drm.modeset=1' to your kernel command line (GRUB/loader).\nExample: GRUB_CMDLINE_LINUX=\"... nvidia-drm.modeset=1\""
+                );
             }
         }
         Err(e) => println!("Failed to check kernel params: {}", e),

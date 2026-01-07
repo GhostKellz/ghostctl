@@ -146,7 +146,7 @@ pub fn balance(mountpoint: &str) {
 }
 
 pub fn snapper_menu() {
-    use dialoguer::{theme::ColorfulTheme, Input, Select};
+    use dialoguer::{Input, Select, theme::ColorfulTheme};
     let opts = ["Deploy Base Config", "Edit Config", "List Configs", "Back"];
     match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Snapper Menu")
@@ -239,7 +239,7 @@ pub fn emergency_cleanup_all_snapshots() {
 }
 
 pub fn bulk_cleanup_snapshots() {
-    use dialoguer::{theme::ColorfulTheme, Select};
+    use dialoguer::{Select, theme::ColorfulTheme};
 
     println!("🧹 Bulk Snapshot Cleanup");
     println!("========================");
@@ -425,15 +425,16 @@ pub fn check_disk_space() {
     {
         let usage_str = String::from_utf8_lossy(&output.stdout);
         if let Some(line) = usage_str.lines().nth(1)
-            && let Ok(usage) = line.trim().trim_end_matches('%').parse::<i32>() {
-                if usage > 90 {
-                    println!(
-                        "\n⚠️  WARNING: Disk usage is {}% - consider emergency cleanup!",
-                        usage
-                    );
-                } else if usage > 80 {
-                    println!("\n⚠️  CAUTION: Disk usage is {}% - monitor closely", usage);
-                }
+            && let Ok(usage) = line.trim().trim_end_matches('%').parse::<i32>()
+        {
+            if usage > 90 {
+                println!(
+                    "\n⚠️  WARNING: Disk usage is {}% - consider emergency cleanup!",
+                    usage
+                );
+            } else if usage > 80 {
+                println!("\n⚠️  CAUTION: Disk usage is {}% - monitor closely", usage);
             }
+        }
     }
 }

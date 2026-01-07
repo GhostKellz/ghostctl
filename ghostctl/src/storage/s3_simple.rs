@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Password, Select};
+use dialoguer::{Confirm, Input, Password, Select, theme::ColorfulTheme};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;

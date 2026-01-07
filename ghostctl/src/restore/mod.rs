@@ -1,6 +1,6 @@
 pub mod system;
 
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 
 pub fn restore_menu() {
     println!("🚨 System Recovery & Restore");

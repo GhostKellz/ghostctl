@@ -10,7 +10,7 @@ pub mod scanner;
 pub mod troubleshoot;
 pub mod virtualization;
 
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 
 pub fn networking_menu() {
     loop {
@@ -99,14 +99,15 @@ fn network_status() {
         .output();
 
     if let Ok(out) = ufw
-        && out.status.success() {
-            let status_str = String::from_utf8_lossy(&out.stdout);
-            if status_str.contains("Status: active") {
-                println!("  ✅ UFW is active");
-            } else if status_str.contains("Status: inactive") {
-                println!("  ⭕ UFW is inactive");
-            }
+        && out.status.success()
+    {
+        let status_str = String::from_utf8_lossy(&out.stdout);
+        if status_str.contains("Status: active") {
+            println!("  ✅ UFW is active");
+        } else if status_str.contains("Status: inactive") {
+            println!("  ⭕ UFW is inactive");
         }
+    }
 
     // Check firewalld
     let firewalld = std::process::Command::new("systemctl")
@@ -126,13 +127,14 @@ fn network_status() {
         .output();
 
     if let Ok(out) = iptables
-        && out.status.success() {
-            let rules = String::from_utf8_lossy(&out.stdout);
-            let rule_count = rules.lines().count();
-            if rule_count > 10 {
-                println!("  ✅ iptables has {} rules configured", rule_count);
-            }
+        && out.status.success()
+    {
+        let rules = String::from_utf8_lossy(&out.stdout);
+        let rule_count = rules.lines().count();
+        if rule_count > 10 {
+            println!("  ✅ iptables has {} rules configured", rule_count);
         }
+    }
 
     // Check NetworkManager
     println!("\n📡 NetworkManager Status:");

@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Select};
+use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use std::fs;
 use std::process::Command;
 
@@ -171,10 +171,11 @@ fn check_common_issues() {
         let output = Command::new("pacman").args(&["-Qi", package]).output();
 
         if let Ok(output) = output
-            && !output.status.success() {
-                let issue = format!("⚠️  {} not installed", package);
-                issues.push(issue);
-            }
+            && !output.status.success()
+        {
+            let issue = format!("⚠️  {} not installed", package);
+            issues.push(issue);
+        }
     }
 
     if issues.is_empty() {
@@ -194,17 +195,18 @@ pub fn install_proprietary_drivers() {
     let output = Command::new("pacman").args(&["-Qi", "nvidia"]).output();
 
     if let Ok(output) = output
-        && output.status.success() {
-            println!("⚠️  NVIDIA proprietary drivers already installed");
-            let reinstall = Confirm::with_theme(&ColorfulTheme::default())
-                .with_prompt("Reinstall anyway?")
-                .interact()
-                .unwrap();
+        && output.status.success()
+    {
+        println!("⚠️  NVIDIA proprietary drivers already installed");
+        let reinstall = Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Reinstall anyway?")
+            .interact()
+            .unwrap();
 
-            if !reinstall {
-                return;
-            }
+        if !reinstall {
+            return;
         }
+    }
 
     // Detect kernel
     let kernel_type = detect_kernel();

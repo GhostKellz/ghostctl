@@ -4,7 +4,7 @@ pub mod python;
 pub mod rust;
 pub mod zig;
 
-use dialoguer::{theme::ColorfulTheme, Select};
+use dialoguer::{Select, theme::ColorfulTheme};
 
 pub fn development_menu() {
     println!("🛠️  Development Environment");

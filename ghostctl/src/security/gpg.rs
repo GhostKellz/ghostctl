@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use dialoguer::{theme::ColorfulTheme, Input, Select};
+use dialoguer::{Input, Select, theme::ColorfulTheme};
 use std::fs;
 use std::process::Command;
 use thiserror::Error;

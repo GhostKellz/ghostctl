@@ -109,9 +109,10 @@ fn network_mesh_menu() {
             0 => network::mesh::up(),
             1 => {
                 if let Some(subnet) = tui::input("Subnet to advertise", None)
-                    && !subnet.is_empty() {
-                        network::mesh::advertise(&subnet);
-                    }
+                    && !subnet.is_empty()
+                {
+                    network::mesh::advertise(&subnet);
+                }
             }
             2 => network::mesh::status(),
             3 => network::mesh::down(),

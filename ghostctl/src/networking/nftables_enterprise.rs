@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -850,9 +850,10 @@ fn get_available_interfaces() -> Vec<String> {
                 if line.contains(": ") && !line.contains("lo:") {
                     // Extract interface name
                     if let Some(name_part) = line.split(": ").nth(1)
-                        && let Some(name) = name_part.split('@').next() {
-                            return Some(name.to_string());
-                        }
+                        && let Some(name) = name_part.split('@').next()
+                    {
+                        return Some(name.to_string());
+                    }
                 }
                 None
             })

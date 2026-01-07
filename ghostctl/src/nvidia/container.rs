@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Select};
+use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use std::fs;
 use std::process::Command;
 
@@ -235,17 +235,18 @@ pub fn install_nvidia_container_runtime() {
         .output();
 
     if let Ok(output) = output
-        && output.status.success() {
-            println!("⚠️  NVIDIA Container Runtime already installed");
-            let reinstall = Confirm::with_theme(&ColorfulTheme::default())
-                .with_prompt("Reinstall anyway?")
-                .interact()
-                .unwrap();
+        && output.status.success()
+    {
+        println!("⚠️  NVIDIA Container Runtime already installed");
+        let reinstall = Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Reinstall anyway?")
+            .interact()
+            .unwrap();
 
-            if !reinstall {
-                return;
-            }
+        if !reinstall {
+            return;
         }
+    }
 
     // Install from repositories
     let packages = [

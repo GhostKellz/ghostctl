@@ -205,7 +205,7 @@ fn simple_decrypt(ciphertext: &str, key: &str) -> Result<String, String> {
 }
 
 pub fn credential_management() {
-    use dialoguer::{theme::ColorfulTheme, Select};
+    use dialoguer::{Select, theme::ColorfulTheme};
 
     println!("🔐 Secure Credential Management");
     println!("===============================");

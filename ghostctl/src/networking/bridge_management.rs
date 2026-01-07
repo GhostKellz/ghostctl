@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -214,19 +214,19 @@ fn show_bridge_statistics() {
                 // Show connected interfaces
                 let brif_path = path.join("brif");
                 if brif_path.exists()
-                    && let Ok(interfaces) = fs::read_dir(&brif_path) {
-                        let mut connected_interfaces = Vec::new();
-                        for iface in interfaces.flatten() {
-                            connected_interfaces
-                                .push(iface.file_name().to_string_lossy().to_string());
-                        }
-
-                        if !connected_interfaces.is_empty() {
-                            println!("     Connected: {}", connected_interfaces.join(", "));
-                        } else {
-                            println!("     Connected: None");
-                        }
+                    && let Ok(interfaces) = fs::read_dir(&brif_path)
+                {
+                    let mut connected_interfaces = Vec::new();
+                    for iface in interfaces.flatten() {
+                        connected_interfaces.push(iface.file_name().to_string_lossy().to_string());
                     }
+
+                    if !connected_interfaces.is_empty() {
+                        println!("     Connected: {}", connected_interfaces.join(", "));
+                    } else {
+                        println!("     Connected: None");
+                    }
+                }
             }
         }
     }
@@ -344,28 +344,29 @@ fn configure_new_bridge(bridge_name: &str) {
         .unwrap();
 
     if let Ok(delay_val) = forward_delay.parse::<u32>()
-        && (4..=30).contains(&delay_val) {
-            let delay_centisec = delay_val * 100;
-            let delay_result = Command::new("sudo")
-                .args(&[
-                    "ip",
-                    "link",
-                    "set",
-                    bridge_name,
-                    "type",
-                    "bridge",
-                    "forward_delay",
-                    &delay_centisec.to_string(),
-                ])
-                .status();
+        && (4..=30).contains(&delay_val)
+    {
+        let delay_centisec = delay_val * 100;
+        let delay_result = Command::new("sudo")
+            .args(&[
+                "ip",
+                "link",
+                "set",
+                bridge_name,
+                "type",
+                "bridge",
+                "forward_delay",
+                &delay_centisec.to_string(),
+            ])
+            .status();
 
-            match delay_result {
-                Ok(status) if status.success() => {
-                    println!("✅ Forward delay set to {} seconds", delay_val)
-                }
-                _ => println!("⚠️ Failed to set forward delay"),
+        match delay_result {
+            Ok(status) if status.success() => {
+                println!("✅ Forward delay set to {} seconds", delay_val)
             }
+            _ => println!("⚠️ Failed to set forward delay"),
         }
+    }
 
     // Hello time configuration
     let hello_time = Input::<String>::with_theme(&ColorfulTheme::default())
@@ -375,28 +376,29 @@ fn configure_new_bridge(bridge_name: &str) {
         .unwrap();
 
     if let Ok(hello_val) = hello_time.parse::<u32>()
-        && (1..=10).contains(&hello_val) {
-            let hello_centisec = hello_val * 100;
-            let hello_result = Command::new("sudo")
-                .args(&[
-                    "ip",
-                    "link",
-                    "set",
-                    bridge_name,
-                    "type",
-                    "bridge",
-                    "hello_time",
-                    &hello_centisec.to_string(),
-                ])
-                .status();
+        && (1..=10).contains(&hello_val)
+    {
+        let hello_centisec = hello_val * 100;
+        let hello_result = Command::new("sudo")
+            .args(&[
+                "ip",
+                "link",
+                "set",
+                bridge_name,
+                "type",
+                "bridge",
+                "hello_time",
+                &hello_centisec.to_string(),
+            ])
+            .status();
 
-            match hello_result {
-                Ok(status) if status.success() => {
-                    println!("✅ Hello time set to {} seconds", hello_val)
-                }
-                _ => println!("⚠️ Failed to set hello time"),
+        match hello_result {
+            Ok(status) if status.success() => {
+                println!("✅ Hello time set to {} seconds", hello_val)
             }
+            _ => println!("⚠️ Failed to set hello time"),
         }
+    }
 
     // Max age configuration
     let max_age = Input::<String>::with_theme(&ColorfulTheme::default())
@@ -406,26 +408,27 @@ fn configure_new_bridge(bridge_name: &str) {
         .unwrap();
 
     if let Ok(age_val) = max_age.parse::<u32>()
-        && (6..=40).contains(&age_val) {
-            let age_centisec = age_val * 100;
-            let age_result = Command::new("sudo")
-                .args(&[
-                    "ip",
-                    "link",
-                    "set",
-                    bridge_name,
-                    "type",
-                    "bridge",
-                    "max_age",
-                    &age_centisec.to_string(),
-                ])
-                .status();
+        && (6..=40).contains(&age_val)
+    {
+        let age_centisec = age_val * 100;
+        let age_result = Command::new("sudo")
+            .args(&[
+                "ip",
+                "link",
+                "set",
+                bridge_name,
+                "type",
+                "bridge",
+                "max_age",
+                &age_centisec.to_string(),
+            ])
+            .status();
 
-            match age_result {
-                Ok(status) if status.success() => println!("✅ Max age set to {} seconds", age_val),
-                _ => println!("⚠️ Failed to set max age"),
-            }
+        match age_result {
+            Ok(status) if status.success() => println!("✅ Max age set to {} seconds", age_val),
+            _ => println!("⚠️ Failed to set max age"),
         }
+    }
 
     // IP address configuration
     let assign_ip = Confirm::with_theme(&ColorfulTheme::default())
@@ -520,17 +523,19 @@ fn get_bridge_list() -> Vec<String> {
     if let Ok(out) = output {
         let bridge_output = String::from_utf8_lossy(&out.stdout);
         for line in bridge_output.lines() {
-            if line.contains(": ") && line.contains("bridge")
-                && let Some(colon_pos) = line.find(": ") {
-                    let after_colon = &line[colon_pos + 2..];
-                    if let Some(at_pos) = after_colon.find('@') {
-                        let bridge_name = &after_colon[..at_pos];
-                        bridges.push(bridge_name.to_string());
-                    } else if let Some(space_pos) = after_colon.find(' ') {
-                        let bridge_name = &after_colon[..space_pos];
-                        bridges.push(bridge_name.to_string());
-                    }
+            if line.contains(": ")
+                && line.contains("bridge")
+                && let Some(colon_pos) = line.find(": ")
+            {
+                let after_colon = &line[colon_pos + 2..];
+                if let Some(at_pos) = after_colon.find('@') {
+                    let bridge_name = &after_colon[..at_pos];
+                    bridges.push(bridge_name.to_string());
+                } else if let Some(space_pos) = after_colon.find(' ') {
+                    let bridge_name = &after_colon[..space_pos];
+                    bridges.push(bridge_name.to_string());
                 }
+            }
         }
     }
 
@@ -682,30 +687,32 @@ fn get_available_interfaces() -> Vec<String> {
     if let Ok(out) = output {
         let link_output = String::from_utf8_lossy(&out.stdout);
         for line in link_output.lines() {
-            if line.contains(": ") && !line.contains("lo:")
-                && let Some(colon_pos) = line.find(": ") {
-                    let after_colon = &line[colon_pos + 2..];
-                    if let Some(at_pos) = after_colon.find('@') {
-                        let iface_name = &after_colon[..at_pos];
-                        // Skip bridges and other virtual interfaces
-                        if !line.contains("bridge")
-                            && !line.contains("vnet")
-                            && !iface_name.starts_with("virbr")
-                            && !iface_name.starts_with("br")
-                        {
-                            interfaces.push(iface_name.to_string());
-                        }
-                    } else if let Some(space_pos) = after_colon.find(' ') {
-                        let iface_name = &after_colon[..space_pos];
-                        if !line.contains("bridge")
-                            && !line.contains("vnet")
-                            && !iface_name.starts_with("virbr")
-                            && !iface_name.starts_with("br")
-                        {
-                            interfaces.push(iface_name.to_string());
-                        }
+            if line.contains(": ")
+                && !line.contains("lo:")
+                && let Some(colon_pos) = line.find(": ")
+            {
+                let after_colon = &line[colon_pos + 2..];
+                if let Some(at_pos) = after_colon.find('@') {
+                    let iface_name = &after_colon[..at_pos];
+                    // Skip bridges and other virtual interfaces
+                    if !line.contains("bridge")
+                        && !line.contains("vnet")
+                        && !iface_name.starts_with("virbr")
+                        && !iface_name.starts_with("br")
+                    {
+                        interfaces.push(iface_name.to_string());
+                    }
+                } else if let Some(space_pos) = after_colon.find(' ') {
+                    let iface_name = &after_colon[..space_pos];
+                    if !line.contains("bridge")
+                        && !line.contains("vnet")
+                        && !iface_name.starts_with("virbr")
+                        && !iface_name.starts_with("br")
+                    {
+                        interfaces.push(iface_name.to_string());
                     }
                 }
+            }
         }
     }
 

@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -51,42 +51,39 @@ pub fn show_swap_status() {
     // Show zram status if available
     println!("\n=== ZRAM STATUS ===");
     if Path::new("/proc/swaps").exists()
-        && let Ok(content) = fs::read_to_string("/proc/swaps") {
-            let zram_devices: Vec<&str> = content
-                .lines()
-                .filter(|line| line.contains("zram"))
-                .collect();
+        && let Ok(content) = fs::read_to_string("/proc/swaps")
+    {
+        let zram_devices: Vec<&str> = content
+            .lines()
+            .filter(|line| line.contains("zram"))
+            .collect();
 
-            if zram_devices.is_empty() {
-                println!("No zram devices active");
-            } else {
-                for device in zram_devices {
-                    println!("{}", device);
-                }
+        if zram_devices.is_empty() {
+            println!("No zram devices active");
+        } else {
+            for device in zram_devices {
+                println!("{}", device);
+            }
 
-                // Show zram details
-                for i in 0..8 {
-                    let comp_path = format!("/sys/block/zram{}/comp_algorithm", i);
-                    let size_path = format!("/sys/block/zram{}/disksize", i);
+            // Show zram details
+            for i in 0..8 {
+                let comp_path = format!("/sys/block/zram{}/comp_algorithm", i);
+                let size_path = format!("/sys/block/zram{}/disksize", i);
 
-                    if Path::new(&comp_path).exists()
-                        && let (Ok(comp), Ok(size)) = (
-                            fs::read_to_string(&comp_path),
-                            fs::read_to_string(&size_path),
-                        )
-                            && let Ok(size_bytes) = size.trim().parse::<u64>()
-                                && size_bytes > 0 {
-                                    let size_mb = size_bytes / 1024 / 1024;
-                                    println!(
-                                        "  zram{}: {} algorithm, {} MB",
-                                        i,
-                                        comp.trim(),
-                                        size_mb
-                                    );
-                                }
+                if Path::new(&comp_path).exists()
+                    && let (Ok(comp), Ok(size)) = (
+                        fs::read_to_string(&comp_path),
+                        fs::read_to_string(&size_path),
+                    )
+                    && let Ok(size_bytes) = size.trim().parse::<u64>()
+                    && size_bytes > 0
+                {
+                    let size_mb = size_bytes / 1024 / 1024;
+                    println!("  zram{}: {} algorithm, {} MB", i, comp.trim(), size_mb);
                 }
             }
         }
+    }
 
     // Show current swappiness
     if let Ok(swappiness) = fs::read_to_string("/proc/sys/vm/swappiness") {
@@ -104,20 +101,21 @@ pub fn setup_zram() {
 
     // Check if zram is already active
     if let Ok(content) = fs::read_to_string("/proc/swaps")
-        && content.contains("zram") {
-            println!("⚠️  Zram is already active");
-            let reconfigure = Confirm::with_theme(&ColorfulTheme::default())
-                .with_prompt("Reconfigure zram?")
-                .interact()
-                .unwrap();
+        && content.contains("zram")
+    {
+        println!("⚠️  Zram is already active");
+        let reconfigure = Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Reconfigure zram?")
+            .interact()
+            .unwrap();
 
-            if !reconfigure {
-                return;
-            }
-
-            // Disable existing zram
-            disable_zram();
+        if !reconfigure {
+            return;
         }
+
+        // Disable existing zram
+        disable_zram();
+    }
 
     // Get system memory
     let mem_info = get_system_memory();
@@ -156,9 +154,10 @@ fn get_system_memory() -> u64 {
         for line in content.lines() {
             if line.starts_with("MemTotal:")
                 && let Some(kb_str) = line.split_whitespace().nth(1)
-                    && let Ok(kb) = kb_str.parse::<u64>() {
-                        return kb / 1024; // Convert to MB
-                    }
+                && let Ok(kb) = kb_str.parse::<u64>()
+            {
+                return kb / 1024; // Convert to MB
+            }
         }
     }
     4096 // Default fallback
@@ -178,11 +177,12 @@ fn create_zram_device(size: &str, algorithm: &str) {
         if Path::new(&device_path).exists() {
             // Check if device is available
             if let Ok(current_size) = fs::read_to_string(&size_path)
-                && current_size.trim() == "0" {
-                    // Device is available
-                    setup_zram_device(i, size, algorithm);
-                    return;
-                }
+                && current_size.trim() == "0"
+            {
+                // Device is available
+                setup_zram_device(i, size, algorithm);
+                return;
+            }
         }
     }
 
@@ -465,10 +465,12 @@ fn disable_swap_files() {
     if let Ok(content) = fs::read_to_string("/proc/swaps") {
         for line in content.lines().skip(1) {
             if let Some(device) = line.split_whitespace().next()
-                && device.starts_with('/') && !device.contains("zram") {
-                    let _ = Command::new("sudo").args(&["swapoff", device]).status();
-                    println!("  Disabled: {}", device);
-                }
+                && device.starts_with('/')
+                && !device.contains("zram")
+            {
+                let _ = Command::new("sudo").args(&["swapoff", device]).status();
+                println!("  Disabled: {}", device);
+            }
         }
     }
 
@@ -522,9 +524,10 @@ pub fn performance_analysis() {
     for i in 0..4 {
         let stats_path = format!("/sys/block/zram{}/stat", i);
         if Path::new(&stats_path).exists()
-            && let Ok(stats) = fs::read_to_string(&stats_path) {
-                println!("zram{}: {}", i, stats.trim());
-            }
+            && let Ok(stats) = fs::read_to_string(&stats_path)
+        {
+            println!("zram{}: {}", i, stats.trim());
+        }
     }
 
     println!("\n=== RECOMMENDATIONS ===");

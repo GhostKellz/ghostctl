@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn go_development_menu() {
@@ -182,20 +182,21 @@ fn setup_go_environment() {
     for shell_file in &shell_files {
         if std::path::Path::new(shell_file).exists()
             && let Ok(content) = std::fs::read_to_string(shell_file)
-                && !content.contains("GOPATH") {
-                    let mut file = std::fs::OpenOptions::new()
-                        .append(true)
-                        .open(shell_file)
-                        .unwrap();
+            && !content.contains("GOPATH")
+        {
+            let mut file = std::fs::OpenOptions::new()
+                .append(true)
+                .open(shell_file)
+                .unwrap();
 
-                    use std::io::Write;
-                    writeln!(file, "\n# Go environment").unwrap();
-                    for env_var in &go_env {
-                        writeln!(file, "{}", env_var).unwrap();
-                    }
+            use std::io::Write;
+            writeln!(file, "\n# Go environment").unwrap();
+            for env_var in &go_env {
+                writeln!(file, "{}", env_var).unwrap();
+            }
 
-                    println!("✅ Added Go environment to {}", shell_file);
-                }
+            println!("✅ Added Go environment to {}", shell_file);
+        }
     }
 
     // Create GOPATH directory

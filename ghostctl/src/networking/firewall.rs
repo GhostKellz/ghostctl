@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn firewall_menu() {
@@ -1498,7 +1498,10 @@ fn port_scanner() {
                         .interact()
                         .unwrap();
 
-                    let cmd = format!("for port in $(seq {} {}); do nc -zv localhost $port 2>&1 | grep succeeded; done", start, end);
+                    let cmd = format!(
+                        "for port in $(seq {} {}); do nc -zv localhost $port 2>&1 | grep succeeded; done",
+                        start, end
+                    );
                     Command::new("sh").arg("-c").arg(&cmd).status().ok();
                 }
                 _ => {
@@ -1757,9 +1760,10 @@ fn diagnose_connectivity() {
         let iptables_out = Command::new("sh").arg("-c").arg(&iptables_cmd).output();
 
         if let Ok(out) = iptables_out
-            && !out.stdout.is_empty() {
-                println!("  ⚠️ Found iptables rules for port {}", port);
-            }
+            && !out.stdout.is_empty()
+        {
+            println!("  ⚠️ Found iptables rules for port {}", port);
+        }
     }
 
     println!("\n📋 Diagnosis Summary:");
@@ -3007,22 +3011,18 @@ fn configure_all_anticheat_rules() {
         // Allow established connections
         "sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT",
         "sudo iptables -A OUTPUT -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT",
-
         // Allow loopback (essential for anti-cheat)
         "sudo iptables -A INPUT -i lo -j ACCEPT",
         "sudo iptables -A OUTPUT -o lo -j ACCEPT",
-
         // Anti-cheat communication ports
         "sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT -m comment --comment 'Anti-cheat HTTP'",
         "sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT -m comment --comment 'Anti-cheat HTTPS'",
         "sudo iptables -A INPUT -p tcp --dport 6672 -j ACCEPT -m comment --comment 'Anti-cheat Services'",
-
         // DNS for anti-cheat lookups
         "sudo iptables -A OUTPUT -p udp --dport 53 -j ACCEPT",
         "sudo iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT",
         "sudo iptables -A INPUT -p udp --sport 53 -j ACCEPT",
         "sudo iptables -A INPUT -p tcp --sport 53 -j ACCEPT",
-
         // NTP for time synchronization (critical for anti-cheat)
         "sudo iptables -A OUTPUT -p udp --dport 123 -j ACCEPT",
         "sudo iptables -A INPUT -p udp --sport 123 -j ACCEPT",
@@ -3126,7 +3126,9 @@ fn configure_vanguard_rules() {
     }
 
     println!("✅ Vanguard anti-cheat firewall rules configured!");
-    println!("⚠️ Note: Vanguard requires kernel-level access and may conflict with some firewall configurations");
+    println!(
+        "⚠️ Note: Vanguard requires kernel-level access and may conflict with some firewall configurations"
+    );
 }
 
 fn configure_fairfight_rules() {
@@ -3195,10 +3197,12 @@ fn configure_custom_anticheat() {
         for &protocol_idx in &protocols {
             let protocol = if protocol_idx == 0 { "tcp" } else { "udp" };
 
-            let rule =
-                format!(
+            let rule = format!(
                 "sudo iptables -A OUTPUT -p {} --dport {} -j ACCEPT -m comment --comment '{} {}'",
-                protocol, port, service_name, protocol.to_uppercase()
+                protocol,
+                port,
+                service_name,
+                protocol.to_uppercase()
             );
 
             println!(
@@ -3361,12 +3365,13 @@ fn kernel_network_tuning() {
         for line in interrupts.lines() {
             if (line.contains("eth") || line.contains("enp") || line.contains("wlan"))
                 && let Some(irq) = line.split_whitespace().next()
-                    && let Ok(irq_num) = irq.replace(":", "").parse::<u32>() {
-                        // Set IRQ affinity to CPU 0 for consistent latency
-                        let cmd = format!("echo 1 | sudo tee /proc/irq/{}/smp_affinity", irq_num);
-                        Command::new("sh").arg("-c").arg(&cmd).status().ok();
-                        println!("  📍 Set IRQ {} affinity to CPU 0", irq_num);
-                    }
+                && let Ok(irq_num) = irq.replace(":", "").parse::<u32>()
+            {
+                // Set IRQ affinity to CPU 0 for consistent latency
+                let cmd = format!("echo 1 | sudo tee /proc/irq/{}/smp_affinity", irq_num);
+                Command::new("sh").arg("-c").arg(&cmd).status().ok();
+                println!("  📍 Set IRQ {} affinity to CPU 0", irq_num);
+            }
         }
     }
 
@@ -3426,21 +3431,45 @@ fn gaming_qos_configuration() {
     // Setup HTB (Hierarchical Token Bucket) qdisc
     let qos_commands = vec![
         // Remove existing qdisc
-        format!("sudo tc qdisc del dev {} root 2>/dev/null || true", interface),
-
+        format!(
+            "sudo tc qdisc del dev {} root 2>/dev/null || true",
+            interface
+        ),
         // Add root qdisc
-        format!("sudo tc qdisc add dev {} root handle 1: htb default 30", interface),
-
+        format!(
+            "sudo tc qdisc add dev {} root handle 1: htb default 30",
+            interface
+        ),
         // Create classes for different traffic types
-        format!("sudo tc class add dev {} parent 1: classid 1:1 htb rate 1000mbit", interface),
-        format!("sudo tc class add dev {} parent 1:1 classid 1:10 htb rate 800mbit ceil 1000mbit prio 1", interface), // Gaming
-        format!("sudo tc class add dev {} parent 1:1 classid 1:20 htb rate 150mbit ceil 300mbit prio 2", interface), // Voice
-        format!("sudo tc class add dev {} parent 1:1 classid 1:30 htb rate 50mbit ceil 200mbit prio 3", interface),  // Default
-
+        format!(
+            "sudo tc class add dev {} parent 1: classid 1:1 htb rate 1000mbit",
+            interface
+        ),
+        format!(
+            "sudo tc class add dev {} parent 1:1 classid 1:10 htb rate 800mbit ceil 1000mbit prio 1",
+            interface
+        ), // Gaming
+        format!(
+            "sudo tc class add dev {} parent 1:1 classid 1:20 htb rate 150mbit ceil 300mbit prio 2",
+            interface
+        ), // Voice
+        format!(
+            "sudo tc class add dev {} parent 1:1 classid 1:30 htb rate 50mbit ceil 200mbit prio 3",
+            interface
+        ), // Default
         // Add SFQ to classes for fairness
-        format!("sudo tc qdisc add dev {} parent 1:10 handle 10: sfq perturb 10", interface),
-        format!("sudo tc qdisc add dev {} parent 1:20 handle 20: sfq perturb 10", interface),
-        format!("sudo tc qdisc add dev {} parent 1:30 handle 30: sfq perturb 10", interface),
+        format!(
+            "sudo tc qdisc add dev {} parent 1:10 handle 10: sfq perturb 10",
+            interface
+        ),
+        format!(
+            "sudo tc qdisc add dev {} parent 1:20 handle 20: sfq perturb 10",
+            interface
+        ),
+        format!(
+            "sudo tc qdisc add dev {} parent 1:30 handle 30: sfq perturb 10",
+            interface
+        ),
     ];
 
     for cmd in &qos_commands {
@@ -3450,19 +3479,37 @@ fn gaming_qos_configuration() {
     // Add filters for gaming traffic
     let gaming_filters = vec![
         // WoW
-        format!("sudo tc filter add dev {} protocol ip parent 1:0 prio 1 u32 match ip dport 3724 0xffff flowid 1:10", interface),
-        format!("sudo tc filter add dev {} protocol ip parent 1:0 prio 1 u32 match ip dport 1119 0xffff flowid 1:10", interface),
-
+        format!(
+            "sudo tc filter add dev {} protocol ip parent 1:0 prio 1 u32 match ip dport 3724 0xffff flowid 1:10",
+            interface
+        ),
+        format!(
+            "sudo tc filter add dev {} protocol ip parent 1:0 prio 1 u32 match ip dport 1119 0xffff flowid 1:10",
+            interface
+        ),
         // Steam
-        format!("sudo tc filter add dev {} protocol ip parent 1:0 prio 1 u32 match ip dport 27015 0xffff flowid 1:10", interface),
-        format!("sudo tc filter add dev {} protocol ip parent 1:0 prio 1 u32 match ip dport 27030 0xffff flowid 1:10", interface),
-
+        format!(
+            "sudo tc filter add dev {} protocol ip parent 1:0 prio 1 u32 match ip dport 27015 0xffff flowid 1:10",
+            interface
+        ),
+        format!(
+            "sudo tc filter add dev {} protocol ip parent 1:0 prio 1 u32 match ip dport 27030 0xffff flowid 1:10",
+            interface
+        ),
         // Discord Voice (high priority)
-        format!("sudo tc filter add dev {} protocol ip parent 1:0 prio 1 u32 match ip sport 50000 0xc000 flowid 1:20", interface),
-
+        format!(
+            "sudo tc filter add dev {} protocol ip parent 1:0 prio 1 u32 match ip sport 50000 0xc000 flowid 1:20",
+            interface
+        ),
         // DSCP marking for gaming
-        format!("sudo tc filter add dev {} protocol ip parent 1:0 prio 1 u32 match ip tos 0xb8 0xfc flowid 1:10", interface), // EF (gaming)
-        format!("sudo tc filter add dev {} protocol ip parent 1:0 prio 2 u32 match ip tos 0x88 0xfc flowid 1:20", interface), // AF41 (voice)
+        format!(
+            "sudo tc filter add dev {} protocol ip parent 1:0 prio 1 u32 match ip tos 0xb8 0xfc flowid 1:10",
+            interface
+        ), // EF (gaming)
+        format!(
+            "sudo tc filter add dev {} protocol ip parent 1:0 prio 2 u32 match ip tos 0x88 0xfc flowid 1:20",
+            interface
+        ), // AF41 (voice)
     ];
 
     for filter in &gaming_filters {
@@ -3869,17 +3916,25 @@ fn network_interface_tuning() {
     // Interface-specific optimizations
     let interface_optimizations = vec![
         // Buffer sizes
-        format!("sudo ethtool -G {} rx 4096 tx 4096 2>/dev/null || true", interface),
-
+        format!(
+            "sudo ethtool -G {} rx 4096 tx 4096 2>/dev/null || true",
+            interface
+        ),
         // Interrupt coalescing for gaming
-        format!("sudo ethtool -C {} rx-usecs 10 rx-frames 4 tx-usecs 10 tx-frames 4 2>/dev/null || true", interface),
-
+        format!(
+            "sudo ethtool -C {} rx-usecs 10 rx-frames 4 tx-usecs 10 tx-frames 4 2>/dev/null || true",
+            interface
+        ),
         // Disable features that add latency
-        format!("sudo ethtool -K {} tso off gso off gro off lro off 2>/dev/null || true", interface),
-
+        format!(
+            "sudo ethtool -K {} tso off gso off gro off lro off 2>/dev/null || true",
+            interface
+        ),
         // Enable features that improve performance
-        format!("sudo ethtool -K {} rx on tx on sg on 2>/dev/null || true", interface),
-
+        format!(
+            "sudo ethtool -K {} rx on tx on sg on 2>/dev/null || true",
+            interface
+        ),
         // Set ring buffer parameters
         format!("sudo ethtool -g {} 2>/dev/null || true", interface),
     ];
@@ -4153,9 +4208,10 @@ fn network_interface_analysis() {
         // Interface speed
         let speed_result = std::fs::read_to_string(format!("/sys/class/net/{}/speed", interface));
         if let Ok(speed) = speed_result
-            && let Ok(speed_mbps) = speed.trim().parse::<u32>() {
-                println!("  ⚡ Link speed: {} Mbps", speed_mbps);
-            }
+            && let Ok(speed_mbps) = speed.trim().parse::<u32>()
+        {
+            println!("  ⚡ Link speed: {} Mbps", speed_mbps);
+        }
 
         // Driver info
         let ethtool_result = Command::new("ethtool").args(&["-i", interface]).output();

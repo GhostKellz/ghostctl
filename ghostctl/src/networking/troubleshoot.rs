@@ -1,4 +1,4 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 
 pub fn troubleshoot_menu() {
@@ -450,10 +450,11 @@ fn route_table_analysis() {
         let routes = String::from_utf8_lossy(&uc.stdout);
         for line in routes.lines() {
             if let Some(network) = line.split_whitespace().next()
-                && network.contains('/') {
-                    // Extract first IP of network for testing
-                    println!("  Testing route to {}...", network);
-                }
+                && network.contains('/')
+            {
+                // Extract first IP of network for testing
+                println!("  Testing route to {}...", network);
+            }
         }
     }
 }
@@ -534,9 +535,10 @@ fn dns_troubleshooting() {
                     .output();
 
                 if let Ok(ns_out) = nslookup
-                    && ns_out.status.success() {
-                        println!("  ✅ nslookup resolution working");
-                    }
+                    && ns_out.status.success()
+                {
+                    println!("  ✅ nslookup resolution working");
+                }
             }
         }
     }
@@ -927,51 +929,53 @@ fn latency_jitter_test() {
         .output();
 
     if let Ok(out) = ping_output
-        && out.status.success() {
-            let output_str = String::from_utf8_lossy(&out.stdout);
+        && out.status.success()
+    {
+        let output_str = String::from_utf8_lossy(&out.stdout);
 
-            // Parse ping results for jitter analysis
-            let mut rtts = Vec::new();
-            for line in output_str.lines() {
-                if line.contains("time=")
-                    && let Some(time_str) = line.split("time=").nth(1)
-                        && let Some(rtt_str) = time_str.split_whitespace().next()
-                            && let Ok(rtt) = rtt_str.parse::<f64>() {
-                                rtts.push(rtt);
-                            }
+        // Parse ping results for jitter analysis
+        let mut rtts = Vec::new();
+        for line in output_str.lines() {
+            if line.contains("time=")
+                && let Some(time_str) = line.split("time=").nth(1)
+                && let Some(rtt_str) = time_str.split_whitespace().next()
+                && let Ok(rtt) = rtt_str.parse::<f64>()
+            {
+                rtts.push(rtt);
             }
-
-            if !rtts.is_empty() {
-                let min_rtt = rtts.iter().cloned().fold(f64::INFINITY, f64::min);
-                let max_rtt = rtts.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-                let avg_rtt = rtts.iter().sum::<f64>() / rtts.len() as f64;
-
-                // Calculate jitter (standard deviation)
-                let variance = rtts.iter().map(|&rtt| (rtt - avg_rtt).powi(2)).sum::<f64>()
-                    / rtts.len() as f64;
-                let jitter = variance.sqrt();
-
-                println!("\n📊 Latency Analysis:");
-                println!("  Packets: {}", rtts.len());
-                println!("  Min RTT: {:.3} ms", min_rtt);
-                println!("  Max RTT: {:.3} ms", max_rtt);
-                println!("  Avg RTT: {:.3} ms", avg_rtt);
-                println!("  Jitter (StdDev): {:.3} ms", jitter);
-
-                // Quality assessment
-                if jitter < 1.0 {
-                    println!("  Quality: ✅ Excellent (jitter < 1ms)");
-                } else if jitter < 5.0 {
-                    println!("  Quality: 👍 Good (jitter < 5ms)");
-                } else if jitter < 10.0 {
-                    println!("  Quality: ⚠️ Fair (jitter < 10ms)");
-                } else {
-                    println!("  Quality: ❌ Poor (jitter > 10ms)");
-                }
-            }
-
-            print!("{}", output_str);
         }
+
+        if !rtts.is_empty() {
+            let min_rtt = rtts.iter().cloned().fold(f64::INFINITY, f64::min);
+            let max_rtt = rtts.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+            let avg_rtt = rtts.iter().sum::<f64>() / rtts.len() as f64;
+
+            // Calculate jitter (standard deviation)
+            let variance =
+                rtts.iter().map(|&rtt| (rtt - avg_rtt).powi(2)).sum::<f64>() / rtts.len() as f64;
+            let jitter = variance.sqrt();
+
+            println!("\n📊 Latency Analysis:");
+            println!("  Packets: {}", rtts.len());
+            println!("  Min RTT: {:.3} ms", min_rtt);
+            println!("  Max RTT: {:.3} ms", max_rtt);
+            println!("  Avg RTT: {:.3} ms", avg_rtt);
+            println!("  Jitter (StdDev): {:.3} ms", jitter);
+
+            // Quality assessment
+            if jitter < 1.0 {
+                println!("  Quality: ✅ Excellent (jitter < 1ms)");
+            } else if jitter < 5.0 {
+                println!("  Quality: 👍 Good (jitter < 5ms)");
+            } else if jitter < 10.0 {
+                println!("  Quality: ⚠️ Fair (jitter < 10ms)");
+            } else {
+                println!("  Quality: ❌ Poor (jitter > 10ms)");
+            }
+        }
+
+        print!("{}", output_str);
+    }
 
     // Traceroute for path analysis
     println!("\n🗺️ Path Analysis (traceroute):");
@@ -983,13 +987,14 @@ fn latency_jitter_test() {
     // MTR for continuous monitoring
     let mtr_check = Command::new("which").arg("mtr").status();
     if let Ok(s) = mtr_check
-        && s.success() {
-            println!("\n📈 MTR Analysis (10 cycles):");
-            Command::new("mtr")
-                .args(&["-r", "-c", "10", &target])
-                .status()
-                .ok();
-        }
+        && s.success()
+    {
+        println!("\n📈 MTR Analysis (10 cycles):");
+        Command::new("mtr")
+            .args(&["-r", "-c", "10", &target])
+            .status()
+            .ok();
+    }
 }
 
 fn continuous_monitoring() {
@@ -1073,14 +1078,15 @@ fn monitor_bandwidth(duration: u64) {
     // Use iftop if available
     let iftop_check = Command::new("which").arg("iftop").status();
     if let Ok(s) = iftop_check
-        && s.success() {
-            println!("Using iftop for bandwidth monitoring...");
-            Command::new("sudo")
-                .args(&["iftop", "-t", "-s", &duration.to_string()])
-                .status()
-                .ok();
-            return;
-        }
+        && s.success()
+    {
+        println!("Using iftop for bandwidth monitoring...");
+        Command::new("sudo")
+            .args(&["iftop", "-t", "-s", &duration.to_string()])
+            .status()
+            .ok();
+        return;
+    }
 
     // Fallback to manual monitoring
     println!("Manual bandwidth monitoring (no iftop found)");
