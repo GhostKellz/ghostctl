@@ -975,9 +975,9 @@ fn setup_pyenv_environment() {
     ];
 
     for shell_file in &shell_files {
-        if std::path::Path::new(shell_file).exists() {
-            if let Ok(content) = std::fs::read_to_string(shell_file) {
-                if !content.contains("PYENV_ROOT") {
+        if std::path::Path::new(shell_file).exists()
+            && let Ok(content) = std::fs::read_to_string(shell_file)
+                && !content.contains("PYENV_ROOT") {
                     let mut file = std::fs::OpenOptions::new()
                         .append(true)
                         .open(shell_file)
@@ -991,8 +991,6 @@ fn setup_pyenv_environment() {
 
                     println!("✅ Added pyenv to {}", shell_file);
                 }
-            }
-        }
     }
 }
 
@@ -1005,9 +1003,9 @@ fn setup_conda_environment() {
     let conda_path = format!("{}/miniconda3/bin", dirs::home_dir().unwrap().display());
 
     for shell_file in &shell_files {
-        if std::path::Path::new(shell_file).exists() {
-            if let Ok(content) = std::fs::read_to_string(shell_file) {
-                if !content.contains("miniconda3") {
+        if std::path::Path::new(shell_file).exists()
+            && let Ok(content) = std::fs::read_to_string(shell_file)
+                && !content.contains("miniconda3") {
                     let mut file = std::fs::OpenOptions::new()
                         .append(true)
                         .open(shell_file)
@@ -1019,7 +1017,5 @@ fn setup_conda_environment() {
 
                     println!("✅ Added conda to {}", shell_file);
                 }
-            }
-        }
     }
 }

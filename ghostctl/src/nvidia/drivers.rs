@@ -170,12 +170,11 @@ fn check_common_issues() {
     for package in &required_packages {
         let output = Command::new("pacman").args(&["-Qi", package]).output();
 
-        if let Ok(output) = output {
-            if !output.status.success() {
+        if let Ok(output) = output
+            && !output.status.success() {
                 let issue = format!("⚠️  {} not installed", package);
                 issues.push(issue);
             }
-        }
     }
 
     if issues.is_empty() {
@@ -194,8 +193,8 @@ pub fn install_proprietary_drivers() {
     // Check current status
     let output = Command::new("pacman").args(&["-Qi", "nvidia"]).output();
 
-    if let Ok(output) = output {
-        if output.status.success() {
+    if let Ok(output) = output
+        && output.status.success() {
             println!("⚠️  NVIDIA proprietary drivers already installed");
             let reinstall = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Reinstall anyway?")
@@ -206,7 +205,6 @@ pub fn install_proprietary_drivers() {
                 return;
             }
         }
-    }
 
     // Detect kernel
     let kernel_type = detect_kernel();

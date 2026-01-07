@@ -1,100 +1,121 @@
 use crate::security::credentials::{create_secure_env_file, store_backup_credentials};
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use crate::tui;
+use crate::utils::is_headless;
 use std::fs;
 
 pub fn setup() {
-    println!("🔧 Restic Backup Setup");
+    if is_headless() {
+        tui::warn("Backup setup requires interactive mode.");
+        tui::info("Use environment variables for headless setup:");
+        tui::info("  RESTIC_REPOSITORY, RESTIC_PASSWORD");
+        return;
+    }
+
+    tui::header("Restic Backup Setup");
 
     let setup_options = [
         "Initialize New Repository",
         "Configure Existing Repository",
         "Create Systemd Timer",
         "Test Backup",
-        "Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Backup Setup")
-        .items(&setup_options)
-        .default(0)
-        .interact()
-        .unwrap();
-
-    match choice {
-        0 => init_repository(),
-        1 => configure_repository(),
-        2 => create_systemd_timer(),
-        3 => test_backup(),
-        _ => return,
+    if let Some(choice) = tui::select_with_back("Backup Setup", &setup_options, 0) {
+        match choice {
+            0 => init_repository(),
+            1 => configure_repository(),
+            2 => create_systemd_timer(),
+            3 => test_backup(),
+            _ => {}
+        }
     }
 }
 
 fn init_repository() {
-    println!("📦 Initialize Restic Repository");
+    tui::header("Initialize Restic Repository");
 
-    let repo_type = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Repository type")
-        .items(&["Local Directory", "SFTP", "S3-Compatible", "B2", "Azure"])
-        .default(0)
-        .interact()
-        .unwrap();
+    let repo_types = ["Local Directory", "SFTP", "S3-Compatible", "B2", "Azure"];
+    let repo_type = match tui::select("Repository type", &repo_types, 0) {
+        Some(t) => t,
+        None => return,
+    };
 
     let repo_url = match repo_type {
-        0 => {
-            let path: String = Input::new()
-                .with_prompt("Local repository path")
-                .default("/backup/restic".into())
-                .interact_text()
-                .unwrap();
-            path
-        }
+        0 => match tui::input("Local repository path", Some("/backup/restic")) {
+            Some(path) if !path.is_empty() => path,
+            _ => return,
+        },
         1 => {
-            let user: String = Input::new()
-                .with_prompt("SFTP user@host")
-                .interact_text()
-                .unwrap();
-            let path: String = Input::new()
-                .with_prompt("Remote path")
-                .default("/backup/restic".into())
-                .interact_text()
-                .unwrap();
+            let user = match tui::input("SFTP user@host", None) {
+                Some(u) if !u.is_empty() => u,
+                _ => return,
+            };
+            let path = tui::input_required("Remote path", "/backup/restic");
             format!("sftp:{}:{}", user, path)
         }
         _ => {
-            println!("Other repository types not yet implemented");
+            tui::warn("Other repository types not yet implemented");
             return;
         }
     };
 
-    let password: String = Input::new()
-        .with_prompt("Repository password")
-        .interact_text()
-        .unwrap();
+    let password = match tui::password("Repository password", Some("RESTIC_PASSWORD")) {
+        Some(p) if !p.is_empty() => p,
+        _ => {
+            tui::error("Password is required");
+            return;
+        }
+    };
 
     // Create config directory
     let config_dir = dirs::config_dir().unwrap().join("ghostctl");
     fs::create_dir_all(&config_dir).unwrap();
 
-    // Store credentials securely
-    if let Err(e) = store_backup_credentials(&repo_url, &password) {
-        println!("⚠️  Warning: Could not store credentials securely: {}", e);
-        println!("💡 Falling back to plaintext storage");
+    // Store credentials securely - NO PLAINTEXT FALLBACK
+    match store_backup_credentials(&repo_url, &password) {
+        Ok(_) => {
+            // Create temporary env file for this session with restrictive permissions
+            let config_path = config_dir.join("restic.env");
+            if let Err(e) = create_secure_env_file(&config_path) {
+                println!("⚠️  Warning: Could not create temporary env file: {}", e);
+                println!("💡 Credentials are stored securely but you'll need to set environment variables manually:");
+                println!("   export RESTIC_REPOSITORY=\"{}\"", repo_url);
+                println!("   export RESTIC_PASSWORD=\"<your-password>\"");
+            } else {
+                println!("🔐 Credentials stored securely");
+                println!("📄 Session env file created at: {:?}", config_path);
 
-        // Fallback to plaintext
-        let config_content = format!(
-            "RESTIC_REPOSITORY={}\nRESTIC_PASSWORD={}\n",
-            repo_url, password
-        );
-        let config_path = config_dir.join("restic.env");
-        fs::write(&config_path, config_content).unwrap();
-        println!("💾 Config saved to: {:?}", config_path);
-    } else {
-        // Create temporary env file for this session
-        let config_path = config_dir.join("restic.env");
-        if let Err(e) = create_secure_env_file(&config_path) {
-            println!("⚠️  Warning: Could not create temporary env file: {}", e);
-        } else {
-            println!("🔐 Credentials stored securely and temporary env file created");
+                // Set restrictive permissions on the env file
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    if let Ok(metadata) = fs::metadata(&config_path) {
+                        let mut perms = metadata.permissions();
+                        perms.set_mode(0o600); // Owner read/write only
+                        let _ = fs::set_permissions(&config_path, perms);
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            println!("❌ Could not store credentials securely: {}", e);
+            println!();
+            println!("🔐 Security Policy: Plaintext credential storage is disabled.");
+            println!();
+            println!("💡 Alternative options:");
+            println!("   1. Set environment variables directly:");
+            println!("      export RESTIC_REPOSITORY=\"{}\"", repo_url);
+            println!("      export RESTIC_PASSWORD=\"<your-password>\"");
+            println!();
+            println!("   2. Use a password manager with CLI integration");
+            println!();
+            println!("   3. Use systemd credential storage:");
+            println!("      systemd-creds encrypt - restic-password.cred < password.txt");
+            println!();
+            println!("   4. Create an encrypted env file with GPG:");
+            println!("      gpg --encrypt --recipient <your-key> restic.env");
+            println!();
+            return;
         }
     }
 
@@ -113,24 +134,24 @@ fn init_repository() {
 }
 
 fn configure_repository() {
-    println!("⚙️ Configure Existing Repository");
+    tui::header("Configure Existing Repository");
 
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(dir) => dir.join("ghostctl/restic.env"),
+        None => {
+            tui::error("Could not determine config directory");
+            return;
+        }
+    };
 
     if !config_path.exists() {
-        println!("❌ No existing config found. Run 'Initialize New Repository' first.");
+        tui::error("No existing config found. Run 'Initialize New Repository' first.");
         return;
     }
 
-    println!("📋 Current config: {:?}", config_path);
+    tui::info(&format!("Current config: {:?}", config_path));
 
-    let edit = Confirm::new()
-        .with_prompt("Edit configuration file?")
-        .default(false)
-        .interact()
-        .unwrap();
-
-    if edit {
+    if tui::confirm("Edit configuration file?", false) {
         let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
         let _ = std::process::Command::new(&editor)
             .arg(&config_path)
@@ -139,32 +160,33 @@ fn configure_repository() {
 }
 
 fn create_systemd_timer() {
-    println!("⏰ Creating Systemd Backup Timer");
+    tui::header("Creating Systemd Backup Timer");
 
-    let frequency = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Backup frequency")
-        .items(&["Daily", "Weekly", "Custom"])
-        .default(0)
-        .interact()
-        .unwrap();
+    let frequencies = ["Daily", "Weekly", "Custom"];
+    let frequency = match tui::select("Backup frequency", &frequencies, 0) {
+        Some(f) => f,
+        None => return,
+    };
 
     let timer_spec = match frequency {
         0 => "daily".to_string(),
         1 => "weekly".to_string(),
-        2 => Input::new()
-            .with_prompt("Timer specification (e.g., 'Mon *-*-* 02:00:00')")
-            .interact_text()
-            .unwrap(),
+        2 => tui::input_required(
+            "Timer specification (e.g., 'Mon *-*-* 02:00:00')",
+            "*-*-* 02:00:00",
+        ),
         _ => return,
     };
 
-    let backup_paths: String = Input::new()
-        .with_prompt("Paths to backup (space-separated)")
-        .default("/home /etc".into())
-        .interact_text()
-        .unwrap();
+    let backup_paths = tui::input_required("Paths to backup (space-separated)", "/home /etc");
 
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(dir) => dir.join("ghostctl/restic.env"),
+        None => {
+            tui::error("Could not determine config directory");
+            return;
+        }
+    };
 
     // Create systemd service
     let service_content = format!(
@@ -209,19 +231,25 @@ WantedBy=timers.target
 }
 
 fn test_backup() {
-    println!("🧪 Test Backup");
+    tui::header("Test Backup");
 
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(dir) => dir.join("ghostctl/restic.env"),
+        None => {
+            tui::error("Could not determine config directory");
+            return;
+        }
+    };
 
     if !config_path.exists() {
-        println!("❌ No config found. Run setup first.");
+        tui::error("No config found. Run setup first.");
         return;
     }
 
     // Test with a small directory
     let test_path = "/etc/hostname";
 
-    println!("🚀 Running test backup of {}...", test_path);
+    tui::status("🚀", &format!("Running test backup of {}...", test_path));
 
     let status = std::process::Command::new("bash")
         .arg("-c")
@@ -234,7 +262,7 @@ fn test_backup() {
 
     match status {
         Ok(s) if s.success() => {
-            println!("✅ Test backup successful!");
+            tui::success("Test backup successful!");
 
             // List snapshots
             let _ = std::process::Command::new("bash")
@@ -245,23 +273,29 @@ fn test_backup() {
                 ))
                 .status();
         }
-        _ => println!("❌ Test backup failed"),
+        _ => tui::error("Test backup failed"),
     }
 }
 
 #[allow(dead_code)]
 pub fn restic_restore() {
-    println!("🔄 Restic Restore");
+    tui::header("Restic Restore");
 
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(dir) => dir.join("ghostctl/restic.env"),
+        None => {
+            tui::error("Could not determine config directory");
+            return;
+        }
+    };
 
     if !config_path.exists() {
-        println!("❌ No config found. Run setup first.");
+        tui::error("No config found. Run setup first.");
         return;
     }
 
     // List snapshots first
-    println!("📋 Available snapshots:");
+    tui::subheader("Available Snapshots");
     let _ = std::process::Command::new("bash")
         .arg("-c")
         .arg(format!(
@@ -270,29 +304,14 @@ pub fn restic_restore() {
         ))
         .status();
 
-    let snapshot_id: String = Input::new()
-        .with_prompt("Snapshot ID to restore (or 'latest')")
-        .default("latest".into())
-        .interact_text()
-        .unwrap();
+    let snapshot_id = tui::input_required("Snapshot ID to restore (or 'latest')", "latest");
+    let restore_path = tui::input_required("Restore to directory", "/tmp/restic-restore");
 
-    let restore_path: String = Input::new()
-        .with_prompt("Restore to directory")
-        .default("/tmp/restic-restore".into())
-        .interact_text()
-        .unwrap();
-
-    let confirm = Confirm::new()
-        .with_prompt(format!(
-            "Restore snapshot '{}' to '{}'?",
-            snapshot_id, restore_path
-        ))
-        .default(false)
-        .interact()
-        .unwrap();
-
-    if confirm {
-        println!("🔄 Restoring...");
+    if tui::confirm(
+        &format!("Restore snapshot '{}' to '{}'?", snapshot_id, restore_path),
+        false,
+    ) {
+        tui::status("🔄", "Restoring...");
         let status = std::process::Command::new("bash")
             .arg("-c")
             .arg(format!(
@@ -304,16 +323,17 @@ pub fn restic_restore() {
             .status();
 
         match status {
-            Ok(s) if s.success() => println!("✅ Restore completed to: {}", restore_path),
-            _ => println!("❌ Restore failed"),
+            Ok(s) if s.success() => {
+                tui::success(&format!("Restore completed to: {}", restore_path))
+            }
+            _ => tui::error("Restore failed"),
         }
     }
 }
 
 #[allow(dead_code)]
 pub fn backup_settings() {
-    println!("⚙️  Backup Settings");
-    println!("==================");
+    tui::header("Backup Settings");
 
     let options = [
         "📂 Configure Repository",
@@ -321,70 +341,63 @@ pub fn backup_settings() {
         "🗂️  Backup Path Configuration",
         "🔐 Security Settings",
         "📊 Storage Usage",
-        "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Backup Settings")
-        .items(&options)
-        .default(0)
-        .interact()
-        .unwrap();
-
-    match choice {
-        0 => configure_repository(),
-        1 => create_systemd_timer(),
-        2 => configure_backup_paths(),
-        3 => security_settings(),
-        4 => storage_usage(),
-        _ => return,
+    if let Some(choice) = tui::select_with_back("Backup Settings", &options, 0) {
+        match choice {
+            0 => configure_repository(),
+            1 => create_systemd_timer(),
+            2 => configure_backup_paths(),
+            3 => security_settings(),
+            4 => storage_usage(),
+            _ => {}
+        }
     }
 }
 
 pub fn run_backup() {
-    println!("▶️  Running Manual Backup");
-    println!("========================");
+    tui::header("Running Manual Backup");
 
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(dir) => dir.join("ghostctl/restic.env"),
+        None => {
+            tui::error("Could not determine config directory");
+            return;
+        }
+    };
 
     if !config_path.exists() {
-        println!("❌ No backup configuration found.");
-        println!("💡 Run backup setup first to configure restic repository.");
+        tui::error("No backup configuration found.");
+        tui::info("Run backup setup first to configure restic repository.");
         return;
     }
 
-    let backup_type = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Backup type")
-        .items(&[
-            "Full System Backup",
-            "Home Directory Only",
-            "Custom Paths",
-            "Quick Test",
-        ])
-        .default(0)
-        .interact()
-        .unwrap();
+    let backup_types = [
+        "Full System Backup",
+        "Home Directory Only",
+        "Custom Paths",
+        "Quick Test",
+    ];
+
+    let backup_type = match tui::select("Backup type", &backup_types, 0) {
+        Some(t) => t,
+        None => return,
+    };
 
     let backup_paths = match backup_type {
         0 => "/home /etc /var /opt".to_string(),
         1 => "/home".to_string(),
-        2 => Input::new()
-            .with_prompt("Enter paths to backup (space-separated)")
-            .interact_text()
-            .unwrap(),
+        2 => match tui::input("Enter paths to backup (space-separated)", None) {
+            Some(p) if !p.is_empty() => p,
+            _ => return,
+        },
         3 => "/etc/hostname".to_string(),
         _ => return,
     };
 
-    let confirm = Confirm::new()
-        .with_prompt("Start backup now?")
-        .default(true)
-        .interact()
-        .unwrap();
-
-    if confirm {
-        println!("🚀 Starting backup...");
-        println!("📂 Backing up: {}", backup_paths);
+    if tui::confirm("Start backup now?", true) {
+        tui::status("🚀", "Starting backup...");
+        tui::info(&format!("Backing up: {}", backup_paths));
 
         let status = std::process::Command::new("bash")
             .arg("-c")
@@ -397,10 +410,10 @@ pub fn run_backup() {
 
         match status {
             Ok(s) if s.success() => {
-                println!("✅ Backup completed successfully!");
+                tui::success("Backup completed successfully!");
 
                 // Show latest snapshots
-                println!("\n📋 Latest snapshots:");
+                tui::subheader("Latest Snapshots");
                 let _ = std::process::Command::new("bash")
                     .arg("-c")
                     .arg(format!(
@@ -409,7 +422,7 @@ pub fn run_backup() {
                     ))
                     .status();
             }
-            _ => println!("❌ Backup failed. Check restic configuration."),
+            _ => tui::error("Backup failed. Check restic configuration."),
         }
     }
 }
@@ -438,29 +451,31 @@ fn configure_backup_paths() {
 
 #[allow(dead_code)]
 fn security_settings() {
-    println!("🔐 Backup Security Settings");
-    println!("===========================");
+    tui::header("Backup Security Settings");
 
     let options = [
         "🔑 Change Repository Password",
         "🔐 View Encryption Info",
         "📋 Repository Statistics",
-        "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Security Settings")
-        .items(&options)
-        .default(0)
-        .interact()
-        .unwrap();
+    let choice = match tui::select_with_back("Security Settings", &options, 0) {
+        Some(c) => c,
+        None => return,
+    };
 
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(dir) => dir.join("ghostctl/restic.env"),
+        None => {
+            tui::error("Could not determine config directory");
+            return;
+        }
+    };
 
     match choice {
         0 => {
-            println!("🔑 Changing repository password...");
-            println!("💡 This will require the old password and set a new one.");
+            tui::info("Changing repository password...");
+            tui::info("This will require the old password and set a new one.");
         }
         1 => {
             if config_path.exists() {
@@ -471,6 +486,8 @@ fn security_settings() {
                         config_path.display()
                     ))
                     .status();
+            } else {
+                tui::error("No backup configuration found");
             }
         }
         2 => {
@@ -479,27 +496,34 @@ fn security_settings() {
                     .arg("-c")
                     .arg(format!("source {} && restic stats", config_path.display()))
                     .status();
+            } else {
+                tui::error("No backup configuration found");
             }
         }
-        _ => return,
+        _ => {}
     }
 }
 
 #[allow(dead_code)]
 fn storage_usage() {
-    println!("📊 Storage Usage");
-    println!("===============");
+    tui::header("Storage Usage");
 
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(dir) => dir.join("ghostctl/restic.env"),
+        None => {
+            tui::error("Could not determine config directory");
+            return;
+        }
+    };
 
     if config_path.exists() {
-        println!("📈 Repository statistics:");
+        tui::subheader("Repository Statistics");
         let _ = std::process::Command::new("bash")
             .arg("-c")
             .arg(format!("source {} && restic stats", config_path.display()))
             .status();
 
-        println!("\n📋 Recent snapshots:");
+        tui::subheader("Recent Snapshots");
         let _ = std::process::Command::new("bash")
             .arg("-c")
             .arg(format!(
@@ -508,6 +532,6 @@ fn storage_usage() {
             ))
             .status();
     } else {
-        println!("❌ No backup configuration found");
+        tui::error("No backup configuration found");
     }
 }

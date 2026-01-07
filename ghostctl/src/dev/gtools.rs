@@ -520,14 +520,13 @@ fn show_tool_info(name: &str, repo: &str) {
         }
     );
 
-    if which(name).is_ok() {
-        if let Ok(output) = Command::new(name).arg("--version").output() {
+    if which(name).is_ok()
+        && let Ok(output) = Command::new(name).arg("--version").output() {
             println!(
                 "📄 Version: {}",
                 String::from_utf8_lossy(&output.stdout).trim()
             );
         }
-    }
 
     println!("🌐 More info: https://github.com/{}", repo);
 }

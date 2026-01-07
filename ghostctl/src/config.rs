@@ -9,6 +9,12 @@ pub struct GhostConfig {
     pub scripts: ScriptsConfig,
     pub ghost_tools: GhostToolsConfig,
     pub ui: UiConfig,
+    #[serde(default)]
+    pub mirrors: Option<MirrorsConfig>,
+    #[serde(default)]
+    pub credentials: Option<CredentialsConfig>,
+    #[serde(default)]
+    pub nvidia: Option<NvidiaConfig>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -49,6 +55,103 @@ pub struct UiConfig {
     pub confirmation_prompts: bool,
 }
 
+/// Configuration for HTTP mirrors and retry behavior
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MirrorsConfig {
+    /// Timeout for GitHub API requests in seconds
+    #[serde(default = "default_github_timeout")]
+    pub github_api_timeout: u64,
+    /// Number of retry attempts before falling back
+    #[serde(default = "default_retry_attempts")]
+    pub retry_attempts: u32,
+    /// Fallback mirror URLs for GitHub content
+    #[serde(default = "default_fallback_mirrors")]
+    pub fallback_mirrors: Vec<String>,
+}
+
+fn default_github_timeout() -> u64 {
+    30
+}
+fn default_retry_attempts() -> u32 {
+    4
+}
+fn default_fallback_mirrors() -> Vec<String> {
+    vec![
+        "https://raw.githubusercontent.com".to_string(),
+        "https://cdn.jsdelivr.net/gh".to_string(),
+    ]
+}
+
+impl Default for MirrorsConfig {
+    fn default() -> Self {
+        Self {
+            github_api_timeout: default_github_timeout(),
+            retry_attempts: default_retry_attempts(),
+            fallback_mirrors: default_fallback_mirrors(),
+        }
+    }
+}
+
+/// Configuration for credential storage backends
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CredentialsConfig {
+    /// Preferred credential backend: "pass", "age", "libsecret", "builtin"
+    #[serde(default = "default_credential_backend")]
+    pub backend: String,
+    /// Path to age identity file (for age backend)
+    #[serde(default)]
+    pub age_identity_path: Option<String>,
+    /// Password store directory (for pass backend)
+    #[serde(default)]
+    pub pass_store_dir: Option<String>,
+}
+
+fn default_credential_backend() -> String {
+    "auto".to_string()
+}
+
+impl Default for CredentialsConfig {
+    fn default() -> Self {
+        Self {
+            backend: default_credential_backend(),
+            age_identity_path: None,
+            pass_store_dir: None,
+        }
+    }
+}
+
+/// Configuration for NVIDIA driver management
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NvidiaConfig {
+    /// Path to open-gpu-kernel-modules source tree
+    #[serde(default)]
+    pub kernel_module_path: Option<String>,
+    /// Preferred driver branch: "production", "beta", "open"
+    #[serde(default = "default_driver_branch")]
+    pub driver_branch: String,
+    /// Additional build flags for DKMS
+    #[serde(default)]
+    pub build_flags: Vec<String>,
+    /// Target kernels for DKMS builds (empty = current kernel only)
+    #[serde(default)]
+    pub target_kernels: Vec<String>,
+}
+
+fn default_driver_branch() -> String {
+    "production".to_string()
+}
+
+impl Default for NvidiaConfig {
+    fn default() -> Self {
+        Self {
+            kernel_module_path: None,
+            driver_branch: default_driver_branch(),
+            build_flags: Vec::new(),
+            target_kernels: Vec::new(),
+        }
+    }
+}
+
 impl Default for GhostConfig {
     fn default() -> Self {
         Self {
@@ -83,6 +186,9 @@ impl Default for GhostConfig {
                 show_tips: true,
                 confirmation_prompts: true,
             },
+            mirrors: None,     // Use defaults when not specified
+            credentials: None, // Use auto-detection when not specified
+            nvidia: None,      // No NVIDIA config by default
         }
     }
 }
@@ -152,12 +258,9 @@ impl GhostConfig {
 
         if status.success() {
             // Validate the edited config
-            match Self::load() {
-                _config => {
-                    println!("✅ Configuration updated successfully");
-                    log::info!("Config edited and validated");
-                }
-            }
+            let _config = Self::load();
+            println!("✅ Configuration updated successfully");
+            log::info!("Config edited and validated");
         } else {
             return Err("Editor exited with error".into());
         }

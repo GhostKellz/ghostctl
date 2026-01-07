@@ -44,11 +44,10 @@ impl AurCache {
     fn load() -> Self {
         let cache_path = Self::get_cache_path();
 
-        if let Ok(content) = fs::read_to_string(&cache_path) {
-            if let Ok(cache) = serde_json::from_str::<AurCache>(&content) {
+        if let Ok(content) = fs::read_to_string(&cache_path)
+            && let Ok(cache) = serde_json::from_str::<AurCache>(&content) {
                 return cache;
             }
-        }
 
         // Default TTL: 1 hour
         Self::new(3600)
@@ -71,11 +70,10 @@ impl AurCache {
     }
 
     fn get(&self, package: &str) -> Option<AurPackageInfo> {
-        if let Some(info) = self.packages.get(package) {
-            if !self.is_expired(info.cached_at) {
+        if let Some(info) = self.packages.get(package)
+            && !self.is_expired(info.cached_at) {
                 return Some(info.clone());
             }
-        }
         None
     }
 
@@ -126,8 +124,8 @@ fn fetch_from_aur(package: &str) -> Option<AurPackageInfo> {
     let response = reqwest::blocking::get(&url).ok()?;
     let json: serde_json::Value = response.json().ok()?;
 
-    if let Some(results) = json["results"].as_array() {
-        if let Some(result) = results.first() {
+    if let Some(results) = json["results"].as_array()
+        && let Some(result) = results.first() {
             let now = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
@@ -145,7 +143,6 @@ fn fetch_from_aur(package: &str) -> Option<AurPackageInfo> {
                 cached_at: now,
             });
         }
-    }
 
     None
 }

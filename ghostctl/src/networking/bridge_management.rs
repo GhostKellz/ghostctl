@@ -174,65 +174,59 @@ fn show_bridge_statistics() {
 
     // Get interface statistics
     if let Ok(entries) = fs::read_dir("/sys/class/net") {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                let interface_name = path.file_name().unwrap().to_string_lossy();
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let interface_name = path.file_name().unwrap().to_string_lossy();
 
-                // Check if it's a bridge
-                let bridge_check = path.join("bridge");
-                if bridge_check.exists() {
-                    println!("  🌉 {}", interface_name);
+            // Check if it's a bridge
+            let bridge_check = path.join("bridge");
+            if bridge_check.exists() {
+                println!("  🌉 {}", interface_name);
 
-                    // Get bridge forward delay
-                    if let Ok(forward_delay) = fs::read_to_string(path.join("bridge/forward_delay"))
-                    {
-                        println!("     Forward Delay: {} centiseconds", forward_delay.trim());
-                    }
+                // Get bridge forward delay
+                if let Ok(forward_delay) = fs::read_to_string(path.join("bridge/forward_delay")) {
+                    println!("     Forward Delay: {} centiseconds", forward_delay.trim());
+                }
 
-                    // Get bridge hello time
-                    if let Ok(hello_time) = fs::read_to_string(path.join("bridge/hello_time")) {
-                        println!("     Hello Time: {} centiseconds", hello_time.trim());
-                    }
+                // Get bridge hello time
+                if let Ok(hello_time) = fs::read_to_string(path.join("bridge/hello_time")) {
+                    println!("     Hello Time: {} centiseconds", hello_time.trim());
+                }
 
-                    // Get bridge max age
-                    if let Ok(max_age) = fs::read_to_string(path.join("bridge/max_age")) {
-                        println!("     Max Age: {} centiseconds", max_age.trim());
-                    }
+                // Get bridge max age
+                if let Ok(max_age) = fs::read_to_string(path.join("bridge/max_age")) {
+                    println!("     Max Age: {} centiseconds", max_age.trim());
+                }
 
-                    // Get STP state
-                    if let Ok(stp_state) = fs::read_to_string(path.join("bridge/stp_state")) {
-                        let stp_enabled = stp_state.trim() == "1";
-                        println!(
-                            "     STP: {}",
-                            if stp_enabled {
-                                "✅ Enabled"
-                            } else {
-                                "❌ Disabled"
-                            }
-                        );
-                    }
+                // Get STP state
+                if let Ok(stp_state) = fs::read_to_string(path.join("bridge/stp_state")) {
+                    let stp_enabled = stp_state.trim() == "1";
+                    println!(
+                        "     STP: {}",
+                        if stp_enabled {
+                            "✅ Enabled"
+                        } else {
+                            "❌ Disabled"
+                        }
+                    );
+                }
 
-                    // Show connected interfaces
-                    let brif_path = path.join("brif");
-                    if brif_path.exists() {
-                        if let Ok(interfaces) = fs::read_dir(&brif_path) {
-                            let mut connected_interfaces = Vec::new();
-                            for iface in interfaces {
-                                if let Ok(iface) = iface {
-                                    connected_interfaces
-                                        .push(iface.file_name().to_string_lossy().to_string());
-                                }
-                            }
+                // Show connected interfaces
+                let brif_path = path.join("brif");
+                if brif_path.exists()
+                    && let Ok(interfaces) = fs::read_dir(&brif_path) {
+                        let mut connected_interfaces = Vec::new();
+                        for iface in interfaces.flatten() {
+                            connected_interfaces
+                                .push(iface.file_name().to_string_lossy().to_string());
+                        }
 
-                            if !connected_interfaces.is_empty() {
-                                println!("     Connected: {}", connected_interfaces.join(", "));
-                            } else {
-                                println!("     Connected: None");
-                            }
+                        if !connected_interfaces.is_empty() {
+                            println!("     Connected: {}", connected_interfaces.join(", "));
+                        } else {
+                            println!("     Connected: None");
                         }
                     }
-                }
             }
         }
     }
@@ -349,8 +343,8 @@ fn configure_new_bridge(bridge_name: &str) {
         .interact()
         .unwrap();
 
-    if let Ok(delay_val) = forward_delay.parse::<u32>() {
-        if delay_val >= 4 && delay_val <= 30 {
+    if let Ok(delay_val) = forward_delay.parse::<u32>()
+        && (4..=30).contains(&delay_val) {
             let delay_centisec = delay_val * 100;
             let delay_result = Command::new("sudo")
                 .args(&[
@@ -372,7 +366,6 @@ fn configure_new_bridge(bridge_name: &str) {
                 _ => println!("⚠️ Failed to set forward delay"),
             }
         }
-    }
 
     // Hello time configuration
     let hello_time = Input::<String>::with_theme(&ColorfulTheme::default())
@@ -381,8 +374,8 @@ fn configure_new_bridge(bridge_name: &str) {
         .interact()
         .unwrap();
 
-    if let Ok(hello_val) = hello_time.parse::<u32>() {
-        if hello_val >= 1 && hello_val <= 10 {
+    if let Ok(hello_val) = hello_time.parse::<u32>()
+        && (1..=10).contains(&hello_val) {
             let hello_centisec = hello_val * 100;
             let hello_result = Command::new("sudo")
                 .args(&[
@@ -404,7 +397,6 @@ fn configure_new_bridge(bridge_name: &str) {
                 _ => println!("⚠️ Failed to set hello time"),
             }
         }
-    }
 
     // Max age configuration
     let max_age = Input::<String>::with_theme(&ColorfulTheme::default())
@@ -413,8 +405,8 @@ fn configure_new_bridge(bridge_name: &str) {
         .interact()
         .unwrap();
 
-    if let Ok(age_val) = max_age.parse::<u32>() {
-        if age_val >= 6 && age_val <= 40 {
+    if let Ok(age_val) = max_age.parse::<u32>()
+        && (6..=40).contains(&age_val) {
             let age_centisec = age_val * 100;
             let age_result = Command::new("sudo")
                 .args(&[
@@ -434,7 +426,6 @@ fn configure_new_bridge(bridge_name: &str) {
                 _ => println!("⚠️ Failed to set max age"),
             }
         }
-    }
 
     // IP address configuration
     let assign_ip = Confirm::with_theme(&ColorfulTheme::default())
@@ -529,8 +520,8 @@ fn get_bridge_list() -> Vec<String> {
     if let Ok(out) = output {
         let bridge_output = String::from_utf8_lossy(&out.stdout);
         for line in bridge_output.lines() {
-            if line.contains(": ") && line.contains("bridge") {
-                if let Some(colon_pos) = line.find(": ") {
+            if line.contains(": ") && line.contains("bridge")
+                && let Some(colon_pos) = line.find(": ") {
                     let after_colon = &line[colon_pos + 2..];
                     if let Some(at_pos) = after_colon.find('@') {
                         let bridge_name = &after_colon[..at_pos];
@@ -540,7 +531,6 @@ fn get_bridge_list() -> Vec<String> {
                         bridges.push(bridge_name.to_string());
                     }
                 }
-            }
         }
     }
 
@@ -585,10 +575,8 @@ fn show_bridge_details(bridge_name: &str) {
         let brif_path = format!("/sys/class/net/{}/brif", bridge_name);
         if let Ok(interfaces) = fs::read_dir(&brif_path) {
             let mut connected = Vec::new();
-            for iface in interfaces {
-                if let Ok(iface) = iface {
-                    connected.push(iface.file_name().to_string_lossy().to_string());
-                }
+            for iface in interfaces.flatten() {
+                connected.push(iface.file_name().to_string_lossy().to_string());
             }
             println!(
                 "  Connected Interfaces: {}",
@@ -610,7 +598,7 @@ fn show_bridge_details(bridge_name: &str) {
         let addr_info = String::from_utf8_lossy(&addr_out.stdout);
         for line in addr_info.lines() {
             if line.trim().starts_with("inet ") {
-                let parts: Vec<&str> = line.trim().split_whitespace().collect();
+                let parts: Vec<&str> = line.split_whitespace().collect();
                 if parts.len() >= 2 {
                     println!("  IP Address: {}", parts[1]);
                 }
@@ -694,8 +682,8 @@ fn get_available_interfaces() -> Vec<String> {
     if let Ok(out) = output {
         let link_output = String::from_utf8_lossy(&out.stdout);
         for line in link_output.lines() {
-            if line.contains(": ") && !line.contains("lo:") {
-                if let Some(colon_pos) = line.find(": ") {
+            if line.contains(": ") && !line.contains("lo:")
+                && let Some(colon_pos) = line.find(": ") {
                     let after_colon = &line[colon_pos + 2..];
                     if let Some(at_pos) = after_colon.find('@') {
                         let iface_name = &after_colon[..at_pos];
@@ -718,7 +706,6 @@ fn get_available_interfaces() -> Vec<String> {
                         }
                     }
                 }
-            }
         }
     }
 
@@ -796,10 +783,8 @@ fn get_bridge_interfaces(bridge_name: &str) -> Vec<String> {
 
     let brif_path = format!("/sys/class/net/{}/brif", bridge_name);
     if let Ok(entries) = fs::read_dir(&brif_path) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                interfaces.push(entry.file_name().to_string_lossy().to_string());
-            }
+        for entry in entries.flatten() {
+            interfaces.push(entry.file_name().to_string_lossy().to_string());
         }
     }
 
@@ -995,7 +980,7 @@ fn set_forward_delay(bridge_name: &str) {
         .unwrap();
 
     if let Ok(delay_val) = delay_seconds.parse::<u32>() {
-        if delay_val >= 4 && delay_val <= 30 {
+        if (4..=30).contains(&delay_val) {
             let delay_centisec = delay_val * 100;
 
             let result = Command::new("sudo")
@@ -1035,7 +1020,7 @@ fn set_hello_time(bridge_name: &str) {
         .unwrap();
 
     if let Ok(hello_val) = hello_seconds.parse::<u32>() {
-        if hello_val >= 1 && hello_val <= 10 {
+        if (1..=10).contains(&hello_val) {
             let hello_centisec = hello_val * 100;
 
             let result = Command::new("sudo")
@@ -1075,7 +1060,7 @@ fn set_max_age(bridge_name: &str) {
         .unwrap();
 
     if let Ok(max_val) = max_seconds.parse::<u32>() {
-        if max_val >= 6 && max_val <= 40 {
+        if (6..=40).contains(&max_val) {
             let max_centisec = max_val * 100;
 
             let result = Command::new("sudo")
@@ -1226,7 +1211,7 @@ fn set_mtu(bridge_name: &str) {
         .unwrap();
 
     if let Ok(mtu_val) = mtu.parse::<u32>() {
-        if mtu_val >= 68 && mtu_val <= 65536 {
+        if (68..=65536).contains(&mtu_val) {
             let result = Command::new("sudo")
                 .args(&[
                     "ip",

@@ -120,7 +120,7 @@ fn create_mangohud_config() {
         .map(|h| h.join(".config/MangoHud"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/.config/MangoHud"));
 
-    if let Err(_) = std::fs::create_dir_all(&config_dir) {
+    if std::fs::create_dir_all(&config_dir).is_err() {
         println!("❌ Failed to create MangoHud config directory");
         return;
     }
@@ -167,7 +167,7 @@ toggle_hud=F12
 
     match File::create(&config_file) {
         Ok(mut file) => {
-            if let Err(_) = file.write_all(default_config.as_bytes()) {
+            if file.write_all(default_config.as_bytes()).is_err() {
                 println!("❌ Failed to write MangoHud config");
             } else {
                 println!("✅ Created MangoHud config: {}", config_file.display());
@@ -230,7 +230,7 @@ export DXVK_LOG_LEVEL=info
         .create(true)
         .open(&profile_path)
     {
-        if let Err(_) = writeln!(file, "{}", dxvk_env) {
+        if writeln!(file, "{}", dxvk_env).is_err() {
             println!("❌ Failed to write to profile");
         } else {
             println!("✅ DXVK HUD environment added to ~/.profile");
@@ -312,8 +312,8 @@ fn install_goverlay_tool() {
     let aur_helpers = ["yay", "paru", "trizen"];
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
-        if let Ok(s) = helper_check {
-            if s.success() {
+        if let Ok(s) = helper_check
+            && s.success() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "goverlay"])
                     .status();
@@ -327,7 +327,6 @@ fn install_goverlay_tool() {
                     _ => continue,
                 }
             }
-        }
     }
 
     println!("❌ No AUR helper found. Install yay first:");
@@ -796,7 +795,7 @@ export WINEDEBUG=+fps
         .create(true)
         .open(&profile_path)
     {
-        if let Err(_) = writeln!(file, "{}", wine_monitoring_env) {
+        if writeln!(file, "{}", wine_monitoring_env).is_err() {
             println!("❌ Failed to write to profile");
         } else {
             println!("✅ Wine monitoring environment added to ~/.profile");
@@ -911,7 +910,7 @@ fn setup_mangohud_logging() {
         .map(|h| h.join("Documents/MangoHud_Logs"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/Documents/MangoHud_Logs"));
 
-    if let Err(_) = std::fs::create_dir_all(&logs_dir) {
+    if std::fs::create_dir_all(&logs_dir).is_err() {
         println!("❌ Failed to create logs directory");
         return;
     }
@@ -956,7 +955,7 @@ fn update_mangohud_config_with_logging(config_addition: &str) {
         .create(true)
         .open(&config_file)
     {
-        if let Err(_) = writeln!(file, "{}", config_addition) {
+        if writeln!(file, "{}", config_addition).is_err() {
             println!("❌ Failed to update MangoHud config");
         } else {
             println!("✅ MangoHud config updated with logging settings");
@@ -972,7 +971,7 @@ fn create_performance_scripts() {
         .map(|h| h.join("bin"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/bin"));
 
-    if let Err(_) = std::fs::create_dir_all(&scripts_dir) {
+    if std::fs::create_dir_all(&scripts_dir).is_err() {
         println!("❌ Failed to create scripts directory");
         return;
     }
@@ -1028,7 +1027,7 @@ echo "Log file: $LOG_DIR/${GAME_NAME}_${TIMESTAMP}.log"
 
     match File::create(&perf_script) {
         Ok(mut file) => {
-            if let Err(_) = file.write_all(script_content.as_bytes()) {
+            if file.write_all(script_content.as_bytes()).is_err() {
                 println!("❌ Failed to write performance script");
             } else {
                 // Make script executable

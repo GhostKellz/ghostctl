@@ -414,8 +414,7 @@ fn get_nvidia_pci_ids() -> Vec<(String, String)> {
         for line in lspci_output.lines() {
             if (line.to_lowercase().contains("vga") || line.to_lowercase().contains("3d"))
                 && line.to_lowercase().contains("nvidia")
-            {
-                if let Some(pci_id) = line.split_whitespace().next() {
+                && let Some(pci_id) = line.split_whitespace().next() {
                     let name = line
                         .split("NVIDIA Corporation")
                         .nth(1)
@@ -428,7 +427,6 @@ fn get_nvidia_pci_ids() -> Vec<(String, String)> {
 
                     gpu_ids.push((pci_id.to_string(), name.to_string()));
                 }
-            }
         }
     }
 
@@ -463,7 +461,7 @@ fn configure_kernel_parameters() {
         .unwrap();
 
     if auto_configure {
-        configure_grub_automatically(&iommu_param);
+        configure_grub_automatically(iommu_param);
     }
 }
 
@@ -566,7 +564,7 @@ pub fn setup_libvirt_hooks() {
     println!("🐧 Setting up libvirt hooks for GPU passthrough...");
 
     // Check if libvirt is installed
-    if !Command::new("which").arg("virsh").status().is_ok() {
+    if Command::new("which").arg("virsh").status().is_err() {
         println!("❌ libvirt not found. Install libvirt first.");
         return;
     }
@@ -879,7 +877,7 @@ fn reset_gpu_binding() {
     for (pci_id, name) in gpu_ids {
         println!("  Processing: {} ({})", name, pci_id);
 
-        let virsh_id = format!("pci_0000_{}", pci_id.replace(':', "_").replace('.', "_"));
+        let virsh_id = format!("pci_0000_{}", pci_id.replace([':', '.'], "_"));
 
         let _ = Command::new("sudo")
             .args(&["virsh", "nodedev-reattach", &virsh_id])
@@ -969,14 +967,13 @@ fn setup_looking_glass_shm() {
     let fstab_entry = "tmpfs /dev/shm tmpfs defaults,size=128M 0 0\n";
 
     // Check if already in fstab
-    if let Ok(fstab_content) = fs::read_to_string("/etc/fstab") {
-        if !fstab_content.contains("looking-glass") {
+    if let Ok(fstab_content) = fs::read_to_string("/etc/fstab")
+        && !fstab_content.contains("looking-glass") {
             let _ = fs::write("/tmp/fstab_append", fstab_entry);
             let _ = Command::new("sudo")
                 .args(&["sh", "-c", "cat /tmp/fstab_append >> /etc/fstab"])
                 .status();
         }
-    }
 
     // Create shared memory file
     let _ = Command::new("sudo")

@@ -14,11 +14,13 @@ pub fn configure() {
                 println!("[WARN] nvidia-drm.modeset=1 is NOT set in kernel params");
                 println!("To enable, add 'nvidia-drm.modeset=1' to your kernel command line (GRUB/loader).\nExample: GRUB_CMDLINE_LINUX=\"... nvidia-drm.modeset=1\"");
             }
-        },
+        }
         Err(e) => println!("Failed to check kernel params: {}", e),
     }
     // Suggest modprobe.d config
-    println!("- To enable Wayland, add 'options nvidia-drm modeset=1' to /etc/modprobe.d/nvidia.conf");
+    println!(
+        "- To enable Wayland, add 'options nvidia-drm modeset=1' to /etc/modprobe.d/nvidia.conf"
+    );
     // Detect driver type
     let output = std::process::Command::new("sh")
         .arg("-c")
@@ -32,9 +34,8 @@ pub fn configure() {
             } else {
                 println!("Detected: NVIDIA proprietary driver (or no open driver).");
             }
-        },
+        }
         Err(_) => println!("Could not detect driver type."),
     }
     println!("- Use GBM backend for best compatibility (export GBM_BACKEND=\"nvidia-drm\")");
 }
-

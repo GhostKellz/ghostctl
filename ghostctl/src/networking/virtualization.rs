@@ -178,10 +178,10 @@ fn diagnose_single_container(container: &str) {
         .output();
 
     match container_check {
-        Ok(out) if String::from_utf8_lossy(&out.stdout).trim().to_string() == "true" => {
+        Ok(out) if String::from_utf8_lossy(&out.stdout).trim() == "true" => {
             println!("✅ Container is running");
         }
-        Ok(out) if String::from_utf8_lossy(&out.stdout).trim().to_string() == "false" => {
+        Ok(out) if String::from_utf8_lossy(&out.stdout).trim() == "false" => {
             println!("⚠️ Container exists but is not running");
             return;
         }
@@ -1006,9 +1006,9 @@ fn port_mapping_analysis() {
 
                 if let Ok(port_out) = ports {
                     for line in String::from_utf8_lossy(&port_out.stdout).lines() {
-                        if line.contains("0.0.0.0:") {
-                            if let Some(port_part) = line.split("0.0.0.0:").nth(1) {
-                                if let Some(port) = port_part.split_whitespace().next() {
+                        if line.contains("0.0.0.0:")
+                            && let Some(port_part) = line.split("0.0.0.0:").nth(1)
+                                && let Some(port) = port_part.split_whitespace().next() {
                                     println!("Testing port {}...", port);
                                     let test = Command::new("nc")
                                         .args(&["-zv", "localhost", port])
@@ -1021,8 +1021,6 @@ fn port_mapping_analysis() {
                                         _ => println!("  ❌ Port {} not accessible", port),
                                     }
                                 }
-                            }
-                        }
                     }
                 }
             }
@@ -1320,8 +1318,8 @@ fn test_container_to_host() {
 
                     // Check if iperf3 is available on host
                     let iperf_check = Command::new("which").arg("iperf3").status();
-                    if let Ok(s) = iperf_check {
-                        if s.success() {
+                    if let Ok(s) = iperf_check
+                        && s.success() {
                             println!("\n🚀 Starting iperf3 server on host...");
                             println!("Note: You need to manually start 'iperf3 -s' on the host");
 
@@ -1346,7 +1344,6 @@ fn test_container_to_host() {
                                     .ok();
                             }
                         }
-                    }
                 }
                 break;
             }
@@ -1570,12 +1567,11 @@ fn create_bridge_interface() {
         .args(&["link", "show", &bridge_name])
         .output();
 
-    if let Ok(out) = bridge_check {
-        if out.status.success() {
+    if let Ok(out) = bridge_check
+        && out.status.success() {
             println!("⚠️ Bridge {} already exists", bridge_name);
             return;
         }
-    }
 
     println!("🔧 Creating bridge {}...", bridge_name);
 
@@ -2196,8 +2192,8 @@ fn diagnose_vm_network_issues() {
 
     // Check default libvirt network
     let virsh_check = Command::new("which").arg("virsh").status();
-    if let Ok(s) = virsh_check {
-        if s.success() {
+    if let Ok(s) = virsh_check
+        && s.success() {
             println!("Libvirt networks:");
             Command::new("virsh")
                 .args(&["net-list", "--all"])
@@ -2210,7 +2206,6 @@ fn diagnose_vm_network_issues() {
                 .status()
                 .ok();
         }
-    }
 }
 
 fn check_bridge_connectivity() {
@@ -2250,7 +2245,7 @@ fn check_bridge_connectivity() {
         let output_str = String::from_utf8_lossy(&out.stdout);
         for line in output_str.lines() {
             if line.contains("inet ") && !line.contains("inet6") {
-                if let Some(ip_part) = line.trim().split_whitespace().nth(1) {
+                if let Some(ip_part) = line.split_whitespace().nth(1) {
                     let ip = ip_part.split('/').next().unwrap_or("");
                     if !ip.is_empty() {
                         println!("\n🏓 Testing ping to bridge IP: {}", ip);
@@ -2277,8 +2272,8 @@ fn check_bridge_connectivity() {
     if let Ok(out) = members {
         let output_str = String::from_utf8_lossy(&out.stdout);
         for line in output_str.lines() {
-            if line.contains("master") && line.contains(&bridge) {
-                if let Some(interface) = line.split_whitespace().nth(1) {
+            if line.contains("master") && line.contains(&bridge)
+                && let Some(interface) = line.split_whitespace().nth(1) {
                     let clean_interface = interface.trim_end_matches(':');
                     println!("\n🔌 Testing member interface: {}", clean_interface);
 
@@ -2296,7 +2291,6 @@ fn check_bridge_connectivity() {
                         }
                     }
                 }
-            }
         }
     }
 
@@ -2329,8 +2323,8 @@ fn troubleshoot_tap_interfaces() {
     if let Ok(out) = tap_list {
         let output_str = String::from_utf8_lossy(&out.stdout);
         for line in output_str.lines() {
-            if line.contains("tap") {
-                if let Some(tap_name) = line.split(':').next() {
+            if line.contains("tap")
+                && let Some(tap_name) = line.split(':').next() {
                     println!("\n--- TAP Interface: {} ---", tap_name);
 
                     // Show TAP details
@@ -2351,7 +2345,6 @@ fn troubleshoot_tap_interfaces() {
                         Command::new("ls").args(&["-l", &tap_path]).status().ok();
                     }
                 }
-            }
         }
     }
 
@@ -2450,7 +2443,7 @@ fn check_qemu_network_config() {
         Ok(out) if out.status.success() => {
             println!(
                 "  ✅ QEMU installed at: {}",
-                String::from_utf8_lossy(&out.stdout).trim().to_string()
+                String::from_utf8_lossy(&out.stdout).trim()
             );
 
             // Get QEMU version
@@ -2473,8 +2466,8 @@ fn check_qemu_network_config() {
     println!("\n3️⃣ Libvirt Network Configuration:");
     let virsh_available = Command::new("which").arg("virsh").status();
 
-    if let Ok(s) = virsh_available {
-        if s.success() {
+    if let Ok(s) = virsh_available
+        && s.success() {
             println!("📋 Libvirt networks:");
             Command::new("virsh")
                 .args(&["net-list", "--all"])
@@ -2495,7 +2488,6 @@ fn check_qemu_network_config() {
                 .status()
                 .ok();
         }
-    }
 
     // Check QEMU helper scripts
     println!("\n4️⃣ QEMU Helper Scripts:");
@@ -2627,12 +2619,11 @@ fn vm_performance_testing() {
                     .args(&["link", "show", interface])
                     .status();
 
-                if let Ok(s) = if_exists {
-                    if s.success() {
+                if let Ok(s) = if_exists
+                    && s.success() {
                         println!("\n--- Monitoring {} ---", interface);
                         monitor_bridge_performance(interface, 10);
                     }
-                }
             }
         }
         3 => {

@@ -659,15 +659,14 @@ fn rebuild_all_aur() {
                 .interact()
                 .unwrap();
 
-            if confirm {
-                if let Some(helper) = get_preferred_aur_helper() {
+            if confirm
+                && let Some(helper) = get_preferred_aur_helper() {
                     println!("🔨 Rebuilding packages with {}...", helper);
                     let _ = Command::new(&helper)
                         .args(["-S", "--rebuild"])
                         .args(&packages)
                         .status();
                 }
-            }
         }
         _ => println!("❌ Failed to query foreign packages"),
     }
@@ -683,12 +682,11 @@ fn list_foreign_packages() {
     println!("\n📊 Package statistics:");
     let output = Command::new("pacman").args(["-Qm"]).output();
 
-    if let Ok(output) = output {
-        if output.status.success() {
+    if let Ok(output) = output
+        && output.status.success() {
             let count = String::from_utf8_lossy(&output.stdout).lines().count();
             println!("  Total foreign packages: {}", count);
         }
-    }
 
     println!("\n🔍 Explicitly installed packages:");
     let _ = Command::new("pacman").args(["-Qe"]).status();
@@ -1172,12 +1170,11 @@ fn optimize_dependency_cache() {
         .args(["-sh", "/var/cache/pacman/pkg/"])
         .output();
 
-    if let Ok(output) = output {
-        if output.status.success() {
+    if let Ok(output) = output
+        && output.status.success() {
             let size = String::from_utf8_lossy(&output.stdout);
             println!("📊 Current cache size: {}", size.trim());
         }
-    }
 
     let optimize_options = [
         "🗑️  Remove all cached packages except installed versions",
@@ -1371,8 +1368,8 @@ fn resolve_file_conflicts() {
                 .args(["-Qo", &conflict_file])
                 .output();
 
-            if let Ok(output) = output {
-                if output.status.success() {
+            if let Ok(output) = output
+                && output.status.success() {
                     let owner_info = String::from_utf8_lossy(&output.stdout);
                     if let Some(package) = owner_info.split_whitespace().nth(4) {
                         println!("🔄 Reinstalling {}...", package);
@@ -1381,7 +1378,6 @@ fn resolve_file_conflicts() {
                             .status();
                     }
                 }
-            }
         }
         1 => {
             let confirm = Confirm::new()

@@ -70,13 +70,11 @@ pub fn check_disk_space() {
         let content = String::from_utf8_lossy(&output.stdout);
         for line in content.lines().skip(1) {
             let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() >= 5 {
-                if let Ok(usage) = parts[4].trim_end_matches('%').parse::<u32>() {
-                    if usage >= 90 {
+            if parts.len() >= 5
+                && let Ok(usage) = parts[4].trim_end_matches('%').parse::<u32>()
+                    && usage >= 90 {
                         println!("\n⚠️  WARNING: {} is {}% full!", parts[5], usage);
                     }
-                }
-            }
         }
     }
 
@@ -478,11 +476,10 @@ fn clean_old_configs() {
                 let dir_name = path.file_name().unwrap().to_string_lossy();
                 let output = Command::new("pacman").args(&["-Qs", &dir_name]).output();
 
-                if let Ok(output) = output {
-                    if output.stdout.is_empty() {
+                if let Ok(output) = output
+                    && output.stdout.is_empty() {
                         println!("  ? {} (no matching package)", path.display());
                     }
-                }
             }
         }
     }

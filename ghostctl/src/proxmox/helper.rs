@@ -1,6 +1,5 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Select};
+use dialoguer::{theme::ColorfulTheme, Select};
 use reqwest::blocking::get;
-use std::process::Command;
 
 // Repository URLs
 const CKTECH_REPO_BASE: &str =
@@ -71,11 +70,10 @@ fn load_cktech_lxc_scripts() {
                     let mut script_names = Vec::new();
 
                     for file in files {
-                        if let Some(name) = file["name"].as_str() {
-                            if name.ends_with(".sh") {
+                        if let Some(name) = file["name"].as_str()
+                            && name.ends_with(".sh") {
                                 script_names.push(name.to_string());
                             }
-                        }
                     }
 
                     if !script_names.is_empty() {
@@ -127,11 +125,10 @@ fn load_cktech_vm_scripts() {
                     let mut script_names = Vec::new();
 
                     for file in files {
-                        if let Some(name) = file["name"].as_str() {
-                            if name.ends_with(".sh") {
+                        if let Some(name) = file["name"].as_str()
+                            && name.ends_with(".sh") {
                                 script_names.push(name.to_string());
                             }
-                        }
                     }
 
                     if !script_names.is_empty() {
@@ -182,13 +179,12 @@ fn load_community_lxc_scripts() {
                     let mut script_names = Vec::new();
 
                     for file in files {
-                        if let Some(name) = file["name"].as_str() {
-                            if name.ends_with(".sh") {
+                        if let Some(name) = file["name"].as_str()
+                            && name.ends_with(".sh") {
                                 // Remove .sh extension for display
                                 let display_name = name.trim_end_matches(".sh");
                                 script_names.push((display_name.to_string(), name.to_string()));
                             }
-                        }
                     }
 
                     if !script_names.is_empty() {
@@ -244,12 +240,11 @@ fn load_community_vm_scripts() {
                     let mut script_names = Vec::new();
 
                     for file in files {
-                        if let Some(name) = file["name"].as_str() {
-                            if name.ends_with(".sh") {
+                        if let Some(name) = file["name"].as_str()
+                            && name.ends_with(".sh") {
                                 let display_name = name.trim_end_matches(".sh");
                                 script_names.push((display_name.to_string(), name.to_string()));
                             }
-                        }
                     }
 
                     if !script_names.is_empty() {
@@ -305,12 +300,11 @@ fn load_community_misc_scripts() {
                     let mut script_names = Vec::new();
 
                     for file in files {
-                        if let Some(name) = file["name"].as_str() {
-                            if name.ends_with(".sh") {
+                        if let Some(name) = file["name"].as_str()
+                            && name.ends_with(".sh") {
                                 let display_name = name.trim_end_matches(".sh");
                                 script_names.push((display_name.to_string(), name.to_string()));
                             }
-                        }
                     }
 
                     if !script_names.is_empty() {
@@ -366,12 +360,11 @@ fn load_pve_tools() {
                     let mut script_names = Vec::new();
 
                     for file in files {
-                        if let Some(name) = file["name"].as_str() {
-                            if name.ends_with(".sh") {
+                        if let Some(name) = file["name"].as_str()
+                            && name.ends_with(".sh") {
                                 let display_name = name.trim_end_matches(".sh");
                                 script_names.push((display_name.to_string(), name.to_string()));
                             }
-                        }
                     }
 
                     if !script_names.is_empty() {
@@ -493,28 +486,12 @@ fn show_fallback_cktech_lxc() {
 }
 
 fn confirm_and_run_script(name: &str, url: &str) {
-    println!("\n📜 Script: {}", name);
-    println!("🔗 URL: {}", url);
+    println!("\n📜 Proxmox Script Execution");
+    println!("═══════════════════════════");
 
-    let confirm = Confirm::new()
-        .with_prompt("Do you want to download and run this script?")
-        .default(false)
-        .interact()
-        .unwrap();
-
-    if confirm {
-        println!("📥 Downloading and executing script...");
-
-        let status = Command::new("bash")
-            .arg("-c")
-            .arg(&format!("curl -sSL {} | bash", url))
-            .status();
-
-        match status {
-            Ok(s) if s.success() => println!("✅ Script executed successfully"),
-            _ => println!("❌ Script execution failed"),
-        }
-    } else {
-        println!("⏭️  Script execution cancelled");
+    match super::script_safety::safe_run_script(name, url) {
+        Ok(true) => println!("✅ Script '{}' executed successfully.", name),
+        Ok(false) => println!("⏭️  Script execution was cancelled or skipped."),
+        Err(e) => println!("❌ Failed to run '{}': {}", name, e),
     }
 }

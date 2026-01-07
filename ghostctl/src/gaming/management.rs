@@ -127,16 +127,13 @@ fn scan_game_libraries() {
                         total_games += game_count;
 
                         // Calculate size
-                        if let Ok(size_out) = Command::new("du").args(&["-sb", path]).output() {
-                            if let Ok(size_str) = String::from_utf8(size_out.stdout) {
-                                if let Some(size_part) = size_str.split_whitespace().next() {
-                                    if let Ok(size) = size_part.parse::<u64>() {
+                        if let Ok(size_out) = Command::new("du").args(&["-sb", path]).output()
+                            && let Ok(size_str) = String::from_utf8(size_out.stdout)
+                                && let Some(size_part) = size_str.split_whitespace().next()
+                                    && let Ok(size) = size_part.parse::<u64>() {
                                         total_size += size;
                                         println!("  📊 Size: {} GB", size / 1024 / 1024 / 1024);
                                     }
-                                }
-                            }
-                        }
 
                         // Show top 5 largest games/prefixes
                         println!("  📂 Largest items:");
@@ -266,22 +263,19 @@ fn find_duplicates_by_name(paths: &[String]) {
     let mut all_games = Vec::with_capacity(200); // Pre-allocate for typical game library size
 
     for path in paths {
-        if Path::new(path).exists() {
-            if let Ok(out) = Command::new("find")
+        if Path::new(path).exists()
+            && let Ok(out) = Command::new("find")
                 .args(&[path, "-maxdepth", "2", "-type", "d"])
                 .output()
             {
                 for line in String::from_utf8_lossy(&out.stdout).lines() {
-                    if let Some(dir_name) = Path::new(line).file_name() {
-                        if let Some(name) = dir_name.to_str() {
-                            if !name.is_empty() && name != "common" && name != "prefixes" {
+                    if let Some(dir_name) = Path::new(line).file_name()
+                        && let Some(name) = dir_name.to_str()
+                            && !name.is_empty() && name != "common" && name != "prefixes" {
                                 all_games.push((name.to_lowercase(), line.to_string()));
                             }
-                        }
-                    }
                 }
             }
-        }
     }
 
     // Simple duplicate detection by exact name match
@@ -353,13 +347,11 @@ fn calculate_similarity(s1: &str, s2: &str) -> f64 {
 fn get_directory_size(path: &str) -> u64 {
     let du_result = Command::new("du").args(&["-sb", path]).output();
 
-    if let Ok(out) = du_result {
-        if let Ok(output_str) = String::from_utf8(out.stdout) {
-            if let Some(size_str) = output_str.split_whitespace().next() {
+    if let Ok(out) = du_result
+        && let Ok(output_str) = String::from_utf8(out.stdout)
+            && let Some(size_str) = output_str.split_whitespace().next() {
                 return size_str.parse().unwrap_or(0);
             }
-        }
-    }
     0
 }
 
@@ -381,10 +373,7 @@ fn find_duplicates_by_size(paths: &[String]) {
                         let size = get_directory_size(line);
                         if size > 100 * 1024 * 1024 {
                             // Only consider directories > 100MB
-                            size_map
-                                .entry(size)
-                                .or_insert_with(Vec::new)
-                                .push(line.to_string());
+                            size_map.entry(size).or_default().push(line.to_string());
                         }
                     }
                 }
@@ -440,17 +429,16 @@ fn find_duplicates_by_hash(paths: &[String]) {
 
                     let hash_result = Command::new("sha256sum").arg(exe_path).output();
 
-                    if let Ok(hash_out) = hash_result {
-                        if let Some(hash) = String::from_utf8_lossy(&hash_out.stdout)
+                    if let Ok(hash_out) = hash_result
+                        && let Some(hash) = String::from_utf8_lossy(&hash_out.stdout)
                             .split_whitespace()
                             .next()
                         {
                             hash_map
                                 .entry(hash.to_string())
-                                .or_insert_with(Vec::new)
+                                .or_default()
                                 .push(exe_path.to_string());
                         }
-                    }
                 }
             }
         }
@@ -537,7 +525,7 @@ fn analyze_game_content(paths: &[String]) {
                         if !signature.is_empty() {
                             content_signatures
                                 .entry(signature)
-                                .or_insert_with(Vec::new)
+                                .or_default()
                                 .push(line.to_string());
                         }
                     }
@@ -747,12 +735,11 @@ fn storage_usage_analysis() {
                 let mut platform_total = 0u64;
 
                 for line in &lines {
-                    if line.ends_with(path) {
-                        if let Some(size_str) = line.split_whitespace().next() {
+                    if line.ends_with(path)
+                        && let Some(size_str) = line.split_whitespace().next() {
                             platform_total = parse_size_string(size_str);
                             total_usage += platform_total;
                         }
-                    }
                 }
 
                 println!("  📦 Total: {} GB", platform_total / 1024 / 1024 / 1024);
@@ -1343,9 +1330,9 @@ fn apply_gaming_wine_config() {
     Command::new("sh").arg("-c").arg(&csmt_cmd).status().ok();
 
     // Set environment variables
-    std::env::set_var("WINE_LARGE_ADDRESS_AWARE", "1");
-    std::env::set_var("WINEESYNC", "1");
-    std::env::set_var("WINEFSYNC", "1");
+    unsafe { std::env::set_var("WINE_LARGE_ADDRESS_AWARE", "1") };
+    unsafe { std::env::set_var("WINEESYNC", "1") };
+    unsafe { std::env::set_var("WINEFSYNC", "1") };
 
     println!("✅ Gaming configuration applied");
 }
@@ -1564,7 +1551,10 @@ fn update_proton_ge() {
     }
 
     // Extract filename from URL
-    let filename = download_url.split('/').last().unwrap_or("proton-ge.tar.gz");
+    let filename = download_url
+        .split('/')
+        .next_back()
+        .unwrap_or("proton-ge.tar.gz");
     let temp_path = format!("/tmp/{}", filename);
 
     println!("📂 Extracting Proton-GE...");
@@ -1728,11 +1718,10 @@ fn check_proton_versions() {
             let wine_dirs: Vec<&str> = output_string.lines().collect();
 
             for dir in wine_dirs {
-                if dir != lutris_path {
-                    if let Some(name) = Path::new(dir).file_name() {
+                if dir != lutris_path
+                    && let Some(name) = Path::new(dir).file_name() {
                         println!("  ✅ {}", name.to_string_lossy());
                     }
-                }
             }
         }
     } else {
@@ -2169,12 +2158,11 @@ fn reset_specific_prefix() {
 
                 if let Ok(out) = find_result {
                     for dir in String::from_utf8_lossy(&out.stdout).lines() {
-                        if dir != *location {
-                            if let Some(name) = Path::new(dir).file_name() {
+                        if dir != *location
+                            && let Some(name) = Path::new(dir).file_name() {
                                 available_prefixes
                                     .push((name.to_string_lossy().to_string(), dir.to_string()));
                             }
-                        }
                     }
                 }
             }
@@ -2319,8 +2307,8 @@ fn list_bottles() {
         println!("🍾 Found {} bottles:", bottles.len() - 1);
 
         for bottle in bottles {
-            if bottle != bottles_path {
-                if let Some(name) = Path::new(bottle).file_name() {
+            if bottle != bottles_path
+                && let Some(name) = Path::new(bottle).file_name() {
                     let size = get_directory_size(bottle);
                     let config_path = format!("{}/bottle.yml", bottle);
 
@@ -2346,7 +2334,6 @@ fn list_bottles() {
                         println!("  ⚠️ Configuration missing");
                     }
                 }
-            }
         }
     }
 }
@@ -2391,8 +2378,8 @@ fn remove_bottle() {
 
     if let Ok(out) = find_result {
         for bottle in String::from_utf8_lossy(&out.stdout).lines() {
-            if bottle != bottles_path {
-                if let Some(name) = Path::new(bottle).file_name() {
+            if bottle != bottles_path
+                && let Some(name) = Path::new(bottle).file_name() {
                     let size = get_directory_size(bottle);
                     available_bottles.push((
                         name.to_string_lossy().to_string(),
@@ -2400,7 +2387,6 @@ fn remove_bottle() {
                         size,
                     ));
                 }
-            }
         }
     }
 
@@ -2476,12 +2462,11 @@ fn bottles_storage_analysis() {
             let mut bottle_info = Vec::new();
 
             for bottle in String::from_utf8_lossy(&out.stdout).lines() {
-                if bottle != bottles_dir {
-                    if let Some(name) = Path::new(bottle).file_name() {
+                if bottle != bottles_dir
+                    && let Some(name) = Path::new(bottle).file_name() {
                         let size = get_directory_size(bottle);
                         bottle_info.push((name.to_string_lossy().to_string(), size));
                     }
-                }
             }
 
             // Sort by size
@@ -2645,8 +2630,8 @@ fn check_bottle_health() {
 
     if let Ok(out) = find_result {
         for bottle in String::from_utf8_lossy(&out.stdout).lines() {
-            if bottle != bottles_dir {
-                if let Some(name) = Path::new(bottle).file_name() {
+            if bottle != bottles_dir
+                && let Some(name) = Path::new(bottle).file_name() {
                     println!("🔍 Checking bottle: {}", name.to_string_lossy());
 
                     // Check for essential files
@@ -2674,7 +2659,6 @@ fn check_bottle_health() {
 
                     println!();
                 }
-            }
         }
     }
 }
@@ -3171,8 +3155,8 @@ fn lutris_games_storage() {
 
                 if let Ok(out) = find_result {
                     for game_dir in String::from_utf8_lossy(&out.stdout).lines() {
-                        if game_dir != *path {
-                            if let Some(game_name) = Path::new(game_dir).file_name() {
+                        if game_dir != *path
+                            && let Some(game_name) = Path::new(game_dir).file_name() {
                                 let game_size = get_directory_size(game_dir);
                                 if game_size > 100 * 1024 * 1024 {
                                     println!(
@@ -3182,7 +3166,6 @@ fn lutris_games_storage() {
                                     );
                                 }
                             }
-                        }
                     }
                 }
             }
@@ -3255,8 +3238,8 @@ fn list_lutris_runners() {
                 println!("🍷 Installed Wine Runners:");
 
                 for runner in runners {
-                    if runner != runners_path {
-                        if let Some(name) = Path::new(runner).file_name() {
+                    if runner != runners_path
+                        && let Some(name) = Path::new(runner).file_name() {
                             let size = get_directory_size(runner);
                             println!("  📦 {}: {} MB", name.to_string_lossy(), size / 1024 / 1024);
 
@@ -3271,7 +3254,6 @@ fn list_lutris_runners() {
                                 }
                             }
                         }
-                    }
                 }
             }
         }
@@ -3333,9 +3315,9 @@ fn install_wine_ge_lutris() {
         Ok(out) => {
             let json_str = String::from_utf8_lossy(&out.stdout);
 
-            if let Some(start) = json_str.find("browser_download_url") {
-                if let Some(url_start) = json_str[start..].find("https://") {
-                    if let Some(url_end) = json_str[start + url_start..].find("\"") {
+            if let Some(start) = json_str.find("browser_download_url")
+                && let Some(url_start) = json_str[start..].find("https://")
+                    && let Some(url_end) = json_str[start + url_start..].find("\"") {
                         let url = &json_str[start + url_start..start + url_start + url_end];
 
                         if url.ends_with(".tar.xz") {
@@ -3352,8 +3334,6 @@ fn install_wine_ge_lutris() {
                             }
                         }
                     }
-                }
-            }
         }
         Err(_) => {
             println!("❌ Failed to fetch release info");
@@ -3518,7 +3498,7 @@ fn install_custom_runner() {
 }
 
 fn download_and_install_runner(url: &str, runners_path: &str) {
-    let filename = url.split('/').last().unwrap_or("wine-runner.tar.xz");
+    let filename = url.split('/').next_back().unwrap_or("wine-runner.tar.xz");
     let temp_path = format!("/tmp/{}", filename);
 
     println!("📥 Downloading {}...", filename);
@@ -3555,11 +3535,10 @@ fn download_and_install_runner(url: &str, runners_path: &str) {
 
                     if let Ok(out) = find_result {
                         for new_dir in String::from_utf8_lossy(&out.stdout).lines() {
-                            if new_dir != runners_path {
-                                if let Some(name) = Path::new(new_dir).file_name() {
+                            if new_dir != runners_path
+                                && let Some(name) = Path::new(new_dir).file_name() {
                                     println!("📦 Installed: {}", name.to_string_lossy());
                                 }
-                            }
                         }
                     }
                 }
@@ -3615,8 +3594,8 @@ fn remove_old_runners() {
 
     if let Ok(out) = find_result {
         for runner in String::from_utf8_lossy(&out.stdout).lines() {
-            if runner != runners_path {
-                if let Some(name) = Path::new(runner).file_name() {
+            if runner != runners_path
+                && let Some(name) = Path::new(runner).file_name() {
                     let size = get_directory_size(runner);
                     available_runners.push((
                         name.to_string_lossy().to_string(),
@@ -3624,7 +3603,6 @@ fn remove_old_runners() {
                         size,
                     ));
                 }
-            }
         }
     }
 
@@ -5110,8 +5088,8 @@ fn clean_unused_lutris_prefixes() {
 
     if let Ok(out) = find_result {
         for prefix in String::from_utf8_lossy(&out.stdout).lines() {
-            if prefix != prefixes_dir {
-                if let Some(name) = Path::new(prefix).file_name() {
+            if prefix != prefixes_dir
+                && let Some(name) = Path::new(prefix).file_name() {
                     let size = get_directory_size(prefix);
                     old_prefixes.push((
                         name.to_string_lossy().to_string(),
@@ -5119,7 +5097,6 @@ fn clean_unused_lutris_prefixes() {
                         size,
                     ));
                 }
-            }
         }
     }
 
@@ -5194,8 +5171,8 @@ fn clean_old_lutris_runners() {
 
     if let Ok(out) = find_result {
         for runner in String::from_utf8_lossy(&out.stdout).lines() {
-            if runner != runners_dir {
-                if let Some(name) = Path::new(runner).file_name() {
+            if runner != runners_dir
+                && let Some(name) = Path::new(runner).file_name() {
                     let size = get_directory_size(runner);
                     let modified_time = get_last_access_time(runner);
                     all_runners.push((
@@ -5205,7 +5182,6 @@ fn clean_old_lutris_runners() {
                         modified_time,
                     ));
                 }
-            }
         }
     }
 
@@ -5293,7 +5269,7 @@ fn clean_old_lutris_runners() {
 
                 runner_groups
                     .entry(base_name.to_string())
-                    .or_insert(Vec::new())
+                    .or_default()
                     .push(runner);
             }
 
@@ -5525,14 +5501,13 @@ fn show_large_subdirectories(path: &str, category: &str) {
         let mut subdirs = Vec::new();
 
         for subdir in String::from_utf8_lossy(&out.stdout).lines() {
-            if subdir != path {
-                if let Some(name) = Path::new(subdir).file_name() {
+            if subdir != path
+                && let Some(name) = Path::new(subdir).file_name() {
                     let size = get_directory_size(subdir);
                     if size > 1024 * 1024 * 1024 {
                         subdirs.push((name.to_string_lossy().to_string(), size));
                     }
                 }
-            }
         }
 
         if !subdirs.is_empty() {

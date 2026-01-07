@@ -2,7 +2,7 @@
 # Contributor: CK Technology LLC
 
 pkgname=ghostctl
-pkgver=0.9.4
+pkgver=0.9.5
 pkgrel=1
 pkgdesc="Ghost Infrastructure Control - Complete system and homelab management toolkit"
 arch=('x86_64' 'aarch64')

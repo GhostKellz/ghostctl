@@ -135,8 +135,8 @@ fn install_nvidia_container_toolkit() {
     let aur_helpers = ["yay", "paru", "trizen"];
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
-        if let Ok(s) = helper_check {
-            if s.success() {
+        if let Ok(s) = helper_check
+            && s.success() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "nvidia-container-toolkit"])
                     .status();
@@ -149,7 +149,6 @@ fn install_nvidia_container_toolkit() {
                     _ => println!("❌ Failed to install with {}", helper),
                 }
             }
-        }
     }
 
     println!("❌ No AUR helper found. Install yay first.");
@@ -285,8 +284,8 @@ fn install_amd_performance_tools() {
     let aur_helpers = ["yay", "paru", "trizen"];
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
-        if let Ok(s) = helper_check {
-            if s.success() {
+        if let Ok(s) = helper_check
+            && s.success() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "corectrl"])
                     .status();
@@ -299,7 +298,6 @@ fn install_amd_performance_tools() {
                     _ => continue,
                 }
             }
-        }
     }
     println!("  💡 corectrl available via AUR");
 }
@@ -562,7 +560,7 @@ export MESA_VK_WSI_PRESENT_MODE=fifo
         .create(true)
         .open(&profile_path)
     {
-        if let Err(_) = writeln!(file, "{}", vulkan_env) {
+        if writeln!(file, "{}", vulkan_env).is_err() {
             println!("❌ Failed to write to profile");
         } else {
             println!("✅ Vulkan optimizations added to ~/.profile");
@@ -685,7 +683,7 @@ export __GL_SHADER_DISK_CACHE_PATH=~/.cache/gl_shader
         .create(true)
         .open(&profile_path)
     {
-        if let Err(_) = writeln!(file, "{}", opengl_env) {
+        if writeln!(file, "{}", opengl_env).is_err() {
             println!("❌ Failed to write to profile");
         } else {
             println!("✅ OpenGL optimizations added to ~/.profile");
@@ -868,11 +866,9 @@ fn configure_shader_cache() {
         .map(|h| h.join(".cache/gl_shader"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/.cache/gl_shader"));
 
-    if !cache_dir.exists() {
-        if let Err(_) = std::fs::create_dir_all(&cache_dir) {
-            println!("❌ Failed to create shader cache directory");
-            return;
-        }
+    if !cache_dir.exists() && std::fs::create_dir_all(&cache_dir).is_err() {
+        println!("❌ Failed to create shader cache directory");
+        return;
     }
 
     println!("✅ Shader cache directory created: {}", cache_dir.display());

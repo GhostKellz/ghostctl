@@ -445,9 +445,9 @@ fn add_zig_to_path() {
     let zig_path_export = "export PATH=\"/opt/zig:$PATH\"";
 
     for shell_file in &shell_files {
-        if std::path::Path::new(shell_file).exists() {
-            if let Ok(content) = std::fs::read_to_string(shell_file) {
-                if !content.contains("/opt/zig") {
+        if std::path::Path::new(shell_file).exists()
+            && let Ok(content) = std::fs::read_to_string(shell_file)
+                && !content.contains("/opt/zig") {
                     let mut file = std::fs::OpenOptions::new()
                         .append(true)
                         .open(shell_file)
@@ -459,7 +459,5 @@ fn add_zig_to_path() {
 
                     println!("✅ Added Zig to PATH in {}", shell_file);
                 }
-            }
-        }
     }
 }

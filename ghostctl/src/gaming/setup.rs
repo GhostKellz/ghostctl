@@ -385,8 +385,8 @@ fn install_heroic_if_possible() {
     let aur_helpers = ["yay", "paru", "trizen"];
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
-        if let Ok(s) = helper_check {
-            if s.success() {
+        if let Ok(s) = helper_check
+            && s.success() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "heroic-games-launcher-bin"])
                     .status();
@@ -399,7 +399,6 @@ fn install_heroic_if_possible() {
                     _ => continue,
                 }
             }
-        }
     }
     println!("    💡 Heroic installation skipped (no AUR helper found)");
 }
@@ -477,14 +476,13 @@ echo "✅ Gaming optimizations applied!"
         use std::fs::File;
         use std::io::Write;
 
-        if let Ok(mut file) = File::create(&profile_path) {
-            if file.write_all(profile_content.as_bytes()).is_ok() {
+        if let Ok(mut file) = File::create(&profile_path)
+            && file.write_all(profile_content.as_bytes()).is_ok() {
                 let _ = Command::new("chmod")
                     .args(&["+x", &profile_path.to_string_lossy()])
                     .status();
                 println!("    ✅ Gaming performance profile created");
             }
-        }
     }
 }
 
@@ -563,11 +561,10 @@ toggle_hud=F12
         use std::fs::File;
         use std::io::Write;
 
-        if let Ok(mut file) = File::create(&config_file) {
-            if file.write_all(default_config.as_bytes()).is_ok() {
+        if let Ok(mut file) = File::create(&config_file)
+            && file.write_all(default_config.as_bytes()).is_ok() {
                 println!("    ✅ MangoHud configuration created");
             }
-        }
     }
 }
 
@@ -597,7 +594,7 @@ fn auto_setup_controllers() {
                     entry
                         .file_name()
                         .to_str()
-                        .map_or(false, |name| name.starts_with("js"))
+                        .is_some_and(|name| name.starts_with("js"))
                 })
                 .count()
         })
@@ -668,11 +665,10 @@ Categories=Game;
         use std::fs::File;
         use std::io::Write;
 
-        if let Ok(mut file) = File::create(&desktop_file) {
-            if file.write_all(desktop_content.as_bytes()).is_ok() {
+        if let Ok(mut file) = File::create(&desktop_file)
+            && file.write_all(desktop_content.as_bytes()).is_ok() {
                 println!("    ✅ Gaming profile desktop entry created");
             }
-        }
     }
 }
 
@@ -765,8 +761,8 @@ fn enable_multilib_quick() {
         .args(&["-E", "^\\[multilib\\]", "/etc/pacman.conf"])
         .output();
 
-    if let Ok(out) = multilib_check {
-        if out.stdout.is_empty() {
+    if let Ok(out) = multilib_check
+        && out.stdout.is_empty() {
             println!("🔧 Enabling multilib repository...");
             let _ = Command::new("sudo")
                 .arg("sed")
@@ -778,7 +774,6 @@ fn enable_multilib_quick() {
                 .status();
             let _ = Command::new("sudo").args(&["pacman", "-Sy"]).status();
         }
-    }
 }
 
 fn quick_setup_gamemode() {
@@ -1356,8 +1351,8 @@ fn install_protonup_qt() {
     let aur_helpers = ["yay", "paru", "trizen"];
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
-        if let Ok(s) = helper_check {
-            if s.success() {
+        if let Ok(s) = helper_check
+            && s.success() {
                 println!("📦 Installing ProtonUp-Qt...");
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "protonup-qt"])
@@ -1371,7 +1366,6 @@ fn install_protonup_qt() {
                     _ => continue,
                 }
             }
-        }
     }
     println!("  💡 ProtonUp-Qt requires AUR helper (install yay)");
 }
@@ -1411,15 +1405,14 @@ steam "$@"
         use std::fs::File;
         use std::io::Write;
 
-        if let Ok(mut file) = File::create(&script_path) {
-            if file.write_all(script_content.as_bytes()).is_ok() {
+        if let Ok(mut file) = File::create(&script_path)
+            && file.write_all(script_content.as_bytes()).is_ok() {
                 let _ = Command::new("chmod")
                     .args(&["+x", &script_path.to_string_lossy()])
                     .status();
                 println!("  ✅ Steam optimization script created");
                 println!("  💡 Use: ~/bin/steam-optimized to launch Steam with optimizations");
             }
-        }
     }
 }
 
@@ -1488,11 +1481,10 @@ fsync = True
         use std::fs::File;
         use std::io::Write;
 
-        if let Ok(mut file) = File::create(&config_file) {
-            if file.write_all(config_content.as_bytes()).is_ok() {
+        if let Ok(mut file) = File::create(&config_file)
+            && file.write_all(config_content.as_bytes()).is_ok() {
                 println!("  ✅ Lutris configuration created");
             }
-        }
     }
 }
 
@@ -1907,15 +1899,14 @@ echo "💡 Start your games now for best performance"
         use std::fs::File;
         use std::io::Write;
 
-        if let Ok(mut file) = File::create(&script_path) {
-            if file.write_all(gaming_script.as_bytes()).is_ok() {
+        if let Ok(mut file) = File::create(&script_path)
+            && file.write_all(gaming_script.as_bytes()).is_ok() {
                 let _ = Command::new("chmod")
                     .args(&["+x", &script_path.to_string_lossy()])
                     .status();
                 println!("✅ Ultimate gaming optimization script created");
                 println!("💡 Run: ~/.config/ghostctl/profiles/gaming-ultimate.sh");
             }
-        }
     }
 }
 
@@ -1978,14 +1969,13 @@ echo "💡 Remember to re-enable compositor after gaming"
         use std::fs::File;
         use std::io::Write;
 
-        if let Ok(mut file) = File::create(&script_path) {
-            if file.write_all(display_script.as_bytes()).is_ok() {
+        if let Ok(mut file) = File::create(&script_path)
+            && file.write_all(display_script.as_bytes()).is_ok() {
                 let _ = Command::new("chmod")
                     .args(&["+x", &script_path.to_string_lossy()])
                     .status();
                 println!("✅ Display gaming optimization script created");
             }
-        }
     }
 }
 
@@ -2035,14 +2025,13 @@ echo "✅ Audio optimized for gaming!"
         use std::fs::File;
         use std::io::Write;
 
-        if let Ok(mut file) = File::create(&script_path) {
-            if file.write_all(audio_script.as_bytes()).is_ok() {
+        if let Ok(mut file) = File::create(&script_path)
+            && file.write_all(audio_script.as_bytes()).is_ok() {
                 let _ = Command::new("chmod")
                     .args(&["+x", &script_path.to_string_lossy()])
                     .status();
                 println!("✅ Gaming audio optimization script created");
             }
-        }
     }
 }
 
@@ -2144,15 +2133,14 @@ fi
         use std::fs::File;
         use std::io::Write;
 
-        if let Ok(mut file) = File::create(&script_path) {
-            if file.write_all(monitoring_script.as_bytes()).is_ok() {
+        if let Ok(mut file) = File::create(&script_path)
+            && file.write_all(monitoring_script.as_bytes()).is_ok() {
                 let _ = Command::new("chmod")
                     .args(&["+x", &script_path.to_string_lossy()])
                     .status();
                 println!("✅ Gaming monitoring dashboard script created");
                 println!("💡 Run: ~/bin/gaming-monitor");
             }
-        }
     }
 }
 
@@ -2644,7 +2632,7 @@ fn controller_issues() {
                     entry
                         .file_name()
                         .to_str()
-                        .map_or(false, |name| name.starts_with("js"))
+                        .is_some_and(|name| name.starts_with("js"))
                 })
                 .count()
         })
@@ -2852,7 +2840,7 @@ fn gaming_setup_status() {
                     entry
                         .file_name()
                         .to_str()
-                        .map_or(false, |name| name.starts_with("js"))
+                        .is_some_and(|name| name.starts_with("js"))
                 })
                 .count()
         })

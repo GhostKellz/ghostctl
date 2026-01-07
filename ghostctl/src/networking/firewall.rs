@@ -1756,11 +1756,10 @@ fn diagnose_connectivity() {
         let iptables_cmd = format!("sudo iptables -L -n | grep {}", port);
         let iptables_out = Command::new("sh").arg("-c").arg(&iptables_cmd).output();
 
-        if let Ok(out) = iptables_out {
-            if !out.stdout.is_empty() {
+        if let Ok(out) = iptables_out
+            && !out.stdout.is_empty() {
                 println!("  ⚠️ Found iptables rules for port {}", port);
             }
-        }
     }
 
     println!("\n📋 Diagnosis Summary:");
@@ -3360,16 +3359,14 @@ fn kernel_network_tuning() {
     if let Ok(out) = check_irq {
         let interrupts = String::from_utf8_lossy(&out.stdout);
         for line in interrupts.lines() {
-            if line.contains("eth") || line.contains("enp") || line.contains("wlan") {
-                if let Some(irq) = line.split_whitespace().next() {
-                    if let Ok(irq_num) = irq.replace(":", "").parse::<u32>() {
+            if (line.contains("eth") || line.contains("enp") || line.contains("wlan"))
+                && let Some(irq) = line.split_whitespace().next()
+                    && let Ok(irq_num) = irq.replace(":", "").parse::<u32>() {
                         // Set IRQ affinity to CPU 0 for consistent latency
                         let cmd = format!("echo 1 | sudo tee /proc/irq/{}/smp_affinity", irq_num);
                         Command::new("sh").arg("-c").arg(&cmd).status().ok();
                         println!("  📍 Set IRQ {} affinity to CPU 0", irq_num);
                     }
-                }
-            }
         }
     }
 
@@ -3905,7 +3902,7 @@ fn network_interface_tuning() {
         for line in irq_line.lines() {
             if let Some(irq) = line.split_whitespace().next() {
                 let irq_num = irq.replace(":", "");
-                if let Ok(_) = irq_num.parse::<u32>() {
+                if irq_num.parse::<u32>().is_ok() {
                     // Set interrupt affinity to specific CPU
                     let cmd = format!(
                         "echo 2 | sudo tee /proc/irq/{}/smp_affinity 2>/dev/null || true",
@@ -4013,7 +4010,7 @@ fn gaming_server_latency_test() {
                 if line.contains("min/avg/max") {
                     println!(
                         "  🏓 ICMP: {}",
-                        line.split('=').last().unwrap_or("N/A").trim()
+                        line.split('=').next_back().unwrap_or("N/A").trim()
                     );
                     break;
                 }
@@ -4155,11 +4152,10 @@ fn network_interface_analysis() {
 
         // Interface speed
         let speed_result = std::fs::read_to_string(format!("/sys/class/net/{}/speed", interface));
-        if let Ok(speed) = speed_result {
-            if let Ok(speed_mbps) = speed.trim().parse::<u32>() {
+        if let Ok(speed) = speed_result
+            && let Ok(speed_mbps) = speed.trim().parse::<u32>() {
                 println!("  ⚡ Link speed: {} Mbps", speed_mbps);
             }
-        }
 
         // Driver info
         let ethtool_result = Command::new("ethtool").args(&["-i", interface]).output();

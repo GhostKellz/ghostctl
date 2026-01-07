@@ -77,26 +77,139 @@ pub fn mirrors() {
 
 pub fn orphans() {
     println!("ghostctl :: Arch Orphan Cleanup");
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("sudo pacman -Rns $(pacman -Qtdq) --noconfirm")
-        .status();
-    match status {
-        Ok(s) if s.success() => println!("Orphaned packages removed."),
-        _ => println!("No orphaned packages to remove or failed to clean up."),
+    println!("================================");
+
+    // First, list orphaned packages
+    let output = std::process::Command::new("pacman")
+        .args(&["-Qtdq"])
+        .output();
+
+    match output {
+        Ok(out) => {
+            let orphans = String::from_utf8_lossy(&out.stdout);
+            let orphan_list: Vec<&str> = orphans.lines().filter(|l| !l.is_empty()).collect();
+
+            if orphan_list.is_empty() {
+                println!("  ✅ No orphaned packages found");
+                return;
+            }
+
+            println!("  📦 Found {} orphaned package(s):", orphan_list.len());
+            for pkg in &orphan_list {
+                println!("     - {}", pkg);
+            }
+            println!();
+
+            let confirm = dialoguer::Confirm::new()
+                .with_prompt(format!("Remove {} orphaned package(s)?", orphan_list.len()))
+                .default(false)
+                .interact()
+                .unwrap_or(false);
+
+            if !confirm {
+                println!("  ❌ Orphan cleanup cancelled");
+                return;
+            }
+
+            println!("  🗑️  Removing orphaned packages...");
+            let status = std::process::Command::new("sudo")
+                .args(&["pacman", "-Rns", "--noconfirm"])
+                .args(&orphan_list)
+                .status();
+
+            match status {
+                Ok(s) if s.success() => println!("  ✅ Orphaned packages removed"),
+                _ => println!("  ❌ Failed to remove some orphaned packages"),
+            }
+        }
+        Err(_) => {
+            println!("  ❌ Failed to query orphaned packages");
+        }
     }
 }
 
 pub fn pkgfix() {
     println!("ghostctl :: Arch PKGBUILD/Build Environment Fix");
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("sudo rm -rf /tmp/yaourt-tmp-* /tmp/pamac-build-* /tmp/makepkg-* && echo 'Build environment cleaned.'")
-        .status();
-    match status {
-        Ok(s) if s.success() => println!("Build environment cleaned."),
-        _ => println!("Failed to clean build environment."),
+    println!("================================================");
+
+    // Find build directories that match known patterns
+    let patterns = [
+        "/tmp/yaourt-tmp-*",
+        "/tmp/pamac-build-*",
+        "/tmp/makepkg-*",
+        "/tmp/yay-*",
+        "/tmp/paru-*",
+        "/tmp/pikaur-*",
+    ];
+
+    let mut found_dirs: Vec<String> = Vec::new();
+
+    for pattern in &patterns {
+        // Use glob to find matching directories
+        let base_pattern = pattern.trim_start_matches("/tmp/").trim_end_matches("*");
+        if let Ok(entries) = std::fs::read_dir("/tmp") {
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                if name.starts_with(base_pattern) && entry.path().is_dir() {
+                    found_dirs.push(entry.path().to_string_lossy().to_string());
+                }
+            }
+        }
     }
+
+    if found_dirs.is_empty() {
+        println!("  ✅ No build directories found to clean");
+        return;
+    }
+
+    // Calculate total size
+    let mut total_size: u64 = 0;
+    for dir in &found_dirs {
+        if let Ok(output) = std::process::Command::new("du")
+            .args(&["-sb", dir])
+            .output()
+            && let Ok(size_str) = String::from_utf8(output.stdout)
+                && let Some(size) = size_str.split_whitespace().next() {
+                    total_size += size.parse::<u64>().unwrap_or(0);
+                }
+    }
+
+    println!("  🗂️  Found {} build director(ies):", found_dirs.len());
+    for dir in &found_dirs {
+        println!("     - {}", dir);
+    }
+    println!("  📊 Total size: {} MB", total_size / 1024 / 1024);
+    println!();
+
+    let confirm = dialoguer::Confirm::new()
+        .with_prompt(format!("Remove {} build director(ies)?", found_dirs.len()))
+        .default(true)
+        .interact()
+        .unwrap_or(false);
+
+    if !confirm {
+        println!("  ❌ Cleanup cancelled");
+        return;
+    }
+
+    println!("  🧹 Cleaning build directories...");
+    let mut cleaned = 0;
+    for dir in &found_dirs {
+        let result = std::process::Command::new("rm")
+            .args(&["-rf", dir])
+            .status();
+
+        match result {
+            Ok(s) if s.success() => {
+                cleaned += 1;
+            }
+            _ => {
+                println!("  ⚠️  Failed to remove: {}", dir);
+            }
+        }
+    }
+
+    println!("  ✅ Cleaned {} build director(ies)", cleaned);
 }
 
 pub fn keyring() {

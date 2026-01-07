@@ -546,8 +546,8 @@ fn remove_mirror() {
     let current_config =
         fs::read_to_string("/etc/docker/daemon.json").unwrap_or_else(|_| "{}".to_string());
 
-    if let Ok(config) = serde_json::from_str::<serde_json::Value>(&current_config) {
-        if let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array()) {
+    if let Ok(config) = serde_json::from_str::<serde_json::Value>(&current_config)
+        && let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array()) {
             let mirror_strings: Vec<String> = mirrors
                 .iter()
                 .filter_map(|m| m.as_str().map(String::from))
@@ -590,7 +590,6 @@ fn remove_mirror() {
             println!("✅ Mirrors removed!");
             restart_docker_daemon();
         }
-    }
 }
 
 fn show_mirror_status() {
@@ -604,8 +603,8 @@ fn show_mirror_status() {
     println!("{}", current_config);
 
     // Test mirror connectivity
-    if let Ok(config) = serde_json::from_str::<serde_json::Value>(&current_config) {
-        if let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array()) {
+    if let Ok(config) = serde_json::from_str::<serde_json::Value>(&current_config)
+        && let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array()) {
             println!("\n🔍 Testing mirror connectivity:");
             for mirror in mirrors {
                 if let Some(mirror_url) = mirror.as_str() {
@@ -632,7 +631,6 @@ fn show_mirror_status() {
                 }
             }
         }
-    }
 
     // Show Docker info
     println!("\n🐳 Docker daemon info:");
@@ -1261,7 +1259,7 @@ fn backup_configuration() {
         chrono::Utc::now().format("%Y%m%d-%H%M%S")
     );
 
-    if let Ok(_) = fs::copy("/etc/docker/daemon.json", &backup_path) {
+    if fs::copy("/etc/docker/daemon.json", &backup_path).is_ok() {
         println!("✅ Configuration backed up to: {}", backup_path);
     } else {
         println!("❌ Backup failed");
@@ -1280,7 +1278,7 @@ fn restore_configuration() {
         .interact()
         .unwrap()
     {
-        if let Ok(_) = fs::copy(&backup_file, "/etc/docker/daemon.json") {
+        if fs::copy(&backup_file, "/etc/docker/daemon.json").is_ok() {
             println!("✅ Configuration restored from: {}", backup_file);
             restart_docker_daemon();
         } else {
@@ -1352,8 +1350,8 @@ fn registry_health_check() {
     let current_config =
         fs::read_to_string("/etc/docker/daemon.json").unwrap_or_else(|_| "{}".to_string());
 
-    if let Ok(config) = serde_json::from_str::<serde_json::Value>(&current_config) {
-        if let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array()) {
+    if let Ok(config) = serde_json::from_str::<serde_json::Value>(&current_config)
+        && let Some(mirrors) = config.get("registry-mirrors").and_then(|m| m.as_array()) {
             println!("\n🪞 Mirror health check:");
             for mirror in mirrors {
                 if let Some(mirror_url) = mirror.as_str() {
@@ -1384,7 +1382,6 @@ fn registry_health_check() {
                 }
             }
         }
-    }
 
     // Test Docker pull
     println!("\n🧪 Testing Docker pull performance:");

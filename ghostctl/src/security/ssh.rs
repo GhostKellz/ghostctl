@@ -52,9 +52,18 @@ pub fn ssh_management() {
         0 => generate_ssh_key(),
         1 => list_ssh_keys(),
         2 => copy_public_key(),
-        3 => Ok(add_to_agent()),
-        4 => Ok(ssh_configuration()),
-        5 => Ok(secure_ssh_daemon()),
+        3 => {
+            add_to_agent();
+            Ok(())
+        }
+        4 => {
+            ssh_configuration();
+            Ok(())
+        }
+        5 => {
+            secure_ssh_daemon();
+            Ok(())
+        }
         _ => return,
     };
 
@@ -179,14 +188,13 @@ fn list_ssh_keys() -> Result<()> {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_file() && !path.extension().map_or(false, |ext| ext == "pub") {
-                if let Some(filename) = path.file_name() {
+            if path.is_file() && path.extension().is_none_or(|ext| ext != "pub")
+                && let Some(filename) = path.file_name() {
                     let filename_str = filename.to_string_lossy();
                     if filename_str.starts_with("id_") || filename_str.contains("key") {
                         println!("  📄 {}", filename_str);
                     }
                 }
-            }
         }
     }
 
@@ -194,8 +202,8 @@ fn list_ssh_keys() -> Result<()> {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "pub") {
-                if let Some(filename) = path.file_name() {
+            if path.extension().is_some_and(|ext| ext == "pub")
+                && let Some(filename) = path.file_name() {
                     println!("  📄 {}", filename.to_string_lossy());
 
                     // Show key fingerprint
@@ -207,7 +215,6 @@ fn list_ssh_keys() -> Result<()> {
                         println!("    🔍 {}", fingerprint.trim());
                     }
                 }
-            }
         }
     }
 
@@ -230,11 +237,10 @@ fn copy_public_key() -> Result<()> {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "pub") {
-                if let Some(filename) = path.file_name() {
+            if path.extension().is_some_and(|ext| ext == "pub")
+                && let Some(filename) = path.file_name() {
                     pub_keys.push((filename.to_string_lossy().to_string(), path));
                 }
-            }
         }
     }
 
@@ -272,8 +278,8 @@ fn copy_public_key() -> Result<()> {
                     _ => {}
                 }
 
-                if let Ok(mut child) = cmd.stdin(std::process::Stdio::piped()).spawn() {
-                    if let Some(stdin) = child.stdin.take() {
+                if let Ok(mut child) = cmd.stdin(std::process::Stdio::piped()).spawn()
+                    && let Some(stdin) = child.stdin.take() {
                         use std::io::Write;
                         if writeln!(&stdin, "{}", content.trim()).is_ok() && child.wait().is_ok() {
                             println!("✅ Public key copied to clipboard using {}", tool);
@@ -281,7 +287,6 @@ fn copy_public_key() -> Result<()> {
                             break;
                         }
                     }
-                }
             }
         }
 
@@ -311,14 +316,13 @@ fn add_to_agent() {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_file() && !path.extension().map_or(false, |ext| ext == "pub") {
-                if let Some(filename) = path.file_name() {
+            if path.is_file() && path.extension().is_none_or(|ext| ext != "pub")
+                && let Some(filename) = path.file_name() {
                     let filename_str = filename.to_string_lossy();
                     if filename_str.starts_with("id_") || filename_str.contains("key") {
                         private_keys.push((filename_str.to_string(), path));
                     }
                 }
-            }
         }
     }
 
@@ -479,11 +483,10 @@ fn configure_key_auth() {
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "pub") {
-                if let Some(filename) = path.file_name() {
+            if path.extension().is_some_and(|ext| ext == "pub")
+                && let Some(filename) = path.file_name() {
                     pub_keys.push((filename.to_string_lossy().to_string(), path));
                 }
-            }
         }
     }
 

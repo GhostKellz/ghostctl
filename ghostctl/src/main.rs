@@ -1,52 +1,26 @@
-// Allow common patterns for cleaner CI builds
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(for_loops_over_fallibles)]
-#![allow(clippy::needless_borrows_for_generic_args)]
-#![allow(clippy::needless_return)]
-#![allow(clippy::redundant_pattern_matching)]
-#![allow(clippy::manual_range_contains)]
-#![allow(clippy::useless_vec)]
-#![allow(clippy::option_map_or_none)]
-#![allow(clippy::map_entry)]
-#![allow(clippy::single_match)]
-#![allow(clippy::match_like_matches_macro)]
-#![allow(clippy::unit_arg)]
-#![allow(clippy::double_ended_iterator_last)]
-#![allow(clippy::nonminimal_bool)]
-#![allow(clippy::println_empty_string)]
-#![allow(clippy::manual_flatten)]
-#![allow(clippy::or_fun_call)]
-#![allow(clippy::upper_case_acronyms)]
-#![allow(clippy::len_zero)]
-#![allow(clippy::collapsible_if)]
-#![allow(clippy::useless_format)]
-#![allow(clippy::redundant_closure)]
-#![allow(clippy::to_string_in_format_args)]
-#![allow(clippy::bind_instead_of_map)]
-#![allow(clippy::cmp_owned)]
-#![allow(clippy::useless_conversion)]
-#![allow(clippy::match_single_binding)]
-#![allow(clippy::enum_variant_names)]
-#![allow(clippy::needless_borrow)]
-#![allow(clippy::option_map_unit_fn)]
-#![allow(clippy::unnecessary_map_or)]
-#![allow(clippy::unnecessary_to_owned)]
-#![allow(clippy::format_in_format_args)]
-#![allow(clippy::trim_split_whitespace)]
-#![allow(clippy::collapsible_str_replace)]
-#![allow(clippy::duplicated_attributes)]
-#![allow(clippy::unwrap_or_default)]
+// Clippy suppressions - reduced from 39 to 8
+// These cover patterns used consistently throughout the codebase
+#![allow(dead_code)] // Many utility functions used conditionally by features
+#![allow(unused_variables)] // Some params needed for API consistency
+#![allow(clippy::upper_case_acronyms)] // VFIO, PBS, PVE are proper acronyms
+#![allow(clippy::enum_variant_names)] // Consistent naming preferred
+#![allow(clippy::needless_return)] // Match arm returns are more readable
+#![allow(clippy::needless_borrows_for_generic_args)] // Common pattern throughout
+#![allow(clippy::duplicated_attributes)] // Allow for local overrides
+#![allow(clippy::too_many_arguments)] // Some builder functions need many params
 
 mod arch;
 mod backup;
+mod bluetooth;
 mod btrfs;
 mod cli;
 mod cloud;
+pub mod command;
 mod config;
 mod dev;
 mod docker;
 mod gaming;
+mod http_client;
 mod logging;
 mod menu;
 mod network;
@@ -56,6 +30,7 @@ mod nix;
 mod nvidia;
 mod nvim;
 mod plugins;
+pub mod progress;
 mod proxmox;
 mod release;
 mod restic;
@@ -64,10 +39,13 @@ mod scripts;
 mod security;
 mod shell;
 mod storage;
+mod sysctl;
 mod systemd;
 mod terminal;
 mod tools;
+pub mod tui;
 mod utils;
+mod wifi;
 
 use cli::{build_cli, handle_cli_args};
 

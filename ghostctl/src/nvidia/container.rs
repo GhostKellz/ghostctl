@@ -234,8 +234,8 @@ pub fn install_nvidia_container_runtime() {
         .arg("nvidia-container-runtime")
         .output();
 
-    if let Ok(output) = output {
-        if output.status.success() {
+    if let Ok(output) = output
+        && output.status.success() {
             println!("⚠️  NVIDIA Container Runtime already installed");
             let reinstall = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Reinstall anyway?")
@@ -246,7 +246,6 @@ pub fn install_nvidia_container_runtime() {
                 return;
             }
         }
-    }
 
     // Install from repositories
     let packages = [

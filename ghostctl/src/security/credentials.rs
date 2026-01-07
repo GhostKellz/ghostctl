@@ -6,6 +6,8 @@ use std::fs;
 use std::path::PathBuf;
 use thiserror::Error;
 
+use super::credential_backends::{self, AgeBackend, CredentialBackend};
+
 #[derive(Error, Debug)]
 pub enum CredentialError {
     #[error("Credential not found: {0}")]
@@ -16,6 +18,8 @@ pub enum CredentialError {
     DecryptionError(String),
     #[error("File operation failed: {0}")]
     FileError(String),
+    #[error("No secure backend available")]
+    NoBackend,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -97,7 +101,7 @@ impl SecureCredentialManager {
             .ok_or_else(|| CredentialError::NotFound(key.to_string()))?;
 
         let decrypted_value = simple_decrypt(&credential.encrypted_value, master_key)
-            .map_err(|e| CredentialError::DecryptionError(e))?;
+            .map_err(CredentialError::DecryptionError)?;
 
         Ok(decrypted_value)
     }
@@ -342,31 +346,40 @@ fn generate_salt() -> String {
 }
 
 // Utility functions for common credential operations
+
+/// Store backup credentials using the best available backend
 pub fn store_backup_credentials(repo_url: &str, password: &str) -> Result<()> {
-    let mut manager = SecureCredentialManager::new()?;
+    let backend = credential_backends::detect_backend(None);
 
-    // In a real implementation, prompt for master password
-    manager.unlock("ghostctl-master")?;
+    if !backend.is_available() {
+        anyhow::bail!("No secure credential backend available. Install pass or age.");
+    }
 
-    manager.store_credential("restic_repository", repo_url)?;
-    manager.store_credential("restic_password", password)?;
+    backend.store("restic_repository", repo_url)?;
+    backend.store("restic_password", password)?;
 
-    println!("✅ Backup credentials stored securely");
+    println!(
+        "✅ Backup credentials stored securely via {}",
+        backend.name()
+    );
     Ok(())
 }
 
+/// Get backup credentials using the best available backend
 pub fn get_backup_credentials() -> Result<(String, String)> {
-    let mut manager = SecureCredentialManager::new()?;
+    let backend = credential_backends::detect_backend(None);
 
-    // In a real implementation, prompt for master password
-    manager.unlock("ghostctl-master")?;
+    if !backend.is_available() {
+        anyhow::bail!("No secure credential backend available. Install pass or age.");
+    }
 
-    let repo = manager.get_credential("restic_repository")?;
-    let password = manager.get_credential("restic_password")?;
+    let repo = backend.get("restic_repository")?;
+    let password = backend.get("restic_password")?;
 
     Ok((repo, password))
 }
 
+/// Create a secure env file with backup credentials
 pub fn create_secure_env_file(path: &PathBuf) -> Result<()> {
     let (repo, password) = get_backup_credentials()?;
 
@@ -385,4 +398,62 @@ pub fn create_secure_env_file(path: &PathBuf) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Initialize age backend if not already set up
+pub fn setup_age_backend() -> Result<()> {
+    let age_backend = AgeBackend::new(None);
+
+    if age_backend.is_available() {
+        println!("✅ Age backend is already configured");
+        return Ok(());
+    }
+
+    println!("🔐 Setting up age credential backend...");
+    age_backend.init_identity()?;
+    println!("✅ Age identity generated");
+    println!("📁 Identity stored at: ~/.config/ghostctl/age-key.txt");
+    println!("⚠️  Back up this file securely - it's needed to decrypt your credentials!");
+
+    Ok(())
+}
+
+/// Show current credential backend status
+pub fn show_backend_status() {
+    use super::credential_backends::PassBackend;
+
+    println!("🔐 Credential Backend Status");
+    println!("============================");
+
+    let pass_backend = PassBackend::new(None);
+    let age_backend = AgeBackend::new(None);
+
+    println!();
+    println!("pass (password-store):");
+    if pass_backend.is_available() {
+        println!("  ✅ Available and configured");
+        if let Ok(keys) = pass_backend.list() {
+            println!("  📋 {} ghostctl credentials stored", keys.len());
+        }
+    } else {
+        println!("  ❌ Not available");
+        println!("  💡 Install: pacman -S pass && pass init <gpg-id>");
+    }
+
+    println!();
+    println!("age:");
+    if age_backend.is_available() {
+        println!("  ✅ Available and configured");
+        if let Ok(keys) = age_backend.list() {
+            println!("  📋 {} ghostctl credentials stored", keys.len());
+        }
+    } else {
+        println!("  ❌ Not available");
+        println!("  💡 Install: pacman -S age");
+        println!("  💡 Setup: ghostctl security credentials setup-age");
+    }
+
+    println!();
+    let active = credential_backends::detect_backend(None);
+    println!("Active backend: {}", active.name());
 }

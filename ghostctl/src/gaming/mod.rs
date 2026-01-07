@@ -119,12 +119,9 @@ pub fn gaming_status() {
         Ok(s) if s.success() => {
             println!("  ✅ Wine installed");
             let output = std::process::Command::new("wine").arg("--version").output();
-            match output {
-                Ok(out) => {
-                    let output_string = String::from_utf8_lossy(&out.stdout);
-                    println!("  📋 Version: {}", output_string.trim());
-                }
-                _ => {}
+            if let Ok(out) = output {
+                let output_string = String::from_utf8_lossy(&out.stdout);
+                println!("  📋 Version: {}", output_string.trim());
             }
         }
         _ => println!("  ❌ Wine not installed"),

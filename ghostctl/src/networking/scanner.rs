@@ -166,8 +166,8 @@ impl ScannerApp {
         loop {
             terminal.draw(|f| self.ui(f))?;
 
-            if event::poll(Duration::from_millis(250))? {
-                if let Event::Key(key) = event::read()? {
+            if event::poll(Duration::from_millis(250))?
+                && let Event::Key(key) = event::read()? {
                     match key.code {
                         KeyCode::Char('q') => {
                             self.should_quit = true;
@@ -194,16 +194,14 @@ impl ScannerApp {
                             }
                         }
                         KeyCode::Up => {
-                            if let Some(selected) = self.list_state.selected() {
-                                if selected > 0 {
+                            if let Some(selected) = self.list_state.selected()
+                                && selected > 0 {
                                     self.list_state.select(Some(selected - 1));
                                 }
-                            }
                         }
                         _ => {}
                     }
                 }
-            }
 
             // Check if scan is complete
             let stats = self.stats.lock().unwrap();

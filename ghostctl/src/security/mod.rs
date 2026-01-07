@@ -1,3 +1,4 @@
+pub mod credential_backends;
 pub mod credentials;
 pub mod gpg;
 pub mod ssh;

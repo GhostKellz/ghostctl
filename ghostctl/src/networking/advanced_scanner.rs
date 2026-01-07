@@ -282,13 +282,11 @@ impl NetworkRange {
 
     fn is_excluded(&self, ip: IpAddr) -> bool {
         for exclude_range in &self.exclude_ranges {
-            if let Ok(exclude_net) = exclude_range.parse::<Ipv4Net>() {
-                if let IpAddr::V4(ipv4) = ip {
-                    if exclude_net.contains(&ipv4) {
+            if let Ok(exclude_net) = exclude_range.parse::<Ipv4Net>()
+                && let IpAddr::V4(ipv4) = ip
+                    && exclude_net.contains(&ipv4) {
                         return true;
                     }
-                }
-            }
         }
         false
     }
@@ -467,20 +465,18 @@ async fn send_probe_and_analyze(
 }
 
 fn extract_version(captures: &regex::Captures, extract_pattern: &Option<String>) -> Option<String> {
-    if let Some(pattern) = extract_pattern {
-        if let Some(version_match) = captures.get(1) {
+    if let Some(pattern) = extract_pattern
+        && let Some(version_match) = captures.get(1) {
             return Some(version_match.as_str().to_string());
         }
-    }
     None
 }
 
 fn extract_product(captures: &regex::Captures, extract_pattern: &Option<String>) -> Option<String> {
-    if let Some(pattern) = extract_pattern {
-        if let Some(product_match) = captures.get(2) {
+    if let Some(pattern) = extract_pattern
+        && let Some(product_match) = captures.get(2) {
             return Some(product_match.as_str().to_string());
         }
-    }
     None
 }
 
@@ -498,8 +494,8 @@ fn analyze_banner_for_service(banner: &str, port: u16) -> Option<ServiceInfo> {
     ];
 
     for (pattern, service) in &patterns {
-        if let Ok(regex) = Regex::new(pattern) {
-            if let Some(captures) = regex.captures(banner) {
+        if let Ok(regex) = Regex::new(pattern)
+            && let Some(captures) = regex.captures(banner) {
                 return Some(ServiceInfo {
                     name: service.to_string(),
                     version: captures.get(1).map(|m| m.as_str().to_string()),
@@ -513,7 +509,6 @@ fn analyze_banner_for_service(banner: &str, port: u16) -> Option<ServiceInfo> {
                     ssl_info: None,
                 });
             }
-        }
     }
 
     None

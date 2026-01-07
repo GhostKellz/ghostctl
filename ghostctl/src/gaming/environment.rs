@@ -176,7 +176,7 @@ export __GL_THREADED_OPTIMIZATIONS=1
         .create(true)
         .open(&profile_path)
     {
-        if let Err(_) = writeln!(file, "{}", gaming_env) {
+        if writeln!(file, "{}", gaming_env).is_err() {
             println!("❌ Failed to write to profile");
         } else {
             println!("✅ Gaming environment added to ~/.profile");

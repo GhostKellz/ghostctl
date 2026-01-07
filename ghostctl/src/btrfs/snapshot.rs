@@ -348,24 +348,23 @@ fn cleanup_specific_snapshots() {
         .interact_text()
         .unwrap();
 
-    if !snapshots.trim().is_empty() {
-        if Confirm::new()
+    if !snapshots.trim().is_empty()
+        && Confirm::new()
             .with_prompt(format!("Delete snapshots: {}?", snapshots))
             .default(false)
             .interact()
             .unwrap()
-        {
-            println!("🎯 Deleting specific snapshots...");
+    {
+        println!("🎯 Deleting specific snapshots...");
 
-            let status = std::process::Command::new("sudo")
-                .args(["snapper", "-c", "root", "delete"])
-                .args(snapshots.split_whitespace())
-                .status();
+        let status = std::process::Command::new("sudo")
+            .args(["snapper", "-c", "root", "delete"])
+            .args(snapshots.split_whitespace())
+            .status();
 
-            match status {
-                Ok(s) if s.success() => println!("✅ Specific snapshot cleanup completed"),
-                _ => println!("❌ Specific snapshot cleanup failed"),
-            }
+        match status {
+            Ok(s) if s.success() => println!("✅ Specific snapshot cleanup completed"),
+            _ => println!("❌ Specific snapshot cleanup failed"),
         }
     }
 }
@@ -425,8 +424,8 @@ pub fn check_disk_space() {
         .output()
     {
         let usage_str = String::from_utf8_lossy(&output.stdout);
-        if let Some(line) = usage_str.lines().nth(1) {
-            if let Ok(usage) = line.trim().trim_end_matches('%').parse::<i32>() {
+        if let Some(line) = usage_str.lines().nth(1)
+            && let Ok(usage) = line.trim().trim_end_matches('%').parse::<i32>() {
                 if usage > 90 {
                     println!(
                         "\n⚠️  WARNING: Disk usage is {}% - consider emergency cleanup!",
@@ -436,6 +435,5 @@ pub fn check_disk_space() {
                     println!("\n⚠️  CAUTION: Disk usage is {}% - monitor closely", usage);
                 }
             }
-        }
     }
 }

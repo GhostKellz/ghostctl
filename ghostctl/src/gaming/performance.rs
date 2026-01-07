@@ -218,7 +218,7 @@ fn configure_cpu_governor() {
 fn make_cpu_governor_permanent(governor: &str) {
     // Install cpupower if not available
     let cpupower_check = Command::new("which").arg("cpupower").status();
-    if let Err(_) = cpupower_check {
+    if cpupower_check.is_err() {
         println!("📦 Installing cpupower...");
         let _ = Command::new("sudo")
             .args(&["pacman", "-S", "--needed", "--noconfirm", "cpupower"])
@@ -481,14 +481,13 @@ fn memory_usage_analysis() {
     let _ = Command::new("ps")
         .args(&["aux", "--sort=-%mem"])
         .output()
-        .and_then(|output| {
+        .map(|output| {
             let stdout_str = String::from_utf8_lossy(&output.stdout);
             let lines: Vec<&str> = stdout_str.lines().collect();
             for line in lines.iter().take(11) {
                 // header + 10 lines
                 println!("{}", line);
             }
-            Ok(())
         });
 
     println!("\n🔍 Detailed memory info:");
@@ -1036,7 +1035,7 @@ export DXVK_ASYNC=1
             .create(true)
             .open(&profile_path)
         {
-            if let Err(_) = writeln!(file, "{}", wine_env) {
+            if writeln!(file, "{}", wine_env).is_err() {
                 println!("❌ Failed to write to profile");
             } else {
                 println!("✅ Wine performance environment added to ~/.profile");
@@ -1165,7 +1164,7 @@ export __GL_SYNC_TO_VBLANK=0
         .create(true)
         .open(&profile_path)
     {
-        if let Err(_) = writeln!(file, "{}", nvidia_env) {
+        if writeln!(file, "{}", nvidia_env).is_err() {
             println!("❌ Failed to write to profile");
         } else {
             println!("✅ NVIDIA gaming environment added to ~/.profile");
@@ -1200,7 +1199,7 @@ export RADV_DEBUG=checkir,llvm
         .create(true)
         .open(&profile_path)
     {
-        if let Err(_) = writeln!(file, "{}", amd_env) {
+        if writeln!(file, "{}", amd_env).is_err() {
             println!("❌ Failed to write to profile");
         } else {
             println!("✅ AMD gaming environment added to ~/.profile");
@@ -1574,8 +1573,8 @@ fn install_corectrl() {
     let aur_helpers = ["yay", "paru", "trizen"];
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
-        if let Ok(s) = helper_check {
-            if s.success() {
+        if let Ok(s) = helper_check
+            && s.success() {
                 println!("🔧 Using {} to install CoreCtrl...", helper);
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "corectrl"])
@@ -1590,7 +1589,6 @@ fn install_corectrl() {
                     _ => println!("❌ Failed to install with {}", helper),
                 }
             }
-        }
     }
 
     println!("❌ No AUR helper found. Install yay first:");
@@ -1945,7 +1943,7 @@ fn thermal_throttling_analysis() {
     let _ = Command::new("cat")
         .arg("/proc/cpuinfo")
         .output()
-        .and_then(|output| {
+        .map(|output| {
             let cpu_info = String::from_utf8_lossy(&output.stdout);
             let mut cpu_mhz_lines: Vec<&str> = cpu_info
                 .lines()
@@ -1955,24 +1953,21 @@ fn thermal_throttling_analysis() {
             for line in cpu_mhz_lines {
                 println!("  {}", line);
             }
-            Ok(())
         });
 
     // Check thermal zones
     println!("\n🌡️  Thermal zones:");
     let thermal_zones = std::fs::read_dir("/sys/class/thermal/").map(|entries| {
         for entry in entries.flatten() {
-            if let Some(name) = entry.file_name().to_str() {
-                if name.starts_with("thermal_zone") {
+            if let Some(name) = entry.file_name().to_str()
+                && name.starts_with("thermal_zone") {
                     let temp_path = entry.path().join("temp");
-                    if let Ok(temp) = std::fs::read_to_string(&temp_path) {
-                        if let Ok(temp_millic) = temp.trim().parse::<i32>() {
+                    if let Ok(temp) = std::fs::read_to_string(&temp_path)
+                        && let Ok(temp_millic) = temp.trim().parse::<i32>() {
                             let temp_c = temp_millic / 1000;
                             println!("  {}: {}°C", name, temp_c);
                         }
-                    }
                 }
-            }
         }
     });
 
@@ -2450,12 +2445,11 @@ fn local_network_test() {
 
     if let Ok(output) = gateway_result {
         let gateway_info = String::from_utf8_lossy(&output.stdout);
-        if let Some(line) = gateway_info.lines().next() {
-            if let Some(gateway_ip) = line.split_whitespace().nth(2) {
+        if let Some(line) = gateway_info.lines().next()
+            && let Some(gateway_ip) = line.split_whitespace().nth(2) {
                 println!("🎯 Testing latency to gateway ({})...", gateway_ip);
                 let _ = Command::new("ping").args(&["-c", "5", gateway_ip]).status();
             }
-        }
     }
 }
 
@@ -2555,7 +2549,7 @@ fn setup_mangohud_logging() {
                 .map(|h| h.join("Documents/MangoHud_Logs"))
                 .unwrap_or_else(|| std::path::PathBuf::from("~/Documents/MangoHud_Logs"));
 
-            if let Err(_) = std::fs::create_dir_all(&logs_dir) {
+            if std::fs::create_dir_all(&logs_dir).is_err() {
                 println!("❌ Failed to create logs directory");
                 return;
             }
@@ -2597,7 +2591,7 @@ toggle_logging=F10
                     .create(true)
                     .open(&config_file)
                 {
-                    if let Err(_) = writeln!(file, "{}", config_addition) {
+                    if writeln!(file, "{}", config_addition).is_err() {
                         println!("❌ Failed to update MangoHud config");
                     } else {
                         println!("✅ MangoHud logging configuration added");
@@ -2621,7 +2615,7 @@ fn create_performance_log_script() {
         .map(|h| h.join("bin"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/bin"));
 
-    if let Err(_) = std::fs::create_dir_all(&script_dir) {
+    if std::fs::create_dir_all(&script_dir).is_err() {
         println!("❌ Failed to create scripts directory");
         return;
     }
@@ -2679,7 +2673,7 @@ echo "Log saved to: $LOG_FILE"
 
     match File::create(&script_path) {
         Ok(mut file) => {
-            if let Err(_) = file.write_all(script_content.as_bytes()) {
+            if file.write_all(script_content.as_bytes()).is_err() {
                 println!("❌ Failed to write performance script");
             } else {
                 // Make script executable
@@ -2987,7 +2981,7 @@ fn save_performance_profile(name: &str, content: &str) {
         .map(|h| h.join(".config/ghostctl/profiles"))
         .unwrap_or_else(|| std::path::PathBuf::from("~/.config/ghostctl/profiles"));
 
-    if let Err(_) = std::fs::create_dir_all(&profiles_dir) {
+    if std::fs::create_dir_all(&profiles_dir).is_err() {
         println!("❌ Failed to create profiles directory");
         return;
     }
@@ -2999,7 +2993,7 @@ fn save_performance_profile(name: &str, content: &str) {
 
     match File::create(&profile_path) {
         Ok(mut file) => {
-            if let Err(_) = file.write_all(content.as_bytes()) {
+            if file.write_all(content.as_bytes()).is_err() {
                 println!("❌ Failed to write profile");
             } else {
                 // Make script executable
@@ -3060,7 +3054,7 @@ fn apply_performance_profile() {
                 .filter_map(|entry| {
                     entry.ok().and_then(|e| {
                         let path = e.path();
-                        if path.extension().map_or(false, |ext| ext == "sh") {
+                        if path.extension().is_some_and(|ext| ext == "sh") {
                             path.file_stem()
                                 .and_then(|stem| stem.to_str())
                                 .map(|s| s.to_string())
@@ -3401,13 +3395,13 @@ fn generate_performance_recommendations() {
 
     // Check GameMode
     let gamemode_check = Command::new("which").arg("gamemoderun").status();
-    if let Err(_) = gamemode_check {
+    if gamemode_check.is_err() {
         println!("  🚀 Install GameMode for better gaming performance");
     }
 
     // Check MangoHud
     let mangohud_check = Command::new("which").arg("mangohud").status();
-    if let Err(_) = mangohud_check {
+    if mangohud_check.is_err() {
         println!("  📊 Install MangoHud for performance monitoring");
     }
 
@@ -3417,14 +3411,13 @@ fn generate_performance_recommendations() {
         let free_info = String::from_utf8_lossy(&output.stdout);
         if let Some(mem_line) = free_info.lines().nth(1) {
             let parts: Vec<&str> = mem_line.split_whitespace().collect();
-            if parts.len() >= 3 {
-                if let (Ok(total), Ok(used)) = (parts[1].parse::<u64>(), parts[2].parse::<u64>()) {
+            if parts.len() >= 3
+                && let (Ok(total), Ok(used)) = (parts[1].parse::<u64>(), parts[2].parse::<u64>()) {
                     let usage_percent = (used * 100) / total;
                     if usage_percent > 80 {
                         println!("  💾 High memory usage ({}%) - consider closing background applications", usage_percent);
                     }
                 }
-            }
         }
     }
 

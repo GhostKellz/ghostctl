@@ -38,8 +38,8 @@ fn install_rust_toolchain() {
     println!("============================");
 
     // Check if rustup is installed
-    if Command::new("which").arg("rustup").status().is_ok() {
-        if let Ok(output) = Command::new("rustc").arg("--version").output() {
+    if Command::new("which").arg("rustup").status().is_ok()
+        && let Ok(output) = Command::new("rustc").arg("--version").output() {
             let version = String::from_utf8_lossy(&output.stdout);
             println!("✅ Rust is installed: {}", version.trim());
 
@@ -66,7 +66,6 @@ fn install_rust_toolchain() {
             }
             return;
         }
-    }
 
     // Install Rust
     let install_methods = [

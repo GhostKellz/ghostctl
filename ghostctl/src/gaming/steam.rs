@@ -241,8 +241,8 @@ fn install_protonup_qt_aur() {
 
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
-        if let Ok(s) = helper_check {
-            if s.success() {
+        if let Ok(s) = helper_check
+            && s.success() {
                 println!("🔧 Using {} to install ProtonUp-Qt...", helper);
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "protonup-qt"])
@@ -257,7 +257,6 @@ fn install_protonup_qt_aur() {
                     _ => println!("❌ Failed to install with {}", helper),
                 }
             }
-        }
     }
 
     if !installed {

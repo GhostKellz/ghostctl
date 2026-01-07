@@ -1,94 +1,74 @@
+use crate::utils::is_headless;
 use crate::{
     arch, backup, btrfs, cloud, dev, docker, gaming, network, nvidia, nvim, proxmox, restore,
-    scripts, security, shell, storage, systemd, terminal,
+    scripts, security, shell, storage, systemd, terminal, tui,
 };
-use dialoguer::{theme::ColorfulTheme, Select};
 
 pub fn show() {
+    // In headless mode, the menu cannot be shown interactively
+    if is_headless() {
+        tui::warn("Menu cannot be displayed in headless mode. Use CLI subcommands instead.");
+        tui::info("Run 'ghostctl --help' to see available commands.");
+        return;
+    }
+
+    let opts = [
+        "🔧 Fix Arch Issues (Pacman, PKGBUILD, Optimize)",
+        "🛠️  Stage Dev Project (Rust/Go/Zig)",
+        "📸 Manage Btrfs Snapshots",
+        "🎮 NVIDIA Management (Drivers, Container, Passthrough)",
+        "🚀 Neovim Configurator",
+        "🐚 Shell Setup (ZSH, Oh My Zsh, Powerlevel10k, tmux)",
+        "💻 Terminal Setup (Ghostty, WezTerm)",
+        "🔧 Ghost Tools (Install/Uninstall)",
+        "💾 Backup Management",
+        "🚨 System Recovery & Restore",
+        "☁️  Storage Management (S3, Local, Network)",
+        "🐳 DevOps & Container Tools",
+        "🏗️  Infrastructure as Code",
+        "🌐 Nginx Configuration",
+        "❄️  NixOS Management",
+        "🖥️  Proxmox VE Helper Scripts",
+        "🔧 Systemd Management",
+        "📋 Plugin & Script Management",
+        "🌐 Mesh (Tailscale/Headscale)",
+        "🔐 Security & Key Management",
+        "🎮 Gaming & Performance Management",
+        "📊 Diagnostics/Status",
+        "🚪 Exit",
+    ];
+
     loop {
-        let opts = [
-            "🔧 Fix Arch Issues (Pacman, PKGBUILD, Optimize)",
-            "🛠️  Stage Dev Project (Rust/Go/Zig)",
-            "📸 Manage Btrfs Snapshots",
-            "🎮 NVIDIA Management (Drivers, Container, Passthrough)",
-            "🚀 Neovim Configurator",
-            "🐚 Shell Setup (ZSH, Oh My Zsh, Powerlevel10k, tmux)",
-            "💻 Terminal Setup (Ghostty, WezTerm)",
-            "🔧 Ghost Tools (Install/Uninstall)",
-            "💾 Backup Management",
-            "🚨 System Recovery & Restore",
-            "☁️  Storage Management (S3, Local, Network)",
-            "🐳 DevOps & Container Tools",
-            "🏗️  Infrastructure as Code",
-            "🌐 Nginx Configuration",
-            "❄️  NixOS Management",
-            "🖥️  Proxmox VE Helper Scripts",
-            "🔧 Systemd Management",
-            "📋 Plugin & Script Management",
-            "🌐 Mesh (Tailscale/Headscale)",
-            "🔐 Security & Key Management",
-            "🎮 Gaming & Performance Management",
-            "📊 Diagnostics/Status",
-            "🚪 Exit",
-        ];
+        tui::header("ghostctl :: Menu");
 
-        println!("ghostctl :: Menu");
-        println!("================");
-
-        for (i, opt) in opts.iter().enumerate() {
-            println!("{}. {}", i + 1, opt);
-        }
-
-        println!();
-        print!("Enter your choice (1-{}): ", opts.len());
-        std::io::Write::flush(&mut std::io::stdout()).unwrap();
-
-        let mut input = String::new();
-        match std::io::stdin().read_line(&mut input) {
-            Ok(_) => {
-                if let Ok(choice) = input.trim().parse::<usize>() {
-                    if choice >= 1 && choice <= opts.len() {
-                        let choice = choice - 1;
-                        match choice {
-                            0 => arch::arch_menu(),
-                            1 => dev::development_menu(),
-                            2 => btrfs::btrfs_menu(),
-                            3 => nvidia::nvidia_menu(),
-                            4 => nvim::nvim_menu(),
-                            5 => shell::setup(),
-                            6 => terminal::terminal_menu(),
-                            7 => dev::gtools::ghost_ecosystem_menu(),
-                            8 => backup::backup_menu(),
-                            9 => restore::restore_menu(),
-                            10 => storage::storage_menu(),
-                            11 => docker::devops::docker_management(),
-                            12 => cloud::infrastructure_menu(),
-                            13 => crate::nginx::nginx_menu(),
-                            14 => crate::nix::nixos_menu(),
-                            15 => proxmox::proxmox_menu(),
-                            16 => systemd_management(),
-                            17 => scripts::scripts_menu(),
-                            18 => network_mesh_menu(),
-                            19 => security_key_management(),
-                            20 => gaming::gaming_menu(),
-                            21 => show_diagnostics(),
-                            _ => {
-                                println!("👋 Goodbye!");
-                                break;
-                            }
-                        }
-                    } else {
-                        println!(
-                            "Invalid choice. Please enter a number between 1 and {}.",
-                            opts.len()
-                        );
-                    }
-                } else {
-                    println!("Invalid input. Please enter a number.");
-                }
-            }
-            Err(e) => {
-                println!("Error reading input: {}", e);
+        match tui::select_with_back("Select an option", &opts[..opts.len() - 1], 0) {
+            Some(choice) => match choice {
+                0 => arch::arch_menu(),
+                1 => dev::development_menu(),
+                2 => btrfs::btrfs_menu(),
+                3 => nvidia::nvidia_menu(),
+                4 => nvim::nvim_menu(),
+                5 => shell::setup(),
+                6 => terminal::terminal_menu(),
+                7 => dev::gtools::ghost_ecosystem_menu(),
+                8 => backup::backup_menu(),
+                9 => restore::restore_menu(),
+                10 => storage::storage_menu(),
+                11 => docker::devops::docker_management(),
+                12 => cloud::infrastructure_menu(),
+                13 => crate::nginx::nginx_menu(),
+                14 => crate::nix::nixos_menu(),
+                15 => proxmox::proxmox_menu(),
+                16 => systemd_management(),
+                17 => scripts::scripts_menu(),
+                18 => network_mesh_menu(),
+                19 => security_key_management(),
+                20 => gaming::gaming_menu(),
+                21 => show_diagnostics(),
+                _ => {}
+            },
+            None => {
+                tui::info("Goodbye!");
                 break;
             }
         }
@@ -103,22 +83,16 @@ fn systemd_management() {
         "🔧 Enable Service",
         "🛑 Disable Service",
         "📝 Create Service",
-        "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Systemd Management")
-        .items(&options)
-        .default(0)
-        .interact()
-        .unwrap();
-
-    match choice {
-        0 => systemd::status(),
-        1 => systemd::enable(),
-        2 => systemd::disable(),
-        3 => systemd::create(),
-        _ => return,
+    if let Some(choice) = tui::select_with_back("Systemd Management", &options, 0) {
+        match choice {
+            0 => systemd::status(),
+            1 => systemd::enable(),
+            2 => systemd::disable(),
+            3 => systemd::create(),
+            _ => {}
+        }
     }
 }
 
@@ -128,29 +102,21 @@ fn network_mesh_menu() {
         "📡 Advertise Subnet",
         "📊 Status",
         "🔽 Mesh Down",
-        "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Mesh Networking")
-        .items(&options)
-        .default(0)
-        .interact()
-        .unwrap();
-
-    match choice {
-        0 => network::mesh::up(),
-        1 => {
-            use dialoguer::Input;
-            let subnet: String = Input::new()
-                .with_prompt("Subnet to advertise")
-                .interact_text()
-                .unwrap();
-            network::mesh::advertise(&subnet);
+    if let Some(choice) = tui::select_with_back("Mesh Networking", &options, 0) {
+        match choice {
+            0 => network::mesh::up(),
+            1 => {
+                if let Some(subnet) = tui::input("Subnet to advertise", None)
+                    && !subnet.is_empty() {
+                        network::mesh::advertise(&subnet);
+                    }
+            }
+            2 => network::mesh::status(),
+            3 => network::mesh::down(),
+            _ => {}
         }
-        2 => network::mesh::status(),
-        3 => network::mesh::down(),
-        _ => return,
     }
 }
 
@@ -159,21 +125,15 @@ fn security_key_management() {
         "🔑 SSH Key Management",
         "🔐 GPG Key Management",
         "🛡️  Security Audit",
-        "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Security & Key Management")
-        .items(&options)
-        .default(0)
-        .interact()
-        .unwrap();
-
-    match choice {
-        0 => security::ssh::ssh_management(),
-        1 => security::gpg::gpg_key_management(),
-        2 => combined_security_audit(),
-        _ => return,
+    if let Some(choice) = tui::select_with_back("Security & Key Management", &options, 0) {
+        match choice {
+            0 => security::ssh::ssh_management(),
+            1 => security::gpg::gpg_key_management(),
+            2 => combined_security_audit(),
+            _ => {}
+        }
     }
 }
 

@@ -90,10 +90,7 @@ impl SystemDiagnostics {
 
     fn check_getcwd_error() -> bool {
         // Try to get current directory
-        match std::env::current_dir() {
-            Ok(_) => false,
-            Err(_) => true,
-        }
+        std::env::current_dir().is_err()
     }
 
     fn check_pacman_lock() -> bool {
@@ -136,6 +133,16 @@ impl SystemDiagnostics {
         (false, None)
     }
 
+    /// Test if basic network connectivity is working
+    fn test_connectivity() -> bool {
+        // Quick ping test to 1.1.1.1 (Cloudflare DNS)
+        Command::new("ping")
+            .args(&["-c", "1", "-W", "2", "1.1.1.1"])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+    }
+
     fn check_mirrors() -> bool {
         // Check if mirrorlist exists and is not empty
         if let Ok(content) = std::fs::read_to_string("/etc/pacman.d/mirrorlist") {
@@ -162,11 +169,10 @@ impl SystemDiagnostics {
         }
 
         // Check file size
-        if let Ok(metadata) = std::fs::metadata(&pubring) {
-            if metadata.len() < 100 {
+        if let Ok(metadata) = std::fs::metadata(&pubring)
+            && metadata.len() < 100 {
                 return true;
             }
-        }
 
         false
     }
@@ -310,12 +316,11 @@ impl FixAction {
             FixAction::FixGetcwd => {
                 println!("🔧 Fixing working directory...");
                 // Try to change to home directory
-                if let Ok(home) = std::env::var("HOME") {
-                    if std::env::set_current_dir(&home).is_ok() {
+                if let Ok(home) = std::env::var("HOME")
+                    && std::env::set_current_dir(&home).is_ok() {
                         println!("  ✅ Changed to home directory");
                         return true;
                     }
-                }
                 // Fallback to /tmp
                 if std::env::set_current_dir("/tmp").is_ok() {
                     println!("  ✅ Changed to /tmp");
@@ -342,9 +347,148 @@ impl FixAction {
             }
             FixAction::FixNetwork => {
                 println!("🔧 Attempting to fix network connectivity...");
-                println!("  ℹ️  Please check your network connection manually");
-                println!("  💡 You can try: sudo systemctl restart NetworkManager");
-                false
+
+                // Detect network manager in use
+                let has_networkmanager = Command::new("systemctl")
+                    .args(&["is-active", "NetworkManager"])
+                    .output()
+                    .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "active")
+                    .unwrap_or(false);
+
+                let has_systemd_networkd = Command::new("systemctl")
+                    .args(&["is-active", "systemd-networkd"])
+                    .output()
+                    .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "active")
+                    .unwrap_or(false);
+
+                let has_dhcpcd = Command::new("systemctl")
+                    .args(&["is-active", "dhcpcd"])
+                    .output()
+                    .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "active")
+                    .unwrap_or(false);
+
+                let mut fixed = false;
+
+                // Try NetworkManager first
+                if has_networkmanager {
+                    println!("  📡 Detected NetworkManager, attempting restart...");
+                    let result = Command::new("sudo")
+                        .args(&["systemctl", "restart", "NetworkManager"])
+                        .status();
+
+                    if let Ok(status) = result
+                        && status.success() {
+                            println!("  ✅ NetworkManager restarted");
+                            // Wait for connection
+                            std::thread::sleep(std::time::Duration::from_secs(3));
+
+                            // Check if connection is now working
+                            if SystemDiagnostics::test_connectivity() {
+                                println!("  ✅ Network connectivity restored");
+                                fixed = true;
+                            }
+                        }
+                }
+
+                // Try systemd-networkd
+                if !fixed && has_systemd_networkd {
+                    println!("  📡 Detected systemd-networkd, attempting restart...");
+                    let _ = Command::new("sudo")
+                        .args(&["systemctl", "restart", "systemd-networkd"])
+                        .status();
+                    let _ = Command::new("sudo")
+                        .args(&["systemctl", "restart", "systemd-resolved"])
+                        .status();
+
+                    std::thread::sleep(std::time::Duration::from_secs(3));
+
+                    if SystemDiagnostics::test_connectivity() {
+                        println!("  ✅ Network connectivity restored");
+                        fixed = true;
+                    }
+                }
+
+                // Try dhcpcd
+                if !fixed && has_dhcpcd {
+                    println!("  📡 Detected dhcpcd, attempting restart...");
+                    let _ = Command::new("sudo")
+                        .args(&["systemctl", "restart", "dhcpcd"])
+                        .status();
+
+                    std::thread::sleep(std::time::Duration::from_secs(3));
+
+                    if SystemDiagnostics::test_connectivity() {
+                        println!("  ✅ Network connectivity restored");
+                        fixed = true;
+                    }
+                }
+
+                // Try flushing DNS cache
+                if !fixed {
+                    println!("  🔄 Flushing DNS cache...");
+                    let _ = Command::new("sudo")
+                        .args(&["systemd-resolve", "--flush-caches"])
+                        .status();
+
+                    // Try resolvectl as fallback
+                    let _ = Command::new("sudo")
+                        .args(&["resolvectl", "flush-caches"])
+                        .status();
+
+                    if SystemDiagnostics::test_connectivity() {
+                        println!("  ✅ Network connectivity restored after DNS flush");
+                        fixed = true;
+                    }
+                }
+
+                // If nothing worked, try bringing interface up
+                if !fixed {
+                    println!("  🔌 Attempting to bring network interface up...");
+                    // Get first ethernet/wireless interface
+                    if let Ok(output) = Command::new("ip").args(&["link", "show"]).output() {
+                        let output_str = String::from_utf8_lossy(&output.stdout);
+                        for line in output_str.lines() {
+                            if line.contains("state DOWN")
+                                && let Some(iface) = line.split(':').nth(1) {
+                                    let iface = iface.trim();
+                                    if iface.starts_with("en")
+                                        || iface.starts_with("eth")
+                                        || iface.starts_with("wl")
+                                    {
+                                        println!("  📡 Bringing up interface: {}", iface);
+                                        let _ = Command::new("sudo")
+                                            .args(&["ip", "link", "set", iface, "up"])
+                                            .status();
+                                    }
+                                }
+                        }
+                    }
+
+                    std::thread::sleep(std::time::Duration::from_secs(2));
+
+                    if SystemDiagnostics::test_connectivity() {
+                        println!("  ✅ Network connectivity restored");
+                        fixed = true;
+                    }
+                }
+
+                if !fixed {
+                    println!("  ❌ Automatic network fix failed");
+                    println!();
+                    println!("  💡 Manual troubleshooting steps:");
+                    println!("     1. Check physical connection (cable/wifi)");
+                    println!("     2. Verify interface is up: ip link show");
+                    println!("     3. Check IP address: ip addr show");
+                    println!("     4. Test gateway: ping $(ip route | grep default | awk '{{print $3}}')");
+                    println!("     5. Test DNS: ping 1.1.1.1 && ping archlinux.org");
+                    println!();
+                    println!("  🔧 Common fixes:");
+                    println!("     - sudo systemctl restart NetworkManager");
+                    println!("     - sudo dhcpcd <interface>");
+                    println!("     - nmcli device wifi connect <SSID> --ask");
+                }
+
+                fixed
             }
             FixAction::UpdateMirrors => {
                 println!("🔧 Updating mirror list...");
@@ -394,6 +538,45 @@ impl FixAction {
             FixAction::RefreshKeyring => {
                 println!("🔧 Refreshing keyring...");
 
+                // Step 1: Try refreshing keys from keyserver first (least destructive)
+                println!("  📡 Attempting key refresh from keyserver...");
+                let refresh = Command::new("sudo")
+                    .args(&["pacman-key", "--refresh-keys"])
+                    .status();
+
+                if let Ok(status) = refresh
+                    && status.success() {
+                        println!("  ✅ Keys refreshed from keyserver");
+                        return true;
+                    }
+
+                // Step 2: Try reinstalling archlinux-keyring
+                println!("  📦 Trying keyring package reinstall...");
+                let keyring_install = Command::new("sudo")
+                    .args(&["pacman", "-S", "--noconfirm", "archlinux-keyring"])
+                    .status();
+
+                if let Ok(status) = keyring_install
+                    && status.success() {
+                        let _ = Command::new("sudo")
+                            .args(&["pacman-key", "--populate", "archlinux"])
+                            .status();
+                        println!("  ✅ Keyring reinstalled and populated");
+                        return true;
+                    }
+
+                // Step 3: Full reset (backup first)
+                println!("  ⚠️  Full keyring reset required...");
+                println!("  💾 Creating backup...");
+                let _ = Command::new("sudo")
+                    .args(&[
+                        "cp",
+                        "-a",
+                        "/etc/pacman.d/gnupg",
+                        "/etc/pacman.d/gnupg.backup",
+                    ])
+                    .status();
+
                 // Remove old keyring
                 let _ = Command::new("sudo")
                     .args(&["rm", "-rf", "/etc/pacman.d/gnupg"])
@@ -406,6 +589,7 @@ impl FixAction {
 
                 if init.is_err() || !init.unwrap().success() {
                     println!("  ❌ Failed to initialize keyring");
+                    println!("  💡 Restore backup: sudo cp -a /etc/pacman.d/gnupg.backup /etc/pacman.d/gnupg");
                     return false;
                 }
 
@@ -416,11 +600,12 @@ impl FixAction {
 
                 match populate {
                     Ok(status) if status.success() => {
-                        println!("  ✅ Keyring refreshed");
+                        println!("  ✅ Keyring refreshed (backup at /etc/pacman.d/gnupg.backup)");
                         true
                     }
                     _ => {
                         println!("  ❌ Failed to populate keyring");
+                        println!("  💡 Restore backup: sudo cp -a /etc/pacman.d/gnupg.backup /etc/pacman.d/gnupg");
                         false
                     }
                 }

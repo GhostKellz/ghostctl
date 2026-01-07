@@ -1,6 +1,119 @@
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use crate::tui;
+use dialoguer::{theme::ColorfulTheme, Input, Select};
 use std::fs;
 use std::process::Command;
+
+/// Compose command type - either 'docker compose' or 'docker-compose'
+#[derive(Clone, Copy)]
+enum ComposeCommand {
+    /// Docker CLI plugin: `docker compose`
+    DockerCompose,
+    /// Standalone: `docker-compose`
+    Standalone,
+}
+
+/// Detect which compose command is available
+/// Prefers `docker compose` (CLI plugin) over `docker-compose` (standalone)
+fn detect_compose_command() -> Option<ComposeCommand> {
+    // First try docker compose (new CLI plugin)
+    if Command::new("docker")
+        .args(&["compose", "version"])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+    {
+        return Some(ComposeCommand::DockerCompose);
+    }
+
+    // Fall back to docker-compose (standalone)
+    if Command::new("docker-compose")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+    {
+        return Some(ComposeCommand::Standalone);
+    }
+
+    None
+}
+
+/// Run a compose command with automatic detection
+fn run_compose(
+    args: &[&str],
+    work_dir: Option<&std::path::Path>,
+) -> std::io::Result<std::process::ExitStatus> {
+    match detect_compose_command() {
+        Some(ComposeCommand::DockerCompose) => {
+            let mut docker_args = vec!["compose"];
+            docker_args.extend_from_slice(args);
+            let mut cmd = Command::new("docker");
+            cmd.args(&docker_args);
+            if let Some(dir) = work_dir {
+                cmd.current_dir(dir);
+            }
+            return cmd.status();
+        }
+        Some(ComposeCommand::Standalone) => {
+            let mut cmd = Command::new("docker-compose");
+            cmd.args(args);
+            if let Some(dir) = work_dir {
+                cmd.current_dir(dir);
+            }
+            return cmd.status();
+        }
+        None => {
+            tui::error("Neither 'docker compose' nor 'docker-compose' found");
+            tui::info("Install Docker Compose:");
+            tui::info("  Arch: sudo pacman -S docker-compose");
+            tui::info("  Or use Docker Desktop which includes the compose plugin");
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "Docker Compose not found",
+            ));
+        }
+    };
+}
+
+/// Run a compose command and capture output
+fn run_compose_output(
+    args: &[&str],
+    work_dir: Option<&std::path::Path>,
+) -> std::io::Result<std::process::Output> {
+    match detect_compose_command() {
+        Some(ComposeCommand::DockerCompose) => {
+            let mut docker_args = vec!["compose"];
+            docker_args.extend_from_slice(args);
+            let mut cmd = Command::new("docker");
+            cmd.args(&docker_args);
+            if let Some(dir) = work_dir {
+                cmd.current_dir(dir);
+            }
+            cmd.output()
+        }
+        Some(ComposeCommand::Standalone) => {
+            let mut cmd = Command::new("docker-compose");
+            cmd.args(args);
+            if let Some(dir) = work_dir {
+                cmd.current_dir(dir);
+            }
+            cmd.output()
+        }
+        None => Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Docker Compose not found",
+        )),
+    }
+}
+
+/// Get a human-readable name for the compose command in use
+fn compose_command_name() -> &'static str {
+    match detect_compose_command() {
+        Some(ComposeCommand::DockerCompose) => "docker compose",
+        Some(ComposeCommand::Standalone) => "docker-compose",
+        None => "docker compose",
+    }
+}
 
 pub fn compose_stack_manager() {
     println!("🐳 Docker Compose Stack Manager");
@@ -71,8 +184,8 @@ fn find_compose_stacks() -> Vec<std::path::PathBuf> {
 
     for dir in &search_dirs {
         let path = std::path::Path::new(dir);
-        if path.exists() {
-            if let Ok(entries) = fs::read_dir(path) {
+        if path.exists()
+            && let Ok(entries) = fs::read_dir(path) {
                 for entry in entries.flatten() {
                     let entry_path = entry.path();
                     if entry_path.is_dir() {
@@ -86,7 +199,6 @@ fn find_compose_stacks() -> Vec<std::path::PathBuf> {
                     }
                 }
             }
-        }
     }
 
     stacks
@@ -128,109 +240,76 @@ fn manage_stack(stack_path: &std::path::Path) {
 }
 
 fn show_stack_status(stack_path: &std::path::Path) {
-    println!("📊 Stack Status: {}", stack_path.display());
+    tui::status("📊", &format!("Stack Status: {}", stack_path.display()));
 
-    let status = Command::new("docker-compose")
-        .args(&["ps"])
-        .current_dir(stack_path)
-        .status();
-
-    match status {
-        Ok(s) if s.success() => println!("✅ Status retrieved successfully"),
-        _ => println!("❌ Failed to get stack status"),
+    match run_compose(&["ps"], Some(stack_path)) {
+        Ok(s) if s.success() => tui::success("Status retrieved successfully"),
+        _ => tui::error("Failed to get stack status"),
     }
 }
 
 fn start_stack(stack_path: &std::path::Path) {
-    println!("🚀 Starting stack: {}", stack_path.display());
+    tui::status("🚀", &format!("Starting stack: {}", stack_path.display()));
 
-    let status = Command::new("docker-compose")
-        .args(&["up", "-d"])
-        .current_dir(stack_path)
-        .status();
-
-    match status {
-        Ok(s) if s.success() => println!("✅ Stack started successfully"),
-        _ => println!("❌ Failed to start stack"),
+    match run_compose(&["up", "-d"], Some(stack_path)) {
+        Ok(s) if s.success() => tui::success("Stack started successfully"),
+        _ => tui::error("Failed to start stack"),
     }
 }
 
 fn stop_stack(stack_path: &std::path::Path) {
-    println!("🛑 Stopping stack: {}", stack_path.display());
+    tui::status("🛑", &format!("Stopping stack: {}", stack_path.display()));
 
-    let confirm = Confirm::new()
-        .with_prompt("Are you sure you want to stop this stack?")
-        .default(false)
-        .interact()
-        .unwrap();
+    if !tui::confirm("Are you sure you want to stop this stack?", false) {
+        return;
+    }
 
-    if confirm {
-        let status = Command::new("docker-compose")
-            .args(&["down"])
-            .current_dir(stack_path)
-            .status();
-
-        match status {
-            Ok(s) if s.success() => println!("✅ Stack stopped successfully"),
-            _ => println!("❌ Failed to stop stack"),
-        }
+    match run_compose(&["down"], Some(stack_path)) {
+        Ok(s) if s.success() => tui::success("Stack stopped successfully"),
+        _ => tui::error("Failed to stop stack"),
     }
 }
 
 fn restart_stack(stack_path: &std::path::Path) {
-    println!("🔄 Restarting stack: {}", stack_path.display());
+    tui::status("🔄", &format!("Restarting stack: {}", stack_path.display()));
 
-    let status = Command::new("docker-compose")
-        .args(&["restart"])
-        .current_dir(stack_path)
-        .status();
-
-    match status {
-        Ok(s) if s.success() => println!("✅ Stack restarted successfully"),
-        _ => println!("❌ Failed to restart stack"),
+    match run_compose(&["restart"], Some(stack_path)) {
+        Ok(s) if s.success() => tui::success("Stack restarted successfully"),
+        _ => tui::error("Failed to restart stack"),
     }
 }
 
 fn view_stack_logs(stack_path: &std::path::Path) {
-    println!("📝 Viewing logs for: {}", stack_path.display());
+    tui::status("📝", &format!("Viewing logs for: {}", stack_path.display()));
 
-    let log_type = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Log options")
-        .items(&[
-            "📜 All logs (last 50 lines)",
-            "🔄 Follow logs (real-time)",
-            "📦 Specific service logs",
-        ])
-        .default(0)
-        .interact()
-        .unwrap();
+    let log_options = [
+        "📜 All logs (last 50 lines)",
+        "🔄 Follow logs (real-time)",
+        "📦 Specific service logs",
+    ];
+
+    let log_type = match tui::select_with_back("Log options", &log_options, 0) {
+        Some(t) => t,
+        None => return,
+    };
 
     match log_type {
         0 => {
-            let _ = Command::new("docker-compose")
-                .args(&["logs", "--tail=50"])
-                .current_dir(stack_path)
-                .status();
+            let _ = run_compose(&["logs", "--tail=50"], Some(stack_path));
         }
         1 => {
-            println!("Press Ctrl+C to stop following logs");
-            let _ = Command::new("docker-compose")
-                .args(&["logs", "-f"])
-                .current_dir(stack_path)
-                .status();
+            tui::info("Press Ctrl+C to stop following logs");
+            let _ = run_compose(&["logs", "-f"], Some(stack_path));
         }
         2 => {
-            let service: String = Input::new()
-                .with_prompt("Enter service name")
-                .interact_text()
-                .unwrap();
+            let service = match tui::input("Enter service name", None) {
+                Some(s) if !s.is_empty() => s,
+                _ => return,
+            };
 
-            let _ = Command::new("docker-compose")
-                .args(&["logs", "--tail=50", &service])
-                .current_dir(stack_path)
-                .status();
+            let _ = run_compose(&["logs", "--tail=50", &service], Some(stack_path));
         }
-        _ => return,
+        _ => {}
     }
 }
 
@@ -252,40 +331,29 @@ fn show_stack_config(stack_path: &std::path::Path) {
 }
 
 fn pull_stack_images(stack_path: &std::path::Path) {
-    println!("📥 Pulling images for: {}", stack_path.display());
+    tui::status(
+        "📥",
+        &format!("Pulling images for: {}", stack_path.display()),
+    );
 
-    let status = Command::new("docker-compose")
-        .args(&["pull"])
-        .current_dir(stack_path)
-        .status();
-
-    match status {
-        Ok(s) if s.success() => println!("✅ Images pulled successfully"),
-        _ => println!("❌ Failed to pull images"),
+    match run_compose(&["pull"], Some(stack_path)) {
+        Ok(s) if s.success() => tui::success("Images pulled successfully"),
+        _ => tui::error("Failed to pull images"),
     }
 }
 
 fn remove_stack(stack_path: &std::path::Path) {
-    println!("🗑️  Remove stack: {}", stack_path.display());
+    tui::status("🗑️", &format!("Remove stack: {}", stack_path.display()));
 
-    let confirm = Confirm::new()
-        .with_prompt(
-            "This will stop and remove all containers, networks, and volumes. Are you sure?",
-        )
-        .default(false)
-        .interact()
-        .unwrap();
+    if !tui::confirm_dangerous(
+        "This will stop and remove all containers, networks, and volumes. Are you sure?",
+    ) {
+        return;
+    }
 
-    if confirm {
-        let status = Command::new("docker-compose")
-            .args(&["down", "-v", "--remove-orphans"])
-            .current_dir(stack_path)
-            .status();
-
-        match status {
-            Ok(s) if s.success() => println!("✅ Stack removed successfully"),
-            _ => println!("❌ Failed to remove stack"),
-        }
+    match run_compose(&["down", "-v", "--remove-orphans"], Some(stack_path)) {
+        Ok(s) if s.success() => tui::success("Stack removed successfully"),
+        _ => tui::error("Failed to remove stack"),
     }
 }
 
@@ -316,15 +384,18 @@ fn deploy_new_stack() {
 }
 
 fn deploy_from_directory() {
-    let directory: String = Input::new()
-        .with_prompt("Enter path to directory containing docker-compose.yml")
-        .interact_text()
-        .unwrap();
+    let directory = match tui::input(
+        "Enter path to directory containing docker-compose.yml",
+        None,
+    ) {
+        Some(d) if !d.is_empty() => d,
+        _ => return,
+    };
 
     let path = std::path::Path::new(&directory);
 
     if !path.exists() {
-        println!("❌ Directory does not exist: {}", directory);
+        tui::error(&format!("Directory does not exist: {}", directory));
         return;
     }
 
@@ -333,20 +404,18 @@ fn deploy_from_directory() {
     } else if path.join("docker-compose.yaml").exists() {
         "docker-compose.yaml"
     } else {
-        println!("❌ No docker-compose.yml found in directory");
+        tui::error("No docker-compose.yml found in directory");
         return;
     };
 
-    println!("🚀 Deploying from: {}/{}", directory, compose_file);
+    tui::status(
+        "🚀",
+        &format!("Deploying from: {}/{}", directory, compose_file),
+    );
 
-    let status = Command::new("docker-compose")
-        .args(&["up", "-d"])
-        .current_dir(path)
-        .status();
-
-    match status {
-        Ok(s) if s.success() => println!("✅ Stack deployed successfully"),
-        _ => println!("❌ Failed to deploy stack"),
+    match run_compose(&["up", "-d"], Some(path)) {
+        Ok(s) if s.success() => tui::success("Stack deployed successfully"),
+        _ => tui::error("Failed to deploy stack"),
     }
 }
 
@@ -369,20 +438,14 @@ fn deploy_from_template() {
 }
 
 fn stack_status_overview() {
-    println!("📊 All Stacks Status Overview");
-    println!("=============================");
+    tui::header("All Stacks Status Overview");
 
     let stacks = find_compose_stacks();
 
     for stack in stacks {
         println!("\n📁 Stack: {}", stack.display());
 
-        let output = Command::new("docker-compose")
-            .args(&["ps", "--format", "table"])
-            .current_dir(&stack)
-            .output();
-
-        match output {
+        match run_compose_output(&["ps", "--format", "table"], Some(&stack)) {
             Ok(out) if out.status.success() => {
                 let output_str = String::from_utf8_lossy(&out.stdout);
                 if output_str.trim().is_empty() {
@@ -444,41 +507,31 @@ fn stack_templates_library() {
 }
 
 fn update_all_stacks() {
-    println!("🔄 Update All Stacks");
-    println!("====================");
+    tui::header("Update All Stacks");
 
     let stacks = find_compose_stacks();
 
     if stacks.is_empty() {
-        println!("No stacks found to update");
+        tui::info("No stacks found to update");
         return;
     }
 
-    let confirm = Confirm::new()
-        .with_prompt(format!(
-            "Update {} stacks (pull latest images)?",
-            stacks.len()
-        ))
-        .default(false)
-        .interact()
-        .unwrap();
-
-    if confirm {
-        for stack in stacks {
-            println!("\n🔄 Updating: {}", stack.display());
-
-            let status = Command::new("docker-compose")
-                .args(&["pull"])
-                .current_dir(&stack)
-                .status();
-
-            match status {
-                Ok(s) if s.success() => println!("  ✅ Updated"),
-                _ => println!("  ❌ Update failed"),
-            }
-        }
-
-        println!("\n✅ All stacks updated!");
-        println!("💡 Don't forget to restart stacks to use new images");
+    if !tui::confirm(
+        &format!("Update {} stacks (pull latest images)?", stacks.len()),
+        false,
+    ) {
+        return;
     }
+
+    for stack in stacks {
+        println!("\n🔄 Updating: {}", stack.display());
+
+        match run_compose(&["pull"], Some(&stack)) {
+            Ok(s) if s.success() => println!("  ✅ Updated"),
+            _ => println!("  ❌ Update failed"),
+        }
+    }
+
+    tui::success("All stacks updated!");
+    tui::info("Don't forget to restart stacks to use new images");
 }

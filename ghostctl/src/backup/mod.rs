@@ -3,11 +3,16 @@ pub mod schedule;
 pub mod setup;
 pub mod verify;
 
-use dialoguer::{theme::ColorfulTheme, Select};
+use crate::tui;
+use crate::utils::is_headless;
 
 pub fn backup_menu() {
-    println!("💾 Backup Management");
-    println!("===================");
+    // Check for headless mode
+    if is_headless() {
+        tui::warn("Backup menu cannot be displayed in headless mode. Use CLI subcommands instead.");
+        tui::info("Example: ghostctl backup run --paths /home");
+        return;
+    }
 
     let options = [
         "🔧 Setup Backup Repository",
@@ -17,38 +22,44 @@ pub fn backup_menu() {
         "🧹 Cleanup Old Backups",
         "📊 Backup Status",
         "🔧 Restic CLI Tools",
-        "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Backup Management")
-        .items(&options)
-        .default(0)
-        .interact()
-        .unwrap();
+    loop {
+        tui::header("Backup Management");
 
-    match choice {
-        0 => setup::setup(),
-        1 => setup::run_backup(),
-        2 => schedule::setup_schedule(),
-        3 => verify::verify_backups(),
-        4 => cleanup::cleanup_old_backups(),
-        5 => backup_status(),
-        6 => crate::restic::setup(),
-        _ => return,
+        if let Some(choice) = tui::select_with_back("Backup Management", &options, 0) {
+            match choice {
+                0 => setup::setup(),
+                1 => setup::run_backup(),
+                2 => schedule::setup_schedule(),
+                3 => verify::verify_backups(),
+                4 => cleanup::cleanup_old_backups(),
+                5 => backup_status(),
+                6 => crate::restic::setup(),
+                _ => {}
+            }
+        } else {
+            break;
+        }
     }
 }
 
 fn backup_status() {
-    println!("📊 Backup Status");
-    println!("================");
+    tui::header("Backup Status");
 
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(dir) => dir.join("ghostctl/restic.env"),
+        None => {
+            tui::error("Could not determine config directory");
+            return;
+        }
+    };
+
     if config_path.exists() {
-        println!("✅ Backup configuration found");
+        tui::success("Backup configuration found");
 
         // Show recent snapshots
-        println!("\n📋 Recent snapshots:");
+        tui::subheader("Recent Snapshots");
         let _ = std::process::Command::new("bash")
             .arg("-c")
             .arg(format!(
@@ -58,13 +69,13 @@ fn backup_status() {
             .status();
 
         // Show repository stats
-        println!("\n📊 Repository statistics:");
+        tui::subheader("Repository Statistics");
         let _ = std::process::Command::new("bash")
             .arg("-c")
             .arg(format!("source {} && restic stats", config_path.display()))
             .status();
     } else {
-        println!("❌ No backup configuration found");
-        println!("Run 'Setup Backup Repository' first");
+        tui::error("No backup configuration found");
+        tui::info("Run 'Setup Backup Repository' first");
     }
 }

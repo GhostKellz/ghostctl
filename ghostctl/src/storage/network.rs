@@ -245,13 +245,12 @@ fn setup_nfs_client() {
 
             let fstab_line = format!("{} {} nfs {} 0 0\n", nfs_share, local_mount, mount_options);
 
-            if let Ok(mut fstab) = fs::read_to_string("/etc/fstab") {
-                if !fstab.contains(&nfs_share) {
+            if let Ok(mut fstab) = fs::read_to_string("/etc/fstab")
+                && !fstab.contains(&nfs_share) {
                     fstab.push_str(&fstab_line);
                     let _ = fs::write("/etc/fstab", fstab);
                     println!("✅ Added to /etc/fstab");
                 }
-            }
         }
     } else {
         println!("❌ NFS mount failed!");
@@ -402,13 +401,12 @@ fn mount_windows_share() {
                 share_path, local_mount, cred_file
             );
 
-            if let Ok(mut fstab) = fs::read_to_string("/etc/fstab") {
-                if !fstab.contains(&share_path) {
+            if let Ok(mut fstab) = fs::read_to_string("/etc/fstab")
+                && !fstab.contains(&share_path) {
                     fstab.push_str(&fstab_line);
                     let _ = fs::write("/etc/fstab", fstab);
                     println!("✅ Added to /etc/fstab");
                 }
-            }
         }
     } else {
         println!("❌ Failed to mount Windows share!");
@@ -680,7 +678,7 @@ fn create_cifs_credential() {
         content.push_str(&format!("domain={}\n", domain));
     }
 
-    if let Ok(_) = fs::write(&cred_file, content) {
+    if fs::write(&cred_file, content).is_ok() {
         let _ = Command::new("chmod").args(&["600", &cred_file]).status();
         println!("✅ Credential file created: {}", cred_file);
     } else {
@@ -709,7 +707,7 @@ fn delete_cifs_credential() {
         .interact()
         .unwrap()
     {
-        if let Ok(_) = fs::remove_file(&file) {
+        if fs::remove_file(&file).is_ok() {
             println!("✅ Credential file deleted");
         } else {
             println!("❌ Failed to delete file");

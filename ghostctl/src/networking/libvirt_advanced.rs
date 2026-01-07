@@ -325,7 +325,7 @@ fn attach_network_interface() {
     };
 
     // Build interface XML
-    let interface_xml = build_interface_xml(&iface_type, &source, &model, &mac_addr);
+    let interface_xml = build_interface_xml(iface_type, &source, model, &mac_addr);
 
     println!("\n📋 Interface Configuration:");
     println!("{}", interface_xml);
@@ -339,7 +339,7 @@ fn attach_network_interface() {
     if confirm {
         // Write XML to temp file
         let temp_file = "/tmp/interface.xml";
-        if let Err(_) = fs::write(temp_file, &interface_xml) {
+        if fs::write(temp_file, &interface_xml).is_err() {
             println!("❌ Failed to write interface configuration");
             return;
         }
@@ -407,14 +407,13 @@ fn get_available_bridges() -> Vec<String> {
     if let Ok(ip_out) = ip_output {
         let ip_bridges = String::from_utf8_lossy(&ip_out.stdout);
         for line in ip_bridges.lines() {
-            if line.contains(": ") && line.contains("bridge") {
-                if let Some(name_part) = line.split(':').nth(1) {
+            if line.contains(": ") && line.contains("bridge")
+                && let Some(name_part) = line.split(':').nth(1) {
                     let name = name_part.split('@').next().unwrap_or("").trim();
                     if !name.is_empty() && !bridges.contains(&name.to_string()) {
                         bridges.push(name.to_string());
                     }
                 }
-            }
         }
     }
 
@@ -576,7 +575,7 @@ fn detach_network_interface() {
         );
 
         let temp_file = "/tmp/detach_interface.xml";
-        if let Err(_) = fs::write(temp_file, &detach_xml) {
+        if fs::write(temp_file, &detach_xml).is_err() {
             println!("❌ Failed to write detach configuration");
             return;
         }
@@ -812,7 +811,7 @@ fn interface_statistics() {
             for line in interface_list.lines().skip(2) {
                 if !line.trim().is_empty() && !line.contains("---") {
                     let parts: Vec<&str> = line.split_whitespace().collect();
-                    if parts.len() >= 1 {
+                    if !parts.is_empty() {
                         let interface = parts[0];
                         println!("\n📊 Interface: {}", interface);
 
@@ -1242,9 +1241,8 @@ fn find_mac_conflicts() {
                     conflicts_found = true;
                 }
                 println!(
-                    "  💥 Conflict: {} vs {}",
-                    format!("{}:{}", mac_addresses[i].0, mac_addresses[i].1),
-                    format!("{}:{}", mac_addresses[j].0, mac_addresses[j].1)
+                    "  💥 Conflict: {}:{} vs {}:{}",
+                    mac_addresses[i].0, mac_addresses[i].1, mac_addresses[j].0, mac_addresses[j].1
                 );
                 println!("     MAC: {}", mac_addresses[i].2);
             }

@@ -1,8 +1,11 @@
 pub mod container;
 pub mod dkms;
+pub mod dlss;
 pub mod drivers;
 pub mod optimize;
 pub mod passthrough;
+pub mod source_build;
+pub mod wayland;
 
 pub fn clean() {
     println!("ghostctl :: NVIDIA Clean DKMS/Modules");
@@ -165,6 +168,8 @@ pub fn nvidia_menu() {
     let options = [
         "📊 Check status and driver info",
         "🚀 Driver management",
+        "🎯 DLSS Management",
+        "🔨 Build from source",
         "🐳 Container & virtualization",
         "🖥️  GPU passthrough",
         "🔧 DKMS rebuild and fixes",
@@ -184,12 +189,14 @@ pub fn nvidia_menu() {
     match choice {
         0 => status(),
         1 => drivers::driver_menu(),
-        2 => container::container_menu(),
-        3 => passthrough::passthrough_menu(),
-        4 => fix(),
-        5 => optimize(),
-        6 => clean(),
-        7 => diagnostics(),
+        2 => dlss::dlss_menu(),
+        3 => source_build::source_build_menu(),
+        4 => container::container_menu(),
+        5 => passthrough::passthrough_menu(),
+        6 => fix(),
+        7 => optimize(),
+        8 => clean(),
+        9 => diagnostics(),
         _ => return,
     }
 }

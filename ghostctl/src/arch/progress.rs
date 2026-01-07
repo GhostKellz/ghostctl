@@ -106,8 +106,8 @@ pub fn parse_broken_packages(output: &str) -> Vec<String> {
         } else if line.starts_with("warning:") {
             // Extract package name from warning lines
             // Format: "warning: package: file (reason)"
-            if let Some(rest) = line.strip_prefix("warning: ") {
-                if let Some(pkg_end) = rest.find(':') {
+            if let Some(rest) = line.strip_prefix("warning: ")
+                && let Some(pkg_end) = rest.find(':') {
                     let package = rest[..pkg_end].trim();
                     if !broken_packages.contains(&package.to_string()) {
                         // Only add if not from permission errors
@@ -118,7 +118,6 @@ pub fn parse_broken_packages(output: &str) -> Vec<String> {
                         }
                     }
                 }
-            }
         }
     }
 

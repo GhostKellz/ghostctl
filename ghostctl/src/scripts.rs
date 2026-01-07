@@ -629,12 +629,14 @@ fn view_ghostcert_help() {
 }
 
 fn find_ghostcert_script() -> Option<String> {
+    let home_path = dirs::home_dir()
+        .unwrap()
+        .join(".config/ghostctl/scripts/ghostcert.sh")
+        .to_string_lossy()
+        .to_string();
+
     let locations = [
-        &dirs::home_dir()
-            .unwrap()
-            .join(".config/ghostctl/scripts/ghostcert.sh")
-            .to_string_lossy()
-            .to_string(),
+        home_path.as_str(),
         "/usr/local/bin/ghostcert.sh",
         "/usr/bin/ghostcert.sh",
         "./ghostcert.sh",

@@ -1,8 +1,10 @@
 use crate::terminal::terminal_menu;
+use crate::utils::{set_dry_run_mode, set_headless_mode, set_plain_mode};
 use crate::{
-    arch, backup, btrfs, cloud, network, nvidia, proxmox, restore, security, shell, systemd, tools,
+    arch, backup, bluetooth, btrfs, cloud, network, nvidia, proxmox, restore, security, shell,
+    sysctl, systemd, tools, wifi,
 };
-use clap::{Arg, ArgMatches, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use dialoguer::{theme::ColorfulTheme, Select};
 
 // Command-line interface setup
@@ -10,11 +12,52 @@ pub fn build_cli() -> Command {
     Command::new("ghostctl")
         .version(env!("CARGO_PKG_VERSION"))
         .author("Christopher Kelley <ckelley@ghostkellz.sh>")
-        .about("👻 GhostCTL")
+        .about("👻 GhostCTL - System management and automation toolkit")
         .subcommand_required(false)
         .arg_required_else_help(false)
         .disable_version_flag(false)
         .disable_help_flag(false)
+        // Global flags for automation
+        .arg(
+            Arg::new("headless")
+                .long("headless")
+                .short('H')
+                .help("Run in headless mode (no interactive prompts)")
+                .action(ArgAction::SetTrue)
+                .global(true),
+        )
+        .arg(
+            Arg::new("non-interactive")
+                .long("non-interactive")
+                .short('n')
+                .help("Alias for --headless")
+                .action(ArgAction::SetTrue)
+                .global(true),
+        )
+        .arg(
+            Arg::new("dry-run")
+                .long("dry-run")
+                .short('D')
+                .help("Show what would be done without making changes")
+                .action(ArgAction::SetTrue)
+                .global(true),
+        )
+        .arg(
+            Arg::new("yes")
+                .long("yes")
+                .short('y')
+                .help("Automatically answer yes to prompts (use with caution)")
+                .action(ArgAction::SetTrue)
+                .global(true),
+        )
+        .arg(
+            Arg::new("plain")
+                .long("plain")
+                .short('p')
+                .help("Plain output mode (no emojis or colors, for scripting/accessibility)")
+                .action(ArgAction::SetTrue)
+                .global(true),
+        )
         .subcommand(
             Command::new("system")
                 .about("System management")
@@ -249,7 +292,37 @@ pub fn build_cli() -> Command {
                 .subcommand(Command::new("install").about("Install NVIDIA drivers"))
                 .subcommand(Command::new("optimize").about("Optimize GPU settings"))
                 .subcommand(Command::new("passthrough").about("Setup GPU passthrough"))
-                .subcommand(Command::new("wayland").about("Configure Wayland support")),
+                .subcommand(Command::new("wayland").about("Configure Wayland support"))
+                .subcommand(
+                    Command::new("build-source")
+                        .about("Build NVIDIA kernel modules from source")
+                        .arg(
+                            Arg::new("all-kernels")
+                                .long("all-kernels")
+                                .help("Build for all installed kernels (default: current kernel only)")
+                                .action(ArgAction::SetTrue),
+                        )
+                        .arg(
+                            Arg::new("dkms")
+                                .long("dkms")
+                                .help("Use DKMS-managed build (default: true)")
+                                .action(ArgAction::SetTrue),
+                        )
+                        .arg(
+                            Arg::new("no-dkms")
+                                .long("no-dkms")
+                                .help("Use direct make install instead of DKMS")
+                                .action(ArgAction::SetTrue),
+                        )
+                        .arg(
+                            Arg::new("auto-clean")
+                                .long("auto-clean")
+                                .help("Automatically clean old DKMS entries without prompting")
+                                .action(ArgAction::SetTrue),
+                        ),
+                )
+                .subcommand(Command::new("dkms-status").about("Show DKMS module status"))
+                .subcommand(Command::new("dkms-cleanup").about("Clean old DKMS entries")),
         )
         .subcommand(
             Command::new("security")
@@ -258,6 +331,41 @@ pub fn build_cli() -> Command {
                 .subcommand(Command::new("ssh").about("SSH configuration"))
                 .subcommand(Command::new("gpg").about("GPG management"))
                 .subcommand(Command::new("credentials").about("Credential management")),
+        )
+        .subcommand(
+            Command::new("bluetooth")
+                .about("Bluetooth device management")
+                .visible_alias("bt")
+                .subcommand(Command::new("menu").about("Interactive Bluetooth menu"))
+                .subcommand(Command::new("tui").about("Launch Bluetooth TUI"))
+                .subcommand(Command::new("list").about("List adapters and devices"))
+                .subcommand(Command::new("scan").about("Scan for nearby devices"))
+                .subcommand(Command::new("power").about("Toggle adapter power")),
+        )
+        .subcommand(
+            Command::new("wifi")
+                .about("WiFi network management (requires iwd)")
+                .visible_alias("wlan")
+                .subcommand(Command::new("menu").about("Interactive WiFi menu"))
+                .subcommand(Command::new("tui").about("Launch WiFi TUI"))
+                .subcommand(Command::new("status").about("Show WiFi status"))
+                .subcommand(Command::new("list").about("List known networks"))
+                .subcommand(Command::new("scan").about("Scan for networks"))
+                .subcommand(Command::new("connect").about("Connect to a network"))
+                .subcommand(Command::new("disconnect").about("Disconnect from network"))
+                .subcommand(Command::new("power").about("Toggle WiFi power")),
+        )
+        .subcommand(
+            Command::new("sysctl")
+                .about("Kernel parameter browser (systeroid-style)")
+                .visible_alias("kernel")
+                .subcommand(Command::new("menu").about("Interactive sysctl menu"))
+                .subcommand(Command::new("tui").about("Launch kernel parameter TUI"))
+                .subcommand(Command::new("list").about("List all parameters"))
+                .subcommand(Command::new("search").about("Search parameters"))
+                .subcommand(Command::new("get").about("Get a parameter value"))
+                .subcommand(Command::new("set").about("Set a parameter value"))
+                .subcommand(Command::new("export").about("Export configuration")),
         )
         .subcommand(
             Command::new("backup")
@@ -605,11 +713,34 @@ pub fn build_cli() -> Command {
 }
 
 pub fn handle_cli_args(matches: &ArgMatches) {
+    // Process global flags first - set plain mode FIRST so other messages respect it
+    if matches.get_flag("plain") {
+        set_plain_mode(true);
+    }
+
+    if matches.get_flag("headless") || matches.get_flag("non-interactive") {
+        set_headless_mode(true);
+        println!("{} Running in headless mode", crate::tui::icons::robot());
+    }
+
+    if matches.get_flag("dry-run") {
+        set_dry_run_mode(true);
+        println!(
+            "{} Dry-run mode enabled - no changes will be made",
+            crate::tui::icons::search()
+        );
+    }
+
+    if matches.get_flag("yes") {
+        // Set auto-yes mode (handled by individual prompts)
+        unsafe { std::env::set_var("GHOSTCTL_YES", "1") };
+    }
+
     // Handle subcommands
     match matches.subcommand() {
         Some(("version", _)) => {
             println!("ghostctl v{}", env!("CARGO_PKG_VERSION"));
-            println!("👻 GhostCTL");
+            println!("{} GhostCTL", crate::tui::icons::ghost());
             println!("Author: Christopher Kelley <ckelley@ghostkellz.sh>");
         }
         Some(("list", _)) => {
@@ -628,6 +759,9 @@ pub fn handle_cli_args(matches: &ArgMatches) {
         Some(("net", matches)) => handle_network_commands(matches), // Short alias for network
         Some(("security", matches)) => handle_security_commands(matches),
         Some(("sec", matches)) => handle_security_commands(matches), // Short alias for security
+        Some(("bluetooth", matches)) | Some(("bt", matches)) => handle_bluetooth_commands(matches),
+        Some(("wifi", matches)) | Some(("wlan", matches)) => handle_wifi_commands(matches),
+        Some(("sysctl", matches)) | Some(("kernel", matches)) => handle_sysctl_commands(matches),
         Some(("ssh", matches)) => handle_ssh_management(matches), // SSH management with subcommands
         Some(("gpg", matches)) => handle_gpg_management(matches), // GPG management with subcommands
         Some(("dns", matches)) => handle_dnslookup_commands(matches), // DNS lookup with options
@@ -1160,7 +1294,42 @@ fn handle_nvidia_commands(matches: &ArgMatches) {
         Some(("optimize", _)) => nvidia::optimize(),
         Some(("status", _)) => nvidia::status(),
         Some(("info", _)) => nvidia::info(),
-        _ => nvidia::fix(),
+        Some(("build-source", sub_matches)) => {
+            use crate::nvidia::source_build::{source_build_workflow, SourceBuildOptions};
+            use crate::utils::is_dry_run;
+
+            let opts = SourceBuildOptions {
+                all_kernels: sub_matches.get_flag("all-kernels"),
+                use_dkms: !sub_matches.get_flag("no-dkms"),
+                auto_clean: sub_matches.get_flag("auto-clean"),
+                dry_run: is_dry_run(),
+            };
+
+            if let Err(e) = source_build_workflow(&opts) {
+                eprintln!("Build failed: {}", e);
+                std::process::exit(1);
+            }
+        }
+        Some(("dkms-status", _)) => {
+            use crate::nvidia::source_build::get_old_dkms_entries;
+            let entries = get_old_dkms_entries();
+            if entries.is_empty() {
+                println!("No NVIDIA DKMS entries found.");
+            } else {
+                println!("NVIDIA DKMS entries:");
+                for (module, kernel, status) in entries {
+                    println!("  {} - kernel {} ({})", module, kernel, status);
+                }
+            }
+        }
+        Some(("dkms-cleanup", _)) => {
+            use crate::nvidia::source_build::cleanup_old_versions;
+            use crate::utils::is_dry_run;
+            if let Err(e) = cleanup_old_versions(false, is_dry_run()) {
+                eprintln!("Cleanup failed: {}", e);
+            }
+        }
+        _ => nvidia::nvidia_menu(),
     }
 }
 
@@ -1172,6 +1341,78 @@ fn handle_security_commands(matches: &ArgMatches) {
         Some(("credentials", _)) => security::credentials::credential_management(),
         None => security::security_menu(),
         _ => security::ssh::ssh_management(),
+    }
+}
+
+fn handle_bluetooth_commands(matches: &ArgMatches) {
+    match matches.subcommand() {
+        Some(("menu", _)) => bluetooth::bluetooth_menu(),
+        Some(("tui", _)) => {
+            if let Err(e) = bluetooth::bluetooth_tui() {
+                crate::tui::error(&format!("Bluetooth TUI error: {}", e));
+            }
+        }
+        Some(("list", _)) => {
+            crate::tui::header("Bluetooth Devices");
+            // Uses the list functionality from the bluetooth module
+            bluetooth::bluetooth_menu(); // Shows the menu which has list option
+        }
+        Some(("scan", _)) => {
+            crate::tui::info("Starting Bluetooth scan...");
+            bluetooth::bluetooth_menu(); // Uses the scan functionality
+        }
+        Some(("power", _)) => {
+            crate::tui::info("Toggling Bluetooth adapter power...");
+            bluetooth::bluetooth_menu();
+        }
+        None => bluetooth::bluetooth_menu(),
+        _ => bluetooth::bluetooth_menu(),
+    }
+}
+
+fn handle_wifi_commands(matches: &ArgMatches) {
+    match matches.subcommand() {
+        Some(("menu", _)) => wifi::wifi_menu(),
+        Some(("tui", _)) => {
+            if let Err(e) = wifi::wifi_tui() {
+                crate::tui::error(&format!("WiFi TUI error: {}", e));
+            }
+        }
+        Some(("status", _)) => {
+            crate::tui::header("WiFi Status");
+            wifi::wifi_menu();
+        }
+        Some(("list", _)) => {
+            crate::tui::header("Known Networks");
+            wifi::wifi_menu();
+        }
+        Some(("scan", _)) => {
+            crate::tui::info("Scanning for WiFi networks...");
+            wifi::wifi_menu();
+        }
+        Some(("connect", _)) => wifi::wifi_menu(),
+        Some(("disconnect", _)) => wifi::wifi_menu(),
+        Some(("power", _)) => wifi::wifi_menu(),
+        None => wifi::wifi_menu(),
+        _ => wifi::wifi_menu(),
+    }
+}
+
+fn handle_sysctl_commands(matches: &ArgMatches) {
+    match matches.subcommand() {
+        Some(("menu", _)) => sysctl::sysctl_menu(),
+        Some(("tui", _)) => {
+            if let Err(e) = sysctl::sysctl_tui() {
+                crate::tui::error(&format!("Sysctl TUI error: {}", e));
+            }
+        }
+        Some(("list", _)) => sysctl::sysctl_menu(),
+        Some(("search", _)) => sysctl::sysctl_menu(),
+        Some(("get", _)) => sysctl::sysctl_menu(),
+        Some(("set", _)) => sysctl::sysctl_menu(),
+        Some(("export", _)) => sysctl::sysctl_menu(),
+        None => sysctl::sysctl_menu(),
+        _ => sysctl::sysctl_menu(),
     }
 }
 

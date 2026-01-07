@@ -640,7 +640,7 @@ fn create_vlan() {
     let vlan_name: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("VLAN name")
         .validate_with(|input: &String| -> Result<(), &str> {
-            if input.len() > 0 && input.len() <= 64 {
+            if !input.is_empty() && input.len() <= 64 {
                 Ok(())
             } else {
                 Err("VLAN name must be 1-64 characters")

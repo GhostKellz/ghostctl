@@ -108,14 +108,12 @@ fn list_vm_iso_templates() {
 }
 
 fn download_iso_template() {
-    let distros = vec![
-        ("Ubuntu Server 22.04 LTS", "https://releases.ubuntu.com/22.04/ubuntu-22.04.3-live-server-amd64.iso"),
+    let distros = [("Ubuntu Server 22.04 LTS", "https://releases.ubuntu.com/22.04/ubuntu-22.04.3-live-server-amd64.iso"),
         ("Ubuntu Server 20.04 LTS", "https://releases.ubuntu.com/20.04/ubuntu-20.04.6-live-server-amd64.iso"),
         ("Debian 12 (Bookworm)", "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-12.2.0-amd64-netinst.iso"),
         ("Rocky Linux 9", "https://download.rockylinux.org/pub/rocky/9/isos/x86_64/Rocky-9.2-x86_64-minimal.iso"),
         ("Alpine Linux", "https://dl-cdn.alpinelinux.org/alpine/v3.18/releases/x86_64/alpine-standard-3.18.4-x86_64.iso"),
-        ("Custom URL", "custom"),
-    ];
+        ("Custom URL", "custom")];
 
     let distro_names: Vec<&str> = distros.iter().map(|(name, _)| *name).collect();
 
@@ -144,7 +142,7 @@ fn download_iso_template() {
     println!("📥 Downloading {} ISO...", distro_name);
 
     // Use wget to download to local storage
-    let filename = url.split('/').last().unwrap_or("downloaded.iso");
+    let filename = url.split('/').next_back().unwrap_or("downloaded.iso");
     let download_path = format!("/var/lib/vz/template/iso/{}", filename);
 
     let status = Command::new("wget")
@@ -325,8 +323,8 @@ fn search_and_download_template() {
             .interact_text()
             .unwrap();
 
-        if let Ok(idx) = index.parse::<usize>() {
-            if idx > 0 && idx <= matching_lines.len() {
+        if let Ok(idx) = index.parse::<usize>()
+            && idx > 0 && idx <= matching_lines.len() {
                 let selected_line = matching_lines[idx - 1];
                 let template_id = selected_line.split_whitespace().next().unwrap_or("");
 
@@ -337,7 +335,6 @@ fn search_and_download_template() {
                         .status();
                 }
             }
-        }
     }
 }
 
@@ -400,13 +397,12 @@ fn template_information() {
             println!("📍 Status: Installed locally");
 
             let template_path = format!("/var/lib/vz/template/cache/{}", template_id);
-            if Path::new(&template_path).exists() {
-                if let Ok(metadata) = fs::metadata(&template_path) {
+            if Path::new(&template_path).exists()
+                && let Ok(metadata) = fs::metadata(&template_path) {
                     println!("📁 Path: {}", template_path);
                     println!("📏 Size: {} bytes", metadata.len());
                     println!("📅 Modified: {:?}", metadata.modified().unwrap());
                 }
-            }
         } else {
             println!("📍 Status: Not installed locally");
 

@@ -99,27 +99,20 @@ fn list_installed_games() {
             if Path::new(&config_dir).exists() {
                 println!("\n📋 Games from configs:");
                 if let Ok(entries) = fs::read_dir(&config_dir) {
-                    for entry in entries {
-                        if let Ok(entry) = entry {
-                            let path = entry.path();
-                            if path.extension().and_then(|s| s.to_str()) == Some("yml") {
-                                if let Ok(content) = fs::read_to_string(&path) {
-                                    if let Ok(config) =
-                                        serde_yaml::from_str::<serde_yaml::Value>(&content)
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.extension().and_then(|s| s.to_str()) == Some("yml")
+                            && let Ok(content) = fs::read_to_string(&path)
+                                && let Ok(config) =
+                                    serde_yaml::from_str::<serde_yaml::Value>(&content)
+                                    && let Some(name) = config.get("name").and_then(|v| v.as_str())
                                     {
-                                        if let Some(name) =
-                                            config.get("name").and_then(|v| v.as_str())
-                                        {
-                                            let runner = config
-                                                .get("runner")
-                                                .and_then(|v| v.as_str())
-                                                .unwrap_or("unknown");
-                                            println!("  🎮 {} ({})", name, runner);
-                                        }
+                                        let runner = config
+                                            .get("runner")
+                                            .and_then(|v| v.as_str())
+                                            .unwrap_or("unknown");
+                                        println!("  🎮 {} ({})", name, runner);
                                     }
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -324,7 +317,7 @@ fn configure_wine_runner(config_file: &str) {
     };
 
     // Update config
-    if !config.get("wine").is_some() {
+    if config.get("wine").is_none() {
         config["wine"] = serde_yaml::Value::Mapping(serde_yaml::Mapping::new());
     }
     config["wine"]["version"] = serde_yaml::Value::String(wine_version);
@@ -389,7 +382,7 @@ fn configure_system_options(config_file: &str) {
     let content = fs::read_to_string(config_file).unwrap_or_default();
     let mut config: serde_yaml::Value = serde_yaml::from_str(&content).unwrap_or_default();
 
-    if !config.get("system").is_some() {
+    if config.get("system").is_none() {
         config["system"] = serde_yaml::Value::Mapping(serde_yaml::Mapping::new());
     }
 
@@ -452,7 +445,7 @@ fn configure_game_options(config_file: &str) {
     let content = fs::read_to_string(config_file).unwrap_or_default();
     let mut config: serde_yaml::Value = serde_yaml::from_str(&content).unwrap_or_default();
 
-    if !config.get("game").is_some() {
+    if config.get("game").is_none() {
         config["game"] = serde_yaml::Value::Mapping(serde_yaml::Mapping::new());
     }
 
@@ -552,11 +545,9 @@ fn list_wine_runners() {
     }
 
     if let Ok(entries) = fs::read_dir(&runners_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let name = entry.file_name().to_string_lossy().to_string();
-                println!("  🍷 {}", name);
-            }
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            println!("  🍷 {}", name);
         }
     }
 }
@@ -702,10 +693,8 @@ fn remove_runner() {
 
     let mut runners = Vec::new();
     if let Ok(entries) = fs::read_dir(&runners_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                runners.push(entry.file_name().to_string_lossy().to_string());
-            }
+        for entry in entries.flatten() {
+            runners.push(entry.file_name().to_string_lossy().to_string());
         }
     }
 
@@ -754,10 +743,8 @@ fn set_default_runner() {
 
     let mut runners = vec!["System Wine".to_string()];
     if let Ok(entries) = fs::read_dir(&runners_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                runners.push(entry.file_name().to_string_lossy().to_string());
-            }
+        for entry in entries.flatten() {
+            runners.push(entry.file_name().to_string_lossy().to_string());
         }
     }
 

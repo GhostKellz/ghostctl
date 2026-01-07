@@ -109,7 +109,7 @@ fn install_ghostty_source() {
     println!("📋 Prerequisites: Zig compiler");
 
     // Check if zig is installed
-    if !Command::new("which").arg("zig").status().is_ok() {
+    if Command::new("which").arg("zig").status().is_err() {
         println!("❌ Zig compiler not found");
         let install_zig = Confirm::new()
             .with_prompt("Install Zig compiler?")

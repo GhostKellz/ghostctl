@@ -532,11 +532,10 @@ fn list_available_profiles() {
     if let Ok(entries) = fs::read_dir(profiles_dir) {
         println!("🗂️  Saved profiles:");
         for entry in entries.flatten() {
-            if let Some(name) = entry.file_name().to_str() {
-                if name.ends_with(".json") {
+            if let Some(name) = entry.file_name().to_str()
+                && name.ends_with(".json") {
                     println!("   📄 {}", name.strip_suffix(".json").unwrap());
                 }
-            }
         }
     } else {
         println!("📁 No profiles found. Create your first profile!");
@@ -678,8 +677,8 @@ fn apply_profile() {
         return;
     }
 
-    if let Ok(content) = fs::read_to_string(&profile_path) {
-        if let Ok(profile) = serde_json::from_str::<FirewallProfile>(&content) {
+    if let Ok(content) = fs::read_to_string(&profile_path)
+        && let Ok(profile) = serde_json::from_str::<FirewallProfile>(&content) {
             println!("📋 Profile: {}", profile.name);
             println!("📝 Description: {}", profile.description);
             println!("🔒 Default Policy: {}", profile.default_policy);
@@ -694,7 +693,6 @@ fn apply_profile() {
                 apply_profile_rules(&profile);
             }
         }
-    }
 }
 
 fn apply_profile_rules(profile: &FirewallProfile) {
@@ -1148,7 +1146,7 @@ fn quick_network_scan() {
     println!("📊 Target: {}", target);
     println!("🚪 Ports: {}", port_spec);
     println!("⚙️  Threads: {}", threads);
-    println!("");
+    println!();
 
     // Use the native scanner
     let targets = vec![target.clone()];

@@ -565,7 +565,7 @@ fn nvidia_wayland_support() {
         let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
         println!("📱 NVIDIA Driver Version: {}", version);
 
-        if version >= "470".to_string() {
+        if version.as_str() >= "470" {
             println!("✅ NVIDIA driver supports Wayland");
 
             println!("🔧 Setting up Wayland support...");

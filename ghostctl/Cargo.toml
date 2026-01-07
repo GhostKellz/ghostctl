@@ -1,9 +1,14 @@
 [package]
 name = "ghostctl"
-version = "1.0.1"
-edition = "2021"
+version = "0.9.5"
+edition = "2024"
 license = "MIT"
 description = "Modular CLI toolkit for Linux sysadmins, homelabbers, and power users."
+
+[features]
+default = []
+# Enable libsecret/keyring credential backend (requires D-Bus and GNOME/KDE keyring)
+keyring-backend = ["dep:keyring"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
@@ -36,3 +41,10 @@ regex = "1.10"
 ipnet = "2.9"
 indicatif = "0.17"
 rayon = "1.10"
+sha2 = "0.10.9"
+libc = "0.2.179"
+bluer = { version = "0.17", features = ["bluetoothd"] }
+futures = "0.3"
+
+# Optional dependencies
+keyring = { version = "2", optional = true }

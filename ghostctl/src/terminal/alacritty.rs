@@ -323,7 +323,7 @@ fn install_via_cargo() {
     println!("🦀 Installing Alacritty via Cargo...");
 
     // Check if Rust is installed
-    if !Command::new("cargo").arg("--version").status().is_ok() {
+    if Command::new("cargo").arg("--version").status().is_err() {
         println!("❌ Cargo not found. Install Rust first.");
         return;
     }

@@ -144,8 +144,8 @@ fn install_additional_wine_versions() {
 
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
-        if let Ok(s) = helper_check {
-            if s.success() {
+        if let Ok(s) = helper_check
+            && s.success() {
                 println!("🔧 Using {} to install additional Wine versions...", helper);
 
                 for package in &wine_packages {
@@ -160,7 +160,6 @@ fn install_additional_wine_versions() {
                 }
                 return;
             }
-        }
     }
 
     println!("💡 No AUR helper found. Install yay for additional Wine versions:");
@@ -679,12 +678,9 @@ fn lutris_status() {
             println!("✅ Lutris is installed");
 
             let version_output = Command::new("lutris").arg("--version").output();
-            match version_output {
-                Ok(out) => {
-                    let output_string = String::from_utf8_lossy(&out.stdout);
-                    println!("📋 Version: {}", output_string.trim());
-                }
-                _ => {}
+            if let Ok(out) = version_output {
+                let output_string = String::from_utf8_lossy(&out.stdout);
+                println!("📋 Version: {}", output_string.trim());
             }
         }
         _ => {
@@ -789,8 +785,8 @@ fn install_heroic_aur() {
     let aur_helpers = ["yay", "paru", "trizen"];
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
-        if let Ok(s) = helper_check {
-            if s.success() {
+        if let Ok(s) = helper_check
+            && s.success() {
                 println!("🔧 Using {} to install Heroic...", helper);
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "heroic-games-launcher-bin"])
@@ -804,7 +800,6 @@ fn install_heroic_aur() {
                     _ => println!("❌ Failed to install with {}", helper),
                 }
             }
-        }
     }
 
     println!("❌ No AUR helper found. Install yay first:");
@@ -1047,8 +1042,8 @@ fn install_bottles_aur() {
     let aur_helpers = ["yay", "paru", "trizen"];
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
-        if let Ok(s) = helper_check {
-            if s.success() {
+        if let Ok(s) = helper_check
+            && s.success() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", "bottles"])
                     .status();
@@ -1061,7 +1056,6 @@ fn install_bottles_aur() {
                     _ => println!("❌ Failed to install with {}", helper),
                 }
             }
-        }
     }
 
     println!("❌ No AUR helper found");
@@ -1331,8 +1325,8 @@ fn install_aur_package(package: &str) {
     let aur_helpers = ["yay", "paru", "trizen"];
     for helper in &aur_helpers {
         let helper_check = Command::new("which").arg(helper).status();
-        if let Ok(s) = helper_check {
-            if s.success() {
+        if let Ok(s) = helper_check
+            && s.success() {
                 let install_status = Command::new(helper)
                     .args(&["-S", "--noconfirm", package])
                     .status();
@@ -1342,7 +1336,6 @@ fn install_aur_package(package: &str) {
                     _ => {}
                 }
             }
-        }
     }
     println!("  ❌ No AUR helper found for {}", package);
 }
@@ -1665,31 +1658,31 @@ pub fn launchers_overview() {
     println!("==========================");
 
     println!("🎮 Available gaming platforms on Linux:");
-    println!("");
+    println!();
     println!("🚀 Steam");
     println!("  • Native Linux client");
     println!("  • Proton for Windows games");
     println!("  • Largest game library");
     println!("  • Best Linux gaming support");
-    println!("");
+    println!();
     println!("🎯 Lutris");
     println!("  • Universal game launcher");
     println!("  • Supports multiple stores");
     println!("  • Wine integration");
     println!("  • Community install scripts");
-    println!("");
+    println!();
     println!("🏛️  Heroic Games Launcher");
     println!("  • Epic Games Store client");
     println!("  • GOG integration");
     println!("  • Native Linux application");
     println!("  • Free games support");
-    println!("");
+    println!();
     println!("🍷 Bottles");
     println!("  • Wine prefix management");
     println!("  • Application isolation");
     println!("  • Easy Windows software installation");
     println!("  • Gaming templates");
-    println!("");
+    println!();
     println!("🕹️  RetroArch");
     println!("  • Retro gaming frontend");
     println!("  • Multiple emulator cores");

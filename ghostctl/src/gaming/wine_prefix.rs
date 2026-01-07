@@ -161,32 +161,30 @@ fn list_prefixes() {
     let entries = fs::read_dir(&prefixes_dir).unwrap();
     let mut prefixes = Vec::new();
 
-    for entry in entries {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if path.is_dir() {
-                let name = path.file_name().unwrap().to_string_lossy().to_string();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            let name = path.file_name().unwrap().to_string_lossy().to_string();
 
-                // Try to read metadata
-                let info_path = format!("{}/prefix.info", path.display());
-                let info = if Path::new(&info_path).exists() {
-                    fs::read_to_string(&info_path).unwrap_or_default()
-                } else {
-                    String::new()
-                };
+            // Try to read metadata
+            let info_path = format!("{}/prefix.info", path.display());
+            let info = if Path::new(&info_path).exists() {
+                fs::read_to_string(&info_path).unwrap_or_default()
+            } else {
+                String::new()
+            };
 
-                // Get size
-                let size_output = Command::new("du")
-                    .args(&["-sh", &path.to_string_lossy()])
-                    .output()
-                    .ok()
-                    .and_then(|o| String::from_utf8(o.stdout).ok())
-                    .unwrap_or_default();
+            // Get size
+            let size_output = Command::new("du")
+                .args(["-sh", &path.to_string_lossy()])
+                .output()
+                .ok()
+                .and_then(|o| String::from_utf8(o.stdout).ok())
+                .unwrap_or_default();
 
-                let size = size_output.split('\t').next().unwrap_or("Unknown");
+            let size = size_output.split('\t').next().unwrap_or("Unknown");
 
-                prefixes.push(format!("📁 {} ({})\n{}", name, size, info));
-            }
+            prefixes.push(format!("📁 {} ({})\n{}", name, size, info));
         }
     }
 
@@ -205,10 +203,8 @@ fn list_prefixes() {
     if Path::new(&lutris_prefixes).exists() {
         println!("\n🎮 Lutris Wine Prefixes:");
         let entries = fs::read_dir(&lutris_prefixes).unwrap();
-        for entry in entries {
-            if let Ok(entry) = entry {
-                println!("  📁 {}", entry.file_name().to_string_lossy());
-            }
+        for entry in entries.flatten() {
+            println!("  📁 {}", entry.file_name().to_string_lossy());
         }
     }
 }
@@ -324,22 +320,20 @@ fn restore_prefix() {
     let entries = fs::read_dir(&backup_dir).unwrap();
     let mut backups = Vec::new();
 
-    for entry in entries {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("gz") {
-                let name = path.file_stem().unwrap().to_string_lossy().to_string();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) == Some("gz") {
+            let name = path.file_stem().unwrap().to_string_lossy().to_string();
 
-                // Read metadata if exists
-                let info_path = format!("{}.info", path.display());
-                let info = if Path::new(&info_path).exists() {
-                    fs::read_to_string(&info_path).unwrap_or_default()
-                } else {
-                    String::new()
-                };
+            // Read metadata if exists
+            let info_path = format!("{}.info", path.display());
+            let info = if Path::new(&info_path).exists() {
+                fs::read_to_string(&info_path).unwrap_or_default()
+            } else {
+                String::new()
+            };
 
-                backups.push((name.clone(), path.to_string_lossy().to_string(), info));
-            }
+            backups.push((name.clone(), path.to_string_lossy().to_string(), info));
         }
     }
 
@@ -577,7 +571,7 @@ fn apply_gaming_optimizations(prefix_path: &str) {
     Command::new("sh").arg("-c").arg(&cmd).status().ok();
 
     // Enable Large Address Aware
-    std::env::set_var("WINE_LARGE_ADDRESS_AWARE", "1");
+    unsafe { std::env::set_var("WINE_LARGE_ADDRESS_AWARE", "1") };
 
     // Disable debugging
     let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Debug' /v RelayExclude /d 'ntdll.RtlEnterCriticalSection;ntdll.RtlLeaveCriticalSection' /f", prefix_path);
@@ -814,8 +808,8 @@ fn setup_multiplayer_game_prefix(prefix_path: &str) {
         .ok();
 
     // Disable Esync/Fsync for compatibility
-    std::env::remove_var("WINEESYNC");
-    std::env::remove_var("WINEFSYNC");
+    unsafe { std::env::remove_var("WINEESYNC") };
+    unsafe { std::env::remove_var("WINEFSYNC") };
 
     println!("⚠️ Note: Anti-cheat support may require additional configuration");
     println!("✅ Multiplayer game prefix configured");
@@ -847,17 +841,15 @@ fn auto_detect_prefixes() {
             if location.contains("compatdata") {
                 // Steam Proton prefixes
                 if let Ok(entries) = fs::read_dir(location) {
-                    for entry in entries {
-                        if let Ok(entry) = entry {
-                            let path = entry.path();
-                            if path.is_dir() {
-                                let pfx_path = format!("{}/pfx", path.display());
-                                if Path::new(&pfx_path).exists() {
-                                    found_prefixes.push(format!(
-                                        "Steam: {}",
-                                        path.file_name().unwrap().to_string_lossy()
-                                    ));
-                                }
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_dir() {
+                            let pfx_path = format!("{}/pfx", path.display());
+                            if Path::new(&pfx_path).exists() {
+                                found_prefixes.push(format!(
+                                    "Steam: {}",
+                                    path.file_name().unwrap().to_string_lossy()
+                                ));
                             }
                         }
                     }
@@ -865,15 +857,13 @@ fn auto_detect_prefixes() {
             } else if location.contains("bottles") {
                 // Bottles prefixes
                 if let Ok(entries) = fs::read_dir(location) {
-                    for entry in entries {
-                        if let Ok(entry) = entry {
-                            let path = entry.path();
-                            if path.is_dir() {
-                                found_prefixes.push(format!(
-                                    "Bottles: {}",
-                                    path.file_name().unwrap().to_string_lossy()
-                                ));
-                            }
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_dir() {
+                            found_prefixes.push(format!(
+                                "Bottles: {}",
+                                path.file_name().unwrap().to_string_lossy()
+                            ));
                         }
                     }
                 }
@@ -882,14 +872,12 @@ fn auto_detect_prefixes() {
                 if Path::new(&format!("{}/drive_c", location)).exists() {
                     found_prefixes.push(location.clone());
                 } else if let Ok(entries) = fs::read_dir(location) {
-                    for entry in entries {
-                        if let Ok(entry) = entry {
-                            let path = entry.path();
-                            if path.is_dir()
-                                && Path::new(&format!("{}/drive_c", path.display())).exists()
-                            {
-                                found_prefixes.push(path.to_string_lossy().to_string());
-                            }
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_dir()
+                            && Path::new(&format!("{}/drive_c", path.display())).exists()
+                        {
+                            found_prefixes.push(path.to_string_lossy().to_string());
                         }
                     }
                 }

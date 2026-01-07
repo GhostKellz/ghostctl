@@ -449,12 +449,11 @@ fn route_table_analysis() {
     if let Ok(uc) = unreachable_check {
         let routes = String::from_utf8_lossy(&uc.stdout);
         for line in routes.lines() {
-            if let Some(network) = line.split_whitespace().next() {
-                if network.contains('/') {
+            if let Some(network) = line.split_whitespace().next()
+                && network.contains('/') {
                     // Extract first IP of network for testing
                     println!("  Testing route to {}...", network);
                 }
-            }
         }
     }
 }
@@ -534,11 +533,10 @@ fn dns_troubleshooting() {
                     .arg(&format!("echo 'google.com' | nslookup - {}", server))
                     .output();
 
-                if let Ok(ns_out) = nslookup {
-                    if ns_out.status.success() {
+                if let Ok(ns_out) = nslookup
+                    && ns_out.status.success() {
                         println!("  ✅ nslookup resolution working");
                     }
-                }
             }
         }
     }
@@ -928,22 +926,19 @@ fn latency_jitter_test() {
         .args(&["-c", "100", "-i", "0.1", &target])
         .output();
 
-    if let Ok(out) = ping_output {
-        if out.status.success() {
+    if let Ok(out) = ping_output
+        && out.status.success() {
             let output_str = String::from_utf8_lossy(&out.stdout);
 
             // Parse ping results for jitter analysis
             let mut rtts = Vec::new();
             for line in output_str.lines() {
-                if line.contains("time=") {
-                    if let Some(time_str) = line.split("time=").nth(1) {
-                        if let Some(rtt_str) = time_str.split_whitespace().next() {
-                            if let Ok(rtt) = rtt_str.parse::<f64>() {
+                if line.contains("time=")
+                    && let Some(time_str) = line.split("time=").nth(1)
+                        && let Some(rtt_str) = time_str.split_whitespace().next()
+                            && let Ok(rtt) = rtt_str.parse::<f64>() {
                                 rtts.push(rtt);
                             }
-                        }
-                    }
-                }
             }
 
             if !rtts.is_empty() {
@@ -977,7 +972,6 @@ fn latency_jitter_test() {
 
             print!("{}", output_str);
         }
-    }
 
     // Traceroute for path analysis
     println!("\n🗺️ Path Analysis (traceroute):");
@@ -988,15 +982,14 @@ fn latency_jitter_test() {
 
     // MTR for continuous monitoring
     let mtr_check = Command::new("which").arg("mtr").status();
-    if let Ok(s) = mtr_check {
-        if s.success() {
+    if let Ok(s) = mtr_check
+        && s.success() {
             println!("\n📈 MTR Analysis (10 cycles):");
             Command::new("mtr")
                 .args(&["-r", "-c", "10", &target])
                 .status()
                 .ok();
         }
-    }
 }
 
 fn continuous_monitoring() {
@@ -1079,8 +1072,8 @@ fn monitor_bandwidth(duration: u64) {
 
     // Use iftop if available
     let iftop_check = Command::new("which").arg("iftop").status();
-    if let Ok(s) = iftop_check {
-        if s.success() {
+    if let Ok(s) = iftop_check
+        && s.success() {
             println!("Using iftop for bandwidth monitoring...");
             Command::new("sudo")
                 .args(&["iftop", "-t", "-s", &duration.to_string()])
@@ -1088,7 +1081,6 @@ fn monitor_bandwidth(duration: u64) {
                 .ok();
             return;
         }
-    }
 
     // Fallback to manual monitoring
     println!("Manual bandwidth monitoring (no iftop found)");

@@ -235,12 +235,12 @@ fn configure_dxvk() {
     match choice {
         0 => {
             println!("📊 Enabling DXVK HUD...");
-            std::env::set_var("DXVK_HUD", "fps,memory,gpuload,version");
+            unsafe { std::env::set_var("DXVK_HUD", "fps,memory,gpuload,version") };
             println!("✅ DXVK HUD enabled with: fps, memory, gpuload, version");
         }
         1 => {
             println!("📊 Disabling DXVK HUD...");
-            std::env::remove_var("DXVK_HUD");
+            unsafe { std::env::remove_var("DXVK_HUD") };
             println!("✅ DXVK HUD disabled");
         }
         2 => {
@@ -252,7 +252,7 @@ fn configure_dxvk() {
                 .unwrap();
 
             let level_str = ["none", "error", "warn", "info", "debug"][level];
-            std::env::set_var("DXVK_LOG_LEVEL", level_str);
+            unsafe { std::env::set_var("DXVK_LOG_LEVEL", level_str) };
             println!("✅ DXVK log level set to: {}", level_str);
         }
         3 => {
@@ -263,10 +263,10 @@ fn configure_dxvk() {
                 .unwrap();
 
             if async_compile {
-                std::env::set_var("DXVK_ASYNC", "1");
+                unsafe { std::env::set_var("DXVK_ASYNC", "1") };
                 println!("✅ Async compilation enabled");
             } else {
-                std::env::remove_var("DXVK_ASYNC");
+                unsafe { std::env::remove_var("DXVK_ASYNC") };
                 println!("✅ Async compilation disabled");
             }
         }
@@ -276,7 +276,7 @@ fn configure_dxvk() {
                 .interact()
                 .unwrap();
 
-            std::env::set_var("DXVK_MEMORY_LIMIT", &memory);
+            unsafe { std::env::set_var("DXVK_MEMORY_LIMIT", &memory) };
             println!("✅ GPU memory limit set to: {} MB", memory);
         }
         5 => {
@@ -287,10 +287,10 @@ fn configure_dxvk() {
                 .unwrap();
 
             if nvapi {
-                std::env::set_var("DXVK_ENABLE_NVAPI", "1");
+                unsafe { std::env::set_var("DXVK_ENABLE_NVAPI", "1") };
                 println!("✅ NVAPI enabled");
             } else {
-                std::env::remove_var("DXVK_ENABLE_NVAPI");
+                unsafe { std::env::remove_var("DXVK_ENABLE_NVAPI") };
                 println!("✅ NVAPI disabled");
             }
         }
@@ -525,14 +525,13 @@ fn install_wine_ge() {
 
             let status = Command::new("sh").arg("-c").arg(download_cmd).status();
 
-            if let Ok(s) = status {
-                if s.success() {
+            if let Ok(s) = status
+                && s.success() {
                     println!("📂 Installing Wine-GE...");
                     let install_cmd = "mkdir -p ~/.local/share/lutris/runners/wine && cd ~/.local/share/lutris/runners/wine && tar -xf /tmp/wine-lutris-GE-Proton8-26-x86_64.tar.xz";
                     Command::new("sh").arg("-c").arg(install_cmd).status().ok();
                     println!("✅ Wine-GE installed");
                 }
-            }
         }
         _ => {}
     }
@@ -756,15 +755,15 @@ fn configure_wine_gaming() {
 
     // Large address aware
     println!("  Enabling Large Address Aware...");
-    std::env::set_var("WINE_LARGE_ADDRESS_AWARE", "1");
+    unsafe { std::env::set_var("WINE_LARGE_ADDRESS_AWARE", "1") };
 
     // Esync
     println!("  Enabling Esync...");
-    std::env::set_var("WINEESYNC", "1");
+    unsafe { std::env::set_var("WINEESYNC", "1") };
 
     // Fsync
     println!("  Enabling Fsync (if supported)...");
-    std::env::set_var("WINEFSYNC", "1");
+    unsafe { std::env::set_var("WINEFSYNC", "1") };
 
     println!("✅ Gaming optimizations applied!");
 }
@@ -936,7 +935,7 @@ fn apply_protonfixes() {
             println!("🔍 Checking for fixes for: {}", game_id);
 
             // Enable protonfixes
-            std::env::set_var("PROTONFIXES_DISABLE", "0");
+            unsafe { std::env::set_var("PROTONFIXES_DISABLE", "0") };
             println!("✅ Protonfixes enabled for the game");
         }
         _ => println!("❌ Failed to install protonfixes"),
@@ -958,58 +957,55 @@ fn custom_game_scripts() {
         .interact()
         .unwrap();
 
-    match choice {
-        0 => {
-            let game_name = Input::<String>::with_theme(&ColorfulTheme::default())
-                .with_prompt("Enter game name")
-                .interact()
-                .unwrap();
+    if choice == 0 {
+        let game_name = Input::<String>::with_theme(&ColorfulTheme::default())
+            .with_prompt("Enter game name")
+            .interact()
+            .unwrap();
 
-            let script_path = format!("{}/Games/scripts/{}.sh", get_home_dir(), game_name);
+        let script_path = format!("{}/Games/scripts/{}.sh", get_home_dir(), game_name);
 
-            println!("📝 Creating launch script: {}", script_path);
+        println!("📝 Creating launch script: {}", script_path);
 
-            let script_content = format!(
-                r#"#!/bin/bash
-# Launch script for {}
+        let script_content = format!(
+            r#"#!/bin/bash
+    # Launch script for {}
 
-# Wine prefix
-export WINEPREFIX="$HOME/Games/prefixes/{}"
+    # Wine prefix
+    export WINEPREFIX="$HOME/Games/prefixes/{}"
 
-# Performance settings
-export __GL_THREADED_OPTIMIZATIONS=1
-export __GL_SHADER_DISK_CACHE=1
-export __GL_SHADER_DISK_CACHE_PATH="$HOME/.cache/shaders"
+    # Performance settings
+    export __GL_THREADED_OPTIMIZATIONS=1
+    export __GL_SHADER_DISK_CACHE=1
+    export __GL_SHADER_DISK_CACHE_PATH="$HOME/.cache/shaders"
 
-# DXVK settings
-export DXVK_HUD=fps
-export DXVK_ASYNC=1
+    # DXVK settings
+    export DXVK_HUD=fps
+    export DXVK_ASYNC=1
 
-# Wine settings
-export WINEESYNC=1
-export WINEFSYNC=1
+    # Wine settings
+    export WINEESYNC=1
+    export WINEFSYNC=1
 
-# Game executable
-GAME_EXE="path/to/game.exe"
+    # Game executable
+    GAME_EXE="path/to/game.exe"
 
-# Launch with gamemode and mangohud
-gamemoderun mangohud wine "$GAME_EXE" "$@"
-"#,
-                game_name, game_name
-            );
+    # Launch with gamemode and mangohud
+    gamemoderun mangohud wine "$GAME_EXE" "$@"
+    "#,
+            game_name, game_name
+        );
 
-            fs::create_dir_all(format!("{}/Games/scripts", get_home_dir())).ok();
-            fs::write(&script_path, script_content).ok();
+        fs::create_dir_all(format!("{}/Games/scripts", get_home_dir())).ok();
+        fs::write(&script_path, script_content).ok();
 
-            // Make executable
-            Command::new("chmod")
-                .args(&["+x", &script_path])
-                .status()
-                .ok();
+        // Make executable
+        Command::new("chmod")
+            .args(&["+x", &script_path])
+            .status()
+            .ok();
 
-            println!("✅ Script created: {}", script_path);
-        }
-        _ => {}
+        println!("✅ Script created: {}", script_path);
     }
 }
 
@@ -1043,7 +1039,7 @@ fn common_game_fixes() {
         0 => {
             println!("🖤 Fixing black screen issues...");
             println!("  Disabling NVAPI...");
-            std::env::set_var("DXVK_NVAPI_DRIVER_VERSION", "0");
+            unsafe { std::env::set_var("DXVK_NVAPI_DRIVER_VERSION", "0") };
             println!("  Setting windowed mode...");
             println!("  Disabling fullscreen optimizations...");
             let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Direct3D' /v ForceWindowedMode /t REG_DWORD /d 1 /f", wine_prefix);
@@ -1056,13 +1052,13 @@ fn common_game_fixes() {
             let cmd = format!("WINEPREFIX={} winetricks -q xinput", wine_prefix);
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
             println!("  Enabling SDL controller support...");
-            std::env::set_var("SDL_GAMECONTROLLERCONFIG", "1");
+            unsafe { std::env::set_var("SDL_GAMECONTROLLERCONFIG", "1") };
             println!("✅ Controller fixes applied");
         }
         2 => {
             println!("🔊 Fixing audio crackling...");
             println!("  Setting pulse latency...");
-            std::env::set_var("PULSE_LATENCY_MSEC", "60");
+            unsafe { std::env::set_var("PULSE_LATENCY_MSEC", "60") };
             println!("  Configuring sample rate...");
             let cmd = format!("WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\DirectSound' /v HelBuflen /t REG_DWORD /d 512 /f", wine_prefix);
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
@@ -1141,7 +1137,7 @@ fn game_specific_configs() {
                 .status()
                 .ok();
             println!("  Disabling Esync for stability...");
-            std::env::remove_var("WINEESYNC");
+            unsafe { std::env::remove_var("WINEESYNC") };
             println!("✅ GTA V configuration applied");
         }
         1 => {
@@ -1160,7 +1156,7 @@ fn game_specific_configs() {
         2 => {
             println!("🤖 Configuring Cyberpunk 2077...");
             println!("  Enabling AVX support...");
-            std::env::set_var("WINE_CPU_TOPOLOGY", "4:2");
+            unsafe { std::env::set_var("WINE_CPU_TOPOLOGY", "4:2") };
             println!("  Installing Visual C++ 2019...");
             Command::new("sh")
                 .arg("-c")
@@ -1175,7 +1171,7 @@ fn game_specific_configs() {
         3 => {
             println!("🤠 Configuring Red Dead Redemption 2...");
             println!("  Setting CPU topology...");
-            std::env::set_var("WINE_CPU_TOPOLOGY", "8:4");
+            unsafe { std::env::set_var("WINE_CPU_TOPOLOGY", "8:4") };
             println!("  Installing dependencies...");
             Command::new("sh")
                 .arg("-c")
@@ -1395,7 +1391,7 @@ fn fsr_dlss_setup() {
         0 => {
             println!("🔴 AMD FSR Setup");
             println!("  Enabling Wine FSR...");
-            std::env::set_var("WINE_FSR", "1");
+            unsafe { std::env::set_var("WINE_FSR", "1") };
 
             let strength = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("FSR strength (0-5, default 2)")
@@ -1403,7 +1399,7 @@ fn fsr_dlss_setup() {
                 .interact()
                 .unwrap();
 
-            std::env::set_var("WINE_FSR_STRENGTH", &strength);
+            unsafe { std::env::set_var("WINE_FSR_STRENGTH", &strength) };
             println!("✅ FSR enabled with strength: {}", strength);
         }
         1 => {
@@ -1892,7 +1888,7 @@ fn configure_cache_settings() {
                 .interact()
                 .unwrap();
 
-            std::env::set_var("MESA_GLSL_CACHE_MAX_SIZE", &format!("{}M", size));
+            unsafe { std::env::set_var("MESA_GLSL_CACHE_MAX_SIZE", &format!("{}M", size)) };
             println!("✅ Cache size limit set to: {} MB", size);
         }
         1 => {
@@ -1903,12 +1899,12 @@ fn configure_cache_settings() {
                 .unwrap();
 
             if enable {
-                std::env::set_var("__GL_SHADER_DISK_CACHE", "1");
-                std::env::set_var("MESA_GLSL_CACHE_DISABLE", "0");
+                unsafe { std::env::set_var("__GL_SHADER_DISK_CACHE", "1") };
+                unsafe { std::env::set_var("MESA_GLSL_CACHE_DISABLE", "0") };
                 println!("✅ Shader cache enabled");
             } else {
-                std::env::set_var("__GL_SHADER_DISK_CACHE", "0");
-                std::env::set_var("MESA_GLSL_CACHE_DISABLE", "1");
+                unsafe { std::env::set_var("__GL_SHADER_DISK_CACHE", "0") };
+                unsafe { std::env::set_var("MESA_GLSL_CACHE_DISABLE", "1") };
                 println!("✅ Shader cache disabled");
             }
         }
@@ -1921,10 +1917,10 @@ fn configure_cache_settings() {
                 .unwrap();
 
             if state_cache {
-                std::env::set_var("DXVK_STATE_CACHE", "1");
+                unsafe { std::env::set_var("DXVK_STATE_CACHE", "1") };
                 println!("✅ DXVK state cache enabled");
             } else {
-                std::env::set_var("DXVK_STATE_CACHE", "0");
+                unsafe { std::env::set_var("DXVK_STATE_CACHE", "0") };
                 println!("✅ DXVK state cache disabled");
             }
         }
@@ -1936,7 +1932,7 @@ fn configure_cache_settings() {
                 .interact()
                 .unwrap();
 
-            std::env::set_var("MESA_GLSL_CACHE_DIR", &path);
+            unsafe { std::env::set_var("MESA_GLSL_CACHE_DIR", &path) };
             println!("✅ Mesa cache directory set to: {}", path);
         }
         _ => {}

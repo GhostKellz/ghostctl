@@ -116,11 +116,10 @@ fn automatic_dependency_resolution() {
     if let Ok(out) = output {
         let result = String::from_utf8_lossy(&out.stdout);
         for line in result.lines() {
-            if line.contains("not found") {
-                if let Some(dll) = line.split_whitespace().next() {
+            if line.contains("not found")
+                && let Some(dll) = line.split_whitespace().next() {
                     missing_dlls.push(dll.to_string());
                 }
-            }
         }
     }
 
@@ -139,11 +138,10 @@ fn automatic_dependency_resolution() {
     let mut packages_to_install = Vec::new();
 
     for dll in &missing_dlls {
-        if let Some(package) = dll_packages.get(dll.as_str()) {
-            if !packages_to_install.contains(package) {
+        if let Some(package) = dll_packages.get(dll.as_str())
+            && !packages_to_install.contains(package) {
                 packages_to_install.push(package.clone());
             }
-        }
     }
 
     if !packages_to_install.is_empty() {
@@ -346,12 +344,10 @@ fn run_batch_script() {
 
     let mut scripts = Vec::new();
     if let Ok(entries) = fs::read_dir(&script_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("sh") {
-                    scripts.push(path.file_name().unwrap().to_string_lossy().to_string());
-                }
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("sh") {
+                scripts.push(path.file_name().unwrap().to_string_lossy().to_string());
             }
         }
     }
@@ -398,12 +394,10 @@ fn edit_batch_script() {
 
     let mut scripts = Vec::new();
     if let Ok(entries) = fs::read_dir(&script_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("sh") {
-                    scripts.push(path.file_name().unwrap().to_string_lossy().to_string());
-                }
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("sh") {
+                scripts.push(path.file_name().unwrap().to_string_lossy().to_string());
             }
         }
     }
@@ -439,12 +433,10 @@ fn delete_batch_script() {
 
     let mut scripts = Vec::new();
     if let Ok(entries) = fs::read_dir(&script_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("sh") {
-                    scripts.push(path.file_name().unwrap().to_string_lossy().to_string());
-                }
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("sh") {
+                scripts.push(path.file_name().unwrap().to_string_lossy().to_string());
             }
         }
     }
@@ -524,12 +516,10 @@ fn export_batch_script() {
 
     let mut scripts = Vec::new();
     if let Ok(entries) = fs::read_dir(&script_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("sh") {
-                    scripts.push(path.file_name().unwrap().to_string_lossy().to_string());
-                }
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("sh") {
+                scripts.push(path.file_name().unwrap().to_string_lossy().to_string());
             }
         }
     }
@@ -802,12 +792,10 @@ fn load_winetricks_profile() {
 
     let mut profiles = Vec::new();
     if let Ok(entries) = fs::read_dir(&profile_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("profile") {
-                    profiles.push(path.file_stem().unwrap().to_string_lossy().to_string());
-                }
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("profile") {
+                profiles.push(path.file_stem().unwrap().to_string_lossy().to_string());
             }
         }
     }
@@ -858,12 +846,10 @@ fn edit_winetricks_profile() {
 
     let mut profiles = Vec::new();
     if let Ok(entries) = fs::read_dir(&profile_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("profile") {
-                    profiles.push(path.file_stem().unwrap().to_string_lossy().to_string());
-                }
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("profile") {
+                profiles.push(path.file_stem().unwrap().to_string_lossy().to_string());
             }
         }
     }
@@ -899,12 +885,10 @@ fn delete_winetricks_profile() {
 
     let mut profiles = Vec::new();
     if let Ok(entries) = fs::read_dir(&profile_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("profile") {
-                    profiles.push(path.file_stem().unwrap().to_string_lossy().to_string());
-                }
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("profile") {
+                profiles.push(path.file_stem().unwrap().to_string_lossy().to_string());
             }
         }
     }
@@ -948,12 +932,10 @@ fn export_winetricks_profile() {
 
     let mut profiles = Vec::new();
     if let Ok(entries) = fs::read_dir(&profile_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("profile") {
-                    profiles.push(path.file_stem().unwrap().to_string_lossy().to_string());
-                }
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("profile") {
+                profiles.push(path.file_stem().unwrap().to_string_lossy().to_string());
             }
         }
     }
@@ -1120,18 +1102,15 @@ fn dependency_analyzer() {
     // Check .NET Framework
     println!("\n📋 .NET Framework:");
     let dotnet_key = format!("{}/drive_c/windows/Microsoft.NET/Framework", wine_prefix);
-    if Path::new(&dotnet_key).exists() {
-        if let Ok(entries) = fs::read_dir(&dotnet_key) {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    if name.starts_with("v") {
-                        println!("  ✅ .NET {}", name);
-                    }
+    if Path::new(&dotnet_key).exists()
+        && let Ok(entries) = fs::read_dir(&dotnet_key) {
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                if name.starts_with("v") {
+                    println!("  ✅ .NET {}", name);
                 }
             }
         }
-    }
 
     // Check fonts
     println!("\n📋 Fonts:");
@@ -1303,30 +1282,28 @@ fn list_wine_bottles() {
     }
 
     if let Ok(entries) = fs::read_dir(&bottles_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.is_dir() {
-                    let name = path.file_name().unwrap().to_string_lossy().to_string();
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                let name = path.file_name().unwrap().to_string_lossy().to_string();
 
-                    // Read metadata
-                    let metadata_path = format!("{}/bottle.json", path.display());
-                    if Path::new(&metadata_path).exists() {
-                        if let Ok(content) = fs::read_to_string(&metadata_path) {
-                            println!("🍾 {}", name);
-                            // Parse and display metadata
-                            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                                if let Some(created) = json.get("created") {
-                                    println!("   Created: {}", created);
-                                }
-                                if let Some(arch) = json.get("arch") {
-                                    println!("   Architecture: {}", arch);
-                                }
+                // Read metadata
+                let metadata_path = format!("{}/bottle.json", path.display());
+                if Path::new(&metadata_path).exists() {
+                    if let Ok(content) = fs::read_to_string(&metadata_path) {
+                        println!("🍾 {}", name);
+                        // Parse and display metadata
+                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                            if let Some(created) = json.get("created") {
+                                println!("   Created: {}", created);
+                            }
+                            if let Some(arch) = json.get("arch") {
+                                println!("   Architecture: {}", arch);
                             }
                         }
-                    } else {
-                        println!("🍾 {} (no metadata)", name);
                     }
+                } else {
+                    println!("🍾 {} (no metadata)", name);
                 }
             }
         }
@@ -1386,12 +1363,11 @@ fn clone_wine_bottle() {
 
             // Update metadata
             let metadata_path = format!("{}/bottle.json", dest_path);
-            if Path::new(&metadata_path).exists() {
-                if let Ok(mut content) = fs::read_to_string(&metadata_path) {
+            if Path::new(&metadata_path).exists()
+                && let Ok(mut content) = fs::read_to_string(&metadata_path) {
                     content = content.replace(&source_name, &dest_name);
                     fs::write(&metadata_path, content).ok();
                 }
-            }
         }
         _ => println!("❌ Failed to clone bottle"),
     }

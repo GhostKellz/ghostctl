@@ -325,7 +325,7 @@ fn image_cleanup() {
                     if let Some(repo) = image.split(':').next() {
                         image_map
                             .entry(repo.to_string())
-                            .or_insert_with(Vec::new)
+                            .or_default()
                             .push(image.to_string());
                     }
                 }
@@ -369,11 +369,10 @@ fn image_cleanup() {
                 {
                     // Parse and remove large images
                     for line in images.lines().skip(1) {
-                        if line.contains("GB") || (line.contains("MB") && !line.contains("MB")) {
-                            if let Some(image) = line.split_whitespace().next() {
+                        if (line.contains("GB") || (line.contains("MB") && !line.contains("MB")))
+                            && let Some(image) = line.split_whitespace().next() {
                                 let _ = Command::new("docker").args(&["rmi", "-f", image]).status();
                             }
-                        }
                     }
                     println!("✅ Removed large images");
                 }

@@ -68,13 +68,11 @@ pub fn find_dotfiles() {
     if let Ok(entries) = fs::read_dir(&home) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if let Some(name) = path.file_name() {
-                if let Some(name_str) = name.to_str() {
-                    if name_str.starts_with('.') && path.is_dir() {
+            if let Some(name) = path.file_name()
+                && let Some(name_str) = name.to_str()
+                    && name_str.starts_with('.') && path.is_dir() {
                         dotfiles.push(path.display().to_string());
                     }
-                }
-            }
         }
     }
 
@@ -293,8 +291,8 @@ pub fn sync_dotfiles() {
         .args(["remote", "-v"])
         .output();
 
-    if let Ok(output) = output {
-        if output.stdout.is_empty() {
+    if let Ok(output) = output
+        && output.stdout.is_empty() {
             println!("⚠️  No remote repository configured.");
             let add_remote = dialoguer::Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Would you like to add a remote?")
@@ -313,7 +311,6 @@ pub fn sync_dotfiles() {
                     .status();
             }
         }
-    }
 
     // Pull latest changes
     println!("⬇️  Pulling latest changes...");

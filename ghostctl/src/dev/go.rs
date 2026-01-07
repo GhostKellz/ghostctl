@@ -180,9 +180,9 @@ fn setup_go_environment() {
     ];
 
     for shell_file in &shell_files {
-        if std::path::Path::new(shell_file).exists() {
-            if let Ok(content) = std::fs::read_to_string(shell_file) {
-                if !content.contains("GOPATH") {
+        if std::path::Path::new(shell_file).exists()
+            && let Ok(content) = std::fs::read_to_string(shell_file)
+                && !content.contains("GOPATH") {
                     let mut file = std::fs::OpenOptions::new()
                         .append(true)
                         .open(shell_file)
@@ -196,8 +196,6 @@ fn setup_go_environment() {
 
                     println!("✅ Added Go environment to {}", shell_file);
                 }
-            }
-        }
     }
 
     // Create GOPATH directory
@@ -245,7 +243,7 @@ fn create_go_module() {
         .interact_text()
         .unwrap();
 
-    let project_name = module_name.split('/').last().unwrap_or("go-project");
+    let project_name = module_name.split('/').next_back().unwrap_or("go-project");
 
     println!("📁 Creating project directory...");
     std::fs::create_dir_all(project_name).unwrap();

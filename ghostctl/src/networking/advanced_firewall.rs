@@ -1301,12 +1301,10 @@ fn restore_ruleset() {
 
     let mut backups = Vec::new();
     if let Ok(entries) = fs::read_dir(&backup_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("nft") {
-                    backups.push(path.file_stem().unwrap().to_string_lossy().to_string());
-                }
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("nft") {
+                backups.push(path.file_stem().unwrap().to_string_lossy().to_string());
             }
         }
     }
@@ -1381,19 +1379,17 @@ fn list_backups() {
     }
 
     if let Ok(entries) = fs::read_dir(&backup_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("nft") {
-                    let name = path.file_name().unwrap().to_string_lossy();
-                    let metadata = fs::metadata(&path).ok();
-                    let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
-                    let modified = metadata.and_then(|m| m.modified().ok());
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("nft") {
+                let name = path.file_name().unwrap().to_string_lossy();
+                let metadata = fs::metadata(&path).ok();
+                let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
+                let modified = metadata.and_then(|m| m.modified().ok());
 
-                    println!("  📁 {} ({} bytes)", name, size);
-                    if let Some(time) = modified {
-                        println!("     Modified: {:?}", time);
-                    }
+                println!("  📁 {} ({} bytes)", name, size);
+                if let Some(time) = modified {
+                    println!("     Modified: {:?}", time);
                 }
             }
         }
@@ -1415,12 +1411,10 @@ fn delete_backup() {
 
     let mut backups = Vec::new();
     if let Ok(entries) = fs::read_dir(&backup_dir) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("nft") {
-                    backups.push(path.file_name().unwrap().to_string_lossy().to_string());
-                }
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("nft") {
+                backups.push(path.file_name().unwrap().to_string_lossy().to_string());
             }
         }
     }

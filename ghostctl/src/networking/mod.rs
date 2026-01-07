@@ -3,6 +3,7 @@ pub mod advanced_scanner;
 pub mod bridge_management;
 pub mod enterprise_networking;
 pub mod firewall;
+pub mod hw_offload;
 pub mod libvirt_advanced;
 pub mod nftables_enterprise;
 pub mod scanner;
@@ -23,6 +24,7 @@ pub fn networking_menu() {
             "🌉 Linux Bridge Management",
             "🔧 Network Troubleshooting",
             "🖥️ Virtualization Networking",
+            "⚡ Hardware Offload Settings",
             "📊 Network Status",
             "⬅️ Back",
         ];
@@ -44,7 +46,8 @@ pub fn networking_menu() {
             6 => bridge_management::bridge_management_menu(),
             7 => troubleshoot::troubleshoot_menu(),
             8 => virtualization::virtualization_menu(),
-            9 => network_status(),
+            9 => hw_offload::offload_menu(),
+            10 => network_status(),
             _ => break,
         }
     }
@@ -95,8 +98,8 @@ fn network_status() {
         .args(&["ufw", "status"])
         .output();
 
-    if let Ok(out) = ufw {
-        if out.status.success() {
+    if let Ok(out) = ufw
+        && out.status.success() {
             let status_str = String::from_utf8_lossy(&out.stdout);
             if status_str.contains("Status: active") {
                 println!("  ✅ UFW is active");
@@ -104,7 +107,6 @@ fn network_status() {
                 println!("  ⭕ UFW is inactive");
             }
         }
-    }
 
     // Check firewalld
     let firewalld = std::process::Command::new("systemctl")
@@ -123,15 +125,14 @@ fn network_status() {
         .args(&["iptables", "-L", "-n"])
         .output();
 
-    if let Ok(out) = iptables {
-        if out.status.success() {
+    if let Ok(out) = iptables
+        && out.status.success() {
             let rules = String::from_utf8_lossy(&out.stdout);
             let rule_count = rules.lines().count();
             if rule_count > 10 {
                 println!("  ✅ iptables has {} rules configured", rule_count);
             }
         }
-    }
 
     // Check NetworkManager
     println!("\n📡 NetworkManager Status:");
