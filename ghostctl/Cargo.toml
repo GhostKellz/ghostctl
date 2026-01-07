@@ -43,8 +43,10 @@ indicatif = "0.17"
 rayon = "1.10"
 sha2 = "0.10.9"
 libc = "0.2.179"
-bluer = { version = "0.17", features = ["bluetoothd"] }
 futures = "0.3"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+bluer = { version = "0.17", features = ["bluetoothd"] }
 
 # Optional dependencies
 keyring = { version = "2", optional = true }

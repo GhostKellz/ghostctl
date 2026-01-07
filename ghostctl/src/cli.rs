@@ -1344,6 +1344,7 @@ fn handle_security_commands(matches: &ArgMatches) {
     }
 }
 
+#[cfg(target_os = "linux")]
 fn handle_bluetooth_commands(matches: &ArgMatches) {
     match matches.subcommand() {
         Some(("menu", _)) => bluetooth::bluetooth_menu(),
@@ -1368,6 +1369,11 @@ fn handle_bluetooth_commands(matches: &ArgMatches) {
         None => bluetooth::bluetooth_menu(),
         _ => bluetooth::bluetooth_menu(),
     }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn handle_bluetooth_commands(_matches: &ArgMatches) {
+    crate::tui::error("Bluetooth management is only available on Linux (requires BlueZ D-Bus)");
 }
 
 fn handle_wifi_commands(matches: &ArgMatches) {

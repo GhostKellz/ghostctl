@@ -11,6 +11,7 @@
 
 mod arch;
 mod backup;
+#[cfg(target_os = "linux")]
 mod bluetooth;
 mod btrfs;
 mod cli;
