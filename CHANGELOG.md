@@ -2,6 +2,32 @@
 
 All notable changes to GhostCTL will be documented in this file.
 
+## [0.9.7] - 2026-03-29
+
+### 🔧 CI/CD Improvements
+
+- **rust-toolchain action**: Fixed CI workflow using incorrect action name (`rust-action` → `rust-toolchain`)
+- **rust-cache update**: Updated `Swatinem/rust-cache` from v2.7.3 to v2.9.1 for Rust 2024 Cargo.lock format support
+
+### 🧹 Code Quality
+
+- **Clippy compliance**: Resolved all 155+ clippy warnings with `-D warnings` flag
+  - Converted `loop`/`match` patterns to idiomatic `while let` loops (8 instances)
+  - Replaced `if let Err(_)` with `.is_err()` for cleaner error checks
+  - Fixed no-effect `replace()` call (replacing ':' with ':')
+  - Used `strip_prefix()` instead of manual string slicing
+  - Fixed struct field assignment outside initializer
+  - Removed always-true `u32::MAX` comparison
+- **Formatting**: Applied `cargo fmt` across entire codebase (52 files)
+
+### 📦 Build
+
+- All changes verified locally before push:
+  - `cargo fmt --check` ✓
+  - `cargo clippy --release -- -D warnings` ✓
+  - `cargo build --release` ✓
+  - `cargo test` (370 tests passed) ✓
+
 ## [0.9.6] - 2026-03-28
 
 ### 🛡️ Security Hardening
