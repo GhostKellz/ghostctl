@@ -1,7 +1,139 @@
+use crate::security::validation::{ValidatedCidr, ValidatedIpAddress, ValidatedPort};
 use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
+
+/// Validate an nftables identifier (table name, chain name, set name)
+/// Must be alphanumeric with underscore, starting with letter or underscore
+fn validate_nft_identifier(input: &str) -> Result<String, String> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return Err("Identifier cannot be empty".to_string());
+    }
+    if trimmed.len() > 64 {
+        return Err("Identifier too long (max 64 characters)".to_string());
+    }
+
+    // Must start with letter or underscore
+    // Safe: we already checked for empty string above
+    let Some(first_char) = trimmed.chars().next() else {
+        return Err("Identifier cannot be empty".to_string());
+    };
+    if !first_char.is_ascii_alphabetic() && first_char != '_' {
+        return Err("Identifier must start with a letter or underscore".to_string());
+    }
+
+    // Rest must be alphanumeric or underscore
+    if !trimmed
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_')
+    {
+        return Err("Identifier must contain only letters, numbers, and underscores".to_string());
+    }
+
+    Ok(trimmed.to_string())
+}
+
+/// Validate a rate limit string (e.g., "10/second", "100/minute")
+fn validate_rate_limit(input: &str) -> Result<String, String> {
+    let trimmed = input.trim();
+    let parts: Vec<&str> = trimmed.split('/').collect();
+    if parts.len() != 2 {
+        return Err("Rate must be in format: number/unit (e.g., 10/second)".to_string());
+    }
+
+    let number: u32 = parts[0]
+        .parse()
+        .map_err(|_| "Rate number must be a positive integer")?;
+    if number == 0 {
+        return Err("Rate number must be greater than 0".to_string());
+    }
+
+    let valid_units = ["second", "minute", "hour", "day"];
+    if !valid_units.contains(&parts[1]) {
+        return Err(format!(
+            "Rate unit must be one of: {}",
+            valid_units.join(", ")
+        ));
+    }
+
+    Ok(trimmed.to_string())
+}
+
+/// Validate a burst value (positive integer)
+fn validate_burst(input: &str) -> Result<u32, String> {
+    let trimmed = input.trim();
+    let value: u32 = trimmed
+        .parse()
+        .map_err(|_| "Burst must be a positive integer")?;
+    if value == 0 {
+        return Err("Burst must be greater than 0".to_string());
+    }
+    Ok(value)
+}
+
+/// Validate a log prefix (no shell metacharacters, reasonable length)
+fn validate_log_prefix(input: &str) -> Result<String, String> {
+    let trimmed = input.trim();
+    if trimmed.len() > 64 {
+        return Err("Log prefix too long (max 64 characters)".to_string());
+    }
+
+    // Only allow safe characters in log prefix
+    let dangerous = [
+        ';', '|', '&', '$', '`', '(', ')', '{', '}', '<', '>', '\\', '\n', '\r',
+    ];
+    if trimmed.chars().any(|c| dangerous.contains(&c)) {
+        return Err("Log prefix contains invalid characters".to_string());
+    }
+
+    Ok(trimmed.to_string())
+}
+
+/// Validate a timeout string (e.g., "30s", "5m", "1h")
+fn validate_timeout(input: &str) -> Result<String, String> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return Err("Timeout cannot be empty".to_string());
+    }
+
+    // Must be number followed by unit
+    let len = trimmed.len();
+    if len < 2 {
+        return Err("Timeout must be in format: number+unit (e.g., 30s, 5m, 1h)".to_string());
+    }
+
+    let (number_part, unit) = trimmed.split_at(len - 1);
+    let _number: u32 = number_part
+        .parse()
+        .map_err(|_| "Timeout must start with a positive integer")?;
+
+    let valid_units = ['s', 'm', 'h', 'd'];
+    let Some(unit_char) = unit.chars().next() else {
+        return Err("Timeout must include a unit (s, m, h, d)".to_string());
+    };
+    if !valid_units.contains(&unit_char) {
+        return Err(
+            "Timeout unit must be s (seconds), m (minutes), h (hours), or d (days)".to_string(),
+        );
+    }
+
+    Ok(trimmed.to_string())
+}
+
+/// Validate a position number
+fn validate_position(input: &str) -> Result<Option<u32>, String> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+
+    let value: u32 = trimmed
+        .parse()
+        .map_err(|_| "Position must be a positive integer")?;
+    Ok(Some(value))
+}
 
 pub fn advanced_firewall_menu() {
     loop {
@@ -19,12 +151,15 @@ pub fn advanced_firewall_menu() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let choice = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🔥 Advanced Firewall & Networking")
             .items(&options)
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            Ok(None) | Err(_) => break,
+        };
 
         match choice {
             0 => advanced_nftables_management(),
@@ -58,12 +193,15 @@ fn advanced_nftables_management() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let choice = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🚀 Advanced nftables Management")
             .items(&options)
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            Ok(None) | Err(_) => break,
+        };
 
         match choice {
             0 => nftables_rule_builder(),
@@ -84,19 +222,43 @@ fn advanced_nftables_management() {
 fn nftables_rule_builder() {
     println!("🔧 nftables Rule Builder");
 
-    let table_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let table_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter table name")
         .default("filter".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
-    let chain_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate table name
+    let table_name = match validate_nft_identifier(&table_input) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("❌ Invalid table name: {}", e);
+            return;
+        }
+    };
+
+    let chain_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter chain name")
         .default("input".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
-    let rule_type = Select::with_theme(&ColorfulTheme::default())
+    // Validate chain name
+    let chain_name = match validate_nft_identifier(&chain_input) {
+        Ok(c) => c,
+        Err(e) => {
+            println!("❌ Invalid chain name: {}", e);
+            return;
+        }
+    };
+
+    let rule_type = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select rule type")
         .items(&[
             "Allow port",
@@ -106,189 +268,401 @@ fn nftables_rule_builder() {
             "NAT rule",
             "Jump to chain",
             "Log and drop",
-            "Custom expression",
         ])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(r)) => r,
+        Ok(None) | Err(_) => return,
+    };
 
-    let mut rule = String::new();
+    // Build rule parts as a vector for safe command construction
+    let mut rule_parts: Vec<String> = Vec::new();
 
     match rule_type {
         0 => {
             // Allow port
-            let port = Input::<String>::with_theme(&ColorfulTheme::default())
+            let port_input: String = match Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter port number")
                 .interact()
-                .unwrap();
+            {
+                Ok(p) => p,
+                Err(_) => return,
+            };
 
-            let protocol = Select::with_theme(&ColorfulTheme::default())
+            // Validate port
+            let validated_port = match ValidatedPort::from_input(&port_input) {
+                Ok(p) => p,
+                Err(e) => {
+                    println!("❌ Invalid port: {}", e);
+                    return;
+                }
+            };
+
+            let protocol = match Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select protocol")
                 .items(&["tcp", "udp", "both"])
                 .default(0)
-                .interact()
-                .unwrap();
-
-            let proto_str = match protocol {
-                0 => "tcp",
-                1 => "udp",
-                _ => "{ tcp, udp }",
+                .interact_opt()
+            {
+                Ok(Some(p)) => p,
+                Ok(None) | Err(_) => return,
             };
 
-            rule = format!("{} dport {} accept", proto_str, port);
+            match protocol {
+                0 => {
+                    rule_parts.push("tcp".to_string());
+                    rule_parts.push("dport".to_string());
+                    rule_parts.push(validated_port.to_string());
+                    rule_parts.push("accept".to_string());
+                }
+                1 => {
+                    rule_parts.push("udp".to_string());
+                    rule_parts.push("dport".to_string());
+                    rule_parts.push(validated_port.to_string());
+                    rule_parts.push("accept".to_string());
+                }
+                _ => {
+                    // Both protocols - need special nft syntax
+                    rule_parts.push("meta".to_string());
+                    rule_parts.push("l4proto".to_string());
+                    rule_parts.push("{".to_string());
+                    rule_parts.push("tcp,".to_string());
+                    rule_parts.push("udp".to_string());
+                    rule_parts.push("}".to_string());
+                    rule_parts.push("th".to_string());
+                    rule_parts.push("dport".to_string());
+                    rule_parts.push(validated_port.to_string());
+                    rule_parts.push("accept".to_string());
+                }
+            }
         }
         1 => {
             // Block IP/subnet
-            let ip = Input::<String>::with_theme(&ColorfulTheme::default())
+            let ip_input: String = match Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter IP or subnet (e.g., 192.168.1.0/24)")
                 .interact()
-                .unwrap();
+            {
+                Ok(i) => i,
+                Err(_) => return,
+            };
 
-            let action = Select::with_theme(&ColorfulTheme::default())
+            // Validate IP or CIDR
+            let validated_ip = if ip_input.contains('/') {
+                match ValidatedCidr::from_input(&ip_input) {
+                    Ok(c) => c.value().to_string(),
+                    Err(e) => {
+                        println!("❌ Invalid CIDR: {}", e);
+                        return;
+                    }
+                }
+            } else {
+                match ValidatedIpAddress::from_input(&ip_input) {
+                    Ok(ip) => ip.value().to_string(),
+                    Err(e) => {
+                        println!("❌ Invalid IP address: {}", e);
+                        return;
+                    }
+                }
+            };
+
+            let action = match Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select action")
                 .items(&["drop", "reject"])
                 .default(0)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(a)) => a,
+                Ok(None) | Err(_) => return,
+            };
 
             let action_str = if action == 0 { "drop" } else { "reject" };
 
-            rule = format!("ip saddr {} {}", ip, action_str);
+            rule_parts.push("ip".to_string());
+            rule_parts.push("saddr".to_string());
+            rule_parts.push(validated_ip);
+            rule_parts.push(action_str.to_string());
         }
         2 => {
             // Rate limit
-            let rate = Input::<String>::with_theme(&ColorfulTheme::default())
+            let rate_input: String = match Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter rate (e.g., 10/second, 100/minute)")
                 .default("10/second".to_string())
                 .interact()
-                .unwrap();
+            {
+                Ok(r) => r,
+                Err(_) => return,
+            };
 
-            let burst = Input::<String>::with_theme(&ColorfulTheme::default())
+            // Validate rate
+            let validated_rate = match validate_rate_limit(&rate_input) {
+                Ok(r) => r,
+                Err(e) => {
+                    println!("❌ Invalid rate: {}", e);
+                    return;
+                }
+            };
+
+            let burst_input: String = match Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter burst limit")
                 .default("5".to_string())
                 .interact()
-                .unwrap();
+            {
+                Ok(b) => b,
+                Err(_) => return,
+            };
 
-            rule = format!("limit rate {} burst {} packets accept", rate, burst);
+            // Validate burst
+            let validated_burst = match validate_burst(&burst_input) {
+                Ok(b) => b,
+                Err(e) => {
+                    println!("❌ Invalid burst: {}", e);
+                    return;
+                }
+            };
+
+            rule_parts.push("limit".to_string());
+            rule_parts.push("rate".to_string());
+            rule_parts.push(validated_rate);
+            rule_parts.push("burst".to_string());
+            rule_parts.push(validated_burst.to_string());
+            rule_parts.push("packets".to_string());
+            rule_parts.push("accept".to_string());
         }
         3 => {
             // Connection tracking
             let states = vec!["new", "established", "related", "invalid"];
-            let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+            let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select connection states")
                 .items(&states)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(s)) => s,
+                Ok(None) | Err(_) => return,
+            };
 
-            let mut state_list = Vec::new();
-            for idx in selected {
-                state_list.push(states[idx]);
+            if selected.is_empty() {
+                println!("❌ No states selected");
+                return;
             }
 
-            let action = Select::with_theme(&ColorfulTheme::default())
+            let state_list: Vec<&str> = selected.iter().map(|&i| states[i]).collect();
+
+            let action = match Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select action")
                 .items(&["accept", "drop", "reject"])
                 .default(0)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(a)) => a,
+                Ok(None) | Err(_) => return,
+            };
 
             let action_str = ["accept", "drop", "reject"][action];
 
-            rule = format!("ct state {{ {} }} {}", state_list.join(", "), action_str);
+            rule_parts.push("ct".to_string());
+            rule_parts.push("state".to_string());
+            rule_parts.push("{".to_string());
+            rule_parts.push(state_list.join(", "));
+            rule_parts.push("}".to_string());
+            rule_parts.push(action_str.to_string());
         }
         4 => {
             // NAT rule
-            let nat_type = Select::with_theme(&ColorfulTheme::default())
+            let nat_type = match Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select NAT type")
                 .items(&["SNAT", "DNAT", "MASQUERADE"])
                 .default(0)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(n)) => n,
+                Ok(None) | Err(_) => return,
+            };
 
             match nat_type {
                 0 => {
-                    let ip = Input::<String>::with_theme(&ColorfulTheme::default())
+                    let ip_input: String = match Input::with_theme(&ColorfulTheme::default())
                         .with_prompt("Enter source IP")
                         .interact()
-                        .unwrap();
-                    rule = format!("snat to {}", ip);
+                    {
+                        Ok(i) => i,
+                        Err(_) => return,
+                    };
+
+                    // Validate IP
+                    let validated_ip = match ValidatedIpAddress::from_input(&ip_input) {
+                        Ok(ip) => ip.value().to_string(),
+                        Err(e) => {
+                            println!("❌ Invalid IP address: {}", e);
+                            return;
+                        }
+                    };
+
+                    rule_parts.push("snat".to_string());
+                    rule_parts.push("to".to_string());
+                    rule_parts.push(validated_ip);
                 }
                 1 => {
-                    let ip = Input::<String>::with_theme(&ColorfulTheme::default())
-                        .with_prompt("Enter destination IP:port")
+                    let ip_input: String = match Input::with_theme(&ColorfulTheme::default())
+                        .with_prompt("Enter destination IP")
                         .interact()
-                        .unwrap();
-                    rule = format!("dnat to {}", ip);
+                    {
+                        Ok(i) => i,
+                        Err(_) => return,
+                    };
+
+                    // Validate IP
+                    let validated_ip = match ValidatedIpAddress::from_input(&ip_input) {
+                        Ok(ip) => ip.value().to_string(),
+                        Err(e) => {
+                            println!("❌ Invalid IP address: {}", e);
+                            return;
+                        }
+                    };
+
+                    let port_input: String = match Input::with_theme(&ColorfulTheme::default())
+                        .with_prompt("Enter destination port (or press Enter to skip)")
+                        .allow_empty(true)
+                        .interact()
+                    {
+                        Ok(p) => p,
+                        Err(_) => return,
+                    };
+
+                    rule_parts.push("dnat".to_string());
+                    rule_parts.push("to".to_string());
+
+                    if port_input.is_empty() {
+                        rule_parts.push(validated_ip);
+                    } else {
+                        // Validate port
+                        let validated_port = match ValidatedPort::from_input(&port_input) {
+                            Ok(p) => p,
+                            Err(e) => {
+                                println!("❌ Invalid port: {}", e);
+                                return;
+                            }
+                        };
+                        rule_parts.push(format!("{}:{}", validated_ip, validated_port));
+                    }
                 }
                 2 => {
-                    rule = "masquerade".to_string();
+                    rule_parts.push("masquerade".to_string());
                 }
                 _ => {}
             }
         }
         5 => {
             // Jump to chain
-            let target_chain = Input::<String>::with_theme(&ColorfulTheme::default())
+            let target_input: String = match Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter target chain name")
                 .interact()
-                .unwrap();
+            {
+                Ok(t) => t,
+                Err(_) => return,
+            };
 
-            rule = format!("jump {}", target_chain);
+            // Validate chain name
+            let target_chain = match validate_nft_identifier(&target_input) {
+                Ok(c) => c,
+                Err(e) => {
+                    println!("❌ Invalid chain name: {}", e);
+                    return;
+                }
+            };
+
+            rule_parts.push("jump".to_string());
+            rule_parts.push(target_chain);
         }
         6 => {
             // Log and drop
-            let prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+            let prefix_input: String = match Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter log prefix")
                 .default("DROPPED: ".to_string())
                 .interact()
-                .unwrap();
+            {
+                Ok(p) => p,
+                Err(_) => return,
+            };
 
-            rule = format!("log prefix \"{}\" drop", prefix);
-        }
-        7 => {
-            // Custom expression
-            rule = Input::<String>::with_theme(&ColorfulTheme::default())
-                .with_prompt("Enter custom nftables expression")
-                .interact()
-                .unwrap();
+            // Validate log prefix
+            let validated_prefix = match validate_log_prefix(&prefix_input) {
+                Ok(p) => p,
+                Err(e) => {
+                    println!("❌ Invalid log prefix: {}", e);
+                    return;
+                }
+            };
+
+            rule_parts.push("log".to_string());
+            rule_parts.push("prefix".to_string());
+            rule_parts.push(format!("\"{}\"", validated_prefix));
+            rule_parts.push("drop".to_string());
         }
         _ => {}
     }
 
-    if !rule.is_empty() {
-        let position = Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Enter rule position (or press Enter for end)")
-            .allow_empty(true)
-            .interact()
-            .unwrap();
+    if rule_parts.is_empty() {
+        println!("❌ No rule components specified");
+        return;
+    }
 
-        let position_str = if position.is_empty() {
-            String::new()
-        } else {
-            format!("position {}", position)
-        };
+    let position_input: String = match Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("Enter rule position (or press Enter for end)")
+        .allow_empty(true)
+        .interact()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
-        let full_command = format!(
-            "sudo nft add rule {} {} {} {}",
-            table_name, chain_name, position_str, rule
-        );
+    // Validate position
+    let position = match validate_position(&position_input) {
+        Ok(p) => p,
+        Err(e) => {
+            println!("❌ Invalid position: {}", e);
+            return;
+        }
+    };
 
-        println!("\n📋 Generated rule:");
-        println!("{}", full_command);
+    // Build command args safely (no shell)
+    let mut args: Vec<String> = vec![
+        "nft".to_string(),
+        "add".to_string(),
+        "rule".to_string(),
+        table_name.clone(),
+        chain_name.clone(),
+    ];
 
-        let execute = Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Execute this rule?")
-            .default(true)
-            .interact()
-            .unwrap();
+    if let Some(pos) = position {
+        args.push("position".to_string());
+        args.push(pos.to_string());
+    }
 
-        if execute {
-            let status = Command::new("sh").arg("-c").arg(&full_command).status();
+    args.extend(rule_parts.clone());
 
-            match status {
-                Ok(s) if s.success() => println!("✅ Rule added successfully"),
-                _ => println!("❌ Failed to add rule"),
-            }
+    // Display command for user review
+    println!("\n📋 Generated rule:");
+    println!("sudo {}", args.join(" "));
+
+    let execute = match Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt("Execute this rule?")
+        .default(true)
+        .interact_opt()
+    {
+        Ok(Some(e)) => e,
+        Ok(None) | Err(_) => return,
+    };
+
+    if execute {
+        let args_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+
+        let status = Command::new("sudo").args(&args_refs).status();
+
+        match status {
+            Ok(s) if s.success() => println!("✅ Rule added successfully"),
+            Ok(s) => println!("❌ Failed to add rule (exit code: {:?})", s.code()),
+            Err(e) => println!("❌ Failed to execute command: {}", e),
         }
     }
 }
@@ -307,12 +681,15 @@ fn nftables_set_management() {
         "Export set to file",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Set management options")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => create_nftables_set(),
@@ -330,18 +707,42 @@ fn nftables_set_management() {
 fn create_nftables_set() {
     println!("📦 Create nftables Set");
 
-    let table = Input::<String>::with_theme(&ColorfulTheme::default())
+    let table_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter table name")
         .default("filter".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
-    let set_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate table name
+    let table = match validate_nft_identifier(&table_input) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("❌ Invalid table name: {}", e);
+            return;
+        }
+    };
+
+    let set_name_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter set name")
         .interact()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
-    let set_type = Select::with_theme(&ColorfulTheme::default())
+    // Validate set name
+    let set_name = match validate_nft_identifier(&set_name_input) {
+        Ok(s) => s,
+        Err(e) => {
+            println!("❌ Invalid set name: {}", e);
+            return;
+        }
+    };
+
+    let set_type = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select set type")
         .items(&[
             "ipv4_addr",
@@ -352,8 +753,11 @@ fn create_nftables_set() {
             "mark",
         ])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(t)) => t,
+        Ok(None) | Err(_) => return,
+    };
 
     let type_str = [
         "ipv4_addr",
@@ -364,154 +768,320 @@ fn create_nftables_set() {
         "mark",
     ][set_type];
 
-    let flags = MultiSelect::with_theme(&ColorfulTheme::default())
+    let flags = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select flags (optional)")
         .items(&["interval", "timeout", "constant", "dynamic"])
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(f)) => f,
+        Ok(None) | Err(_) => return,
+    };
 
-    let mut flags_str = String::new();
+    // Build the set specification
+    let mut set_spec = format!("{{ type {};", type_str);
     if !flags.is_empty() {
         let flag_names: Vec<&str> = flags
             .iter()
             .map(|&i| ["interval", "timeout", "constant", "dynamic"][i])
             .collect();
-        flags_str = format!("flags {}", flag_names.join(", "));
+        set_spec.push_str(&format!(" flags {};", flag_names.join(", ")));
     }
+    set_spec.push_str(" }");
 
-    let cmd = format!(
-        "sudo nft add set {} {} {{ type {}; {}; }}",
-        table, set_name, type_str, flags_str
-    );
+    // Build command using direct args (no shell)
+    println!("📋 Creating set: {} in table {}", set_name, table);
 
-    println!("📋 Command: {}", cmd);
-
-    let status = Command::new("sh").arg("-c").arg(&cmd).status();
+    let status = Command::new("sudo")
+        .args(["nft", "add", "set", &table, &set_name, &set_spec])
+        .status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Set created: {}", set_name),
-        _ => println!("❌ Failed to create set"),
+        Ok(s) => println!("❌ Failed to create set (exit code: {:?})", s.code()),
+        Err(e) => println!("❌ Failed to execute command: {}", e),
     }
 }
 
 fn add_to_set() {
     println!("➕ Add Elements to Set");
 
-    let table = Input::<String>::with_theme(&ColorfulTheme::default())
+    let table_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter table name")
         .default("filter".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
-    let set_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate table name
+    let table = match validate_nft_identifier(&table_input) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("❌ Invalid table name: {}", e);
+            return;
+        }
+    };
+
+    let set_name_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter set name")
         .interact()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
-    let elements = Input::<String>::with_theme(&ColorfulTheme::default())
-        .with_prompt("Enter elements (comma-separated)")
+    // Validate set name
+    let set_name = match validate_nft_identifier(&set_name_input) {
+        Ok(s) => s,
+        Err(e) => {
+            println!("❌ Invalid set name: {}", e);
+            return;
+        }
+    };
+
+    let elements: String = match Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("Enter elements (comma-separated IPs or values)")
         .interact()
-        .unwrap();
+    {
+        Ok(e) => e,
+        Err(_) => return,
+    };
 
-    let element_list: Vec<&str> = elements.split(',').map(|s| s.trim()).collect();
-    let elements_str = element_list.join(", ");
+    // Validate each element (assuming IP addresses for now)
+    let mut validated_elements: Vec<String> = Vec::new();
+    for element in elements.split(',').map(|s| s.trim()) {
+        if element.is_empty() {
+            continue;
+        }
+        // Try to validate as IP or CIDR
+        if element.contains('/') {
+            match ValidatedCidr::from_input(element) {
+                Ok(c) => validated_elements.push(c.value().to_string()),
+                Err(e) => {
+                    println!("❌ Invalid CIDR '{}': {}", element, e);
+                    return;
+                }
+            }
+        } else if element.contains('.') || element.contains(':') {
+            match ValidatedIpAddress::from_input(element) {
+                Ok(ip) => validated_elements.push(ip.value().to_string()),
+                Err(e) => {
+                    println!("❌ Invalid IP '{}': {}", element, e);
+                    return;
+                }
+            }
+        } else {
+            // Could be a port or other numeric value
+            if let Ok(port) = ValidatedPort::from_input(element) {
+                validated_elements.push(port.to_string());
+            } else {
+                println!(
+                    "❌ Invalid element '{}': must be IP, CIDR, or port",
+                    element
+                );
+                return;
+            }
+        }
+    }
 
-    let cmd = format!(
-        "sudo nft add element {} {} {{ {} }}",
-        table, set_name, elements_str
-    );
+    if validated_elements.is_empty() {
+        println!("❌ No valid elements provided");
+        return;
+    }
 
-    let status = Command::new("sh").arg("-c").arg(&cmd).status();
+    let elements_str = format!("{{ {} }}", validated_elements.join(", "));
+
+    let status = Command::new("sudo")
+        .args(["nft", "add", "element", &table, &set_name, &elements_str])
+        .status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Elements added to set"),
-        _ => println!("❌ Failed to add elements"),
+        Ok(s) => println!("❌ Failed to add elements (exit code: {:?})", s.code()),
+        Err(e) => println!("❌ Failed to execute command: {}", e),
     }
 }
 
 fn remove_from_set() {
     println!("➖ Remove Elements from Set");
 
-    let table = Input::<String>::with_theme(&ColorfulTheme::default())
+    let table_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter table name")
         .default("filter".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
-    let set_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate table name
+    let table = match validate_nft_identifier(&table_input) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("❌ Invalid table name: {}", e);
+            return;
+        }
+    };
+
+    let set_name_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter set name")
         .interact()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
-    let elements = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate set name
+    let set_name = match validate_nft_identifier(&set_name_input) {
+        Ok(s) => s,
+        Err(e) => {
+            println!("❌ Invalid set name: {}", e);
+            return;
+        }
+    };
+
+    let elements: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter elements to remove (comma-separated)")
         .interact()
-        .unwrap();
+    {
+        Ok(e) => e,
+        Err(_) => return,
+    };
 
-    let element_list: Vec<&str> = elements.split(',').map(|s| s.trim()).collect();
-    let elements_str = element_list.join(", ");
+    // Validate each element (same as add_to_set)
+    let mut validated_elements: Vec<String> = Vec::new();
+    for element in elements.split(',').map(|s| s.trim()) {
+        if element.is_empty() {
+            continue;
+        }
+        if element.contains('/') {
+            match ValidatedCidr::from_input(element) {
+                Ok(c) => validated_elements.push(c.value().to_string()),
+                Err(e) => {
+                    println!("❌ Invalid CIDR '{}': {}", element, e);
+                    return;
+                }
+            }
+        } else if element.contains('.') || element.contains(':') {
+            match ValidatedIpAddress::from_input(element) {
+                Ok(ip) => validated_elements.push(ip.value().to_string()),
+                Err(e) => {
+                    println!("❌ Invalid IP '{}': {}", element, e);
+                    return;
+                }
+            }
+        } else if let Ok(port) = ValidatedPort::from_input(element) {
+            validated_elements.push(port.to_string());
+        } else {
+            println!(
+                "❌ Invalid element '{}': must be IP, CIDR, or port",
+                element
+            );
+            return;
+        }
+    }
 
-    let cmd = format!(
-        "sudo nft delete element {} {} {{ {} }}",
-        table, set_name, elements_str
-    );
+    if validated_elements.is_empty() {
+        println!("❌ No valid elements provided");
+        return;
+    }
 
-    let status = Command::new("sh").arg("-c").arg(&cmd).status();
+    let elements_str = format!("{{ {} }}", validated_elements.join(", "));
+
+    let status = Command::new("sudo")
+        .args(["nft", "delete", "element", &table, &set_name, &elements_str])
+        .status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Elements removed from set"),
-        _ => println!("❌ Failed to remove elements"),
+        Ok(s) => println!("❌ Failed to remove elements (exit code: {:?})", s.code()),
+        Err(e) => println!("❌ Failed to execute command: {}", e),
     }
 }
 
 fn list_sets() {
     println!("📋 List nftables Sets");
 
-    let cmd = "sudo nft list sets";
-
-    let output = Command::new("sh").arg("-c").arg(cmd).output();
+    let output = Command::new("sudo").args(["nft", "list", "sets"]).output();
 
     match output {
-        Ok(out) => {
+        Ok(out) if out.status.success() => {
             let result = String::from_utf8_lossy(&out.stdout);
-            if result.is_empty() {
-                println!("❌ No sets found");
+            if result.trim().is_empty() {
+                println!("No sets found");
             } else {
                 println!("{}", result);
             }
         }
-        _ => println!("❌ Failed to list sets"),
+        Ok(out) => {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            println!("❌ Failed to list sets: {}", stderr);
+        }
+        Err(e) => println!("❌ Failed to execute command: {}", e),
     }
 }
 
 fn delete_set() {
     println!("🗑️ Delete Set");
 
-    let table = Input::<String>::with_theme(&ColorfulTheme::default())
+    let table_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter table name")
         .default("filter".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
-    let set_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate table name
+    let table = match validate_nft_identifier(&table_input) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("❌ Invalid table name: {}", e);
+            return;
+        }
+    };
+
+    let set_name_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter set name to delete")
         .interact()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
-        .with_prompt(format!("Delete set '{}'?", set_name))
+    // Validate set name
+    let set_name = match validate_nft_identifier(&set_name_input) {
+        Ok(s) => s,
+        Err(e) => {
+            println!("❌ Invalid set name: {}", e);
+            return;
+        }
+    };
+
+    // Confirmation prompt for dangerous operation
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt(format!(
+            "⚠️ WARNING: Delete set '{}'? This cannot be undone.",
+            set_name
+        ))
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     if confirm {
-        let cmd = format!("sudo nft delete set {} {}", table, set_name);
-
-        let status = Command::new("sh").arg("-c").arg(&cmd).status();
+        let status = Command::new("sudo")
+            .args(["nft", "delete", "set", &table, &set_name])
+            .status();
 
         match status {
             Ok(s) if s.success() => println!("✅ Set deleted"),
-            _ => println!("❌ Failed to delete set"),
+            Ok(s) => println!("❌ Failed to delete set (exit code: {:?})", s.code()),
+            Err(e) => println!("❌ Failed to execute command: {}", e),
         }
     }
 }
@@ -519,132 +1089,302 @@ fn delete_set() {
 fn create_dynamic_set() {
     println!("🔄 Create Dynamic Set");
 
-    let table = Input::<String>::with_theme(&ColorfulTheme::default())
+    let table_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter table name")
         .default("filter".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
-    let set_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate table name
+    let table = match validate_nft_identifier(&table_input) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("❌ Invalid table name: {}", e);
+            return;
+        }
+    };
+
+    let set_name_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter dynamic set name")
         .interact()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
-    let timeout = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate set name
+    let set_name = match validate_nft_identifier(&set_name_input) {
+        Ok(s) => s,
+        Err(e) => {
+            println!("❌ Invalid set name: {}", e);
+            return;
+        }
+    };
+
+    let timeout_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter timeout (e.g., 30s, 5m, 1h)")
         .default("5m".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
-    let max_size = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate timeout
+    let timeout = match validate_timeout(&timeout_input) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("❌ Invalid timeout: {}", e);
+            return;
+        }
+    };
+
+    let max_size_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter maximum size")
         .default("65535".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(m) => m,
+        Err(_) => return,
+    };
 
-    let cmd = format!(
-        "sudo nft add set {} {} {{ type ipv4_addr; flags dynamic, timeout; timeout {}; size {}; }}",
-        table, set_name, timeout, max_size
+    // Validate max size
+    let max_size: u32 = match max_size_input.parse() {
+        Ok(m) if m > 0 => m,
+        _ => {
+            println!("❌ Invalid max size: must be a positive integer");
+            return;
+        }
+    };
+
+    // Build the set specification
+    let set_spec = format!(
+        "{{ type ipv4_addr; flags dynamic, timeout; timeout {}; size {}; }}",
+        timeout, max_size
     );
 
     println!("📋 Creating dynamic set for rate limiting...");
 
-    let status = Command::new("sh").arg("-c").arg(&cmd).status();
+    let status = Command::new("sudo")
+        .args(["nft", "add", "set", &table, &set_name, &set_spec])
+        .status();
 
     match status {
         Ok(s) if s.success() => {
             println!("✅ Dynamic set created: {}", set_name);
 
             // Create rate limiting rule
-            let create_rule = Confirm::with_theme(&ColorfulTheme::default())
+            let create_rule = match Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Create rate limiting rule using this set?")
                 .default(true)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                Ok(None) | Err(_) => return,
+            };
 
             if create_rule {
-                let rate = Input::<String>::with_theme(&ColorfulTheme::default())
+                let rate_input: String = match Input::with_theme(&ColorfulTheme::default())
                     .with_prompt("Enter rate limit (e.g., 10/second)")
                     .default("10/second".to_string())
                     .interact()
-                    .unwrap();
+                {
+                    Ok(r) => r,
+                    Err(_) => return,
+                };
 
-                let rule_cmd = format!(
-                    "sudo nft add rule {} input ip saddr @{} limit rate {} drop",
-                    table, set_name, rate
-                );
+                // Validate rate
+                let rate = match validate_rate_limit(&rate_input) {
+                    Ok(r) => r,
+                    Err(e) => {
+                        println!("❌ Invalid rate: {}", e);
+                        return;
+                    }
+                };
 
-                Command::new("sh").arg("-c").arg(&rule_cmd).status().ok();
-                println!("✅ Rate limiting rule created");
+                let set_ref = format!("@{}", set_name);
+                let rate_spec = format!("limit rate {}", rate);
+
+                let status = Command::new("sudo")
+                    .args([
+                        "nft", "add", "rule", &table, "input", "ip", "saddr", &set_ref, &rate_spec,
+                        "drop",
+                    ])
+                    .status();
+
+                match status {
+                    Ok(s) if s.success() => println!("✅ Rate limiting rule created"),
+                    Ok(s) => println!("❌ Failed to create rule (exit code: {:?})", s.code()),
+                    Err(e) => println!("❌ Failed to execute command: {}", e),
+                }
             }
         }
-        _ => println!("❌ Failed to create dynamic set"),
+        Ok(s) => println!(
+            "❌ Failed to create dynamic set (exit code: {:?})",
+            s.code()
+        ),
+        Err(e) => println!("❌ Failed to execute command: {}", e),
     }
 }
 
 fn import_set() {
     println!("📥 Import Set from File");
 
-    let file_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    let file_path: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter file path containing IPs/elements (one per line)")
         .interact()
-        .unwrap();
+    {
+        Ok(f) => f,
+        Err(_) => return,
+    };
 
     if !Path::new(&file_path).exists() {
         println!("❌ File not found");
         return;
     }
 
-    let table = Input::<String>::with_theme(&ColorfulTheme::default())
+    let table_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter table name")
         .default("filter".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
-    let set_name = Input::<String>::with_theme(&ColorfulTheme::default())
-        .with_prompt("Enter set name")
-        .interact()
-        .unwrap();
-
-    if let Ok(content) = fs::read_to_string(&file_path) {
-        let elements: Vec<&str> = content.lines().filter(|l| !l.is_empty()).collect();
-
-        if elements.is_empty() {
-            println!("❌ No elements found in file");
+    // Validate table name
+    let table = match validate_nft_identifier(&table_input) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("❌ Invalid table name: {}", e);
             return;
         }
+    };
 
-        let elements_str = elements.join(", ");
+    let set_name_input: String = match Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("Enter set name")
+        .interact()
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
-        let cmd = format!(
-            "sudo nft add element {} {} {{ {} }}",
-            table, set_name, elements_str
-        );
-
-        let status = Command::new("sh").arg("-c").arg(&cmd).status();
-
-        match status {
-            Ok(s) if s.success() => println!("✅ {} elements imported", elements.len()),
-            _ => println!("❌ Failed to import elements"),
+    // Validate set name
+    let set_name = match validate_nft_identifier(&set_name_input) {
+        Ok(s) => s,
+        Err(e) => {
+            println!("❌ Invalid set name: {}", e);
+            return;
         }
+    };
+
+    let content = match fs::read_to_string(&file_path) {
+        Ok(c) => c,
+        Err(e) => {
+            println!("❌ Failed to read file: {}", e);
+            return;
+        }
+    };
+
+    // Validate each element from file
+    let mut validated_elements: Vec<String> = Vec::new();
+    let mut line_number = 0;
+
+    for line in content.lines() {
+        line_number += 1;
+        let element = line.trim();
+        if element.is_empty() || element.starts_with('#') {
+            continue;
+        }
+
+        // Validate as IP or CIDR
+        if element.contains('/') {
+            match ValidatedCidr::from_input(element) {
+                Ok(c) => validated_elements.push(c.value().to_string()),
+                Err(e) => {
+                    println!("❌ Line {}: Invalid CIDR '{}': {}", line_number, element, e);
+                    return;
+                }
+            }
+        } else if element.contains('.') || element.contains(':') {
+            match ValidatedIpAddress::from_input(element) {
+                Ok(ip) => validated_elements.push(ip.value().to_string()),
+                Err(e) => {
+                    println!("❌ Line {}: Invalid IP '{}': {}", line_number, element, e);
+                    return;
+                }
+            }
+        } else if let Ok(port) = ValidatedPort::from_input(element) {
+            validated_elements.push(port.to_string());
+        } else {
+            println!(
+                "❌ Line {}: Invalid element '{}': must be IP, CIDR, or port",
+                line_number, element
+            );
+            return;
+        }
+    }
+
+    if validated_elements.is_empty() {
+        println!("❌ No valid elements found in file");
+        return;
+    }
+
+    let elements_str = format!("{{ {} }}", validated_elements.join(", "));
+
+    let status = Command::new("sudo")
+        .args(["nft", "add", "element", &table, &set_name, &elements_str])
+        .status();
+
+    match status {
+        Ok(s) if s.success() => println!("✅ {} elements imported", validated_elements.len()),
+        Ok(s) => println!("❌ Failed to import elements (exit code: {:?})", s.code()),
+        Err(e) => println!("❌ Failed to execute command: {}", e),
     }
 }
 
 fn export_set() {
     println!("📤 Export Set to File");
 
-    let table = Input::<String>::with_theme(&ColorfulTheme::default())
+    let table_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter table name")
         .default("filter".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
-    let set_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate table name
+    let table = match validate_nft_identifier(&table_input) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("❌ Invalid table name: {}", e);
+            return;
+        }
+    };
+
+    let set_name_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter set name")
         .interact()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
-    let export_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate set name
+    let set_name = match validate_nft_identifier(&set_name_input) {
+        Ok(s) => s,
+        Err(e) => {
+            println!("❌ Invalid set name: {}", e);
+            return;
+        }
+    };
+
+    let export_path: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter export file path")
         .default(format!(
             "{}/{}_set.txt",
@@ -652,19 +1392,28 @@ fn export_set() {
             set_name
         ))
         .interact()
-        .unwrap();
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
-    let cmd = format!("sudo nft list set {} {}", table, set_name);
-
-    let output = Command::new("sh").arg("-c").arg(&cmd).output();
+    let output = Command::new("sudo")
+        .args(["nft", "list", "set", &table, &set_name])
+        .output();
 
     match output {
-        Ok(out) => {
+        Ok(out) if out.status.success() => {
             let result = String::from_utf8_lossy(&out.stdout);
-            fs::write(&export_path, result.as_bytes()).ok();
-            println!("✅ Set exported to: {}", export_path);
+            match fs::write(&export_path, result.as_bytes()) {
+                Ok(_) => println!("✅ Set exported to: {}", export_path),
+                Err(e) => println!("❌ Failed to write file: {}", e),
+            }
         }
-        _ => println!("❌ Failed to export set"),
+        Ok(out) => {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            println!("❌ Failed to export set: {}", stderr);
+        }
+        Err(e) => println!("❌ Failed to execute command: {}", e),
     }
 }
 
@@ -685,60 +1434,109 @@ fn chain_priorities_configuration() {
         println!("  {} → {}", name, priority);
     }
 
-    let custom = Confirm::with_theme(&ColorfulTheme::default())
+    let custom = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Create custom priority chain?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     if custom {
-        let table = Input::<String>::with_theme(&ColorfulTheme::default())
+        let table_input: String = match Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter table name")
             .default("filter".to_string())
             .interact()
-            .unwrap();
+        {
+            Ok(t) => t,
+            Err(_) => return,
+        };
 
-        let chain = Input::<String>::with_theme(&ColorfulTheme::default())
+        // Validate table name
+        let table = match validate_nft_identifier(&table_input) {
+            Ok(t) => t,
+            Err(e) => {
+                println!("❌ Invalid table name: {}", e);
+                return;
+            }
+        };
+
+        let chain_input: String = match Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter chain name")
             .interact()
-            .unwrap();
+        {
+            Ok(c) => c,
+            Err(_) => return,
+        };
 
-        let hook = Select::with_theme(&ColorfulTheme::default())
+        // Validate chain name
+        let chain = match validate_nft_identifier(&chain_input) {
+            Ok(c) => c,
+            Err(e) => {
+                println!("❌ Invalid chain name: {}", e);
+                return;
+            }
+        };
+
+        let hook = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Select hook")
             .items(&["prerouting", "input", "forward", "output", "postrouting"])
             .default(1)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(h)) => h,
+            Ok(None) | Err(_) => return,
+        };
 
         let hook_str = ["prerouting", "input", "forward", "output", "postrouting"][hook];
 
-        let priority = Input::<String>::with_theme(&ColorfulTheme::default())
+        let priority_input: String = match Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter priority (-300 to 300)")
             .default("0".to_string())
             .interact()
-            .unwrap();
+        {
+            Ok(p) => p,
+            Err(_) => return,
+        };
 
-        let policy = Select::with_theme(&ColorfulTheme::default())
+        // Validate priority
+        let priority: i32 = match priority_input.parse() {
+            Ok(p) if p >= -300 && p <= 300 => p,
+            _ => {
+                println!("❌ Invalid priority: must be a number between -300 and 300");
+                return;
+            }
+        };
+
+        let policy = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Select default policy")
             .items(&["accept", "drop"])
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(p)) => p,
+            Ok(None) | Err(_) => return,
+        };
 
         let policy_str = if policy == 0 { "accept" } else { "drop" };
 
-        let cmd = format!(
-            "sudo nft add chain {} {} {{ type filter hook {} priority {}; policy {}; }}",
-            table, chain, hook_str, priority, policy_str
+        // Build chain specification
+        let chain_spec = format!(
+            "{{ type filter hook {} priority {}; policy {}; }}",
+            hook_str, priority, policy_str
         );
 
-        println!("📋 Command: {}", cmd);
+        println!("📋 Creating chain: {} in table {}", chain, table);
 
-        let status = Command::new("sh").arg("-c").arg(&cmd).status();
+        let status = Command::new("sudo")
+            .args(["nft", "add", "chain", &table, &chain, &chain_spec])
+            .status();
 
         match status {
             Ok(s) if s.success() => println!("✅ Chain created with priority {}", priority),
-            _ => println!("❌ Failed to create chain"),
+            Ok(s) => println!("❌ Failed to create chain (exit code: {:?})", s.code()),
+            Err(e) => println!("❌ Failed to execute command: {}", e),
         }
     }
 }
@@ -755,12 +1553,15 @@ fn dynamic_sets_rate_limiting() {
         "Custom rate limit",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select scenario")
         .items(&scenarios)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => ssh_brute_force_protection(),
@@ -776,214 +1577,514 @@ fn dynamic_sets_rate_limiting() {
 fn ssh_brute_force_protection() {
     println!("🛡️ SSH Brute Force Protection");
 
+    // Confirmation for enabling protection
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt("Enable SSH brute force protection? This will add firewall rules.")
+        .default(true)
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
+
+    if !confirm {
+        return;
+    }
+
     let table = "filter";
-
-    // Create dynamic set for tracking
-    let cmd1 = format!(
-        "sudo nft add set {} ssh_ratelimit {{ type ipv4_addr; flags dynamic, timeout; timeout 10m; }}",
-        table
-    );
-
-    // Add rate limiting rule
-    let cmd2 = format!(
-        "sudo nft add rule {} input tcp dport 22 ct state new add @ssh_ratelimit {{ ip saddr limit rate 3/minute }} accept",
-        table
-    );
-
-    // Drop excessive attempts
-    let cmd3 = format!(
-        "sudo nft add rule {} input tcp dport 22 ip saddr @ssh_ratelimit drop",
-        table
-    );
 
     println!("🔧 Setting up SSH brute force protection...");
 
-    for cmd in &[cmd1, cmd2, cmd3] {
-        Command::new("sh").arg("-c").arg(cmd).status().ok();
+    // Create dynamic set for tracking (no user input, safe)
+    let set_spec = "{ type ipv4_addr; flags dynamic, timeout; timeout 10m; }";
+    let status1 = Command::new("sudo")
+        .args(["nft", "add", "set", table, "ssh_ratelimit", set_spec])
+        .status();
+
+    if let Err(e) = status1 {
+        println!("❌ Failed to create set: {}", e);
+        return;
+    }
+
+    // Add rate limiting rule (static values, safe)
+    let status2 = Command::new("sudo")
+        .args([
+            "nft",
+            "add",
+            "rule",
+            table,
+            "input",
+            "tcp",
+            "dport",
+            "22",
+            "ct",
+            "state",
+            "new",
+            "add",
+            "@ssh_ratelimit",
+            "{",
+            "ip",
+            "saddr",
+            "limit",
+            "rate",
+            "3/minute",
+            "}",
+            "accept",
+        ])
+        .status();
+
+    if let Err(e) = status2 {
+        println!("❌ Failed to add rate limit rule: {}", e);
+        return;
+    }
+
+    // Drop excessive attempts
+    let status3 = Command::new("sudo")
+        .args([
+            "nft",
+            "add",
+            "rule",
+            table,
+            "input",
+            "tcp",
+            "dport",
+            "22",
+            "ip",
+            "saddr",
+            "@ssh_ratelimit",
+            "drop",
+        ])
+        .status();
+
+    if let Err(e) = status3 {
+        println!("❌ Failed to add drop rule: {}", e);
+        return;
     }
 
     println!("✅ SSH brute force protection enabled");
-    println!("  • Max 3 login attempts per minute");
-    println!("  • Blocked IPs timeout after 10 minutes");
+    println!("  - Max 3 login attempts per minute");
+    println!("  - Blocked IPs timeout after 10 minutes");
 }
 
 fn http_rate_limiting() {
     println!("🌐 HTTP/HTTPS Rate Limiting");
 
-    let rate = Input::<String>::with_theme(&ColorfulTheme::default())
+    let rate_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter rate limit (e.g., 100/second)")
         .default("100/second".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(r) => r,
+        Err(_) => return,
+    };
 
-    let burst = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate rate
+    let rate = match validate_rate_limit(&rate_input) {
+        Ok(r) => r,
+        Err(e) => {
+            println!("❌ Invalid rate: {}", e);
+            return;
+        }
+    };
+
+    let burst_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter burst size")
         .default("50".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(b) => b,
+        Err(_) => return,
+    };
+
+    // Validate burst
+    let burst = match validate_burst(&burst_input) {
+        Ok(b) => b,
+        Err(e) => {
+            println!("❌ Invalid burst: {}", e);
+            return;
+        }
+    };
 
     let table = "filter";
 
-    // Create rules for HTTP/HTTPS
-    let cmd1 = format!(
-        "sudo nft add rule {} input tcp dport {{ 80, 443 }} limit rate {} burst {} accept",
-        table, rate, burst
-    );
-
-    let cmd2 = format!(
-        "sudo nft add rule {} input tcp dport {{ 80, 443 }} drop",
-        table
-    );
-
     println!("🔧 Setting up HTTP/HTTPS rate limiting...");
 
-    Command::new("sh").arg("-c").arg(&cmd1).status().ok();
-    Command::new("sh").arg("-c").arg(&cmd2).status().ok();
+    // Create rules for HTTP/HTTPS (validated inputs)
+    let limit_spec = format!("limit rate {} burst {} packets", rate, burst);
+    let status1 = Command::new("sudo")
+        .args([
+            "nft",
+            "add",
+            "rule",
+            table,
+            "input",
+            "tcp",
+            "dport",
+            "{",
+            "80,",
+            "443",
+            "}",
+            &limit_spec,
+            "accept",
+        ])
+        .status();
+
+    if let Err(e) = status1 {
+        println!("❌ Failed to add rate limit rule: {}", e);
+        return;
+    }
+
+    let status2 = Command::new("sudo")
+        .args([
+            "nft", "add", "rule", table, "input", "tcp", "dport", "{", "80,", "443", "}", "drop",
+        ])
+        .status();
+
+    if let Err(e) = status2 {
+        println!("❌ Failed to add drop rule: {}", e);
+        return;
+    }
 
     println!("✅ HTTP/HTTPS rate limiting enabled");
-    println!("  • Rate: {}", rate);
-    println!("  • Burst: {}", burst);
+    println!("  - Rate: {}", rate);
+    println!("  - Burst: {} packets", burst);
 }
 
 fn syn_flood_protection() {
     println!("🛡️ SYN Flood Protection");
 
+    // Confirmation for enabling protection
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt(
+            "Enable SYN flood protection? This will modify kernel settings and add firewall rules.",
+        )
+        .default(true)
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
+
+    if !confirm {
+        return;
+    }
+
     let table = "filter";
-
-    // Enable SYN cookies
-    let sysctl_cmd = "sudo sysctl -w net.ipv4.tcp_syncookies=1";
-    Command::new("sh").arg("-c").arg(sysctl_cmd).status().ok();
-
-    // Create SYN flood protection rules
-    let cmd1 = format!(
-        "sudo nft add rule {} input tcp flags syn limit rate 100/second accept",
-        table
-    );
-
-    let cmd2 = format!("sudo nft add rule {} input tcp flags syn drop", table);
 
     println!("🔧 Setting up SYN flood protection...");
 
-    Command::new("sh").arg("-c").arg(&cmd1).status().ok();
-    Command::new("sh").arg("-c").arg(&cmd2).status().ok();
+    // Enable SYN cookies (direct args, no shell)
+    let status_sysctl = Command::new("sudo")
+        .args(["sysctl", "-w", "net.ipv4.tcp_syncookies=1"])
+        .status();
+
+    if let Err(e) = status_sysctl {
+        println!("Warning: Failed to enable SYN cookies: {}", e);
+    }
+
+    // Create SYN flood protection rules (static values, safe)
+    let status1 = Command::new("sudo")
+        .args([
+            "nft",
+            "add",
+            "rule",
+            table,
+            "input",
+            "tcp",
+            "flags",
+            "syn",
+            "limit",
+            "rate",
+            "100/second",
+            "accept",
+        ])
+        .status();
+
+    if let Err(e) = status1 {
+        println!("❌ Failed to add SYN limit rule: {}", e);
+        return;
+    }
+
+    let status2 = Command::new("sudo")
+        .args([
+            "nft", "add", "rule", table, "input", "tcp", "flags", "syn", "drop",
+        ])
+        .status();
+
+    if let Err(e) = status2 {
+        println!("❌ Failed to add SYN drop rule: {}", e);
+        return;
+    }
 
     println!("✅ SYN flood protection enabled");
-    println!("  • SYN cookies: enabled");
-    println!("  • SYN rate limit: 100/second");
+    println!("  - SYN cookies: enabled");
+    println!("  - SYN rate limit: 100/second");
 }
 
 fn connection_limit_per_ip() {
     println!("🔢 Connection Limit per IP");
 
-    let max_conn = Input::<String>::with_theme(&ColorfulTheme::default())
+    let max_conn_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter max connections per IP")
         .default("50".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(m) => m,
+        Err(_) => return,
+    };
+
+    // Validate max connections
+    let max_conn: u32 = match max_conn_input.parse() {
+        Ok(m) if m > 0 && m <= 65535 => m,
+        _ => {
+            println!("❌ Invalid max connections: must be a number between 1 and 65535");
+            return;
+        }
+    };
 
     let table = "filter";
 
-    let cmd = format!(
-        "sudo nft add rule {} input ct state new meter connections {{ ip saddr ct count over {} }} drop",
-        table, max_conn
-    );
-
     println!("🔧 Setting connection limit...");
 
-    let status = Command::new("sh").arg("-c").arg(&cmd).status();
+    // Build meter spec
+    let meter_spec = format!("{{ ip saddr ct count over {} }}", max_conn);
+
+    let status = Command::new("sudo")
+        .args([
+            "nft",
+            "add",
+            "rule",
+            table,
+            "input",
+            "ct",
+            "state",
+            "new",
+            "meter",
+            "connections",
+            &meter_spec,
+            "drop",
+        ])
+        .status();
 
     match status {
         Ok(s) if s.success() => {
             println!("✅ Connection limit enabled");
-            println!("  • Max {} connections per IP", max_conn);
+            println!("  - Max {} connections per IP", max_conn);
         }
-        _ => println!("❌ Failed to set connection limit"),
+        Ok(s) => println!(
+            "❌ Failed to set connection limit (exit code: {:?})",
+            s.code()
+        ),
+        Err(e) => println!("❌ Failed to execute command: {}", e),
     }
 }
 
 fn port_scan_detection() {
     println!("🔍 Port Scan Detection");
 
+    // Confirmation for enabling detection
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt("Enable port scan detection? This will add firewall rules to detect and block scanners.")
+        .default(true)
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
+
+    if !confirm {
+        return;
+    }
+
     let table = "filter";
-
-    // Create set for port scanners
-    let cmd1 = format!(
-        "sudo nft add set {} port_scanners {{ type ipv4_addr; flags timeout; timeout 1h; }}",
-        table
-    );
-
-    // Detect port scanning
-    let cmd2 = format!(
-        "sudo nft add rule {} input ct state new tcp flags != syn add @port_scanners {{ ip saddr }}",
-        table
-    );
-
-    // Block port scanners
-    let cmd3 = format!(
-        "sudo nft add rule {} input ip saddr @port_scanners drop",
-        table
-    );
 
     println!("🔧 Setting up port scan detection...");
 
-    for cmd in &[cmd1, cmd2, cmd3] {
-        Command::new("sh").arg("-c").arg(cmd).status().ok();
+    // Create set for port scanners (static values, safe)
+    let set_spec = "{ type ipv4_addr; flags timeout; timeout 1h; }";
+    let status1 = Command::new("sudo")
+        .args(["nft", "add", "set", table, "port_scanners", set_spec])
+        .status();
+
+    if let Err(e) = status1 {
+        println!("❌ Failed to create port_scanners set: {}", e);
+        return;
+    }
+
+    // Detect port scanning (static values, safe)
+    let status2 = Command::new("sudo")
+        .args([
+            "nft",
+            "add",
+            "rule",
+            table,
+            "input",
+            "ct",
+            "state",
+            "new",
+            "tcp",
+            "flags",
+            "!=",
+            "syn",
+            "add",
+            "@port_scanners",
+            "{",
+            "ip",
+            "saddr",
+            "}",
+        ])
+        .status();
+
+    if let Err(e) = status2 {
+        println!("❌ Failed to add detection rule: {}", e);
+        return;
+    }
+
+    // Block port scanners
+    let status3 = Command::new("sudo")
+        .args([
+            "nft",
+            "add",
+            "rule",
+            table,
+            "input",
+            "ip",
+            "saddr",
+            "@port_scanners",
+            "drop",
+        ])
+        .status();
+
+    if let Err(e) = status3 {
+        println!("❌ Failed to add block rule: {}", e);
+        return;
     }
 
     println!("✅ Port scan detection enabled");
-    println!("  • Scanners blocked for 1 hour");
+    println!("  - Scanners blocked for 1 hour");
 }
 
 fn custom_rate_limit() {
     println!("🔧 Custom Rate Limit");
 
-    let port = Input::<String>::with_theme(&ColorfulTheme::default())
+    let port_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter port to rate limit")
         .interact()
-        .unwrap();
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
-    let rate = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate port
+    let validated_port = match ValidatedPort::from_input(&port_input) {
+        Ok(p) => p,
+        Err(e) => {
+            println!("❌ Invalid port: {}", e);
+            return;
+        }
+    };
+
+    let rate_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter rate (e.g., 10/second, 100/minute)")
         .default("10/second".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(r) => r,
+        Err(_) => return,
+    };
 
-    let timeout = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Validate rate
+    let rate = match validate_rate_limit(&rate_input) {
+        Ok(r) => r,
+        Err(e) => {
+            println!("❌ Invalid rate: {}", e);
+            return;
+        }
+    };
+
+    let timeout_input: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter block timeout")
         .default("5m".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
+
+    // Validate timeout
+    let timeout = match validate_timeout(&timeout_input) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("❌ Invalid timeout: {}", e);
+            return;
+        }
+    };
 
     let table = "filter";
-
-    // Create dynamic set
-    let set_name = format!("ratelimit_port_{}", port);
-    let cmd1 = format!(
-        "sudo nft add set {} {} {{ type ipv4_addr; flags dynamic, timeout; timeout {}; }}",
-        table, set_name, timeout
-    );
-
-    // Add rate limiting
-    let cmd2 = format!(
-        "sudo nft add rule {} input tcp dport {} add @{} {{ ip saddr limit rate {} }} accept",
-        table, port, set_name, rate
-    );
-
-    // Block excessive connections
-    let cmd3 = format!(
-        "sudo nft add rule {} input tcp dport {} ip saddr @{} drop",
-        table, port, set_name
-    );
+    let port_str = validated_port.to_string();
+    let set_name = format!("ratelimit_port_{}", port_str);
 
     println!("🔧 Setting up custom rate limit...");
 
-    for cmd in &[cmd1, cmd2, cmd3] {
-        Command::new("sh").arg("-c").arg(cmd).status().ok();
+    // Create dynamic set
+    let set_spec = format!(
+        "{{ type ipv4_addr; flags dynamic, timeout; timeout {}; }}",
+        timeout
+    );
+    let status1 = Command::new("sudo")
+        .args(["nft", "add", "set", table, &set_name, &set_spec])
+        .status();
+
+    if let Err(e) = status1 {
+        println!("❌ Failed to create rate limit set: {}", e);
+        return;
     }
 
-    println!("✅ Rate limiting enabled for port {}", port);
-    println!("  • Rate: {}", rate);
-    println!("  • Block timeout: {}", timeout);
+    // Add rate limiting rule
+    let set_ref = format!("@{}", set_name);
+    let limit_spec = format!("limit rate {}", rate);
+    let status2 = Command::new("sudo")
+        .args([
+            "nft",
+            "add",
+            "rule",
+            table,
+            "input",
+            "tcp",
+            "dport",
+            &port_str,
+            "add",
+            &set_ref,
+            "{",
+            "ip",
+            "saddr",
+            &limit_spec,
+            "}",
+            "accept",
+        ])
+        .status();
+
+    if let Err(e) = status2 {
+        println!("❌ Failed to add rate limit rule: {}", e);
+        return;
+    }
+
+    // Block excessive connections
+    let status3 = Command::new("sudo")
+        .args([
+            "nft", "add", "rule", table, "input", "tcp", "dport", &port_str, "ip", "saddr",
+            &set_ref, "drop",
+        ])
+        .status();
+
+    if let Err(e) = status3 {
+        println!("❌ Failed to add block rule: {}", e);
+        return;
+    }
+
+    println!("✅ Rate limiting enabled for port {}", port_str);
+    println!("  - Rate: {}", rate);
+    println!("  - Block timeout: {}", timeout);
 }
 
 fn rule_optimizer() {
@@ -1046,11 +2147,14 @@ fn rule_optimizer() {
             println!("  ⚠️ Consider adding fast-path for established connections");
         }
 
-        let optimize = Confirm::with_theme(&ColorfulTheme::default())
+        let optimize = match Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Apply automatic optimizations?")
             .default(false)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(o)) => o,
+            Ok(None) | Err(_) => return,
+        };
 
         if optimize {
             apply_rule_optimizations();
@@ -1062,14 +2166,16 @@ fn apply_rule_optimizations() {
     println!("🔧 Applying optimizations...");
 
     // Add fast-path for established connections
-    let cmd1 = "sudo nft insert rule filter input ct state { established, related } accept";
+    Command::new("sudo")
+        .args(["nft", "insert", "rule", "filter", "input", "ct", "state", "{", "established,", "related", "}", "accept"])
+        .status()
+        .ok();
 
     // Drop invalid packets early
-    let cmd2 = "sudo nft insert rule filter input ct state invalid drop";
-
-    for cmd in &[cmd1, cmd2] {
-        Command::new("sh").arg("-c").arg(cmd).status().ok();
-    }
+    Command::new("sudo")
+        .args(["nft", "insert", "rule", "filter", "input", "ct", "state", "invalid", "drop"])
+        .status()
+        .ok();
 
     println!("✅ Basic optimizations applied");
 }
@@ -1085,12 +2191,15 @@ fn iptables_to_nftables_migration() {
         "Complete migration",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Migration options")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => analyze_iptables_rules(),
@@ -1108,9 +2217,11 @@ fn analyze_iptables_rules() {
     let tables = ["filter", "nat", "mangle", "raw", "security"];
 
     for table in &tables {
-        let cmd = format!("sudo iptables -t {} -L -n --line-numbers | wc -l", table);
-        if let Ok(output) = Command::new("sh").arg("-c").arg(&cmd).output() {
-            let count = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let output = Command::new("sudo")
+            .args(["iptables", "-t", table, "-L", "-n", "--line-numbers"])
+            .output();
+        if let Ok(out) = output {
+            let count = String::from_utf8_lossy(&out.stdout).lines().count();
             println!("  {} table: {} rules", table, count);
         }
     }
@@ -1119,26 +2230,39 @@ fn analyze_iptables_rules() {
 fn convert_iptables_to_nftables() {
     println!("🔄 Converting iptables to nftables");
 
-    let backup_path = format!(
-        "{}/iptables_backup.rules",
-        std::env::var("HOME").unwrap_or_default()
-    );
+    let home = std::env::var("HOME").unwrap_or_default();
+    let backup_path = format!("{}/iptables_backup.rules", home);
+    let converted_path = format!("{}/nftables_converted.rules", home);
 
-    // Save iptables rules
-    let save_cmd = format!("sudo iptables-save > {}", backup_path);
-    Command::new("sh").arg("-c").arg(&save_cmd).status().ok();
+    // Save iptables rules (capture output and write to file)
+    let save_output = Command::new("sudo")
+        .args(["iptables-save"])
+        .output();
+
+    match save_output {
+        Ok(out) if out.status.success() => {
+            if let Err(e) = std::fs::write(&backup_path, &out.stdout) {
+                println!("❌ Failed to write backup: {}", e);
+                return;
+            }
+        }
+        _ => {
+            println!("❌ Failed to save iptables rules");
+            return;
+        }
+    }
 
     // Convert using iptables-restore-translate
-    let convert_cmd = format!(
-        "sudo iptables-restore-translate -f {} > {}/nftables_converted.rules",
-        backup_path,
-        std::env::var("HOME").unwrap_or_default()
-    );
+    let convert_output = Command::new("sudo")
+        .args(["iptables-restore-translate", "-f", &backup_path])
+        .output();
 
-    let status = Command::new("sh").arg("-c").arg(&convert_cmd).status();
-
-    match status {
-        Ok(s) if s.success() => {
+    match convert_output {
+        Ok(out) if out.status.success() => {
+            if let Err(e) = std::fs::write(&converted_path, &out.stdout) {
+                println!("❌ Failed to write converted rules: {}", e);
+                return;
+            }
             println!("✅ Conversion complete");
             println!("  Converted rules saved to: ~/nftables_converted.rules");
         }
@@ -1158,12 +2282,18 @@ fn backup_iptables_rules() {
     let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
     let backup_path = format!("{}/iptables_{}.rules", backup_dir, timestamp);
 
-    let cmd = format!("sudo iptables-save > {}", backup_path);
+    // Capture iptables-save output and write to file
+    let output = Command::new("sudo")
+        .args(["iptables-save"])
+        .output();
 
-    let status = Command::new("sh").arg("-c").arg(&cmd).status();
-
-    match status {
-        Ok(s) if s.success() => println!("✅ Backup saved to: {}", backup_path),
+    match output {
+        Ok(out) if out.status.success() => {
+            match std::fs::write(&backup_path, &out.stdout) {
+                Ok(_) => println!("✅ Backup saved to: {}", backup_path),
+                Err(e) => println!("❌ Failed to write backup: {}", e),
+            }
+        }
         _ => println!("❌ Backup failed"),
     }
 }
@@ -1177,11 +2307,14 @@ fn test_migration() {
     println!("  3. Test connectivity");
     println!("  4. Option to rollback");
 
-    let proceed = Confirm::with_theme(&ColorfulTheme::default())
+    let proceed = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Proceed with test?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(p)) => p,
+        Ok(None) | Err(_) => return,
+    };
 
     if proceed {
         // Implementation would include actual testing logic
@@ -1193,11 +2326,14 @@ fn test_migration() {
 fn complete_migration() {
     println!("🔄 Complete Migration");
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will replace iptables with nftables. Continue?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     if confirm {
         println!("🔧 Completing migration...");
@@ -1205,13 +2341,17 @@ fn complete_migration() {
         // Disable iptables services
         let services = ["iptables", "ip6tables"];
         for service in &services {
-            let cmd = format!("sudo systemctl disable {}", service);
-            Command::new("sh").arg("-c").arg(&cmd).status().ok();
+            Command::new("sudo")
+                .args(["systemctl", "disable", service])
+                .status()
+                .ok();
         }
 
         // Enable nftables
-        let enable_cmd = "sudo systemctl enable --now nftables";
-        Command::new("sh").arg("-c").arg(enable_cmd).status().ok();
+        Command::new("sudo")
+            .args(["systemctl", "enable", "--now", "nftables"])
+            .status()
+            .ok();
 
         println!("✅ Migration complete");
         println!("  nftables is now active");
@@ -1229,12 +2369,15 @@ fn ruleset_backup_restore() {
         "Schedule automatic backups",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Backup/Restore options")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => backup_ruleset(),
@@ -1255,20 +2398,28 @@ fn backup_ruleset() {
     );
     fs::create_dir_all(&backup_dir).ok();
 
-    let name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let name: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter backup name")
         .default(chrono::Local::now().format("%Y%m%d_%H%M%S").to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
 
     let backup_path = format!("{}/{}.nft", backup_dir, name);
 
-    let cmd = format!("sudo nft list ruleset > {}", backup_path);
+    // Capture output and write to file instead of shell redirect
+    let output = Command::new("sudo")
+        .args(["nft", "list", "ruleset"])
+        .output();
 
-    let status = Command::new("sh").arg("-c").arg(&cmd).status();
-
-    match status {
-        Ok(s) if s.success() => {
+    match output {
+        Ok(out) if out.status.success() => {
+            if let Err(e) = fs::write(&backup_path, &out.stdout) {
+                println!("❌ Failed to write backup file: {}", e);
+                return;
+            }
             println!("✅ Ruleset backed up to: {}", backup_path);
 
             // Add metadata
@@ -1304,7 +2455,9 @@ fn restore_ruleset() {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("nft") {
-                backups.push(path.file_stem().unwrap().to_string_lossy().to_string());
+                if let Some(stem) = path.file_stem() {
+                    backups.push(stem.to_string_lossy().to_string());
+                }
             }
         }
     }
@@ -1314,21 +2467,27 @@ fn restore_ruleset() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select backup to restore")
         .items(&backups)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     let backup = &backups[choice];
     let backup_path = format!("{}/{}.nft", backup_dir, backup);
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will replace current ruleset. Continue?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     if confirm {
         // Backup current before restore
@@ -1338,26 +2497,31 @@ fn restore_ruleset() {
             backup_dir,
             chrono::Local::now().format("%Y%m%d_%H%M%S")
         );
-        let backup_cmd = format!("sudo nft list ruleset > {}", temp_backup);
-        Command::new("sh").arg("-c").arg(&backup_cmd).status().ok();
+
+        // Capture nft list ruleset and write to file
+        if let Ok(out) = Command::new("sudo").args(["nft", "list", "ruleset"]).output() {
+            if out.status.success() {
+                let _ = std::fs::write(&temp_backup, &out.stdout);
+            }
+        }
 
         // Flush and restore
         println!("🔄 Restoring ruleset...");
-        let flush_cmd = "sudo nft flush ruleset";
-        let restore_cmd = format!("sudo nft -f {}", backup_path);
+        Command::new("sudo")
+            .args(["nft", "flush", "ruleset"])
+            .status()
+            .ok();
 
-        Command::new("sh").arg("-c").arg(flush_cmd).status().ok();
-
-        let status = Command::new("sh").arg("-c").arg(&restore_cmd).status();
+        let status = Command::new("sudo")
+            .args(["nft", "-f", &backup_path])
+            .status();
 
         match status {
             Ok(s) if s.success() => println!("✅ Ruleset restored from: {}", backup),
             _ => {
                 println!("❌ Restore failed, attempting rollback...");
-                let rollback_cmd = format!("sudo nft -f {}", temp_backup);
-                Command::new("sh")
-                    .arg("-c")
-                    .arg(&rollback_cmd)
+                Command::new("sudo")
+                    .args(["nft", "-f", &temp_backup])
                     .status()
                     .ok();
             }
@@ -1382,14 +2546,16 @@ fn list_backups() {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("nft") {
-                let name = path.file_name().unwrap().to_string_lossy();
-                let metadata = fs::metadata(&path).ok();
-                let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
-                let modified = metadata.and_then(|m| m.modified().ok());
+                if let Some(name) = path.file_name() {
+                    let name = name.to_string_lossy();
+                    let metadata = fs::metadata(&path).ok();
+                    let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
+                    let modified = metadata.and_then(|m| m.modified().ok());
 
-                println!("  📁 {} ({} bytes)", name, size);
-                if let Some(time) = modified {
-                    println!("     Modified: {:?}", time);
+                    println!("  📁 {} ({} bytes)", name, size);
+                    if let Some(time) = modified {
+                        println!("     Modified: {:?}", time);
+                    }
                 }
             }
         }
@@ -1414,7 +2580,9 @@ fn delete_backup() {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("nft") {
-                backups.push(path.file_name().unwrap().to_string_lossy().to_string());
+                if let Some(name) = path.file_name() {
+                    backups.push(name.to_string_lossy().to_string());
+                }
             }
         }
     }
@@ -1424,18 +2592,24 @@ fn delete_backup() {
         return;
     }
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select backups to delete")
         .items(&backups)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        Ok(None) | Err(_) => return,
+    };
 
     if !selected.is_empty() {
-        let confirm = Confirm::with_theme(&ColorfulTheme::default())
+        let confirm = match Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt(format!("Delete {} backup(s)?", selected.len()))
             .default(false)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            Ok(None) | Err(_) => return,
+        };
 
         if confirm {
             for idx in selected {
@@ -1450,12 +2624,15 @@ fn delete_backup() {
 fn schedule_backups() {
     println!("⏰ Schedule Automatic Backups");
 
-    let frequency = Select::with_theme(&ColorfulTheme::default())
+    let frequency = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select backup frequency")
         .items(&["Hourly", "Daily", "Weekly", "Monthly"])
         .default(1)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(f)) => f,
+        Ok(None) | Err(_) => return,
+    };
 
     let frequency_str = match frequency {
         0 => "0 * * * *",
@@ -1483,7 +2660,7 @@ ls -t "$BACKUP_DIR"/auto_*.nft | tail -n +31 | xargs -r rm
     );
     fs::write(&script_path, backup_script).ok();
     Command::new("chmod")
-        .args(&["+x", &script_path])
+        .args(["+x", &script_path])
         .status()
         .ok();
 
@@ -1492,19 +2669,58 @@ ls -t "$BACKUP_DIR"/auto_*.nft | tail -n +31 | xargs -r rm
     println!("📝 Add this to your crontab:");
     println!("{}", cron_entry);
 
-    let add_cron = Confirm::with_theme(&ColorfulTheme::default())
+    let add_cron = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Add to crontab now?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(a)) => a,
+        Ok(None) | Err(_) => return,
+    };
 
     if add_cron {
-        let cmd = format!(
-            "(crontab -l 2>/dev/null; echo '{}') | crontab -",
-            cron_entry
-        );
-        Command::new("sh").arg("-c").arg(&cmd).status().ok();
-        println!("✅ Automatic backup scheduled");
+        // Get existing crontab entries
+        let existing = Command::new("crontab")
+            .arg("-l")
+            .output()
+            .ok()
+            .and_then(|o| {
+                if o.status.success() {
+                    String::from_utf8(o.stdout).ok()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_default();
+
+        // Create new crontab with existing + new entry
+        let new_crontab = if existing.is_empty() {
+            format!("{}\n", cron_entry)
+        } else {
+            format!("{}{}\n", existing, cron_entry)
+        };
+
+        // Write new crontab via stdin
+        use std::io::Write;
+        let mut child = match Command::new("crontab")
+            .arg("-")
+            .stdin(std::process::Stdio::piped())
+            .spawn()
+        {
+            Ok(c) => c,
+            Err(e) => {
+                println!("❌ Failed to update crontab: {}", e);
+                return;
+            }
+        };
+
+        if let Some(ref mut stdin) = child.stdin {
+            if stdin.write_all(new_crontab.as_bytes()).is_ok() {
+                if child.wait().is_ok() {
+                    println!("✅ Automatic backup scheduled");
+                }
+            }
+        }
     }
 }
 
@@ -1516,8 +2732,23 @@ fn rule_testing_sandbox() {
     // Create test namespace
     let namespace = format!("nft_test_{}", chrono::Local::now().format("%Y%m%d_%H%M%S"));
 
-    let create_ns = format!("sudo ip netns add {}", namespace);
-    Command::new("sh").arg("-c").arg(&create_ns).status().ok();
+    // Validate namespace name (should be safe since we generate it, but defense in depth)
+    if !namespace
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_')
+    {
+        println!("❌ Invalid namespace name generated");
+        return;
+    }
+
+    let status = Command::new("sudo")
+        .args(["ip", "netns", "add", &namespace])
+        .status();
+
+    if !status.map(|s| s.success()).unwrap_or(false) {
+        println!("❌ Failed to create test namespace");
+        return;
+    }
 
     println!("✅ Test namespace created: {}", namespace);
 
@@ -1530,12 +2761,18 @@ fn rule_testing_sandbox() {
     ];
 
     loop {
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let choice = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Sandbox options")
             .items(&options)
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            Ok(None) | Err(_) => {
+                cleanup_sandbox(&namespace);
+                break;
+            }
+        };
 
         match choice {
             0 => add_test_rule(&namespace),
@@ -1554,14 +2791,35 @@ fn rule_testing_sandbox() {
 fn add_test_rule(namespace: &str) {
     println!("➕ Add test rule to sandbox");
 
-    let rule = Input::<String>::with_theme(&ColorfulTheme::default())
+    let rule: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter nftables rule to test")
         .interact()
-        .unwrap();
+    {
+        Ok(r) => r,
+        Err(_) => return,
+    };
 
-    let cmd = format!("sudo ip netns exec {} nft {}", namespace, rule);
+    // Validate namespace name (alphanumeric, underscore, hyphen only)
+    if !namespace
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
+        println!("❌ Invalid namespace name");
+        return;
+    }
 
-    let status = Command::new("sh").arg("-c").arg(&cmd).status();
+    // Parse the rule into arguments (basic split, handles simple cases)
+    let rule_args: Vec<&str> = rule.split_whitespace().collect();
+    if rule_args.is_empty() {
+        println!("❌ Empty rule");
+        return;
+    }
+
+    // Build command: ip netns exec <ns> nft <rule_args...>
+    let mut args = vec!["ip", "netns", "exec", namespace, "nft"];
+    args.extend(rule_args.iter());
+
+    let status = Command::new("sudo").args(&args).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Test rule added"),
@@ -1572,23 +2830,32 @@ fn add_test_rule(namespace: &str) {
 fn test_packet_flow(namespace: &str) {
     println!("🔍 Test packet flow");
 
-    let src_ip = Input::<String>::with_theme(&ColorfulTheme::default())
+    let src_ip: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter source IP")
         .default("192.168.1.100".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
-    let dst_ip = Input::<String>::with_theme(&ColorfulTheme::default())
+    let dst_ip: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter destination IP")
         .default("192.168.1.1".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
-    let port = Input::<String>::with_theme(&ColorfulTheme::default())
+    let port: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter destination port")
         .default("80".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
     // Simulate packet flow
     println!("📦 Simulating packet flow...");
@@ -1596,6 +2863,7 @@ fn test_packet_flow(namespace: &str) {
 
     // This would use tools like hping3 or scapy for actual testing
     println!("⚠️ Actual packet simulation requires additional tools");
+    let _ = namespace; // Silence unused warning
 }
 
 fn simulate_attack(namespace: &str) {
@@ -1603,15 +2871,19 @@ fn simulate_attack(namespace: &str) {
 
     let attacks = ["SYN flood", "Port scan", "Brute force", "DDoS simulation"];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select attack type to simulate")
         .items(&attacks)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     println!("🔧 Simulating {} in sandbox...", attacks[choice]);
     println!("⚠️ This is a safe simulation in isolated namespace");
+    let _ = namespace; // Silence unused warning
 
     // Simulation logic would go here
 }
@@ -1619,9 +2891,18 @@ fn simulate_attack(namespace: &str) {
 fn view_test_results(namespace: &str) {
     println!("📊 View test results");
 
-    let cmd = format!("sudo ip netns exec {} nft list ruleset", namespace);
+    // Validate namespace name (defense in depth)
+    if !namespace
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_')
+    {
+        println!("❌ Invalid namespace name");
+        return;
+    }
 
-    let output = Command::new("sh").arg("-c").arg(&cmd).output();
+    let output = Command::new("sudo")
+        .args(["ip", "netns", "exec", namespace, "nft", "list", "ruleset"])
+        .output();
 
     if let Ok(out) = output {
         let result = String::from_utf8_lossy(&out.stdout);
@@ -1632,9 +2913,18 @@ fn view_test_results(namespace: &str) {
 fn cleanup_sandbox(namespace: &str) {
     println!("🧹 Cleaning up sandbox");
 
-    let cmd = format!("sudo ip netns delete {}", namespace);
+    // Validate namespace name (defense in depth)
+    if !namespace
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_')
+    {
+        println!("❌ Invalid namespace name");
+        return;
+    }
 
-    let status = Command::new("sh").arg("-c").arg(&cmd).status();
+    let status = Command::new("sudo")
+        .args(["ip", "netns", "delete", namespace])
+        .status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Sandbox cleaned up"),
@@ -1648,33 +2938,58 @@ fn performance_monitoring() {
     println!("🔍 Analyzing firewall performance...");
 
     // Get rule statistics
-    let cmd = "sudo nft list ruleset -a -n";
-    if let Ok(output) = Command::new("sh").arg("-c").arg(cmd).output() {
-        let ruleset = String::from_utf8_lossy(&output.stdout);
-        let rule_count = ruleset.lines().filter(|l| l.contains("handle")).count();
-        println!("  • Total rules: {}", rule_count);
+    if let Ok(output) = Command::new("sudo")
+        .args(["nft", "list", "ruleset", "-a", "-n"])
+        .output()
+    {
+        if output.status.success() {
+            let ruleset = String::from_utf8_lossy(&output.stdout);
+            let rule_count = ruleset.lines().filter(|l| l.contains("handle")).count();
+            println!("  • Total rules: {}", rule_count);
+        }
     }
 
     // Check packet counters
-    let counter_cmd = "sudo nft list counters";
-    if let Ok(output) = Command::new("sh").arg("-c").arg(counter_cmd).output() {
-        println!("  • Active counters detected");
+    if let Ok(output) = Command::new("sudo")
+        .args(["nft", "list", "counters"])
+        .output()
+    {
+        if output.status.success() && !output.stdout.is_empty() {
+            println!("  • Active counters detected");
+        }
     }
 
     // Connection tracking stats
-    let conntrack_cmd = "sudo conntrack -C";
-    if let Ok(output) = Command::new("sh").arg("-c").arg(conntrack_cmd).output() {
-        let count = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        println!("  • Active connections: {}", count);
+    if let Ok(output) = Command::new("sudo")
+        .args(["conntrack", "-C"])
+        .output()
+    {
+        if output.status.success() {
+            let count = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            println!("  • Active connections: {}", count);
+        }
     }
 
-    // CPU usage
+    // CPU usage - use /proc instead of piping through shell
     println!("\n💻 System Impact:");
-    let cpu_cmd = "top -bn1 | grep 'nft\\|netfilter'";
-    if let Ok(output) = Command::new("sh").arg("-c").arg(cpu_cmd).output() {
-        let result = String::from_utf8_lossy(&output.stdout);
-        if !result.is_empty() {
-            println!("{}", result);
+    if let Ok(content) = std::fs::read_to_string("/proc/net/netfilter/nf_conntrack") {
+        let lines: Vec<_> = content.lines().collect();
+        println!("  • Conntrack entries: {}", lines.len());
+    }
+
+    // Show nft process if running (via /proc)
+    if let Ok(entries) = std::fs::read_dir("/proc") {
+        for entry in entries.flatten() {
+            if let Ok(name) = entry.file_name().into_string() {
+                if name.chars().all(|c| c.is_ascii_digit()) {
+                    let comm_path = entry.path().join("comm");
+                    if let Ok(comm) = std::fs::read_to_string(&comm_path) {
+                        if comm.trim() == "nft" {
+                            println!("  • nft process running (PID: {})", name);
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -1692,12 +3007,15 @@ fn template_library() {
         "Enterprise DMZ Setup",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select template")
         .items(&templates)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => web_server_template(),
@@ -1755,43 +3073,62 @@ table inet filter {
 
     println!("{}", template);
 
-    let apply = Confirm::with_theme(&ColorfulTheme::default())
+    let apply = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Apply this template?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(a)) => a,
+        Ok(None) | Err(_) => return,
+    };
 
     if apply {
         let temp_file = "/tmp/web_server_template.nft";
-        fs::write(temp_file, template).ok();
+        if let Err(e) = fs::write(temp_file, template) {
+            println!("❌ Failed to write template: {}", e);
+            return;
+        }
 
-        let cmd = format!("sudo nft -f {}", temp_file);
-        Command::new("sh").arg("-c").arg(&cmd).status().ok();
+        let status = Command::new("sudo")
+            .args(["nft", "-f", temp_file])
+            .status();
 
         fs::remove_file(temp_file).ok();
-        println!("✅ Web server template applied");
+
+        match status {
+            Ok(s) if s.success() => println!("✅ Web server template applied"),
+            _ => println!("❌ Failed to apply web server template"),
+        }
     }
 }
 
 fn game_server_template() {
     println!("🎮 Game Server Template");
 
-    let game_type = Select::with_theme(&ColorfulTheme::default())
+    let game_type = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select game type")
         .items(&["Minecraft", "CS:GO", "Rust", "Valheim", "Custom"])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(g)) => g,
+        Ok(None) | Err(_) => return,
+    };
 
     let port = match game_type {
         0 => "25565".to_string(),     // Minecraft
         1 => "27015".to_string(),     // CS:GO
         2 => "28015".to_string(),     // Rust
         3 => "2456-2458".to_string(), // Valheim
-        _ => Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Enter game port")
-            .interact()
-            .unwrap(),
+        _ => {
+            match Input::<String>::with_theme(&ColorfulTheme::default())
+                .with_prompt("Enter game port")
+                .interact()
+            {
+                Ok(p) => p,
+                Err(_) => return,
+            }
+        }
     };
 
     let template = format!(
@@ -1839,21 +3176,32 @@ table inet gaming {{
 
     println!("{}", template);
 
-    let apply = Confirm::with_theme(&ColorfulTheme::default())
+    let apply = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Apply this template?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(a)) => a,
+        Ok(None) | Err(_) => return,
+    };
 
     if apply {
         let temp_file = "/tmp/game_server_template.nft";
-        fs::write(temp_file, template).ok();
+        if let Err(e) = fs::write(temp_file, &template) {
+            println!("❌ Failed to write template: {}", e);
+            return;
+        }
 
-        let cmd = format!("sudo nft -f {}", temp_file);
-        Command::new("sh").arg("-c").arg(&cmd).status().ok();
+        let status = Command::new("sudo")
+            .args(["nft", "-f", temp_file])
+            .status();
 
         fs::remove_file(temp_file).ok();
-        println!("✅ Game server template applied");
+
+        match status {
+            Ok(s) if s.success() => println!("✅ Game server template applied"),
+            _ => println!("❌ Failed to apply game server template"),
+        }
     }
 }
 

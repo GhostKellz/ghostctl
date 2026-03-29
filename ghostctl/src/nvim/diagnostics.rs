@@ -16,12 +16,14 @@ pub fn health_check_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Health Check Options")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => run_full_health_check(),
@@ -76,7 +78,10 @@ fn plugin_health_check() {
     println!("🔌 Plugin Health Check");
     println!("======================");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        println!("❌ Could not determine home directory");
+        return;
+    };
     let nvim_data = home.join(".local/share/nvim");
 
     if nvim_data.exists() {
@@ -121,7 +126,10 @@ fn configuration_analysis() {
     println!("📋 Configuration Analysis");
     println!("========================");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        println!("❌ Could not determine home directory");
+        return;
+    };
     let nvim_config = home.join(".config/nvim");
 
     if nvim_config.exists() {

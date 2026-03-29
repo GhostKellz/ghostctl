@@ -5,6 +5,8 @@ on:
     - cron: '30 7 * * *'  # 7:30 AM UTC daily
   workflow_dispatch:
 
+# Security: Use SHA-pinned actions for supply-chain security
+
 env:
   CARGO: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo
   RUSTC: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc
@@ -16,7 +18,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # SHA pin: actions/checkout@v4.1.7
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
       - name: Install system dependencies
         run: |
@@ -31,7 +34,8 @@ jobs:
           $CARGO --version
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
+        # SHA pin: Swatinem/rust-cache@v2.7.3
+        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84
         with:
           workspaces: ghostctl
           key: ghostctl-nightly

@@ -13,12 +13,14 @@ pub fn environment_menu() {
             "⬅️  Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🔧 Gaming Environment Setup")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => system_environment_setup(),
@@ -42,21 +44,25 @@ fn system_environment_setup() {
     println!("  • Configure kernel parameters");
     println!("  • Set up gaming groups");
 
-    let setup_multilib = Confirm::new()
+    let Ok(setup_multilib) = Confirm::new()
         .with_prompt("Setup multilib repository for 32-bit game support?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if setup_multilib {
         setup_multilib_repo();
     }
 
-    let install_libs = Confirm::new()
+    let Ok(install_libs) = Confirm::new()
         .with_prompt("Install essential gaming libraries?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_libs {
         install_gaming_libraries();
@@ -143,11 +149,13 @@ fn gaming_environment_variables() {
     println!("  export MANGOHUD=1                      # Enable MangoHud");
     println!("  export MANGOHUD_CONFIG=fps,cpu,gpu     # Configure overlay");
 
-    let setup_profile = Confirm::new()
+    let Ok(setup_profile) = Confirm::new()
         .with_prompt("Add gaming environment to ~/.profile?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if setup_profile {
         setup_gaming_profile();
@@ -199,12 +207,14 @@ fn library_runtime_setup() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Library Setup")
         .items(&setup_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => setup_wine_dependencies(),
@@ -317,12 +327,14 @@ fn audio_environment() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Audio Environment")
         .items(&audio_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => setup_pipewire(),
@@ -432,12 +444,14 @@ fn display_environment() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Display Environment")
         .items(&display_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => display_server_status(),

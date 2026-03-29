@@ -1,7 +1,7 @@
 #!/bin/bash
 # GhostCTL Universal Installation Script
 # Supports: Arch Linux, Ubuntu/Debian, Fedora/RHEL/CentOS, openSUSE, Alpine, macOS
-# Usage: curl -sSL https://ghostctl.io | bash
+# Usage: curl -sSL https://ghostctl.cktech.sh | bash
 
 set -e
 
@@ -27,21 +27,16 @@ NC='\033[0m' # No Color
 print_header() {
     echo -e "${PURPLE}${BOLD}"
     cat << 'EOF'
-   ______ __               __   ______ _______
-  / ____// /_   ____   ___/ /_ / ____//_  __/
- / / __ / __ \ / __ \ / ___/ __// /     / /
-/ /_/ // / / // /_/ /(__  ) /_ / /___  / /
-\____//_/ /_/ \____//____/ \__/ \____//_/
+   ______ __               __   ______ ________ __
+  / ____// /_   ____   ___/ /_ / ____//_  __/ /  /
+ / / __ / __ \ / __ \ / ___/ __// /     / / / /  /
+/ /_/ // / / // /_/ /(__  ) /_ / /___  / / / /___/
+\____//_/ /_/ \____//____/ \__/ \____//_/ /_____/
 EOF
-    echo -e "${NC}${CYAN} __${NC}"
-    echo -e "${CYAN}/ /${NC}"
-    echo -e "${CYAN}/ /${NC}"
-    echo -e "${CYAN}/ /___${NC}"
-    echo -e "${CYAN}/_____/${NC}"
     echo
     echo -e "${CYAN}👻 GhostCTL - Universal System Administration Toolkit${NC}"
     echo -e "${BLUE}🔗 https://github.com/$REPO${NC}"
-    echo -e "${YELLOW}🌐 https://ghostctl.io${NC}"
+    echo -e "${YELLOW}🌐 https://ghostctl.cktech.sh${NC}"
     echo
 }
 
@@ -51,6 +46,98 @@ log_success() { echo -e "${GREEN}✅ $1${NC}"; }
 log_warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
 log_error() { echo -e "${RED}❌ $1${NC}"; }
 log_step() { echo -e "${CYAN}🔧 $1${NC}"; }
+
+# Verify file checksum for supply-chain security
+# Returns 0 if checksum matches, 1 otherwise
+verify_checksum() {
+    local file="$1"
+    local expected_checksum="$2"
+
+    if [[ -z "$expected_checksum" ]]; then
+        log_error "No checksum provided for verification"
+        return 1
+    fi
+
+    local actual_checksum
+    if command -v sha256sum &> /dev/null; then
+        actual_checksum=$(sha256sum "$file" | awk '{print $1}')
+    elif command -v shasum &> /dev/null; then
+        actual_checksum=$(shasum -a 256 "$file" | awk '{print $1}')
+    else
+        log_error "No sha256 tool available (sha256sum or shasum)"
+        return 1
+    fi
+
+    if [[ "$actual_checksum" == "$expected_checksum" ]]; then
+        log_success "Checksum verified: $actual_checksum"
+        return 0
+    else
+        log_error "Checksum mismatch!"
+        log_error "  Expected: $expected_checksum"
+        log_error "  Actual:   $actual_checksum"
+        return 1
+    fi
+}
+
+# Download file with integrity verification
+download_with_verification() {
+    local url="$1"
+    local output="$2"
+    local checksum_url="${url}.sha256"
+
+    log_info "Downloading: $url"
+
+    # Download the file
+    if command -v curl &> /dev/null; then
+        if ! curl -fsSL -o "$output" "$url"; then
+            log_error "Failed to download: $url"
+            return 1
+        fi
+    elif command -v wget &> /dev/null; then
+        if ! wget -q -O "$output" "$url"; then
+            log_error "Failed to download: $url"
+            return 1
+        fi
+    else
+        log_error "No download tool available (curl or wget)"
+        return 1
+    fi
+
+    # Download and verify checksum
+    log_info "Verifying integrity..."
+    local checksum_file
+    checksum_file=$(mktemp)
+
+    if command -v curl &> /dev/null; then
+        if ! curl -fsSL -o "$checksum_file" "$checksum_url" 2>/dev/null; then
+            log_warning "Checksum file not available at: $checksum_url"
+            log_warning "Proceeding without verification (not recommended)"
+            rm -f "$checksum_file"
+            return 0
+        fi
+    elif command -v wget &> /dev/null; then
+        if ! wget -q -O "$checksum_file" "$checksum_url" 2>/dev/null; then
+            log_warning "Checksum file not available at: $checksum_url"
+            log_warning "Proceeding without verification (not recommended)"
+            rm -f "$checksum_file"
+            return 0
+        fi
+    fi
+
+    # Parse checksum from file (format: "checksum  filename" or just "checksum")
+    local expected_checksum
+    expected_checksum=$(awk '{print $1}' "$checksum_file" | head -n1)
+    rm -f "$checksum_file"
+
+    if ! verify_checksum "$output" "$expected_checksum"; then
+        log_error "SECURITY: Downloaded file failed integrity check!"
+        log_error "The file may have been tampered with. Aborting installation."
+        rm -f "$output"
+        return 1
+    fi
+
+    return 0
+}
 
 # Detect OS and Architecture
 detect_system() {
@@ -318,26 +405,17 @@ install_via_binary() {
             ;;
     esac
 
-    # Download binary
+    # Download binary with integrity verification
     DOWNLOAD_URL="https://github.com/$REPO/releases/download/$VERSION/ghostctl-$VERSION-$TARGET.tar.gz"
     log_info "Download URL: $DOWNLOAD_URL"
 
-    if command -v curl &> /dev/null; then
-        if ! curl -L -o "ghostctl.tar.gz" "$DOWNLOAD_URL"; then
-            log_error "Failed to download binary"
-            return 1
-        fi
-    elif command -v wget &> /dev/null; then
-        if ! wget -O "ghostctl.tar.gz" "$DOWNLOAD_URL"; then
-            log_error "Failed to download binary"
-            return 1
-        fi
-    else
-        log_error "No download tool available (curl or wget)"
+    if ! download_with_verification "$DOWNLOAD_URL" "ghostctl.tar.gz"; then
+        log_error "Failed to download and verify binary"
         return 1
     fi
 
-    # Extract and install
+    # Extract verified archive
+    log_step "Extracting archive..."
     tar -xzf "ghostctl.tar.gz"
     if [[ ! -f "$BINARY_NAME" ]]; then
         log_error "Binary not found in archive"

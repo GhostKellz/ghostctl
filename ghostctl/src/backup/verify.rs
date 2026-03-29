@@ -1,6 +1,12 @@
 pub fn verify_backups() {
     println!("✅ Verify Backup Integrity");
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(dir) => dir.join("ghostctl/restic.env"),
+        None => {
+            println!("❌ Could not determine config directory");
+            return;
+        }
+    };
     if config_path.exists() {
         let _ = std::process::Command::new("bash")
             .arg("-c")

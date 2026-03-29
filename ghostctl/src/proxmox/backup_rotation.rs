@@ -15,12 +15,14 @@ pub fn backup_rotation_menu() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🔄 PVE Backup Rotation & Pruning")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => backup_job_management(),
@@ -48,12 +50,14 @@ fn backup_job_management() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("📋 Backup Job Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => list_backup_jobs(),
@@ -85,13 +89,15 @@ fn list_backup_jobs() {
 fn create_backup_job() {
     println!("➕ Create New Backup Job\n");
 
-    let job_id: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(job_id): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Job ID")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Select VMs/CTs to backup
-    let backup_scope = Select::with_theme(&ColorfulTheme::default())
+    let Ok(backup_scope) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Backup scope")
         .items(&[
             "All VMs",
@@ -102,7 +108,9 @@ fn create_backup_job() {
         ])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let vmid_selection = match backup_scope {
         0 => "all".to_string(),
@@ -111,49 +119,61 @@ fn create_backup_job() {
             get_ct_list()
         }
         2 => {
-            let vmids: String = Input::with_theme(&ColorfulTheme::default())
+            let Ok(vmids): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter VM/CT IDs (comma separated)")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
             vmids
         }
         3 => {
-            let pool: String = Input::with_theme(&ColorfulTheme::default())
+            let Ok(pool): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Pool name")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
             format!("pool:{}", pool)
         }
         4 => {
-            let tag: String = Input::with_theme(&ColorfulTheme::default())
+            let Ok(tag): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Tag name")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
             format!("tag:{}", tag)
         }
         _ => "all".to_string(),
     };
 
-    let storage: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(storage): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Backup storage")
         .default("local".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let schedule: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(schedule): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Schedule (cron format)")
         .default("0 2 * * *".to_string()) // Daily at 2 AM
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let retention_config = configure_retention();
 
-    let mailnotification = Select::with_theme(&ColorfulTheme::default())
+    let Ok(mailnotification) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Email notifications")
         .items(&["Always", "Failure only", "Never"])
         .default(1)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let mail_option = match mailnotification {
         0 => "always",
@@ -163,21 +183,26 @@ fn create_backup_job() {
     };
 
     let email: String = if mailnotification < 2 {
-        Input::with_theme(&ColorfulTheme::default())
+        let Ok(email): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Email address")
             .default("admin@example.com".to_string())
             .interact()
-            .unwrap()
+        else {
+            return;
+        };
+        email
     } else {
         String::new()
     };
 
-    let compression = Select::with_theme(&ColorfulTheme::default())
+    let Ok(compression) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Compression type")
         .items(&["LZO (fast)", "GZIP (balanced)", "ZSTD (best)"])
         .default(1)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let compress_option = match compression {
         0 => "lzo",
@@ -186,12 +211,14 @@ fn create_backup_job() {
         _ => "gzip",
     };
 
-    let mode = Select::with_theme(&ColorfulTheme::default())
+    let Ok(mode) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Backup mode")
         .items(&["Snapshot", "Suspend", "Stop"])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let mode_option = match mode {
         0 => "snapshot",
@@ -270,35 +297,46 @@ fn get_ct_list() -> String {
 }
 
 fn configure_retention() -> Option<(u32, u32, u32, u32)> {
-    if Confirm::new()
+    let Ok(configure) = Confirm::new()
         .with_prompt("Configure retention policy?")
         .default(true)
         .interact()
-        .unwrap()
-    {
-        let keep_last: u32 = Input::with_theme(&ColorfulTheme::default())
+    else {
+        return None;
+    };
+
+    if configure {
+        let Ok(keep_last): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Keep last N backups")
             .default(3)
             .interact()
-            .unwrap();
+        else {
+            return None;
+        };
 
-        let keep_daily: u32 = Input::with_theme(&ColorfulTheme::default())
+        let Ok(keep_daily): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Keep daily backups for N days")
             .default(7)
             .interact()
-            .unwrap();
+        else {
+            return None;
+        };
 
-        let keep_weekly: u32 = Input::with_theme(&ColorfulTheme::default())
+        let Ok(keep_weekly): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Keep weekly backups for N weeks")
             .default(4)
             .interact()
-            .unwrap();
+        else {
+            return None;
+        };
 
-        let keep_monthly: u32 = Input::with_theme(&ColorfulTheme::default())
+        let Ok(keep_monthly): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Keep monthly backups for N months")
             .default(12)
             .interact()
-            .unwrap();
+        else {
+            return None;
+        };
 
         Some((keep_last, keep_daily, keep_weekly, keep_monthly))
     } else {
@@ -311,10 +349,12 @@ fn modify_backup_job() {
 
     list_backup_jobs();
 
-    let job_id: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(job_id): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Job ID to modify")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let modification_options = vec![
         "Schedule",
@@ -326,12 +366,14 @@ fn modify_backup_job() {
         "Back",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("What to modify")
         .items(&modification_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => modify_schedule(&job_id),
@@ -345,10 +387,12 @@ fn modify_backup_job() {
 }
 
 fn modify_schedule(job_id: &str) {
-    let new_schedule: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(new_schedule): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("New schedule (cron format)")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let result = Command::new("pvesh")
         .args(&[
@@ -391,10 +435,12 @@ fn modify_retention(job_id: &str) {
 }
 
 fn modify_storage(job_id: &str) {
-    let new_storage: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(new_storage): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("New storage target")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let result = Command::new("pvesh")
         .args(&[
@@ -413,10 +459,12 @@ fn modify_storage(job_id: &str) {
 }
 
 fn modify_vmid_selection(job_id: &str) {
-    let new_vmids: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(new_vmids): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("New VM/CT selection")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let result = Command::new("pvesh")
         .args(&[
@@ -435,17 +483,21 @@ fn modify_vmid_selection(job_id: &str) {
 }
 
 fn modify_email_settings(job_id: &str) {
-    let email: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(email): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Email address")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let notification = Select::with_theme(&ColorfulTheme::default())
+    let Ok(notification) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Email notifications")
         .items(&["Always", "Failure only", "Never"])
         .default(1)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let mail_option = match notification {
         0 => "always",
@@ -470,12 +522,14 @@ fn modify_email_settings(job_id: &str) {
 }
 
 fn modify_compression(job_id: &str) {
-    let compression = Select::with_theme(&ColorfulTheme::default())
+    let Ok(compression) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Compression type")
         .items(&["LZO (fast)", "GZIP (balanced)", "ZSTD (best)"])
         .default(1)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let compress_option = match compression {
         0 => "lzo",
@@ -505,17 +559,22 @@ fn delete_backup_job() {
 
     list_backup_jobs();
 
-    let job_id: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(job_id): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Job ID to delete")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    if Confirm::new()
+    let Ok(confirmed) = Confirm::new()
         .with_prompt(&format!("Really delete backup job '{}'?", job_id))
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+
+    if confirmed {
         let result = Command::new("pvesh")
             .args(&["delete", &format!("/cluster/backup/{}", job_id)])
             .status();
@@ -533,17 +592,21 @@ fn toggle_backup_job() {
 
     list_backup_jobs();
 
-    let job_id: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(job_id): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Job ID to toggle")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let action = Select::with_theme(&ColorfulTheme::default())
+    let Ok(action) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Action")
         .items(&["Enable", "Disable"])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let enabled = match action {
         0 => "1",
@@ -580,17 +643,22 @@ fn test_backup_job() {
 
     list_backup_jobs();
 
-    let job_id: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(job_id): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Job ID to test")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    if Confirm::new()
+    let Ok(confirmed) = Confirm::new()
         .with_prompt("Run backup job now?")
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+
+    if confirmed {
         println!("🚀 Starting backup job '{}'...", job_id);
 
         let result = Command::new("pvesh")
@@ -641,12 +709,14 @@ fn retention_policy_setup() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("📅 Retention Policy Setup")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => global_retention_policy(),
@@ -669,12 +739,14 @@ fn global_retention_policy() {
         "Custom",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select retention policy type")
         .items(&policy_types)
         .default(1)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let (keep_last, keep_daily, keep_weekly, keep_monthly) = match selection {
         0 => (7, 14, 8, 24), // Conservative
@@ -682,29 +754,37 @@ fn global_retention_policy() {
         2 => (1, 3, 2, 6),   // Aggressive
         _ => {
             // Custom
-            let keep_last: u32 = Input::with_theme(&ColorfulTheme::default())
+            let Ok(keep_last): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Keep last N backups")
                 .default(3)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
-            let keep_daily: u32 = Input::with_theme(&ColorfulTheme::default())
+            let Ok(keep_daily): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Keep daily backups for N days")
                 .default(7)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
-            let keep_weekly: u32 = Input::with_theme(&ColorfulTheme::default())
+            let Ok(keep_weekly): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Keep weekly backups for N weeks")
                 .default(4)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
-            let keep_monthly: u32 = Input::with_theme(&ColorfulTheme::default())
+            let Ok(keep_monthly): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Keep monthly backups for N months")
                 .default(12)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             (keep_last, keep_daily, keep_weekly, keep_monthly)
         }
@@ -716,12 +796,15 @@ fn global_retention_policy() {
     println!("   Keep weekly: {} weeks", keep_weekly);
     println!("   Keep monthly: {} months", keep_monthly);
 
-    if Confirm::new()
+    let Ok(confirmed) = Confirm::new()
         .with_prompt("Apply this policy to all backup jobs?")
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+
+    if confirmed {
         apply_global_retention_policy(keep_last, keep_daily, keep_weekly, keep_monthly);
     }
 }
@@ -759,10 +842,12 @@ fn per_job_retention_policy() {
 
     list_backup_jobs();
 
-    let job_id: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(job_id): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Job ID to configure retention for")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if let Some((keep_last, keep_daily, keep_weekly, keep_monthly)) = configure_retention() {
         let retention_string = format!(
@@ -790,35 +875,45 @@ fn per_job_retention_policy() {
 fn retention_calculator() {
     println!("🧮 Retention Calculator\n");
 
-    let keep_last: u32 = Input::with_theme(&ColorfulTheme::default())
+    let Ok(keep_last): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Keep last N backups")
         .default(3)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let keep_daily: u32 = Input::with_theme(&ColorfulTheme::default())
+    let Ok(keep_daily): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Keep daily backups for N days")
         .default(7)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let keep_weekly: u32 = Input::with_theme(&ColorfulTheme::default())
+    let Ok(keep_weekly): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Keep weekly backups for N weeks")
         .default(4)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let keep_monthly: u32 = Input::with_theme(&ColorfulTheme::default())
+    let Ok(keep_monthly): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Keep monthly backups for N months")
         .default(12)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let avg_backup_size: f64 = Input::with_theme(&ColorfulTheme::default())
+    let Ok(avg_backup_size): Result<f64, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Average backup size (GB)")
         .default(50.0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Calculate storage requirements
     let max_recent = keep_last as f64;
@@ -886,24 +981,29 @@ fn policy_templates() {
         println!("   • {}: {}", name, policy);
     }
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select template to apply")
         .items(&templates.iter().map(|(name, _)| *name).collect::<Vec<_>>())
         .default(1) // Production
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let (template_name, template_policy) = templates[selection];
 
-    if Confirm::new()
+    let Ok(confirmed) = Confirm::new()
         .with_prompt(&format!(
             "Apply '{}' template to backup jobs?",
             template_name
         ))
         .default(true)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+
+    if confirmed {
         println!("🔄 Applying '{}' template...", template_name);
         println!("✅ Template applied successfully");
     }
@@ -968,12 +1068,14 @@ fn automated_pruning() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🗑️  Automated Pruning")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => run_manual_prune(),
@@ -990,13 +1092,15 @@ fn automated_pruning() {
 fn run_manual_prune() {
     println!("🗑️  Manual Backup Pruning\n");
 
-    let storage: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(storage): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Storage to prune")
         .default("local".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let prune_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(prune_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Pruning type")
         .items(&[
             "All backups (apply retention)",
@@ -1005,19 +1109,24 @@ fn run_manual_prune() {
         ])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match prune_type {
         0 => {
-            if Confirm::new()
+            let Ok(confirmed) = Confirm::new()
                 .with_prompt(&format!(
                     "Prune all backups on storage '{}' according to retention policies?",
                     storage
                 ))
                 .default(false)
                 .interact()
-                .unwrap()
-            {
+            else {
+                return;
+            };
+
+            if confirmed {
                 println!("🔄 Starting pruning operation...");
                 let result = Command::new("pvesh")
                     .args(&[
@@ -1036,10 +1145,12 @@ fn run_manual_prune() {
             }
         }
         1 => {
-            let vmid: String = Input::with_theme(&ColorfulTheme::default())
+            let Ok(vmid): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("VM/CT ID to prune backups for")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             let result = Command::new("pvesh")
                 .args(&[
@@ -1059,12 +1170,14 @@ fn run_manual_prune() {
             }
         }
         2 => {
-            let backup_type = Select::with_theme(&ColorfulTheme::default())
+            let Ok(backup_type) = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Backup type to prune")
                 .items(&["VZDump archives", "LXC templates", "ISO images"])
                 .default(0)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             println!(
                 "🔄 Pruning {} backups...",
@@ -1085,17 +1198,21 @@ fn run_manual_prune() {
 fn schedule_automated_pruning() {
     println!("📅 Schedule Automated Pruning\n");
 
-    let schedule: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(schedule): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Pruning schedule (cron format)")
         .default("0 3 * * 0".to_string()) // Weekly on Sunday at 3 AM
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let storage: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(storage): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Storage to prune")
         .default("local".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Create cron job for automated pruning
     let cron_command = format!(
@@ -1104,12 +1221,15 @@ fn schedule_automated_pruning() {
     );
     let cron_entry = format!("{} root {}\n", schedule, cron_command);
 
-    if Confirm::new()
+    let Ok(confirmed) = Confirm::new()
         .with_prompt("Add automated pruning to crontab?")
         .default(true)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+
+    if confirmed {
         // Write to temporary cron file
         fs::write("/tmp/proxmox_prune_cron.txt", cron_entry).ok();
 
@@ -1130,10 +1250,12 @@ fn prune_specific_storage() {
         .args(&["status", "--content", "backup"])
         .status();
 
-    let storage: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(storage): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Storage to prune")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let retention_options = vec![
         "Use existing retention policies",
@@ -1141,12 +1263,14 @@ fn prune_specific_storage() {
         "Remove all backups older than X days",
     ];
 
-    let retention_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(retention_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Retention option")
         .items(&retention_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match retention_choice {
         0 => {
@@ -1188,21 +1312,26 @@ fn prune_specific_storage() {
             }
         }
         2 => {
-            let days_old: u32 = Input::with_theme(&ColorfulTheme::default())
+            let Ok(days_old): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Remove backups older than N days")
                 .default(90)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
-            if Confirm::new()
+            let Ok(confirmed) = Confirm::new()
                 .with_prompt(&format!(
                     "Really remove ALL backups older than {} days?",
                     days_old
                 ))
                 .default(false)
                 .interact()
-                .unwrap()
-            {
+            else {
+                return;
+            };
+
+            if confirmed {
                 println!("🗑️  Removing backups older than {} days...", days_old);
                 // Implementation would use find command or API to remove old backups
                 println!("✅ Old backups removed");
@@ -1215,31 +1344,40 @@ fn prune_specific_storage() {
 fn prune_by_date_range() {
     println!("📅 Prune by Date Range\n");
 
-    let start_date: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(start_date): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Start date (YYYY-MM-DD)")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let end_date: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(end_date): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("End date (YYYY-MM-DD)")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let storage: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(storage): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Storage to prune")
         .default("local".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    if Confirm::new()
+    let Ok(confirmed) = Confirm::new()
         .with_prompt(&format!(
             "Remove backups between {} and {} on storage '{}'?",
             start_date, end_date, storage
         ))
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+
+    if confirmed {
         println!("🗑️  Removing backups in date range...");
         // Implementation would filter backups by date and remove them
         println!("✅ Date range pruning completed");
@@ -1249,11 +1387,13 @@ fn prune_by_date_range() {
 fn prune_dry_run() {
     println!("🧪 Prune Dry Run\n");
 
-    let storage: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(storage): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Storage for dry run")
         .default("local".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔍 Running dry run on storage '{}'...", storage);
 
@@ -1292,12 +1432,15 @@ fn prune_status_logs() {
     println!("   • Storage reclaimed: 280 GB");
     println!("   • Duration: 5 minutes");
 
-    if Confirm::new()
+    let Ok(view_logs) = Confirm::new()
         .with_prompt("View detailed pruning logs?")
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+
+    if view_logs {
         let _ = Command::new("tail")
             .args(&["-n", "50", "/var/log/pveproxy/access.log"])
             .status();
@@ -1315,12 +1458,14 @@ fn backup_verification() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("✅ Backup Verification")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => verify_recent_backups(),
@@ -1336,11 +1481,13 @@ fn backup_verification() {
 fn verify_recent_backups() {
     println!("✅ Verify Recent Backups\n");
 
-    let days_back: u32 = Input::with_theme(&ColorfulTheme::default())
+    let Ok(days_back): Result<u32, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Verify backups from last N days")
         .default(7)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔍 Verifying backups from last {} days...", days_back);
 
@@ -1382,13 +1529,15 @@ fn verify_recent_backups() {
 fn deep_backup_verification() {
     println!("🔬 Deep Backup Verification\n");
 
-    let storage: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(storage): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Storage to verify")
         .default("local".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let verification_types = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(verification_types) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select verification types")
         .items(&[
             "File integrity check",
@@ -1398,7 +1547,9 @@ fn deep_backup_verification() {
             "Performance benchmarking",
         ])
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔄 Starting deep verification of storage '{}'...", storage);
 
@@ -1439,16 +1590,20 @@ fn restore_test() {
         ])
         .status();
 
-    let backup_file: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(backup_file): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Backup file to test restore")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let test_vmid: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(test_vmid): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Test VM/CT ID (will be created)")
         .default("999".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let restore_options = vec![
         "Full restore test",
@@ -1456,19 +1611,24 @@ fn restore_test() {
         "Single disk restore",
     ];
 
-    let restore_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(restore_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Restore test type")
         .items(&restore_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    if Confirm::new()
+    let Ok(confirmed) = Confirm::new()
         .with_prompt(&format!("Start restore test to VM/CT {}?", test_vmid))
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+
+    if confirmed {
         println!("🔄 Starting restore test...");
 
         match restore_type {
@@ -1490,15 +1650,18 @@ fn restore_test() {
             _ => {}
         }
 
-        if Confirm::new()
+        let Ok(cleanup) = Confirm::new()
             .with_prompt(&format!(
                 "Delete test VM/CT {} after verification?",
                 test_vmid
             ))
             .default(true)
             .interact()
-            .unwrap()
-        {
+        else {
+            return;
+        };
+
+        if cleanup {
             println!("🗑️  Cleaning up test VM/CT...");
             println!("✅ Test cleanup completed");
         }
@@ -1508,7 +1671,7 @@ fn restore_test() {
 fn backup_integrity_check() {
     println!("🔒 Backup Integrity Check\n");
 
-    let check_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(check_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Integrity check type")
         .items(&[
             "Quick check (file sizes)",
@@ -1517,13 +1680,17 @@ fn backup_integrity_check() {
         ])
         .default(1)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let storage: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(storage): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Storage to check")
         .default("local".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔍 Running integrity check on storage '{}'...", storage);
 
@@ -1556,7 +1723,7 @@ fn backup_integrity_check() {
 fn checksum_validation() {
     println!("🔐 Checksum Validation\n");
 
-    let action = Select::with_theme(&ColorfulTheme::default())
+    let Ok(action) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Checksum action")
         .items(&[
             "Generate checksums",
@@ -1565,13 +1732,17 @@ fn checksum_validation() {
         ])
         .default(1)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let storage: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(storage): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Storage for checksum operation")
         .default("local".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match action {
         0 => {

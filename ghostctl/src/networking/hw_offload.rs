@@ -443,4 +443,171 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_nic_profiles_have_recommendations() {
+        let profiles = get_nic_profiles();
+        for profile in profiles {
+            assert!(
+                !profile.recommended_offloads.is_empty(),
+                "Profile {} has no recommended offloads",
+                profile.family
+            );
+        }
+    }
+
+    #[test]
+    fn test_intel_igc_profile() {
+        let profiles = get_nic_profiles();
+        let igc_profile = profiles.iter().find(|p| p.driver_pattern == "igc");
+        assert!(igc_profile.is_some(), "Intel igc profile should exist");
+        let Some(profile) = igc_profile else {
+            return;
+        };
+        assert!(profile.family.contains("i225") || profile.family.contains("i226"));
+    }
+
+    #[test]
+    fn test_realtek_profile_has_tso_disabled() {
+        let profiles = get_nic_profiles();
+        let realtek_profile = profiles.iter().find(|p| p.driver_pattern.contains("r8169"));
+        assert!(realtek_profile.is_some(), "Realtek profile should exist");
+        let Some(profile) = realtek_profile else {
+            return;
+        };
+        // Realtek TSO is recommended off due to known bugs
+        assert_eq!(
+            profile.recommended_offloads.get("tso"),
+            Some(&false),
+            "Realtek TSO should be recommended off"
+        );
+    }
+
+    #[test]
+    fn test_nic_info_creation() {
+        let nic = NicInfo {
+            interface: "eth0".to_string(),
+            driver: "igc".to_string(),
+            bus_info: "0000:00:1f.6".to_string(),
+            firmware_version: Some("1.67.0".to_string()),
+            supported_offloads: HashMap::from([
+                ("tso".to_string(), true),
+                ("gso".to_string(), true),
+            ]),
+            current_offloads: HashMap::from([
+                ("tso".to_string(), true),
+                ("gso".to_string(), false),
+            ]),
+        };
+        assert_eq!(nic.interface, "eth0");
+        assert_eq!(nic.driver, "igc");
+        assert!(nic.firmware_version.is_some());
+    }
+
+    #[test]
+    fn test_offload_recommendation_creation() {
+        let rec = OffloadRecommendation {
+            interface: "eth0".to_string(),
+            setting: "tso".to_string(),
+            current: false,
+            recommended: true,
+            reason: "Enable for better performance".to_string(),
+            command: "sudo ethtool -K eth0 tso on".to_string(),
+        };
+        assert_eq!(rec.interface, "eth0");
+        assert_eq!(rec.setting, "tso");
+        assert!(!rec.current);
+        assert!(rec.recommended);
+        assert!(rec.command.contains("ethtool"));
+    }
+
+    #[test]
+    fn test_match_profile_igc() {
+        let nic = NicInfo {
+            interface: "eth0".to_string(),
+            driver: "igc".to_string(),
+            bus_info: "0000:00:1f.6".to_string(),
+            firmware_version: None,
+            supported_offloads: HashMap::new(),
+            current_offloads: HashMap::new(),
+        };
+        let profile = match_profile(&nic);
+        assert!(profile.is_some(), "Should match igc profile");
+        let Some(profile) = profile else {
+            return;
+        };
+        assert!(profile.family.contains("Intel"));
+    }
+
+    #[test]
+    fn test_match_profile_realtek() {
+        let nic = NicInfo {
+            interface: "eth0".to_string(),
+            driver: "r8169".to_string(),
+            bus_info: "0000:01:00.0".to_string(),
+            firmware_version: None,
+            supported_offloads: HashMap::new(),
+            current_offloads: HashMap::new(),
+        };
+        let profile = match_profile(&nic);
+        assert!(profile.is_some(), "Should match Realtek profile");
+        let Some(profile) = profile else {
+            return;
+        };
+        assert!(profile.family.contains("Realtek"));
+    }
+
+    #[test]
+    fn test_match_profile_unknown() {
+        let nic = NicInfo {
+            interface: "eth0".to_string(),
+            driver: "unknown_driver".to_string(),
+            bus_info: "0000:00:00.0".to_string(),
+            firmware_version: None,
+            supported_offloads: HashMap::new(),
+            current_offloads: HashMap::new(),
+        };
+        let profile = match_profile(&nic);
+        assert!(
+            profile.is_none(),
+            "Unknown driver should not match any profile"
+        );
+    }
+
+    #[test]
+    fn test_get_recommendations_no_changes_needed() {
+        let nic = NicInfo {
+            interface: "eth0".to_string(),
+            driver: "igc".to_string(),
+            bus_info: "0000:00:1f.6".to_string(),
+            firmware_version: None,
+            supported_offloads: HashMap::new(),
+            current_offloads: HashMap::from([
+                ("tx-checksum-ipv4".to_string(), true),
+                ("tx-checksum-ipv6".to_string(), true),
+                ("rx-checksum".to_string(), true),
+                ("tso".to_string(), true),
+                ("gso".to_string(), true),
+                ("gro".to_string(), true),
+            ]),
+        };
+        let recs = get_recommendations(&nic);
+        // When all settings match recommendations, no recommendations needed
+        assert!(recs.is_empty() || recs.iter().all(|r| r.current == r.recommended));
+    }
+
+    #[test]
+    fn test_get_recommendations_for_unknown_driver() {
+        let nic = NicInfo {
+            interface: "eth0".to_string(),
+            driver: "custom_driver".to_string(),
+            bus_info: "0000:00:00.0".to_string(),
+            firmware_version: None,
+            supported_offloads: HashMap::new(),
+            current_offloads: HashMap::new(),
+        };
+        let recs = get_recommendations(&nic);
+        // Unknown drivers should have no recommendations
+        assert!(recs.is_empty());
+    }
 }

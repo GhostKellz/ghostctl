@@ -4,6 +4,7 @@ pub mod aur_cache;
 pub mod boot;
 pub mod diagnostics;
 pub mod dotfiles;
+pub mod errors;
 pub mod hardware;
 pub mod health;
 pub mod mirror;

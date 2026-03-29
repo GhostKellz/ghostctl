@@ -2,6 +2,7 @@ pub mod credential_backends;
 pub mod credentials;
 pub mod gpg;
 pub mod ssh;
+pub mod validation;
 
 use dialoguer::{Select, theme::ColorfulTheme};
 
@@ -16,12 +17,19 @@ pub fn security_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Security Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(choice)) => choice,
+        Ok(None) => return, // User cancelled
+        Err(e) => {
+            eprintln!("Menu selection failed: {}", e);
+            return;
+        }
+    };
 
     match choice {
         0 => ssh::ssh_management(),

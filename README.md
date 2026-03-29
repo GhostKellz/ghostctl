@@ -27,7 +27,7 @@ GhostCTL is a comprehensive system administration platform that transforms compl
 
 ```bash
 # One-line installation for all Linux distributions
-curl -sSL https://ghostctl.sh | bash
+curl -sSL https://ghostctl.cktech.sh | bash
 ```
 
 **Supports:** Arch Linux, Ubuntu/Debian, Fedora/RHEL, openSUSE, Alpine, macOS

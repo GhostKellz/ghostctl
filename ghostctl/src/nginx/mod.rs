@@ -21,12 +21,14 @@ pub fn nginx_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Nginx Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => config::configuration_builder(),
@@ -93,11 +95,13 @@ fn test_configuration() {
         Ok(s) if s.success() => {
             println!("✅ Configuration test passed!");
 
-            let reload = Confirm::new()
+            let Ok(reload) = Confirm::new()
                 .with_prompt("Reload nginx with new configuration?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if reload {
                 reload_nginx();
@@ -120,12 +124,14 @@ fn service_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Service action")
         .items(&actions)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => reload_nginx(),
@@ -166,11 +172,13 @@ fn restart_nginx() {
 fn stop_nginx() {
     println!("🛑 Stopping nginx service...");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Are you sure you want to stop nginx?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let status = Command::new("sudo")

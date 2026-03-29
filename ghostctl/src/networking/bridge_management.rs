@@ -17,12 +17,14 @@ pub fn bridge_management_menu() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🌉 Linux Bridge Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => linux_bridge_operations(),
@@ -52,12 +54,14 @@ fn linux_bridge_operations() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🌉 Bridge Operations")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => list_all_bridges(),
@@ -176,7 +180,10 @@ fn show_bridge_statistics() {
     if let Ok(entries) = fs::read_dir("/sys/class/net") {
         for entry in entries.flatten() {
             let path = entry.path();
-            let interface_name = path.file_name().unwrap().to_string_lossy();
+            let Some(file_name) = path.file_name() else {
+                continue;
+            };
+            let interface_name = file_name.to_string_lossy();
 
             // Check if it's a bridge
             let bridge_check = path.join("bridge");
@@ -235,11 +242,13 @@ fn show_bridge_statistics() {
 fn create_new_bridge() {
     println!("➕ Create New Bridge");
 
-    let bridge_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(bridge_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter bridge name")
         .default("br0".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Validate bridge name
     if bridge_name.is_empty() || bridge_name.len() > 15 {
@@ -272,22 +281,26 @@ fn create_new_bridge() {
             println!("✅ Bridge '{}' created successfully", bridge_name);
 
             // Ask about additional configuration
-            let configure_now = Confirm::with_theme(&ColorfulTheme::default())
+            let Ok(configure_now) = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Configure bridge parameters now?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if configure_now {
                 configure_new_bridge(&bridge_name);
             }
 
             // Ask about bringing it up
-            let bring_up = Confirm::with_theme(&ColorfulTheme::default())
+            let Ok(bring_up) = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Bring bridge up now?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if bring_up {
                 let up_result = Command::new("sudo")
@@ -310,11 +323,13 @@ fn configure_new_bridge(bridge_name: &str) {
     println!("🔧 Configuring bridge '{}'", bridge_name);
 
     // STP configuration
-    let enable_stp = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(enable_stp) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Enable Spanning Tree Protocol (STP)?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if enable_stp {
         let stp_result = Command::new("sudo")
@@ -337,11 +352,13 @@ fn configure_new_bridge(bridge_name: &str) {
     }
 
     // Forward delay configuration
-    let forward_delay = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(forward_delay) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Forward delay (4-30 seconds)")
         .default("15".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if let Ok(delay_val) = forward_delay.parse::<u32>()
         && (4..=30).contains(&delay_val)
@@ -369,11 +386,13 @@ fn configure_new_bridge(bridge_name: &str) {
     }
 
     // Hello time configuration
-    let hello_time = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(hello_time) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Hello time (1-10 seconds)")
         .default("2".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if let Ok(hello_val) = hello_time.parse::<u32>()
         && (1..=10).contains(&hello_val)
@@ -401,11 +420,13 @@ fn configure_new_bridge(bridge_name: &str) {
     }
 
     // Max age configuration
-    let max_age = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(max_age) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Max age (6-40 seconds)")
         .default("20".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if let Ok(age_val) = max_age.parse::<u32>()
         && (6..=40).contains(&age_val)
@@ -431,17 +452,21 @@ fn configure_new_bridge(bridge_name: &str) {
     }
 
     // IP address configuration
-    let assign_ip = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(assign_ip) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Assign IP address to bridge?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if assign_ip {
-        let ip_address = Input::<String>::with_theme(&ColorfulTheme::default())
+        let Ok(ip_address) = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter IP address with CIDR (e.g., 192.168.1.1/24)")
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         let ip_result = Command::new("sudo")
             .args(&["ip", "addr", "add", &ip_address, "dev", bridge_name])
@@ -463,26 +488,30 @@ fn delete_bridge() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select bridge to delete")
         .items(&bridges)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let bridge_name = &bridges[choice];
 
     // Show bridge info before deletion
     show_bridge_details(bridge_name);
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt(format!(
             "Delete bridge '{}'? This will disconnect all attached interfaces",
             bridge_name
         ))
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("🗑️ Deleting bridge '{}'...", bridge_name);
@@ -621,12 +650,14 @@ fn add_interface_to_bridge() {
         return;
     }
 
-    let bridge_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(bridge_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select bridge")
         .items(&bridges)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let bridge_name = &bridges[bridge_choice];
 
@@ -637,12 +668,14 @@ fn add_interface_to_bridge() {
         return;
     }
 
-    let interface_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(interface_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select interface to add")
         .items(&available_interfaces)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let interface_name = &available_interfaces[interface_choice];
 
@@ -728,12 +761,14 @@ fn remove_interface_from_bridge() {
         return;
     }
 
-    let bridge_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(bridge_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select bridge")
         .items(&bridges)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let bridge_name = &bridges[bridge_choice];
 
@@ -744,23 +779,27 @@ fn remove_interface_from_bridge() {
         return;
     }
 
-    let interface_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(interface_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select interface to remove")
         .items(&connected_interfaces)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let interface_name = &connected_interfaces[interface_choice];
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt(format!(
             "Remove interface '{}' from bridge '{}'?",
             interface_name, bridge_name
         ))
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!(
@@ -807,12 +846,14 @@ fn bring_bridge_up() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select bridge to bring up")
         .items(&bridges)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let bridge_name = &bridges[choice];
 
@@ -839,23 +880,27 @@ fn bring_bridge_down() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select bridge to bring down")
         .items(&bridges)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let bridge_name = &bridges[choice];
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt(format!(
             "Bring bridge '{}' down? This will interrupt network connectivity",
             bridge_name
         ))
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("⬇️ Bringing bridge '{}' down...", bridge_name);
@@ -882,12 +927,14 @@ fn configure_bridge_parameters() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select bridge to configure")
         .items(&bridges)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let bridge_name = &bridges[choice];
 
@@ -903,12 +950,14 @@ fn configure_bridge_parameters() {
         "📏 Set MTU",
     ];
 
-    let param_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(param_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select parameter to configure")
         .items(&parameters)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match param_choice {
         0 => toggle_stp(bridge_name),
@@ -941,14 +990,16 @@ fn toggle_stp(bridge_name: &str) {
     let new_state = !current_stp;
     let state_value = if new_state { "1" } else { "0" };
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt(format!(
             "{} STP?",
             if new_state { "Enable" } else { "Disable" }
         ))
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let stp_result = Command::new("sudo")
@@ -980,11 +1031,13 @@ fn toggle_stp(bridge_name: &str) {
 fn set_forward_delay(bridge_name: &str) {
     println!("⏱️ Set Forward Delay for bridge '{}'", bridge_name);
 
-    let delay_seconds = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(delay_seconds) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter forward delay in seconds (4-30)")
         .default("15".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if let Ok(delay_val) = delay_seconds.parse::<u32>() {
         if (4..=30).contains(&delay_val) {
@@ -1020,11 +1073,13 @@ fn set_forward_delay(bridge_name: &str) {
 fn set_hello_time(bridge_name: &str) {
     println!("👋 Set Hello Time for bridge '{}'", bridge_name);
 
-    let hello_seconds = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(hello_seconds) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter hello time in seconds (1-10)")
         .default("2".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if let Ok(hello_val) = hello_seconds.parse::<u32>() {
         if (1..=10).contains(&hello_val) {
@@ -1060,11 +1115,13 @@ fn set_hello_time(bridge_name: &str) {
 fn set_max_age(bridge_name: &str) {
     println!("⏰ Set Max Age for bridge '{}'", bridge_name);
 
-    let max_seconds = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(max_seconds) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter max age in seconds (6-40)")
         .default("20".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if let Ok(max_val) = max_seconds.parse::<u32>() {
         if (6..=40).contains(&max_val) {
@@ -1100,11 +1157,13 @@ fn set_max_age(bridge_name: &str) {
 fn set_bridge_priority(bridge_name: &str) {
     println!("🏷️ Set Bridge Priority for bridge '{}'", bridge_name);
 
-    let priority = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(priority) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter bridge priority (0-65535, lower = higher priority)")
         .default("32768".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if let Ok(priority_val) = priority.parse::<u32>() {
         if priority_val <= 65535 {
@@ -1159,19 +1218,23 @@ fn assign_ip_address(bridge_name: &str) {
         "🔄 Replace IP address",
     ];
 
-    let action_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(action_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select action")
         .items(&actions)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match action_choice {
         0 => {
-            let ip_address = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(ip_address) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter IP address with CIDR (e.g., 192.168.1.1/24)")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             let result = Command::new("sudo")
                 .args(&["ip", "addr", "add", &ip_address, "dev", bridge_name])
@@ -1185,10 +1248,12 @@ fn assign_ip_address(bridge_name: &str) {
             }
         }
         1 => {
-            let ip_address = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(ip_address) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter IP address to remove (with CIDR)")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             let result = Command::new("sudo")
                 .args(&["ip", "addr", "del", &ip_address, "dev", bridge_name])
@@ -1211,11 +1276,13 @@ fn assign_ip_address(bridge_name: &str) {
 fn set_mtu(bridge_name: &str) {
     println!("📏 Set MTU for bridge '{}'", bridge_name);
 
-    let mtu = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(mtu) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter MTU size (68-65536)")
         .default("1500".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if let Ok(mtu_val) = mtu.parse::<u32>() {
         if (68..=65536).contains(&mtu_val) {
@@ -1323,4 +1390,240 @@ fn advanced_bridge_features() {
 
 fn bridge_configuration_backup() {
     println!("Bridge Configuration Backup - Coming soon...");
+}
+
+/// Validates a bridge name according to Linux conventions
+/// Bridge names must be 1-15 characters long and contain only alphanumeric and underscore
+pub fn is_valid_bridge_name(name: &str) -> bool {
+    if name.is_empty() || name.len() > 15 {
+        return false;
+    }
+    name.chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+}
+
+/// Parse MAC address from a string
+pub fn parse_mac_address(mac_str: &str) -> Option<[u8; 6]> {
+    let parts: Vec<&str> = mac_str.split(':').collect();
+    if parts.len() != 6 {
+        return None;
+    }
+    let mut mac = [0u8; 6];
+    for (i, part) in parts.iter().enumerate() {
+        match u8::from_str_radix(part, 16) {
+            Ok(byte) => mac[i] = byte,
+            Err(_) => return None,
+        }
+    }
+    Some(mac)
+}
+
+/// Format MAC address bytes to string
+pub fn format_mac_address(mac: &[u8; 6]) -> String {
+    format!(
+        "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
+        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
+    )
+}
+
+/// Validate STP forward delay value (4-30 seconds)
+pub fn is_valid_forward_delay(delay_seconds: u32) -> bool {
+    (4..=30).contains(&delay_seconds)
+}
+
+/// Validate STP hello time value (1-10 seconds)
+pub fn is_valid_hello_time(hello_seconds: u32) -> bool {
+    (1..=10).contains(&hello_seconds)
+}
+
+/// Validate STP max age value (6-40 seconds)
+pub fn is_valid_max_age(age_seconds: u32) -> bool {
+    (6..=40).contains(&age_seconds)
+}
+
+/// Validate MTU value (68-65536)
+pub fn is_valid_mtu(mtu: u32) -> bool {
+    (68..=65536).contains(&mtu)
+}
+
+/// Validate bridge priority (0-65535)
+pub fn is_valid_bridge_priority(priority: u32) -> bool {
+    priority <= 65535
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ==================== Bridge Name Validation Tests ====================
+
+    #[test]
+    fn test_is_valid_bridge_name_normal() {
+        assert!(is_valid_bridge_name("br0"));
+        assert!(is_valid_bridge_name("bridge1"));
+        assert!(is_valid_bridge_name("my_bridge"));
+    }
+
+    #[test]
+    fn test_is_valid_bridge_name_with_dash() {
+        assert!(is_valid_bridge_name("br-lan"));
+        assert!(is_valid_bridge_name("vm-bridge"));
+    }
+
+    #[test]
+    fn test_is_valid_bridge_name_empty() {
+        assert!(!is_valid_bridge_name(""));
+    }
+
+    #[test]
+    fn test_is_valid_bridge_name_too_long() {
+        assert!(!is_valid_bridge_name("this_name_is_way_too_long"));
+        assert!(!is_valid_bridge_name("1234567890123456")); // 16 chars
+    }
+
+    #[test]
+    fn test_is_valid_bridge_name_max_length() {
+        assert!(is_valid_bridge_name("123456789012345")); // 15 chars - max allowed
+    }
+
+    #[test]
+    fn test_is_valid_bridge_name_invalid_chars() {
+        assert!(!is_valid_bridge_name("br.0"));
+        assert!(!is_valid_bridge_name("br/0"));
+        assert!(!is_valid_bridge_name("br@0"));
+    }
+
+    // ==================== MAC Address Tests ====================
+
+    #[test]
+    fn test_parse_mac_address_valid() {
+        let mac = parse_mac_address("aa:bb:cc:dd:ee:ff");
+        assert!(mac.is_some());
+        assert_eq!(mac.unwrap(), [0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff]);
+    }
+
+    #[test]
+    fn test_parse_mac_address_uppercase() {
+        let mac = parse_mac_address("AA:BB:CC:DD:EE:FF");
+        assert!(mac.is_some());
+        assert_eq!(mac.unwrap(), [0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff]);
+    }
+
+    #[test]
+    fn test_parse_mac_address_zeros() {
+        let mac = parse_mac_address("00:00:00:00:00:00");
+        assert!(mac.is_some());
+        assert_eq!(mac.unwrap(), [0, 0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn test_parse_mac_address_invalid_format() {
+        assert!(parse_mac_address("aa:bb:cc:dd:ee").is_none());
+        assert!(parse_mac_address("aa:bb:cc:dd:ee:ff:00").is_none());
+        assert!(parse_mac_address("aabbccddeeff").is_none());
+    }
+
+    #[test]
+    fn test_parse_mac_address_invalid_hex() {
+        assert!(parse_mac_address("gg:bb:cc:dd:ee:ff").is_none());
+        assert!(parse_mac_address("aa:zz:cc:dd:ee:ff").is_none());
+    }
+
+    #[test]
+    fn test_format_mac_address() {
+        let mac = [0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff];
+        assert_eq!(format_mac_address(&mac), "aa:bb:cc:dd:ee:ff");
+    }
+
+    #[test]
+    fn test_format_mac_address_zeros() {
+        let mac = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        assert_eq!(format_mac_address(&mac), "00:00:00:00:00:00");
+    }
+
+    #[test]
+    fn test_mac_roundtrip() {
+        let original = "ab:cd:ef:12:34:56";
+        let parsed = parse_mac_address(original).unwrap();
+        let formatted = format_mac_address(&parsed);
+        assert_eq!(formatted, original);
+    }
+
+    // ==================== STP Parameter Validation Tests ====================
+
+    #[test]
+    fn test_is_valid_forward_delay() {
+        assert!(is_valid_forward_delay(4));
+        assert!(is_valid_forward_delay(15));
+        assert!(is_valid_forward_delay(30));
+    }
+
+    #[test]
+    fn test_is_valid_forward_delay_out_of_range() {
+        assert!(!is_valid_forward_delay(3));
+        assert!(!is_valid_forward_delay(31));
+        assert!(!is_valid_forward_delay(0));
+    }
+
+    #[test]
+    fn test_is_valid_hello_time() {
+        assert!(is_valid_hello_time(1));
+        assert!(is_valid_hello_time(2));
+        assert!(is_valid_hello_time(10));
+    }
+
+    #[test]
+    fn test_is_valid_hello_time_out_of_range() {
+        assert!(!is_valid_hello_time(0));
+        assert!(!is_valid_hello_time(11));
+    }
+
+    #[test]
+    fn test_is_valid_max_age() {
+        assert!(is_valid_max_age(6));
+        assert!(is_valid_max_age(20));
+        assert!(is_valid_max_age(40));
+    }
+
+    #[test]
+    fn test_is_valid_max_age_out_of_range() {
+        assert!(!is_valid_max_age(5));
+        assert!(!is_valid_max_age(41));
+    }
+
+    // ==================== MTU Validation Tests ====================
+
+    #[test]
+    fn test_is_valid_mtu_normal() {
+        assert!(is_valid_mtu(1500));
+        assert!(is_valid_mtu(9000)); // Jumbo frames
+    }
+
+    #[test]
+    fn test_is_valid_mtu_boundaries() {
+        assert!(is_valid_mtu(68));
+        assert!(is_valid_mtu(65536));
+    }
+
+    #[test]
+    fn test_is_valid_mtu_out_of_range() {
+        assert!(!is_valid_mtu(67));
+        assert!(!is_valid_mtu(65537));
+        assert!(!is_valid_mtu(0));
+    }
+
+    // ==================== Bridge Priority Tests ====================
+
+    #[test]
+    fn test_is_valid_bridge_priority() {
+        assert!(is_valid_bridge_priority(0));
+        assert!(is_valid_bridge_priority(32768)); // Default
+        assert!(is_valid_bridge_priority(65535));
+    }
+
+    #[test]
+    fn test_is_valid_bridge_priority_out_of_range() {
+        assert!(!is_valid_bridge_priority(65536));
+        assert!(!is_valid_bridge_priority(100000));
+    }
 }

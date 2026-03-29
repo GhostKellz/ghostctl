@@ -14,12 +14,14 @@ pub fn monitoring_menu() {
             "⬅️  Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("📊 Gaming Monitoring & Overlays")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => install_gaming_overlays(),
@@ -46,12 +48,14 @@ fn install_gaming_overlays() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Gaming Overlays")
         .items(&overlay_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_mangohud(),
@@ -66,11 +70,13 @@ fn install_mangohud() {
     println!("🥭 Installing MangoHud");
     println!("======================");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Install MangoHud and dependencies?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !confirm {
         return;
@@ -101,11 +107,13 @@ fn install_mangohud() {
             println!("  MANGOHUD=1 <game_command>       # Alternative method");
             println!("  mangohud steam                  # Steam with overlay");
 
-            let test_mangohud = Confirm::new()
+            let Ok(test_mangohud) = Confirm::new()
                 .with_prompt("Test MangoHud with glxgears?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if test_mangohud {
                 let _ = Command::new("mangohud").arg("glxgears").spawn();
@@ -200,11 +208,13 @@ fn setup_dxvk_hud() {
     println!("  • version - DXVK version");
     println!("  • api - Graphics API");
 
-    let setup_env = Confirm::new()
+    let Ok(setup_env) = Confirm::new()
         .with_prompt("Add DXVK HUD environment variables to ~/.profile?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if setup_env {
         setup_dxvk_environment();
@@ -256,11 +266,13 @@ fn setup_vulkan_overlay() {
     println!("  • memory - Memory usage");
     println!("  • io - I/O statistics");
 
-    let install_vulkan_layers = Confirm::new()
+    let Ok(install_vulkan_layers) = Confirm::new()
         .with_prompt("Install Vulkan overlay layers?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_vulkan_layers {
         let packages = ["vulkan-mesa-layers", "lib32-vulkan-mesa-layers"];
@@ -295,11 +307,13 @@ fn setup_linux_performance_overlay() {
         println!("{}. {}", i + 1, tool);
     }
 
-    let install_goverlay = Confirm::new()
+    let Ok(install_goverlay) = Confirm::new()
         .with_prompt("Install GOverlay (GUI for MangoHud configuration)?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_goverlay {
         install_goverlay_tool();
@@ -348,12 +362,14 @@ fn performance_monitoring_tools() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Performance Monitoring Tools")
         .items(&monitoring_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_system_monitors(),
@@ -381,7 +397,7 @@ fn install_system_monitors() {
         println!("{}. {} - {}", i + 1, tool, desc);
     }
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select monitors to install")
         .items(
             &system_monitors
@@ -390,7 +406,9 @@ fn install_system_monitors() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !selections.is_empty() {
         let packages: Vec<&str> = selections.iter().map(|&i| system_monitors[i].0).collect();
@@ -422,7 +440,7 @@ fn install_gpu_monitoring() {
         println!("{}. {} - {}", i + 1, tool, desc);
     }
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select GPU monitors to install")
         .items(
             &gpu_monitors
@@ -431,7 +449,9 @@ fn install_gpu_monitoring() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selections {
         let (package, _) = gpu_monitors[index];
@@ -540,12 +560,14 @@ fn system_resource_monitoring() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("System Resource Monitoring")
         .items(&resource_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => realtime_system_overview(),
@@ -571,12 +593,14 @@ fn realtime_system_overview() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("System Overview Tools")
         .items(&overview_tools)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
@@ -676,11 +700,13 @@ fn temperature_monitoring() {
         }
         _ => {
             println!("❌ lm_sensors not installed");
-            let install = Confirm::new()
+            let Ok(install) = Confirm::new()
                 .with_prompt("Install lm_sensors for temperature monitoring?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if install {
                 let status = Command::new("sudo")
@@ -712,12 +738,14 @@ fn game_specific_monitoring() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Game-specific Monitoring")
         .items(&game_monitoring_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => steam_game_monitoring(),
@@ -764,11 +792,13 @@ fn wine_proton_monitoring() {
     println!("  export DXVK_LOG_LEVEL=info           # DXVK debugging");
     println!("  export VKD3D_DEBUG=warn              # VKD3D debugging");
 
-    let setup_wine_monitoring = Confirm::new()
+    let Ok(setup_wine_monitoring) = Confirm::new()
         .with_prompt("Setup Wine/Proton monitoring environment?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if setup_wine_monitoring {
         setup_wine_monitoring_env();
@@ -834,11 +864,13 @@ fn game_process_analysis() {
     println!("  strace -p $(pgrep <game_name>)        # Trace system calls");
     println!("  perf record -p $(pgrep <game_name>)   # Performance profiling");
 
-    let analyze_running_games = Confirm::new()
+    let Ok(analyze_running_games) = Confirm::new()
         .with_prompt("Show currently running games?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if analyze_running_games {
         show_running_games();
@@ -887,12 +919,14 @@ fn game_performance_logging() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Performance Logging")
         .items(&logging_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => setup_mangohud_logging(),
@@ -932,11 +966,13 @@ toggle_logging=F10
     println!("📝 Add to MangoHud config (~/.config/MangoHud/MangoHud.conf):");
     println!("{}", config_addition);
 
-    let update_config = Confirm::new()
+    let Ok(update_config) = Confirm::new()
         .with_prompt("Update MangoHud config with logging settings?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if update_config {
         update_mangohud_config_with_logging(&config_addition);
@@ -1096,14 +1132,16 @@ fn clean_log_files() {
         if expanded_path.exists() {
             println!("📁 Checking: {}", expanded_path.display());
 
-            let confirm = Confirm::new()
+            let Ok(confirm) = Confirm::new()
                 .with_prompt(&format!(
                     "Clean log files older than 7 days in {}?",
                     expanded_path.display()
                 ))
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                continue;
+            };
 
             if confirm {
                 let status = Command::new("find")
@@ -1140,12 +1178,14 @@ fn realtime_performance_analysis() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Real-time Performance Analysis")
         .items(&analysis_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => launch_game_with_monitoring(),
@@ -1167,10 +1207,12 @@ fn launch_game_with_monitoring() {
     println!("  • Performance logging enabled");
 
     use dialoguer::Input;
-    let game_command: String = Input::new()
+    let Ok(game_command) = Input::<String>::new()
         .with_prompt("Enter game command (e.g., 'steam', 'lutris', or game executable)")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !game_command.trim().is_empty() {
         println!("🚀 Launching {} with full monitoring...", game_command);
@@ -1230,12 +1272,14 @@ fn realtime_metrics_viewer() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Real-time Metrics Viewer")
         .items(&viewer_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
@@ -1288,11 +1332,13 @@ fn launch_monitoring_session() {
         }
         _ => {
             println!("❌ tmux not found");
-            let install = Confirm::new()
+            let Ok(install) = Confirm::new()
                 .with_prompt("Install tmux for multi-panel monitoring?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if install {
                 let status = Command::new("sudo")
@@ -1324,12 +1370,14 @@ fn monitoring_configuration() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Monitoring Configuration")
         .items(&config_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => mangohud_configuration(),
@@ -1352,11 +1400,13 @@ fn mangohud_configuration() {
     if config_file.exists() {
         println!("✅ MangoHud config found: {}", config_file.display());
 
-        let edit_config = Confirm::new()
+        let Ok(edit_config) = Confirm::new()
             .with_prompt("Edit MangoHud configuration?")
             .default(false)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if edit_config {
             let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
@@ -1364,11 +1414,13 @@ fn mangohud_configuration() {
         }
     } else {
         println!("❌ MangoHud config not found");
-        let create_config = Confirm::new()
+        let Ok(create_config) = Confirm::new()
             .with_prompt("Create default MangoHud configuration?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if create_config {
             create_mangohud_config();
@@ -1428,11 +1480,13 @@ fn system_monitoring_configuration() {
     println!("  • btop: ~/.config/btop/btop.conf");
     println!("  • sensors: /etc/sensors3.conf");
 
-    let configure_htop = Confirm::new()
+    let Ok(configure_htop) = Confirm::new()
         .with_prompt("Launch htop configuration?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if configure_htop {
         let _ = Command::new("htop").status();

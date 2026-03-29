@@ -17,12 +17,15 @@ pub fn systemd_service_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("SystemD Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => service_status_overview(),
@@ -51,12 +54,15 @@ fn service_status_overview() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Status Overview")
         .items(&overview_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -84,10 +90,13 @@ fn service_status_overview() {
             let _ = Command::new("systemctl").args(["status"]).status();
         }
         5 => {
-            let search_term: String = Input::new()
+            let search_term: String = match Input::new()
                 .with_prompt("Enter service name or pattern")
                 .interact_text()
-                .unwrap();
+            {
+                Ok(i) => i,
+                Err(_) => return,
+            };
 
             println!("🔍 Searching for services matching '{}':", search_term);
             let _ = Command::new("systemctl")
@@ -102,10 +111,13 @@ fn manage_individual_services() {
     println!("🔧 Manage Individual Services");
     println!("=============================");
 
-    let service_name: String = Input::new()
+    let service_name: String = match Input::new()
         .with_prompt("Enter service name")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     loop {
         println!("\n📋 Service: {}", service_name);
@@ -129,12 +141,15 @@ fn manage_individual_services() {
             "⬅️  Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let choice = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt(&format!("Action for {}", service_name))
             .items(&actions)
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => break,
+        };
 
         match choice {
             0 => {
@@ -234,12 +249,15 @@ fn failed_services_recovery() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Recovery Action")
         .items(&recovery_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => restart_all_failed_services(&failed_services),
@@ -282,12 +300,15 @@ fn analyze_individual_service(failed_services: &[String]) {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select service to analyze")
         .items(failed_services)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     let service = &failed_services[choice];
     println!("🔍 Analyzing service: {}", service);
@@ -403,12 +424,15 @@ fn emergency_service_recovery() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Emergency Action")
         .items(&emergency_actions)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -558,12 +582,15 @@ fn timer_cron_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Timer Management")
         .items(&timer_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => list_active_timers(),
@@ -596,20 +623,29 @@ fn create_systemd_timer() {
     println!("⏰ Create SystemD Timer");
     println!("=======================");
 
-    let timer_name: String = Input::new()
+    let timer_name: String = match Input::new()
         .with_prompt("Timer name (e.g., backup-timer)")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
-    let command: String = Input::new()
+    let command: String = match Input::new()
         .with_prompt("Command to execute")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
-    let schedule: String = Input::new()
+    let schedule: String = match Input::new()
         .with_prompt("Schedule (e.g., daily, hourly, '*-*-* 02:00:00')")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     println!("📝 Creating timer files...");
 
@@ -650,11 +686,13 @@ WantedBy=timers.target
     println!("\nTimer file content:");
     println!("{}", timer_content);
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Create these timer files?")
-        .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         // Write files (simplified - in real implementation would write to proper locations)
@@ -679,12 +717,15 @@ fn manage_cron_jobs() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Cron Management")
         .items(&cron_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -719,25 +760,33 @@ fn add_cron_job() {
     println!("  0 0 * * 0     - Weekly on Sunday");
     println!("  0 0 1 * *     - Monthly on 1st");
 
-    let schedule: String = Input::new()
+    let schedule: String = match Input::new()
         .with_prompt("Cron schedule (e.g., '0 2 * * *')")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
-    let command: String = Input::new()
+    let command: String = match Input::new()
         .with_prompt("Command to execute")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     let cron_line = format!("{} {}", schedule, command);
 
     println!("📝 Cron job to add: {}", cron_line);
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Add this cron job?")
-        .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         println!("💡 To add this cron job:");
@@ -774,19 +823,25 @@ fn timer_troubleshooting() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Troubleshooting")
         .items(&troubleshoot_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
-            let timer_name: String = Input::new()
+            let timer_name: String = match Input::new()
                 .with_prompt("Timer name to check")
                 .interact_text()
-                .unwrap();
+            {
+                Ok(i) => i,
+                Err(_) => return,
+            };
 
             let _ = Command::new("systemctl")
                 .args(["status", &format!("{}.timer", timer_name)])
@@ -808,10 +863,13 @@ fn timer_troubleshooting() {
             println!("⚙️  Timer syntax validation:");
             println!("Use: systemd-analyze calendar '<schedule>'");
 
-            let schedule: String = Input::new()
+            let schedule: String = match Input::new()
                 .with_prompt("Enter schedule to validate")
                 .interact_text()
-                .unwrap();
+            {
+                Ok(i) => i,
+                Err(_) => return,
+            };
 
             let _ = Command::new("systemd-analyze")
                 .args(["calendar", &schedule])
@@ -833,12 +891,15 @@ fn service_dependencies() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Dependency Tools")
         .items(&dep_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => show_service_dependencies(),
@@ -850,10 +911,13 @@ fn service_dependencies() {
 }
 
 fn show_service_dependencies() {
-    let service_name: String = Input::new()
+    let service_name: String = match Input::new()
         .with_prompt("Enter service name")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     println!("🔍 Dependencies for {}:", service_name);
     let _ = Command::new("systemctl")
@@ -864,10 +928,13 @@ fn show_service_dependencies() {
 fn dependency_tree_visualization() {
     println!("📊 Dependency Tree Visualization");
 
-    let service_name: String = Input::new()
+    let service_name: String = match Input::new()
         .with_prompt("Enter service name")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     println!("🌳 Dependency tree for {}:", service_name);
     let _ = Command::new("systemctl")
@@ -894,10 +961,13 @@ fn fix_dependency_issues() {
 }
 
 fn reverse_dependencies() {
-    let service_name: String = Input::new()
+    let service_name: String = match Input::new()
         .with_prompt("Enter service name")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     println!("🔄 Services that depend on {}:", service_name);
     let _ = Command::new("systemctl")
@@ -917,12 +987,15 @@ fn performance_analysis() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Performance Analysis")
         .items(&perf_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => boot_time_analysis(),
@@ -993,12 +1066,15 @@ fn custom_service_creation() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Service Creation")
         .items(&creation_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => create_simple_service(),
@@ -1013,32 +1089,43 @@ fn create_simple_service() {
     println!("📝 Create Simple Service");
     println!("========================");
 
-    let service_name: String = Input::new()
-        .with_prompt("Service name")
-        .interact_text()
-        .unwrap();
+    let service_name: String = match Input::new().with_prompt("Service name").interact_text() {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
-    let description: String = Input::new()
+    let description: String = match Input::new()
         .with_prompt("Service description")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
-    let exec_start: String = Input::new()
+    let exec_start: String = match Input::new()
         .with_prompt("Command to execute")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
-    let user: String = Input::new()
+    let user: String = match Input::new()
         .with_prompt("User to run as (optional)")
         .allow_empty(true)
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
-    let auto_restart = Confirm::new()
+    let auto_restart = match Confirm::new()
         .with_prompt("Auto-restart on failure?")
-        .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     let service_content = format!(
         r#"[Unit]
@@ -1072,11 +1159,13 @@ WantedBy=multi-user.target
     println!("📝 Service file content:");
     println!("{}", service_content);
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Create this service?")
-        .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         println!("💡 To create this service:");
@@ -1098,10 +1187,13 @@ fn create_service_with_timer() {
     // Then add timer configuration
     println!("\n⏰ Timer Configuration:");
 
-    let timer_schedule: String = Input::new()
+    let timer_schedule: String = match Input::new()
         .with_prompt("Timer schedule (e.g., 'daily', '*/5 * * * *')")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     println!("💡 Timer setup instructions:");
     println!("Create timer file with OnCalendar={}", timer_schedule);
@@ -1119,12 +1211,15 @@ fn service_template_wizard() {
         "🔧 Maintenance Task",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select service template")
         .items(&templates)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => show_web_app_template(),
@@ -1275,12 +1370,15 @@ fn show_service_examples() {
         "🔧 One-shot script",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select example to view")
         .items(&examples)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => println!("Example: Web server service with socket activation"),
@@ -1304,12 +1402,15 @@ fn security_hardening() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Security Options")
         .items(&security_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => service_isolation(),
@@ -1332,10 +1433,13 @@ fn service_isolation() {
     println!("• Use dedicated user accounts");
     println!("• Limit filesystem access with ReadOnlyPaths");
 
-    let service_name: String = Input::new()
+    let service_name: String = match Input::new()
         .with_prompt("Service to analyze (or 'skip')")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     if service_name != "skip" {
         println!("🔍 Analyzing {}...", service_name);

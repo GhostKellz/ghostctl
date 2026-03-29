@@ -521,36 +521,43 @@ fn analyze_banner_for_service(banner: &str, port: u16) -> Option<ServiceInfo> {
 fn load_service_probes() -> Vec<ServiceProbe> {
     // This would normally load from a configuration file
     // For now, return some basic probes
-    vec![
-        ServiceProbe {
+    let mut probes = Vec::new();
+
+    if let Ok(http_pattern) = Regex::new(r"Server: ([^\r\n]+)") {
+        probes.push(ServiceProbe {
             name: "http_get".to_string(),
             probe_string: b"GET / HTTP/1.0\r\n\r\n".to_vec(),
             ports: vec![80, 8080, 8000, 443],
             protocol: Protocol::Tcp,
             match_patterns: vec![ServiceMatch {
-                pattern: Regex::new(r"Server: ([^\r\n]+)").unwrap(),
+                pattern: http_pattern,
                 service: "http".to_string(),
                 version_extract: Some("$1".to_string()),
                 product_extract: None,
                 confidence: 0.9,
             }],
             fallback: None,
-        },
-        ServiceProbe {
+        });
+    }
+
+    if let Ok(ssh_pattern) = Regex::new(r"SSH-([0-9.]+)-([^\r\n]+)") {
+        probes.push(ServiceProbe {
             name: "ssh_version".to_string(),
             probe_string: b"SSH-2.0-GhostCTL_Scanner\r\n".to_vec(),
             ports: vec![22],
             protocol: Protocol::Tcp,
             match_patterns: vec![ServiceMatch {
-                pattern: Regex::new(r"SSH-([0-9.]+)-([^\r\n]+)").unwrap(),
+                pattern: ssh_pattern,
                 service: "ssh".to_string(),
                 version_extract: Some("$1".to_string()),
                 product_extract: Some("$2".to_string()),
                 confidence: 0.95,
             }],
             fallback: None,
-        },
-    ]
+        });
+    }
+
+    probes
 }
 
 /// Export functions for integration with existing scanner

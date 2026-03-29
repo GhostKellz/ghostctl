@@ -28,12 +28,14 @@ pub fn wine_tools_menu() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🍷 Advanced Wine Tools")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => winetricks_deep_integration(),
@@ -65,12 +67,14 @@ fn winetricks_deep_integration() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🔧 Winetricks Deep Integration")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => automatic_dependency_resolution(),
@@ -89,21 +93,25 @@ fn winetricks_deep_integration() {
 fn automatic_dependency_resolution() {
     println!("📦 Automatic Dependency Resolution");
 
-    let exe_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(exe_path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter executable path to analyze")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !Path::new(&exe_path).exists() {
         println!("❌ Executable not found");
         return;
     }
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(wine_prefix) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔍 Analyzing dependencies...");
 
@@ -152,11 +160,13 @@ fn automatic_dependency_resolution() {
             println!("  • {}", package);
         }
 
-        let install = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(install) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Install recommended packages?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if install {
             for package in packages_to_install {
@@ -206,12 +216,14 @@ fn batch_scripts_manager() {
         "Export script",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Batch script options")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => create_batch_script(),
@@ -227,10 +239,12 @@ fn batch_scripts_manager() {
 fn create_batch_script() {
     println!("📝 Create Batch Script");
 
-    let script_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(script_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter script name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let all_components = vec![
         // Runtimes
@@ -292,11 +306,13 @@ fn create_batch_script() {
         "vkd3d",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select components for batch script")
         .items(&all_components)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let mut script_content = String::from("#!/bin/bash\n# Winetricks batch script\n\n");
     script_content.push_str("# Check if Wine prefix is provided\n");
@@ -349,7 +365,9 @@ fn run_batch_script() {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("sh") {
-                scripts.push(path.file_name().unwrap().to_string_lossy().to_string());
+                if let Some(name) = path.file_name() {
+                    scripts.push(name.to_string_lossy().to_string());
+                }
             }
         }
     }
@@ -359,21 +377,25 @@ fn run_batch_script() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select script to run")
         .items(&scripts)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let script = &scripts[choice];
     let script_path = format!("{}/{}", script_dir, script);
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(wine_prefix) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("▶️ Running script: {}", script);
     let status = Command::new(&script_path).arg(&wine_prefix).status();
@@ -399,7 +421,9 @@ fn edit_batch_script() {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("sh") {
-                scripts.push(path.file_name().unwrap().to_string_lossy().to_string());
+                if let Some(name) = path.file_name() {
+                    scripts.push(name.to_string_lossy().to_string());
+                }
             }
         }
     }
@@ -409,12 +433,14 @@ fn edit_batch_script() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select script to edit")
         .items(&scripts)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let script = &scripts[choice];
     let script_path = format!("{}/{}", script_dir, script);
@@ -438,7 +464,9 @@ fn delete_batch_script() {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("sh") {
-                scripts.push(path.file_name().unwrap().to_string_lossy().to_string());
+                if let Some(name) = path.file_name() {
+                    scripts.push(name.to_string_lossy().to_string());
+                }
             }
         }
     }
@@ -448,20 +476,24 @@ fn delete_batch_script() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select script to delete")
         .items(&scripts)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let script = &scripts[choice];
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt(format!("Delete {}?", script))
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let script_path = format!("{}/{}", script_dir, script);
@@ -473,10 +505,12 @@ fn delete_batch_script() {
 fn import_batch_script() {
     println!("📥 Import Batch Script");
 
-    let import_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(import_path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter script path to import")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !Path::new(&import_path).exists() {
         println!("❌ Script not found");
@@ -486,11 +520,13 @@ fn import_batch_script() {
     let script_dir = format!("{}/winetricks_scripts", get_home_dir());
     fs::create_dir_all(&script_dir).ok();
 
-    let file_name = Path::new(&import_path)
+    let Some(file_name) = Path::new(&import_path)
         .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .to_string();
+        .map(|n| n.to_string_lossy().to_string())
+    else {
+        println!("❌ Invalid file path");
+        return;
+    };
 
     let dest_path = format!("{}/{}", script_dir, file_name);
 
@@ -521,7 +557,9 @@ fn export_batch_script() {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("sh") {
-                scripts.push(path.file_name().unwrap().to_string_lossy().to_string());
+                if let Some(name) = path.file_name() {
+                    scripts.push(name.to_string_lossy().to_string());
+                }
             }
         }
     }
@@ -531,21 +569,25 @@ fn export_batch_script() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select script to export")
         .items(&scripts)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let script = &scripts[choice];
     let script_path = format!("{}/{}", script_dir, script);
 
-    let export_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(export_path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter export path")
         .default(format!("{}/{}", get_home_dir(), script))
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let cmd = format!("cp '{}' '{}'", script_path, export_path);
     Command::new("sh").arg("-c").arg(&cmd).status().ok();
@@ -556,17 +598,21 @@ fn export_batch_script() {
 fn custom_verb_creator() {
     println!("🔧 Custom Verb Creator");
 
-    let verb_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(verb_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter custom verb name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let description = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(description) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter verb description")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let verb_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(verb_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select verb type")
         .items(&[
             "Download and install",
@@ -576,7 +622,9 @@ fn custom_verb_creator() {
         ])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let mut verb_content = format!(
         "# Custom verb: {}\n# Description: {}\n\n",
@@ -585,34 +633,44 @@ fn custom_verb_creator() {
 
     match verb_type {
         0 => {
-            let url = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(url) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter download URL")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
-            let install_cmd = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(install_cmd) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter installation command")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             verb_content.push_str(&format!("w_download '{}' CHECKSUM\n", url));
             verb_content.push_str(&format!("w_try {}\n", install_cmd));
         }
         1 => {
-            let reg_key = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(reg_key) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter registry key")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
-            let reg_value = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(reg_value) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter registry value")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
-            let reg_data = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(reg_data) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter registry data")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             verb_content.push_str(&format!(
                 "w_call w_regedit '{}' '{}' '{}'\n",
@@ -620,10 +678,12 @@ fn custom_verb_creator() {
             ));
         }
         2 => {
-            let file_op = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(file_op) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter file operation command")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             verb_content.push_str(&format!("w_try {}\n", file_op));
         }
@@ -631,10 +691,12 @@ fn custom_verb_creator() {
             println!("📝 Enter custom verb script (end with 'END' on a new line):");
             let mut script = String::new();
             loop {
-                let line = Input::<String>::with_theme(&ColorfulTheme::default())
+                let Ok(line) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .allow_empty(true)
                     .interact()
-                    .unwrap();
+                else {
+                    break;
+                };
 
                 if line == "END" {
                     break;
@@ -669,12 +731,14 @@ fn winetricks_profile_manager() {
         "Import profile",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Profile options")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => create_winetricks_profile(),
@@ -690,12 +754,14 @@ fn winetricks_profile_manager() {
 fn create_winetricks_profile() {
     println!("📝 Create Winetricks Profile");
 
-    let profile_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(profile_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter profile name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let profile_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(profile_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select profile type")
         .items(&[
             "Gaming - Modern (DX12)",
@@ -707,7 +773,9 @@ fn create_winetricks_profile() {
         ])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let mut components = Vec::new();
 
@@ -759,11 +827,13 @@ fn create_winetricks_profile() {
                 "physx",
             ];
 
-            let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+            let Ok(selected) = MultiSelect::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select components")
                 .items(&all_components)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             for idx in selected {
                 components.push(all_components[idx]);
@@ -797,7 +867,9 @@ fn load_winetricks_profile() {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("profile") {
-                profiles.push(path.file_stem().unwrap().to_string_lossy().to_string());
+                if let Some(stem) = path.file_stem() {
+                    profiles.push(stem.to_string_lossy().to_string());
+                }
             }
         }
     }
@@ -807,21 +879,25 @@ fn load_winetricks_profile() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select profile to load")
         .items(&profiles)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let profile = &profiles[choice];
     let profile_path = format!("{}/{}.profile", profile_dir, profile);
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(wine_prefix) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if let Ok(content) = fs::read_to_string(&profile_path) {
         println!("📦 Installing profile components...");
@@ -851,7 +927,9 @@ fn edit_winetricks_profile() {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("profile") {
-                profiles.push(path.file_stem().unwrap().to_string_lossy().to_string());
+                if let Some(stem) = path.file_stem() {
+                    profiles.push(stem.to_string_lossy().to_string());
+                }
             }
         }
     }
@@ -861,12 +939,14 @@ fn edit_winetricks_profile() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select profile to edit")
         .items(&profiles)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let profile = &profiles[choice];
     let profile_path = format!("{}/{}.profile", profile_dir, profile);
@@ -890,7 +970,9 @@ fn delete_winetricks_profile() {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("profile") {
-                profiles.push(path.file_stem().unwrap().to_string_lossy().to_string());
+                if let Some(stem) = path.file_stem() {
+                    profiles.push(stem.to_string_lossy().to_string());
+                }
             }
         }
     }
@@ -900,20 +982,24 @@ fn delete_winetricks_profile() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select profile to delete")
         .items(&profiles)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let profile = &profiles[choice];
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt(format!("Delete profile '{}'?", profile))
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let profile_path = format!("{}/{}.profile", profile_dir, profile);
@@ -937,7 +1023,9 @@ fn export_winetricks_profile() {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("profile") {
-                profiles.push(path.file_stem().unwrap().to_string_lossy().to_string());
+                if let Some(stem) = path.file_stem() {
+                    profiles.push(stem.to_string_lossy().to_string());
+                }
             }
         }
     }
@@ -947,21 +1035,25 @@ fn export_winetricks_profile() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select profile to export")
         .items(&profiles)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let profile = &profiles[choice];
     let profile_path = format!("{}/{}.profile", profile_dir, profile);
 
-    let export_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(export_path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter export path")
         .default(format!("{}/{}.profile", get_home_dir(), profile))
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let cmd = format!("cp '{}' '{}'", profile_path, export_path);
     Command::new("sh").arg("-c").arg(&cmd).status().ok();
@@ -972,10 +1064,12 @@ fn export_winetricks_profile() {
 fn import_winetricks_profile() {
     println!("📥 Import Winetricks Profile");
 
-    let import_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(import_path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter profile path to import")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !Path::new(&import_path).exists() {
         println!("❌ Profile file not found");
@@ -985,11 +1079,13 @@ fn import_winetricks_profile() {
     let profile_dir = format!("{}/winetricks_profiles", get_home_dir());
     fs::create_dir_all(&profile_dir).ok();
 
-    let file_name = Path::new(&import_path)
+    let Some(file_name) = Path::new(&import_path)
         .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .to_string();
+        .map(|n| n.to_string_lossy().to_string())
+    else {
+        println!("❌ Invalid file path");
+        return;
+    };
 
     let dest_path = format!("{}/{}", profile_dir, file_name);
 
@@ -1020,12 +1116,14 @@ fn game_specific_recipes() {
 
     let game_names: Vec<&str> = games.iter().map(|(name, _)| *name).collect();
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select game")
         .items(&game_names)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let (game_name, components) = &games[choice];
 
@@ -1035,17 +1133,21 @@ fn game_specific_recipes() {
         println!("  • {}", comp);
     }
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(wine_prefix) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let install = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(install) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Install components?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install {
         for component in components {
@@ -1060,11 +1162,13 @@ fn game_specific_recipes() {
 fn dependency_analyzer() {
     println!("🔍 Dependency Analyzer");
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(wine_prefix) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix to analyze")
         .default(format!("{}/.wine", get_home_dir()))
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !Path::new(&wine_prefix).exists() {
         println!("❌ Wine prefix not found");
@@ -1130,11 +1234,13 @@ fn dependency_analyzer() {
 fn component_status() {
     println!("📊 Component Status");
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(wine_prefix) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !Path::new(&wine_prefix).exists() {
         println!("❌ Wine prefix not found");
@@ -1201,12 +1307,14 @@ fn wine_bottle_management() {
         "Bottle templates",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Bottle management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => create_wine_bottle(),
@@ -1223,22 +1331,26 @@ fn wine_bottle_management() {
 fn create_wine_bottle() {
     println!("🍾 Create Wine Bottle");
 
-    let bottle_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(bottle_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter bottle name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let bottles_dir = format!("{}/Wine/bottles", get_home_dir());
     fs::create_dir_all(&bottles_dir).ok();
 
     let bottle_path = format!("{}/{}", bottles_dir, bottle_name);
 
-    let arch = Select::with_theme(&ColorfulTheme::default())
+    let Ok(arch) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select architecture")
         .items(&["64-bit", "32-bit"])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let arch_str = if arch == 0 { "win64" } else { "win32" };
 
@@ -1288,7 +1400,9 @@ fn list_wine_bottles() {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
-                let name = path.file_name().unwrap().to_string_lossy().to_string();
+                let Some(name) = path.file_name().map(|n| n.to_string_lossy().to_string()) else {
+                    continue;
+                };
 
                 // Read metadata
                 let metadata_path = format!("{}/bottle.json", path.display());
@@ -1316,10 +1430,12 @@ fn list_wine_bottles() {
 fn configure_wine_bottle() {
     println!("🔧 Configure Wine Bottle");
 
-    let bottle_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(bottle_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter bottle name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let bottle_path = format!("{}/Wine/bottles/{}", get_home_dir(), bottle_name);
 
@@ -1335,10 +1451,12 @@ fn configure_wine_bottle() {
 fn clone_wine_bottle() {
     println!("🔄 Clone Wine Bottle");
 
-    let source_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(source_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter source bottle name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let bottles_dir = format!("{}/Wine/bottles", get_home_dir());
     let source_path = format!("{}/{}", bottles_dir, source_name);
@@ -1348,10 +1466,12 @@ fn clone_wine_bottle() {
         return;
     }
 
-    let dest_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(dest_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter new bottle name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let dest_path = format!("{}/{}", bottles_dir, dest_name);
 
@@ -1380,10 +1500,12 @@ fn clone_wine_bottle() {
 fn delete_wine_bottle() {
     println!("🗑️ Delete Wine Bottle");
 
-    let bottle_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(bottle_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter bottle name to delete")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let bottle_path = format!("{}/Wine/bottles/{}", get_home_dir(), bottle_name);
 
@@ -1392,18 +1514,22 @@ fn delete_wine_bottle() {
         return;
     }
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt(format!("Delete bottle '{}'?", bottle_name))
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
-        let backup = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(backup) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Create backup before deletion?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if backup {
             let backup_path = format!(
@@ -1429,19 +1555,23 @@ fn delete_wine_bottle() {
 fn import_export_bottle() {
     println!("📦 Import/Export Bottle");
 
-    let action = Select::with_theme(&ColorfulTheme::default())
+    let Ok(action) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select action")
         .items(&["Export bottle", "Import bottle"])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match action {
         0 => {
-            let bottle_name = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(bottle_name) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter bottle name to export")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             let bottle_path = format!("{}/Wine/bottles/{}", get_home_dir(), bottle_name);
 
@@ -1450,11 +1580,13 @@ fn import_export_bottle() {
                 return;
             }
 
-            let export_path = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(export_path) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter export path")
                 .default(format!("{}/{}.tar.gz", get_home_dir(), bottle_name))
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             println!("📦 Exporting bottle...");
             let cmd = format!("tar -czf '{}' -C '{}' .", export_path, bottle_path);
@@ -1467,20 +1599,24 @@ fn import_export_bottle() {
             }
         }
         1 => {
-            let import_path = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(import_path) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter bottle archive path")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if !Path::new(&import_path).exists() {
                 println!("❌ Archive not found");
                 return;
             }
 
-            let bottle_name = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(bottle_name) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter bottle name")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             let bottles_dir = format!("{}/Wine/bottles", get_home_dir());
             fs::create_dir_all(&bottles_dir).ok();
@@ -1515,20 +1651,24 @@ fn bottle_templates() {
 
     let template_names: Vec<&str> = templates.iter().map(|(name, _)| *name).collect();
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select template")
         .items(&template_names)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let (_template_name, template_id) = templates[choice];
 
-    let bottle_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(bottle_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter bottle name")
         .default(template_id.to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Create bottle with template settings
     create_wine_bottle_with_template(&bottle_name, template_id);

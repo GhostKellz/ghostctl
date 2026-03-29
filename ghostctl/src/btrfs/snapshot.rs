@@ -24,12 +24,15 @@ pub fn list_snapshots() {
 pub fn delete_snapshot(name: &str) {
     use dialoguer::Confirm;
     let target = format!("/@snapshots/{}", name);
-    if Confirm::new()
+    let confirmed = match Confirm::new()
         .with_prompt(format!("Delete snapshot '{}'?", name))
         .default(false)
-        .interact()
-        .unwrap()
+        .interact_opt()
     {
+        Ok(Some(c)) => c,
+        _ => false,
+    };
+    if confirmed {
         let status = std::process::Command::new("sudo")
             .args(["btrfs", "subvolume", "delete", &target])
             .status();
@@ -45,12 +48,15 @@ pub fn delete_snapshot(name: &str) {
 pub fn restore_snapshot(name: &str, target: &str) {
     use dialoguer::Confirm;
     println!("Restoring snapshot '{}' to '{}'...", name, target);
-    if Confirm::new()
+    let confirmed = match Confirm::new()
         .with_prompt(format!("This will overwrite '{}'. Continue?", target))
         .default(false)
-        .interact()
-        .unwrap()
+        .interact_opt()
     {
+        Ok(Some(c)) => c,
+        _ => false,
+    };
+    if confirmed {
         let source = format!("/@snapshots/{}", name);
         let status = std::process::Command::new("sudo")
             .args(["btrfs", "subvolume", "snapshot", &source, target])
@@ -148,20 +154,26 @@ pub fn balance(mountpoint: &str) {
 pub fn snapper_menu() {
     use dialoguer::{Input, Select, theme::ColorfulTheme};
     let opts = ["Deploy Base Config", "Edit Config", "List Configs", "Back"];
-    match Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Snapper Menu")
         .items(&opts)
         .default(0)
-        .interact()
-        .unwrap()
+        .interact_opt()
     {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
+    match choice {
         0 => snapper_setup(),
         1 => {
-            let config: String = Input::new()
+            let config: String = match Input::new()
                 .with_prompt("Config to edit")
                 .default("root".into())
                 .interact_text()
-                .unwrap();
+            {
+                Ok(c) => c,
+                Err(_) => return,
+            };
             snapper_edit(&config)
         }
         2 => snapper_list(),
@@ -174,12 +186,15 @@ pub fn emergency_cleanup_all_snapshots() {
     println!("🚨 EMERGENCY: Removing ALL BTRFS snapshots to free disk space");
     println!("⚠️  This is irreversible and will delete all system snapshots!");
 
-    if !dialoguer::Confirm::new()
+    let confirmed = match dialoguer::Confirm::new()
         .with_prompt("Are you absolutely sure? This cannot be undone!")
         .default(false)
-        .interact()
-        .unwrap()
+        .interact_opt()
     {
+        Ok(Some(c)) => c,
+        _ => false,
+    };
+    if !confirmed {
         println!("❌ Emergency cleanup aborted");
         return;
     }
@@ -253,12 +268,15 @@ pub fn bulk_cleanup_snapshots() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Cleanup Method")
         .items(&cleanup_options)
         .default(4) // Default to show disk usage
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => cleanup_by_age_interactive(),
@@ -290,12 +308,15 @@ pub fn cleanup_snapshots_by_age(days: &str) {
 pub fn cleanup_snapshots_by_range(range: &str) {
     println!("🔢 Deleting snapshot range {}...", range);
 
-    if !dialoguer::Confirm::new()
+    let confirmed = match dialoguer::Confirm::new()
         .with_prompt(format!("Delete snapshots {}?", range))
         .default(false)
-        .interact()
-        .unwrap()
+        .interact_opt()
     {
+        Ok(Some(c)) => c,
+        _ => false,
+    };
+    if !confirmed {
         println!("❌ Range cleanup aborted");
         return;
     }
@@ -312,21 +333,27 @@ pub fn cleanup_snapshots_by_range(range: &str) {
 
 fn cleanup_by_age_interactive() {
     use dialoguer::Input;
-    let days: String = Input::new()
+    let days: String = match Input::new()
         .with_prompt("Delete snapshots older than how many days?")
         .default("30".to_string())
         .interact_text()
-        .unwrap();
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
     cleanup_snapshots_by_age(&days);
 }
 
 fn cleanup_by_range_interactive() {
     use dialoguer::Input;
-    let range: String = Input::new()
+    let range: String = match Input::new()
         .with_prompt("Enter snapshot range (e.g., 1-100)")
         .interact_text()
-        .unwrap();
+    {
+        Ok(r) => r,
+        Err(_) => return,
+    };
 
     cleanup_snapshots_by_range(&range);
 }
@@ -343,28 +370,35 @@ fn cleanup_specific_snapshots() {
         println!("{}", snapshot_list);
     }
 
-    let snapshots: String = Input::new()
+    let snapshots: String = match Input::new()
         .with_prompt("Enter snapshot numbers to delete (space-separated, e.g., '184 187 188')")
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
-    if !snapshots.trim().is_empty()
-        && Confirm::new()
+    if !snapshots.trim().is_empty() {
+        let confirmed = match Confirm::new()
             .with_prompt(format!("Delete snapshots: {}?", snapshots))
             .default(false)
-            .interact()
-            .unwrap()
-    {
-        println!("🎯 Deleting specific snapshots...");
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => false,
+        };
+        if confirmed {
+            println!("🎯 Deleting specific snapshots...");
 
-        let status = std::process::Command::new("sudo")
-            .args(["snapper", "-c", "root", "delete"])
-            .args(snapshots.split_whitespace())
-            .status();
+            let status = std::process::Command::new("sudo")
+                .args(["snapper", "-c", "root", "delete"])
+                .args(snapshots.split_whitespace())
+                .status();
 
-        match status {
-            Ok(s) if s.success() => println!("✅ Specific snapshot cleanup completed"),
-            _ => println!("❌ Specific snapshot cleanup failed"),
+            match status {
+                Ok(s) if s.success() => println!("✅ Specific snapshot cleanup completed"),
+                _ => println!("❌ Specific snapshot cleanup failed"),
+            }
         }
     }
 }

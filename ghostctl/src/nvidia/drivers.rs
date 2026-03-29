@@ -17,12 +17,15 @@ pub fn driver_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Driver Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => check_driver_status(),
@@ -200,8 +203,10 @@ pub fn install_proprietary_drivers() {
         println!("⚠️  NVIDIA proprietary drivers already installed");
         let reinstall = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Reinstall anyway?")
-            .interact()
-            .unwrap();
+            .interact_opt()
+            .ok()
+            .flatten()
+            .unwrap_or(false);
 
         if !reinstall {
             return;
@@ -248,8 +253,10 @@ pub fn install_open_drivers() {
         println!("❌ Your GPU may not be compatible with open-source drivers");
         let continue_anyway = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Continue anyway?")
-            .interact()
-            .unwrap();
+            .interact_opt()
+            .ok()
+            .flatten()
+            .unwrap_or(false);
 
         if !continue_anyway {
             return;
@@ -286,13 +293,13 @@ pub fn install_open_beta_drivers() {
     println!("🧪 Installing NVIDIA open-source beta drivers from AUR...");
 
     // Check for AUR helper
-    let aur_helper = detect_aur_helper();
-    if aur_helper.is_none() {
-        println!("❌ No AUR helper found. Install yay, paru, or similar first.");
-        return;
-    }
-
-    let helper = aur_helper.unwrap();
+    let helper = match detect_aur_helper() {
+        Some(h) => h,
+        None => {
+            println!("❌ No AUR helper found. Install yay, paru, or similar first.");
+            return;
+        }
+    };
     let packages = vec![
         "nvidia-open-beta-dkms",
         "nvidia-utils-beta",
@@ -436,12 +443,15 @@ pub fn switch_drivers() {
         vec!["Switch to proprietary drivers", "Cancel"]
     };
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Driver switch options")
         .items(&options)
         .default(1)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -464,8 +474,10 @@ pub fn remove_all_drivers() {
 
     let confirm = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will remove all NVIDIA drivers. Continue?")
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if !confirm {
         return;
@@ -515,12 +527,15 @@ pub fn fix_driver_issues() {
         "Cancel",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select fix option")
         .items(&options)
         .default(6)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => rebuild_dkms(),
@@ -628,8 +643,10 @@ fn clean_reinstall() {
 
     let confirm = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will remove and reinstall all NVIDIA drivers. Continue?")
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if !confirm {
         return;
@@ -638,12 +655,15 @@ fn clean_reinstall() {
     remove_all_drivers();
 
     let driver_options = ["Proprietary", "Open-source", "Open-source beta (AUR)"];
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select driver type to install")
         .items(&driver_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => install_proprietary_drivers(),

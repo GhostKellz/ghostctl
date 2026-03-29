@@ -7,26 +7,28 @@ pub mod zig;
 use dialoguer::{Select, theme::ColorfulTheme};
 
 pub fn development_menu() {
-    println!("🛠️  Development Environment");
+    println!("Development Environment");
     println!("===========================");
 
     let options = [
-        "🦀 Rust Development",
-        "⚡ Zig Development",
-        "🐹 Go Development",
-        "🐍 Python Development",
-        "👻 Ghost Tools (Reaper, Oxygen, Zion)",
-        "📦 Package Managers & Tools",
-        "🔧 IDE & Editor Setup",
-        "⬅️  Back",
+        "Rust Development",
+        "Zig Development",
+        "Go Development",
+        "Python Development",
+        "Ghost Tools (Reaper, Oxygen, Zion)",
+        "Package Managers & Tools",
+        "IDE & Editor Setup",
+        "Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Development Tools")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => crate::dev::rust::rust_development(),

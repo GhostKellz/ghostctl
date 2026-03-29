@@ -16,12 +16,15 @@ pub fn acme_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("ACME.sh Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     match choice {
         0 => install_acme_sh(),
@@ -66,16 +69,19 @@ pub fn install_acme_sh() {
 }
 
 pub fn issue_certificate() {
-    let domain: String = Input::new()
-        .with_prompt("Domain name")
-        .interact_text()
-        .unwrap();
+    let domain: String = match Input::new().with_prompt("Domain name").interact_text() {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
-    let webroot: String = Input::new()
+    let webroot: String = match Input::new()
         .with_prompt("Webroot path")
         .default("/var/www/html".to_string())
         .interact_text()
-        .unwrap();
+    {
+        Ok(w) => w,
+        Err(_) => return,
+    };
 
     println!("🚀 Issuing certificate for: {}", domain);
 
@@ -94,7 +100,17 @@ pub fn issue_certificate() {
         ))
         .status();
 
-    if status.is_ok() && status.unwrap().success() {
+    if let Ok(s) = status {
+        if !s.success() {
+            println!("❌ Failed to issue certificate");
+            return;
+        }
+    } else {
+        println!("❌ Failed to issue certificate");
+        return;
+    }
+
+    {
         // Install certificate to nginx directory
         let install_status = Command::new("sh")
             .arg("-c")
@@ -114,8 +130,6 @@ pub fn issue_certificate() {
             }
             _ => println!("❌ Failed to install certificate"),
         }
-    } else {
-        println!("❌ Failed to issue certificate");
     }
 }
 
@@ -144,10 +158,10 @@ pub fn list_certificates() {
 }
 
 fn remove_certificate() {
-    let domain: String = Input::new()
-        .with_prompt("Domain to remove")
-        .interact_text()
-        .unwrap();
+    let domain: String = match Input::new().with_prompt("Domain to remove").interact_text() {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
     println!("🗑️  Removing certificate for: {}", domain);
 
@@ -186,12 +200,15 @@ fn configure_dns_api() {
         "Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select DNS Provider")
         .items(&providers)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     match choice {
         0 => configure_cloudflare(),
@@ -207,15 +224,18 @@ fn configure_dns_api() {
 }
 
 fn configure_cloudflare() {
-    let email: String = Input::new()
-        .with_prompt("Cloudflare Email")
-        .interact_text()
-        .unwrap();
+    let email: String = match Input::new().with_prompt("Cloudflare Email").interact_text() {
+        Ok(e) => e,
+        Err(_) => return,
+    };
 
-    let api_key: String = Input::new()
+    let api_key: String = match Input::new()
         .with_prompt("Cloudflare API Key")
         .interact_text()
-        .unwrap();
+    {
+        Ok(k) => k,
+        Err(_) => return,
+    };
 
     // Export environment variables
     let _ = Command::new("sh")
@@ -246,25 +266,34 @@ fn configure_azure_dns() {
     println!("☁️  Azure DNS Configuration");
     println!("==========================");
 
-    let subscription_id: String = Input::new()
+    let subscription_id: String = match Input::new()
         .with_prompt("Azure Subscription ID")
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
-    let tenant_id: String = Input::new()
-        .with_prompt("Azure Tenant ID")
-        .interact_text()
-        .unwrap();
+    let tenant_id: String = match Input::new().with_prompt("Azure Tenant ID").interact_text() {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
-    let client_id: String = Input::new()
+    let client_id: String = match Input::new()
         .with_prompt("Azure Client ID (App ID)")
         .interact_text()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
-    let client_secret: String = Input::new()
+    let client_secret: String = match Input::new()
         .with_prompt("Azure Client Secret")
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     // Export environment variables for acme.sh Azure DNS hook
     let _ = Command::new("sh")
@@ -305,10 +334,13 @@ fn configure_azure_dns() {
 }
 
 fn configure_digitalocean() {
-    let token: String = Input::new()
+    let token: String = match Input::new()
         .with_prompt("DigitalOcean API Token")
         .interact_text()
-        .unwrap();
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
     let _ = Command::new("sh")
         .arg("-c")
@@ -325,21 +357,27 @@ fn configure_powerdns() {
     println!("🔧 PowerDNS API Configuration");
     println!("=============================");
 
-    let api_url: String = Input::new()
+    let api_url: String = match Input::new()
         .with_prompt("PowerDNS API URL (e.g., http://localhost:8081)")
         .interact_text()
-        .unwrap();
+    {
+        Ok(u) => u,
+        Err(_) => return,
+    };
 
-    let api_key: String = Input::new()
-        .with_prompt("PowerDNS API Key")
-        .interact_text()
-        .unwrap();
+    let api_key: String = match Input::new().with_prompt("PowerDNS API Key").interact_text() {
+        Ok(k) => k,
+        Err(_) => return,
+    };
 
-    let server_id: String = Input::new()
+    let server_id: String = match Input::new()
         .with_prompt("PowerDNS Server ID")
         .default("localhost".to_string())
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     // Export environment variables for acme.sh PowerDNS hook
     let _ = Command::new("sh")
@@ -372,15 +410,18 @@ fn configure_powerdns() {
 }
 
 fn configure_godaddy() {
-    let key: String = Input::new()
-        .with_prompt("GoDaddy API Key")
-        .interact_text()
-        .unwrap();
+    let key: String = match Input::new().with_prompt("GoDaddy API Key").interact_text() {
+        Ok(k) => k,
+        Err(_) => return,
+    };
 
-    let secret: String = Input::new()
+    let secret: String = match Input::new()
         .with_prompt("GoDaddy API Secret")
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     let _ = Command::new("sh")
         .arg("-c")
@@ -399,15 +440,21 @@ fn configure_godaddy() {
 }
 
 fn configure_namecheap() {
-    let user: String = Input::new()
+    let user: String = match Input::new()
         .with_prompt("Namecheap Username")
         .interact_text()
-        .unwrap();
+    {
+        Ok(u) => u,
+        Err(_) => return,
+    };
 
-    let api_key: String = Input::new()
+    let api_key: String = match Input::new()
         .with_prompt("Namecheap API Key")
         .interact_text()
-        .unwrap();
+    {
+        Ok(k) => k,
+        Err(_) => return,
+    };
 
     let _ = Command::new("sh")
         .arg("-c")

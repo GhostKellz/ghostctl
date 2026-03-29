@@ -35,12 +35,14 @@ pub fn game_management_menu() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🎮 Game Management & Optimization")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => game_library_management(),
@@ -68,12 +70,14 @@ fn game_library_management() {
     ];
 
     loop {
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🎮 Game Library Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => scan_game_libraries(),
@@ -177,17 +181,21 @@ fn scan_game_libraries() {
     );
 
     // Custom directory scan
-    let custom_scan = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(custom_scan) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Scan custom directory?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if custom_scan {
-        let custom_path = Input::<String>::with_theme(&ColorfulTheme::default())
+        let Ok(custom_path) = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter custom path to scan")
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if Path::new(&custom_path).exists() {
             println!("\n🔍 Scanning custom path: {}", custom_path);
@@ -230,7 +238,7 @@ fn find_duplicate_games() {
     println!("🔍 Finding Duplicate Games");
     println!("===========================\n");
 
-    let search_method = Select::with_theme(&ColorfulTheme::default())
+    let Ok(search_method) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select duplicate detection method")
         .items(&[
             "📝 By name similarity",
@@ -240,7 +248,9 @@ fn find_duplicate_games() {
         ])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let search_paths = vec![
         format!("{}/.steam/steam/steamapps/common", get_home_dir()),
@@ -313,11 +323,13 @@ fn find_duplicates_by_name(paths: &[String]) {
             );
         }
 
-        let cleanup = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(cleanup) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Review and remove duplicates?")
             .default(false)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if cleanup {
             cleanup_duplicate_games(duplicates);
@@ -577,7 +589,7 @@ fn cleanup_duplicate_games(duplicates: Vec<(String, String, f64)>) {
             size2 / 1024 / 1024
         );
 
-        let action = Select::with_theme(&ColorfulTheme::default())
+        let Ok(action) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Choose action")
             .items(&[
                 "⏭️ Skip this pair",
@@ -589,7 +601,9 @@ fn cleanup_duplicate_games(duplicates: Vec<(String, String, f64)>) {
             ])
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match action {
             1 => {
@@ -611,28 +625,29 @@ fn cleanup_duplicate_games(duplicates: Vec<(String, String, f64)>) {
 fn remove_game_directory(path: &str) {
     println!("🗑️ Removing: {}", path);
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt(&format!("⚠️ Permanently delete '{}'?", path))
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
-        let backup = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(backup) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Create backup before deletion?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if backup {
-            let backup_path = format!(
-                "{}.backup.{}",
-                path,
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-            );
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            let backup_path = format!("{}.backup.{}", path, timestamp);
 
             println!("📦 Creating backup: {}", backup_path);
             let backup_result = Command::new("mv").args(&[path, &backup_path]).status();
@@ -901,12 +916,14 @@ fn wine_proton_cleanup() {
     ];
 
     loop {
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🍷 Wine/Proton Cleanup & Repair")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => wine_health_check(),
@@ -1108,12 +1125,14 @@ fn repair_wine_installation() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select repair option")
         .items(&repair_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => fix_ntlm_auth(),
@@ -1133,9 +1152,13 @@ fn fix_ntlm_auth() {
     println!("===================================\n");
 
     // Check if samba is installed
-    let samba_check = Command::new("which").arg("ntlm_auth").status();
+    let samba_available = Command::new("which")
+        .arg("ntlm_auth")
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
 
-    if samba_check.is_err() || !samba_check.unwrap().success() {
+    if !samba_available {
         println!("📦 Installing samba for ntlm_auth...");
 
         let install_result = Command::new("sudo")
@@ -1190,17 +1213,21 @@ fn install_wine_fonts() {
     }
 
     // Install Windows fonts if available
-    let install_windows_fonts = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(install_windows_fonts) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Install additional Windows fonts? (requires Windows partition/files)")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_windows_fonts {
-        let windows_fonts_path = Input::<String>::with_theme(&ColorfulTheme::default())
+        let Ok(windows_fonts_path) = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter path to Windows Fonts directory")
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if Path::new(&windows_fonts_path).exists() {
             println!("📁 Copying Windows fonts...");
@@ -1263,21 +1290,20 @@ fn recreate_wine_prefix() {
     let wine_prefix = format!("{}/.wine", get_home_dir());
 
     if Path::new(&wine_prefix).exists() {
-        let backup = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(backup) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Backup existing Wine prefix before recreation?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if backup {
-            let backup_path = format!(
-                "{}.backup.{}",
-                wine_prefix,
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-            );
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            let backup_path = format!("{}.backup.{}", wine_prefix, timestamp);
 
             println!("📦 Creating backup: {}", backup_path);
             Command::new("mv")
@@ -1301,14 +1327,14 @@ fn recreate_wine_prefix() {
             println!("✅ Wine prefix recreated successfully");
 
             // Ask about automatic configuration
-            let auto_config = Confirm::with_theme(&ColorfulTheme::default())
+            if let Ok(auto_config) = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Apply recommended gaming configuration?")
                 .default(true)
                 .interact()
-                .unwrap();
-
-            if auto_config {
-                apply_gaming_wine_config();
+            {
+                if auto_config {
+                    apply_gaming_wine_config();
+                }
             }
         }
         _ => println!("❌ Failed to recreate Wine prefix"),
@@ -1398,11 +1424,13 @@ fn reset_wine_config() {
 
     let _wine_prefix = format!("{}/.wine", get_home_dir());
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will reset all Wine settings. Continue?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         // Remove Wine configuration files
@@ -1429,11 +1457,13 @@ fn full_wine_repair() {
     println!("🔧 Full Wine Repair");
     println!("===================\n");
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will perform a complete Wine repair. Continue?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !confirm {
         return;
@@ -1479,12 +1509,14 @@ fn update_proton_versions() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Proton update option")
         .items(&proton_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => update_proton_ge(),
@@ -1551,7 +1583,8 @@ fn update_proton_ge() {
         .args(&["-P", "/tmp", &download_url])
         .status();
 
-    if download_result.is_err() || !download_result.unwrap().success() {
+    let download_ok = download_result.map(|s| s.success()).unwrap_or(false);
+    if !download_ok {
         println!("❌ Download failed");
         return;
     }
@@ -1568,7 +1601,8 @@ fn update_proton_ge() {
         .args(&["-xzf", &temp_path, "-C", "/tmp"])
         .status();
 
-    if extract_result.is_err() || !extract_result.unwrap().success() {
+    let extract_ok = extract_result.map(|s| s.success()).unwrap_or(false);
+    if !extract_ok {
         println!("❌ Extraction failed");
         return;
     }
@@ -1609,11 +1643,13 @@ fn update_proton_tkg() {
     println!("⚠️ Proton-TKG requires building from source");
     println!("📖 Visit: https://github.com/Frogging-Family/wine-tkg-git");
 
-    let proceed = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(proceed) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Do you want to clone and build Proton-TKG?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if proceed {
         println!("📥 Cloning Proton-TKG repository...");
@@ -1780,7 +1816,7 @@ fn cleanup_old_proton() {
             }
 
             if !version_info.is_empty() {
-                let versions_to_remove = MultiSelect::with_theme(&ColorfulTheme::default())
+                let Ok(versions_to_remove) = MultiSelect::with_theme(&ColorfulTheme::default())
                     .with_prompt("Select Proton versions to remove")
                     .items(
                         &version_info
@@ -1789,16 +1825,20 @@ fn cleanup_old_proton() {
                             .collect::<Vec<_>>(),
                     )
                     .interact()
-                    .unwrap();
+                else {
+                    return;
+                };
 
                 for idx in versions_to_remove {
                     let (name, path, _) = &version_info[idx];
 
-                    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+                    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
                         .with_prompt(&format!("Remove {}?", name))
                         .default(false)
                         .interact()
-                        .unwrap();
+                    else {
+                        continue;
+                    };
 
                     if confirm {
                         let result = Command::new("rm").args(&["-rf", path]).status();
@@ -1827,12 +1867,14 @@ fn clean_wine_prefixes() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select cleanup option")
         .items(&cleanup_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => analyze_prefix_usage(),
@@ -1997,7 +2039,7 @@ fn remove_unused_prefixes() {
         return;
     }
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select prefixes to remove")
         .items(
             &prefixes_to_remove
@@ -2006,18 +2048,22 @@ fn remove_unused_prefixes() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for idx in selected {
         let (name, path, size) = &prefixes_to_remove[idx];
 
         println!("\n🗑️ Removing: {} ({} MB)", name, size / 1024 / 1024);
 
-        let confirm = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt(&format!("Permanently delete prefix '{}'?", name))
             .default(false)
             .interact()
-            .unwrap();
+        else {
+            continue;
+        };
 
         if confirm {
             let result = Command::new("rm").args(&["-rf", path]).status();
@@ -2094,25 +2140,29 @@ fn clean_prefix_temp_files(prefix_path: &str) -> u64 {
     for pattern in temp_patterns {
         // Remove the wildcard for directory existence check
         let base_pattern = pattern.replace("*/", "");
-        let parent_dir = if pattern.contains("*/") {
-            Path::new(&base_pattern).parent().unwrap().to_str().unwrap()
+        let parent_dir: String = if pattern.contains("*/") {
+            Path::new(&base_pattern)
+                .parent()
+                .and_then(|p| p.to_str())
+                .unwrap_or(&base_pattern)
+                .to_string()
         } else {
-            &base_pattern
+            base_pattern.clone()
         };
 
-        if Path::new(parent_dir).exists() {
+        if Path::new(&parent_dir).exists() {
             // Get size before cleaning
-            let before_size = get_directory_size(parent_dir);
+            let before_size = get_directory_size(&parent_dir);
 
             // Clean temp files
             let clean_cmd = format!(
                 "find {} -name 'tmp*' -o -name '*.tmp' -o -name '*.temp' | head -100 | xargs rm -f 2>/dev/null || true",
-                parent_dir
+                &parent_dir
             );
             Command::new("sh").arg("-c").arg(&clean_cmd).status().ok();
 
             // Get size after cleaning
-            let after_size = get_directory_size(parent_dir);
+            let after_size = get_directory_size(&parent_dir);
             total_cleaned += before_size.saturating_sub(after_size);
         }
     }
@@ -2185,7 +2235,7 @@ fn reset_specific_prefix() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select prefix to reset")
         .items(
             &available_prefixes
@@ -2195,18 +2245,22 @@ fn reset_specific_prefix() {
         )
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let (name, path) = &available_prefixes[choice];
 
     println!("\n⚠️ Resetting prefix: {}", name);
     println!("📁 Path: {}", path);
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will completely reset the selected prefix. Continue?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         // Create backup first
@@ -2215,8 +2269,8 @@ fn reset_specific_prefix() {
             path,
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs()
+                .map(|d| d.as_secs())
+                .unwrap_or(0)
         );
 
         println!("📦 Creating backup: {}", backup_path);
@@ -2249,14 +2303,17 @@ fn bottles_management() {
     // Check if Bottles is installed
     let bottles_check = Command::new("which").arg("bottles").status();
 
-    if bottles_check.is_err() || !bottles_check.unwrap().success() {
+    let bottles_available = bottles_check.map(|s| s.success()).unwrap_or(false);
+    if !bottles_available {
         println!("❌ Bottles not found");
 
-        let install = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(install) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Install Bottles?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if install {
             println!("📦 Installing Bottles...");
@@ -2274,12 +2331,14 @@ fn bottles_management() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Bottles Management")
         .items(&bottles_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => list_bottles(),
@@ -2357,11 +2416,13 @@ fn create_new_bottle() {
     println!("🔧 Creating bottle using Bottles GUI...");
     println!("💡 This will open the Bottles application");
 
-    let launch = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(launch) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Launch Bottles to create a new bottle?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if launch {
         Command::new("bottles").spawn().ok();
@@ -2408,7 +2469,7 @@ fn remove_bottle() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select bottle to remove")
         .items(
             &available_bottles
@@ -2418,7 +2479,9 @@ fn remove_bottle() {
         )
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let (name, path, size) = &available_bottles[choice];
 
@@ -2426,11 +2489,13 @@ fn remove_bottle() {
     println!("📁 Path: {}", path);
     println!("📊 Size: {} MB", size / 1024 / 1024);
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt(&format!("Permanently delete bottle '{}'?", name))
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let result = Command::new("rm").args(&["-rf", path]).status();
@@ -2525,12 +2590,14 @@ fn bottle_maintenance() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select maintenance task")
         .items(&maintenance_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => clean_bottles_temp(),
@@ -2616,11 +2683,13 @@ fn update_bottle_runners() {
     println!("🔧 Opening Bottles to update runners...");
     println!("💡 Use Bottles GUI to manage and update Wine runners");
 
-    let launch = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(launch) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Launch Bottles?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if launch {
         Command::new("bottles").spawn().ok();
@@ -2690,12 +2759,14 @@ fn lutris_management() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🎯 Lutris Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => install_update_lutris(),
@@ -2727,11 +2798,13 @@ fn install_update_lutris() {
                 println!("📋 Version: {}", output_string.trim());
             }
 
-            let update = Confirm::with_theme(&ColorfulTheme::default())
+            let Ok(update) = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Update Lutris?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if update {
                 update_lutris();
@@ -2740,11 +2813,13 @@ fn install_update_lutris() {
         _ => {
             println!("❌ Lutris not found");
 
-            let install = Confirm::with_theme(&ColorfulTheme::default())
+            let Ok(install) = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Install Lutris?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if install {
                 install_lutris_fresh();
@@ -2770,9 +2845,13 @@ fn install_lutris_fresh() {
     let mut installed = false;
 
     for (pm, args) in &package_managers {
-        let check = Command::new("which").arg(pm).status();
+        let pm_available = Command::new("which")
+            .arg(pm)
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
 
-        if check.is_ok() && check.unwrap().success() {
+        if pm_available {
             println!("🔧 Using {} package manager", pm);
 
             let mut cmd = Command::new(pm);
@@ -2818,9 +2897,13 @@ fn update_lutris() {
     ];
 
     for (pm, args) in &package_managers {
-        let check = Command::new("which").arg(pm).status();
+        let pm_available = Command::new("which")
+            .arg(pm)
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
 
-        if check.is_ok() && check.unwrap().success() {
+        if pm_available {
             println!("🔧 Updating with {}", pm);
 
             let mut cmd = Command::new(pm);
@@ -2858,9 +2941,13 @@ fn check_lutris_dependencies() {
     ];
 
     for (dep, description) in &deps {
-        let check = Command::new("which").arg(dep).status();
+        let dep_available = Command::new("which")
+            .arg(dep)
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
 
-        if check.is_ok() && check.unwrap().success() {
+        if dep_available {
             println!("  ✅ {}: {}", dep, description);
         } else {
             println!("  ❌ {}: {} (missing)", dep, description);
@@ -2882,12 +2969,14 @@ fn lutris_game_management() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("🎮 Lutris Game Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => list_lutris_games(),
@@ -2956,11 +3045,13 @@ fn install_game_from_lutris() {
     println!("  • Overwatch 2");
     println!("  • Steam games (as non-Steam games)");
 
-    let launch_browser = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(launch_browser) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Open Lutris website in browser?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if launch_browser {
         Command::new("xdg-open")
@@ -2974,15 +3065,19 @@ fn add_local_game() {
     println!("➕ Add Local Game to Lutris");
     println!("============================\n");
 
-    let game_name: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(game_name): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Game name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let game_path: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(game_path): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Game executable path")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !Path::new(&game_path).exists() {
         println!("❌ Game executable not found: {}", game_path);
@@ -3025,20 +3120,24 @@ fn remove_lutris_game() {
                 return;
             }
 
-            let choice = Select::with_theme(&ColorfulTheme::default())
+            let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select game to remove")
                 .items(&games)
                 .default(0)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             let selected_game = games[choice];
 
-            let confirm = Confirm::with_theme(&ColorfulTheme::default())
+            let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt(&format!("Remove '{}'?", selected_game))
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if confirm {
                 println!("💡 To remove the game:");
@@ -3046,11 +3145,13 @@ fn remove_lutris_game() {
                 println!("   2. Right-click on '{}'", selected_game);
                 println!("   3. Select 'Remove' or 'Uninstall'");
 
-                let open_lutris = Confirm::with_theme(&ColorfulTheme::default())
+                let Ok(open_lutris) = Confirm::with_theme(&ColorfulTheme::default())
                     .with_prompt("Open Lutris now?")
                     .default(true)
                     .interact()
-                    .unwrap();
+                else {
+                    return;
+                };
 
                 if open_lutris {
                     Command::new("lutris").spawn().ok();
@@ -3073,11 +3174,13 @@ fn configure_lutris_game() {
     println!("   • Game arguments");
     println!("   • Environment variables");
 
-    let open_lutris = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(open_lutris) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Open Lutris to configure games?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if open_lutris {
         Command::new("lutris").spawn().ok();
@@ -3104,12 +3207,14 @@ fn launch_lutris_game() {
                 return;
             }
 
-            let choice = Select::with_theme(&ColorfulTheme::default())
+            let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select game to launch")
                 .items(&games)
                 .default(0)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             let selected_game = games[choice];
 
@@ -3210,12 +3315,14 @@ fn lutris_wine_runners() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("🍷 Lutris Wine Runner Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => list_lutris_runners(),
@@ -3294,12 +3401,14 @@ fn install_wine_runner() {
         "Custom URL - Download from URL",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Wine runner to install")
         .items(&runner_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_wine_ge_lutris(),
@@ -3340,11 +3449,13 @@ fn install_wine_ge_lutris() {
                 if url.ends_with(".tar.xz") {
                     println!("📋 Found: {}", url);
 
-                    let download = Confirm::with_theme(&ColorfulTheme::default())
+                    let Ok(download) = Confirm::with_theme(&ColorfulTheme::default())
                         .with_prompt("Download and install this Wine-GE version?")
                         .default(true)
                         .interact()
-                        .unwrap();
+                    else {
+                        return;
+                    };
 
                     if download {
                         download_and_install_runner(url, &runners_path);
@@ -3373,11 +3484,13 @@ fn install_lutris_fshack() {
     println!("   3. Click the manage versions button");
     println!("   4. Download desired versions");
 
-    let open_lutris = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(open_lutris) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Open Lutris to manage runners?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if open_lutris {
         Command::new("lutris").spawn().ok();
@@ -3391,11 +3504,13 @@ fn install_wine_tkg_lutris() {
     println!("⚠️ Wine-TKG requires building from source");
     println!("🔗 Repository: https://github.com/Frogging-Family/wine-tkg-git");
 
-    let proceed = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(proceed) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will clone and provide build instructions. Continue?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if proceed {
         let temp_dir = "/tmp/wine-tkg-lutris";
@@ -3448,11 +3563,13 @@ fn setup_system_wine() {
         _ => {
             println!("❌ System Wine not found");
 
-            let install = Confirm::with_theme(&ColorfulTheme::default())
+            let Ok(install) = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Install system Wine?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if install {
                 install_system_wine();
@@ -3473,9 +3590,13 @@ fn install_system_wine() {
     ];
 
     for (pm, cmd) in &package_managers {
-        let check = Command::new("which").arg(pm).status();
+        let pm_available = Command::new("which")
+            .arg(pm)
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
 
-        if check.is_ok() && check.unwrap().success() {
+        if pm_available {
             println!("🔧 Installing Wine with {}", pm);
 
             let install_result = Command::new(cmd[0]).args(&cmd[1..]).status();
@@ -3498,10 +3619,12 @@ fn install_custom_runner() {
     println!("📥 Install Custom Wine Runner");
     println!("=============================\n");
 
-    let url: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(url): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter download URL for Wine runner (.tar.xz)")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !url.starts_with("http") || !url.ends_with(".tar.xz") {
         println!("❌ Invalid URL - must be HTTP(S) and end with .tar.xz");
@@ -3582,11 +3705,13 @@ fn update_lutris_runners() {
     println!("   • Wine-TKG: Rebuild from latest source");
     println!("   • Lutris runners: Use GUI manager");
 
-    let open_lutris = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(open_lutris) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Open Lutris runner manager?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if open_lutris {
         Command::new("lutris").spawn().ok();
@@ -3635,7 +3760,7 @@ fn remove_old_runners() {
         println!("  📦 {}: {} MB", name, size / 1024 / 1024);
     }
 
-    let runners_to_remove = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(runners_to_remove) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select runners to remove")
         .items(
             &available_runners
@@ -3644,16 +3769,20 @@ fn remove_old_runners() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for idx in runners_to_remove {
         let (name, path, size) = &available_runners[idx];
 
-        let confirm = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt(&format!("Remove {} ({} MB)?", name, size / 1024 / 1024))
             .default(false)
             .interact()
-            .unwrap();
+        else {
+            continue;
+        };
 
         if confirm {
             let result = Command::new("rm").args(&["-rf", path]).status();
@@ -3682,11 +3811,13 @@ fn set_default_runner() {
     println!("   • Games can have individual runner settings");
     println!("   • Global preferences are in Lutris settings");
 
-    let open_lutris = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(open_lutris) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Open Lutris to configure runners?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if open_lutris {
         Command::new("lutris").spawn().ok();
@@ -3702,11 +3833,13 @@ fn setup_wow_complete() {
     println!("🔍 System Requirements Check:");
     check_wow_system_requirements();
 
-    let proceed = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(proceed) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Proceed with WoW setup?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !proceed {
         return;
@@ -3767,8 +3900,12 @@ fn check_wow_system_requirements() {
         Err(_) => println!("  ❌ Wine: Not installed"),
     }
 
-    let dxvk_check = Command::new("which").arg("setup_dxvk").status();
-    if dxvk_check.is_ok() && dxvk_check.unwrap().success() {
+    let dxvk_available = Command::new("which")
+        .arg("setup_dxvk")
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    if dxvk_available {
         println!("  ✅ DXVK: Available");
     } else {
         println!("  ⚠️ DXVK: Not found (will be installed)");
@@ -3779,8 +3916,12 @@ fn ensure_lutris_ready_for_wow() {
     println!("\n🔧 Preparing Lutris for World of Warcraft");
     println!("=========================================");
 
-    let lutris_check = Command::new("which").arg("lutris").status();
-    if lutris_check.is_err() || !lutris_check.unwrap().success() {
+    let lutris_available = Command::new("which")
+        .arg("lutris")
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    if !lutris_available {
         println!("📥 Installing Lutris...");
         install_lutris_fresh();
     } else {
@@ -3843,8 +3984,12 @@ fn ensure_lutris_ready_for_wow() {
         ];
 
         for cmd in &install_attempts {
-            let check = Command::new("which").arg(cmd[0]).status();
-            if check.is_ok() && check.unwrap().success() {
+            let cmd_available = Command::new("which")
+                .arg(cmd[0])
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false);
+            if cmd_available {
                 Command::new(cmd[0]).args(&cmd[1..]).status().ok();
                 break;
             }
@@ -3951,8 +4096,12 @@ fn optimize_system_for_wow() {
     println!("\n🚀 Optimizing System for World of Warcraft");
     println!("==========================================");
 
-    let gamemode_check = Command::new("which").arg("gamemoded").status();
-    if gamemode_check.is_ok() && gamemode_check.unwrap().success() {
+    let gamemode_available = Command::new("which")
+        .arg("gamemoded")
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    if gamemode_available {
         println!("✅ GameMode detected");
 
         Command::new("systemctl")
@@ -4112,8 +4261,12 @@ dxvk.logLevel = none
 
     println!("📦 Setting up VKD3D for DirectX 12 support...");
 
-    let vkd3d_check = Command::new("which").arg("setup_vkd3d").status();
-    if vkd3d_check.is_ok() && vkd3d_check.unwrap().success() {
+    let vkd3d_available = Command::new("which")
+        .arg("setup_vkd3d")
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    if vkd3d_available {
         if Path::new(&wow_prefix).exists() {
             Command::new("env")
                 .env("WINEPREFIX", &wow_prefix)
@@ -4249,11 +4402,13 @@ fn setup_diablo4_complete() {
     println!("🔍 System Requirements Check:");
     check_diablo4_system_requirements();
 
-    let proceed = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(proceed) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Proceed with Diablo 4 setup?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !proceed {
         return;
@@ -4380,11 +4535,13 @@ fn optimize_system_for_d4() {
         .status()
         .ok();
 
-    let disable_mitigations = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(disable_mitigations) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Disable CPU security mitigations for maximum performance? (Reduces security)")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if disable_mitigations {
         println!("⚠️ Adding mitigations=off to kernel parameters");
@@ -4688,12 +4845,14 @@ fn lutris_configuration() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("🔧 Lutris Configuration")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => configure_general_lutris(),
@@ -4717,11 +4876,13 @@ fn configure_general_lutris() {
     println!("   • Library management");
     println!("   • Notification settings");
 
-    let open_lutris = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(open_lutris) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Open Lutris preferences?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if open_lutris {
         let pref_result = Command::new("lutris").args(&["--preferences"]).spawn();
@@ -4842,11 +5003,14 @@ echo "Default Wine configuration completed"
         .status()
         .ok();
 
-    let apply_config = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(apply_config) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Apply default Wine gaming configuration?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        fs::remove_file(config_script).ok();
+        return;
+    };
 
     if apply_config {
         Command::new("bash").arg(config_script).status().ok();
@@ -4890,11 +5054,13 @@ fn configure_lutris_directories() {
         );
     }
 
-    let setup_dirs = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(setup_dirs) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Create missing directories?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if setup_dirs {
         for (_name, path) in &lutris_dirs {
@@ -4905,19 +5071,23 @@ fn configure_lutris_directories() {
         }
     }
 
-    let change_games_dir = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(change_games_dir) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Change default games installation directory?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if change_games_dir {
         let default_dir = format!("{}/Games/Lutris", home);
-        let new_games_dir: String = Input::with_theme(&ColorfulTheme::default())
+        let Ok(new_games_dir): Result<String, _> = Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter new games directory")
             .default(default_dir)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         fs::create_dir_all(&new_games_dir).ok();
         println!("✅ Games directory set to: {}", new_games_dir);
@@ -4952,12 +5122,14 @@ fn configure_online_services() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select service to configure")
         .items(&service_setup_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
@@ -5003,12 +5175,14 @@ fn lutris_cleanup_maintenance() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("🧹 Lutris Cleanup & Maintenance")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => clean_lutris_cache(),
@@ -5133,7 +5307,7 @@ fn clean_unused_lutris_prefixes() {
         );
     }
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select prefixes to remove")
         .items(
             &old_prefixes
@@ -5142,12 +5316,14 @@ fn clean_unused_lutris_prefixes() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for idx in selected {
         let (name, path, size) = &old_prefixes[idx];
 
-        let confirm = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt(&format!(
                 "Remove prefix '{}' ({} MB)?",
                 name,
@@ -5155,7 +5331,9 @@ fn clean_unused_lutris_prefixes() {
             ))
             .default(false)
             .interact()
-            .unwrap();
+        else {
+            continue;
+        };
 
         if confirm {
             let result = Command::new("rm").args(&["-rf", path]).status();
@@ -5226,16 +5404,18 @@ fn clean_old_lutris_runners() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select cleanup option")
         .items(&cleanup_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
-            let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+            let Ok(selected) = MultiSelect::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select runners to remove")
                 .items(
                     &all_runners
@@ -5244,16 +5424,20 @@ fn clean_old_lutris_runners() {
                         .collect::<Vec<_>>(),
                 )
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             for idx in selected {
                 let (name, path, _, _) = &all_runners[idx];
 
-                let confirm = Confirm::with_theme(&ColorfulTheme::default())
+                let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
                     .with_prompt(&format!("Remove runner '{}'?", name))
                     .default(false)
                     .interact()
-                    .unwrap();
+                else {
+                    continue;
+                };
 
                 if confirm {
                     let result = Command::new("rm").args(&["-rf", path]).status();
@@ -5380,8 +5564,12 @@ fn check_lutris_health() {
     ];
 
     for (dep, description) in &deps {
-        let check = Command::new("which").arg(dep).status();
-        if check.is_ok() && check.unwrap().success() {
+        let dep_available = Command::new("which")
+            .arg(dep)
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+        if dep_available {
             println!("✅ {}: {}", dep, description);
         } else {
             println!("⚠️ {}: {} (missing)", dep, description);
@@ -5435,11 +5623,13 @@ fn check_lutris_health() {
         );
 
         if issues_found > 3 {
-            let reinstall = Confirm::with_theme(&ColorfulTheme::default())
+            let Ok(reinstall) = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Many issues detected. Reinstall Lutris?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if reinstall {
                 println!("🔄 Reinstalling Lutris...");
@@ -5588,11 +5778,13 @@ fn reset_lutris_config() {
     println!("   • Wine runners");
     println!("   • Game save files");
 
-    let confirm_reset = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm_reset) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Proceed with configuration reset?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !confirm_reset {
         return;
@@ -5604,8 +5796,8 @@ fn reset_lutris_config() {
         config_dir,
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
+            .map(|d| d.as_secs())
+            .unwrap_or(0)
     );
 
     if Path::new(&config_dir).exists() {
@@ -5634,11 +5826,13 @@ fn reset_lutris_config() {
     println!("📦 Backup available at: {}", backup_dir);
     println!("🔄 Restart Lutris to initialize default settings");
 
-    let restart_lutris = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(restart_lutris) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Launch Lutris now?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if restart_lutris {
         Command::new("lutris").spawn().ok();

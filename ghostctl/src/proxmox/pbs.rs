@@ -42,12 +42,15 @@ pub fn pbs_menu() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let selection = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🔐 Proxmox Backup Server Management")
             .items(&options)
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(s)) => s,
+            Ok(None) | Err(_) => break,
+        };
 
         match selection {
             0 => post_install_setup(),
@@ -65,7 +68,7 @@ pub fn pbs_menu() {
 
 fn post_install_setup() {
     println!("🚀 PBS Post-Install Setup\n");
-    
+
     let tasks = vec![
         "Disable Enterprise Repository",
         "Enable No-Subscription Repository",
@@ -77,19 +80,22 @@ fn post_install_setup() {
         "Configure Firewall",
         "Optimize System Settings",
     ];
-    
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select setup tasks to perform")
         .items(&tasks)
         .defaults(&[true, true, false, true, true, false, false, false, true])
-        .interact()
-        .unwrap();
-    
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        Ok(None) | Err(_) => return,
+    };
+
     if selected.is_empty() {
         println!("No tasks selected");
         return;
     }
-    
+
     for idx in selected {
         match idx {
             0 => disable_enterprise_repo(),
@@ -104,22 +110,25 @@ fn post_install_setup() {
             _ => {}
         }
     }
-    
+
     println!("\n✅ Post-install setup complete!");
-    
-    if Confirm::new()
+
+    let reboot = Confirm::new()
         .with_prompt("Reboot PBS server now?")
         .default(false)
-        .interact()
-        .unwrap()
-    {
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
+
+    if reboot {
         let _ = Command::new("systemctl").arg("reboot").status();
     }
 }
 
 fn disable_enterprise_repo() {
     println!("📦 Disabling Enterprise Repository...");
-    
+
     if Path::new(PBS_ENTERPRISE_LIST).exists() {
         // Comment out enterprise repo
         if let Ok(content) = fs::read_to_string(PBS_ENTERPRISE_LIST) {
@@ -138,7 +147,7 @@ fn disable_enterprise_repo() {
 
 fn enable_no_sub_repo() {
     println!("📦 Enabling No-Subscription Repository...");
-    
+
     let pbs_version = get_pbs_version();
     let debian_version = if pbs_version.starts_with("3.") {
         "bookworm"
@@ -147,63 +156,72 @@ fn enable_no_sub_repo() {
     } else {
         "bookworm" // Default to latest
     };
-    
+
     let no_sub_content = format!(
         "deb http://download.proxmox.com/debian/pbs {} pbs-no-subscription",
         debian_version
     );
-    
-    fs::write(PBS_NO_SUB_LIST, no_sub_content).expect("Failed to write PBS no-sub repo");
+
+    if let Err(e) = fs::write(PBS_NO_SUB_LIST, no_sub_content) {
+        println!("❌ Failed to write PBS no-sub repo: {}", e);
+        return;
+    }
     println!("✅ No-subscription repository enabled");
 }
 
 fn add_test_repo() {
     println!("⚠️  Adding Test Repository (unstable packages)...");
-    
-    if !Confirm::new()
+
+    let confirm = Confirm::new()
         .with_prompt("Test repository contains unstable packages. Continue?")
         .default(false)
-        .interact()
-        .unwrap()
-    {
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
+
+    if !confirm {
         return;
     }
-    
+
     let pbs_version = get_pbs_version();
     let debian_version = if pbs_version.starts_with("3.") {
         "bookworm"
     } else {
         "bullseye"
     };
-    
+
     let test_content = format!(
         "deb http://download.proxmox.com/debian/pbs {} pbstest",
         debian_version
     );
-    
-    fs::write(PBS_TEST_LIST, test_content).expect("Failed to write PBS test repo");
+
+    if let Err(e) = fs::write(PBS_TEST_LIST, test_content) {
+        println!("❌ Failed to write PBS test repo: {}", e);
+        return;
+    }
     println!("✅ Test repository added");
 }
 
 fn disable_subscription_nag() {
     println!("🔕 Disabling subscription nag...");
-    
+
     let proxy_file = "/usr/share/javascript/proxmox-backup/js/proxmox-backup-gui.js";
-    
+
     if Path::new(proxy_file).exists() {
         // Backup original file
         let backup_file = format!("{}.bak", proxy_file);
         if !Path::new(&backup_file).exists() {
             fs::copy(proxy_file, &backup_file).ok();
         }
-        
+
         // Read and modify the file
         if let Ok(content) = fs::read_to_string(proxy_file) {
             let modified = content.replace(
                 "Ext.Msg.show({",
                 "void({ //Ext.Msg.show({"
             );
-            
+
             if modified != content {
                 fs::write(proxy_file, modified).ok();
                 println!("✅ Subscription nag disabled");
@@ -219,87 +237,107 @@ fn disable_subscription_nag() {
 
 fn update_system() {
     println!("🔄 Updating system packages...");
-    
+
     // Update package lists
     let _ = Command::new("apt")
         .args(&["update"])
         .status();
-    
+
     // Upgrade packages
     let _ = Command::new("apt")
         .args(&["dist-upgrade", "-y"])
         .status();
-    
+
     println!("✅ System updated");
 }
 
 fn configure_email() {
     println!("📧 Configuring email notifications...");
-    
-    let smtp_server: String = Input::new()
+
+    let smtp_server: String = match Input::new()
         .with_prompt("SMTP server")
         .interact_text()
-        .unwrap();
-    
-    let smtp_port: u16 = Input::new()
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+
+    let smtp_port: u16 = match Input::new()
         .with_prompt("SMTP port")
         .default(587)
         .interact()
-        .unwrap();
-    
-    let from_address: String = Input::new()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
+
+    let from_address: String = match Input::new()
         .with_prompt("From email address")
         .interact_text()
-        .unwrap();
-    
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+
     let use_auth = Confirm::new()
         .with_prompt("Use SMTP authentication?")
         .default(true)
-        .interact()
-        .unwrap();
-    
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(true);
+
     if use_auth {
-        let username: String = Input::new()
+        let username: String = match Input::new()
             .with_prompt("SMTP username")
             .interact_text()
-            .unwrap();
-        
-        let password = Password::new()
+        {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+
+        let password = match Password::new()
             .with_prompt("SMTP password")
             .interact()
-            .unwrap();
-        
+        {
+            Ok(p) => p,
+            Err(_) => return,
+        };
+
         // Configure postfix or other mail system
         println!("📝 Configuring mail system...");
         // Implementation would depend on the mail system used
     }
-    
+
     println!("✅ Email notifications configured");
 }
 
 fn setup_auto_updates() {
     println!("🔄 Setting up automatic updates...");
-    
+
     let update_types = vec![
         "Security updates only",
         "All stable updates",
         "No automatic updates",
     ];
-    
-    let selection = Select::with_theme(&ColorfulTheme::default())
+
+    let selection = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select update policy")
         .items(&update_types)
         .default(0)
-        .interact()
-        .unwrap();
-    
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        Ok(None) | Err(_) => return,
+    };
+
     match selection {
         0 => {
             // Install unattended-upgrades
             let _ = Command::new("apt")
                 .args(&["install", "-y", "unattended-upgrades"])
                 .status();
-            
+
             // Configure for security only
             let config = r#"
 Unattended-Upgrade::Origins-Pattern {
@@ -318,7 +356,7 @@ Unattended-Upgrade::Automatic-Reboot "false";
             let _ = Command::new("apt")
                 .args(&["install", "-y", "unattended-upgrades"])
                 .status();
-            
+
             println!("✅ Automatic updates enabled for all packages");
         }
         2 => {
@@ -330,7 +368,7 @@ Unattended-Upgrade::Automatic-Reboot "false";
 
 fn configure_firewall() {
     println!("🔥 Configuring firewall...");
-    
+
     let services = vec![
         ("SSH (22)", "22/tcp", true),
         ("PBS Web UI (8007)", "8007/tcp", true),
@@ -338,25 +376,27 @@ fn configure_firewall() {
         ("NFS", "111/tcp", false),
         ("SMB/CIFS", "445/tcp", false),
     ];
-    
+
     println!("Select services to allow:");
     let mut selections = Vec::new();
-    
+
     for (name, _, default) in &services {
         let allow = Confirm::new()
             .with_prompt(format!("Allow {}?", name))
             .default(*default)
-            .interact()
-            .unwrap();
+            .interact_opt()
+            .ok()
+            .flatten()
+            .unwrap_or(*default);
         selections.push(allow);
     }
-    
+
     // Enable firewall
     let _ = Command::new("ufw")
         .arg("--force")
         .arg("enable")
         .status();
-    
+
     // Apply rules
     for (i, allow) in selections.iter().enumerate() {
         if *allow {
@@ -367,13 +407,13 @@ fn configure_firewall() {
             println!("✅ Allowed {}", services[i].0);
         }
     }
-    
+
     println!("✅ Firewall configured");
 }
 
 fn optimize_system() {
     println!("⚡ Optimizing system settings...");
-    
+
     // Detect system RAM
     let meminfo = fs::read_to_string("/proc/meminfo").unwrap_or_default();
     let total_ram_kb: u64 = meminfo
@@ -382,20 +422,20 @@ fn optimize_system() {
         .and_then(|l| l.split_whitespace().nth(1))
         .and_then(|v| v.parse().ok())
         .unwrap_or(0);
-    
+
     let total_ram_gb = total_ram_kb / 1024 / 1024;
-    
+
     println!("💾 Detected RAM: {} GB", total_ram_gb);
-    
+
     // Optimize ZFS ARC if ZFS is present
     optimize_zfs_arc(total_ram_gb);
-    
+
     // Optimize kernel parameters
     optimize_kernel_params();
-    
+
     // Optimize PBS specific settings
     optimize_pbs_settings();
-    
+
     println!("✅ System optimization complete");
 }
 
@@ -404,9 +444,9 @@ fn optimize_zfs_arc(ram_gb: u64) {
         println!("ℹ️  ZFS not detected, skipping ARC optimization");
         return;
     }
-    
+
     println!("🔧 Optimizing ZFS ARC cache...");
-    
+
     // Calculate ARC sizes based on RAM
     let (arc_min, arc_max) = match ram_gb {
         0..=8 => (1, 2),      // 8GB or less: 1-2GB ARC
@@ -416,10 +456,10 @@ fn optimize_zfs_arc(ram_gb: u64) {
         65..=128 => (16, 32), // 128GB: 16-32GB ARC
         _ => (32, 64),        // >128GB: 32-64GB ARC
     };
-    
+
     let arc_min_bytes = arc_min * 1024 * 1024 * 1024;
     let arc_max_bytes = arc_max * 1024 * 1024 * 1024;
-    
+
     // Write ZFS module parameters
     let zfs_conf = format!(
         "# ghostctl optimized ZFS ARC settings\n\
@@ -430,9 +470,9 @@ fn optimize_zfs_arc(ram_gb: u64) {
          options zfs zfs_compressed_arc_enabled=1\n",
         ram_gb, arc_min_bytes, arc_max_bytes
     );
-    
+
     fs::write("/etc/modprobe.d/zfs.conf", zfs_conf).ok();
-    
+
     // Apply settings immediately if possible
     if Path::new("/sys/module/zfs/parameters/zfs_arc_max").exists() {
         fs::write("/sys/module/zfs/parameters/zfs_arc_min", arc_min_bytes.to_string()).ok();
@@ -445,7 +485,7 @@ fn optimize_zfs_arc(ram_gb: u64) {
 
 fn optimize_kernel_params() {
     println!("🔧 Optimizing kernel parameters...");
-    
+
     let sysctl_conf = r#"
 # ghostctl PBS optimizations
 # Network optimizations
@@ -468,28 +508,28 @@ vm.dirty_ratio = 15
 vm.dirty_background_ratio = 5
 vm.vfs_cache_pressure = 50
 "#;
-    
+
     fs::write("/etc/sysctl.d/99-pbs-optimize.conf", sysctl_conf).ok();
-    
+
     // Apply settings
     let _ = Command::new("sysctl")
         .arg("-p")
         .arg("/etc/sysctl.d/99-pbs-optimize.conf")
         .status();
-    
+
     println!("✅ Kernel parameters optimized");
 }
 
 fn optimize_pbs_settings() {
     println!("🔧 Optimizing PBS settings...");
-    
+
     // Optimize chunk store settings
     let node_cfg = "/etc/proxmox-backup/node.cfg";
-    
+
     if Path::new(node_cfg).exists() {
         // Read existing config
         let config = fs::read_to_string(node_cfg).unwrap_or_default();
-        
+
         // Add optimizations if not present
         if !config.contains("task-log-max-days") {
             let optimized = format!(
@@ -501,7 +541,7 @@ fn optimize_pbs_settings() {
             fs::write(node_cfg, optimized).ok();
         }
     }
-    
+
     println!("✅ PBS settings optimized");
 }
 
@@ -516,13 +556,16 @@ fn repository_management() {
             "Update Package Lists",
             "Back",
         ];
-        
-        let selection = Select::with_theme(&ColorfulTheme::default())
+
+        let selection = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("📦 Repository Management")
             .items(&options)
-            .interact()
-            .unwrap();
-        
+            .interact_opt()
+        {
+            Ok(Some(s)) => s,
+            Ok(None) | Err(_) => break,
+        };
+
         match selection {
             0 => view_repositories(),
             1 => switch_to_no_sub(),
@@ -537,15 +580,15 @@ fn repository_management() {
 
 fn view_repositories() {
     println!("\n📋 Current PBS Repositories:\n");
-    
+
     for repo_file in &[PBS_ENTERPRISE_LIST, PBS_NO_SUB_LIST, PBS_TEST_LIST] {
         if Path::new(repo_file).exists() {
             if let Ok(content) = fs::read_to_string(repo_file) {
                 let repo_name = Path::new(repo_file)
                     .file_name()
-                    .unwrap()
-                    .to_string_lossy();
-                
+                    .map(|n| n.to_string_lossy())
+                    .unwrap_or_default();
+
                 if content.starts_with('#') {
                     println!("❌ {} (disabled)", repo_name);
                 } else {
@@ -570,7 +613,7 @@ fn switch_to_no_sub() {
 
 fn switch_to_enterprise() {
     println!("📦 Switching to Enterprise Repository...");
-    
+
     // Disable no-sub repo
     if Path::new(PBS_NO_SUB_LIST).exists() {
         let content = fs::read_to_string(PBS_NO_SUB_LIST).unwrap_or_default();
@@ -578,7 +621,7 @@ fn switch_to_enterprise() {
             fs::write(PBS_NO_SUB_LIST, format!("# {}", content)).ok();
         }
     }
-    
+
     // Enable enterprise repo
     let pbs_version = get_pbs_version();
     let debian_version = if pbs_version.starts_with("3.") {
@@ -586,14 +629,14 @@ fn switch_to_enterprise() {
     } else {
         "bullseye"
     };
-    
+
     let enterprise_content = format!(
         "deb https://enterprise.proxmox.com/debian/pbs {} pbs-enterprise",
         debian_version
     );
-    
+
     fs::write(PBS_ENTERPRISE_LIST, enterprise_content).ok();
-    
+
     update_package_lists();
     println!("✅ Switched to enterprise repository");
 }
@@ -624,13 +667,16 @@ fn datastore_operations() {
             "Garbage Collection",
             "Back",
         ];
-        
-        let selection = Select::with_theme(&ColorfulTheme::default())
+
+        let selection = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("💾 Datastore Operations")
             .items(&options)
-            .interact()
-            .unwrap();
-        
+            .interact_opt()
+        {
+            Ok(Some(s)) => s,
+            Ok(None) | Err(_) => break,
+        };
+
         match selection {
             0 => list_datastores(),
             1 => create_datastore(),
@@ -646,12 +692,12 @@ fn datastore_operations() {
 
 fn list_datastores() {
     println!("\n📋 PBS Datastores:\n");
-    
+
     let output = Command::new("proxmox-backup-manager")
         .args(&["datastore", "list"])
         .output()
         .unwrap_or_default();
-    
+
     if output.status.success() {
         println!("{}", String::from_utf8_lossy(&output.stdout));
     } else {
@@ -660,37 +706,46 @@ fn list_datastores() {
 }
 
 fn create_datastore() {
-    let name: String = Input::new()
+    let name: String = match Input::new()
         .with_prompt("Datastore name")
         .interact_text()
-        .unwrap();
-    
-    let path: String = Input::new()
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+
+    let path: String = match Input::new()
         .with_prompt("Datastore path")
         .default(format!("/mnt/datastore/{}", name))
         .interact_text()
-        .unwrap();
-    
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
+
     // Create directory if it doesn't exist
     fs::create_dir_all(&path).ok();
-    
+
     println!("📦 Creating datastore '{}'...", name);
-    
+
     let output = Command::new("proxmox-backup-manager")
         .args(&["datastore", "create", &name, &path])
         .output()
         .unwrap_or_default();
-    
+
     if output.status.success() {
         println!("✅ Datastore created successfully");
-        
+
         // Configure retention
-        if Confirm::new()
+        let configure = Confirm::new()
             .with_prompt("Configure retention policy?")
             .default(true)
-            .interact()
-            .unwrap()
-        {
+            .interact_opt()
+            .ok()
+            .flatten()
+            .unwrap_or(true);
+
+        if configure {
             configure_retention(&name);
         }
     } else {
@@ -699,25 +754,31 @@ fn create_datastore() {
 }
 
 fn remove_datastore() {
-    let name: String = Input::new()
+    let name: String = match Input::new()
         .with_prompt("Datastore name to remove")
         .interact_text()
-        .unwrap();
-    
-    if !Confirm::new()
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+
+    let confirm = Confirm::new()
         .with_prompt(&format!("Remove datastore '{}'? This will delete all backups!", name))
         .default(false)
-        .interact()
-        .unwrap()
-    {
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
+
+    if !confirm {
         return;
     }
-    
+
     let output = Command::new("proxmox-backup-manager")
         .args(&["datastore", "remove", &name])
         .output()
         .unwrap_or_default();
-    
+
     if output.status.success() {
         println!("✅ Datastore removed");
     } else {
@@ -726,18 +787,21 @@ fn remove_datastore() {
 }
 
 fn datastore_stats() {
-    let name: String = Input::new()
+    let name: String = match Input::new()
         .with_prompt("Datastore name")
         .interact_text()
-        .unwrap();
-    
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+
     println!("\n📊 Datastore '{}' Statistics:\n", name);
-    
+
     let output = Command::new("proxmox-backup-manager")
         .args(&["datastore", "status", &name])
         .output()
         .unwrap_or_default();
-    
+
     if output.status.success() {
         println!("{}", String::from_utf8_lossy(&output.stdout));
     } else {
@@ -746,28 +810,33 @@ fn datastore_stats() {
 }
 
 fn verify_datastore() {
-    let name: String = Input::new()
+    let name: String = match Input::new()
         .with_prompt("Datastore name to verify")
         .interact_text()
-        .unwrap();
-    
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+
     let skip_verified = Confirm::new()
         .with_prompt("Skip recently verified backups?")
         .default(true)
-        .interact()
-        .unwrap();
-    
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(true);
+
     println!("🔍 Verifying datastore '{}'...", name);
-    
+
     let mut cmd = Command::new("proxmox-backup-manager");
     cmd.args(&["verify", &name]);
-    
+
     if skip_verified {
         cmd.arg("--outdated-after").arg("7");
     }
-    
+
     let status = cmd.status();
-    
+
     if status.map(|s| s.success()).unwrap_or(false) {
         println!("✅ Verification complete");
     } else {
@@ -776,36 +845,45 @@ fn verify_datastore() {
 }
 
 fn prune_datastore() {
-    let name: String = Input::new()
+    let name: String = match Input::new()
         .with_prompt("Datastore name")
         .interact_text()
-        .unwrap();
-    
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+
     configure_retention(&name);
-    
-    if Confirm::new()
+
+    let run_now = Confirm::new()
         .with_prompt("Run prune now?")
         .default(true)
-        .interact()
-        .unwrap()
-    {
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(true);
+
+    if run_now {
         println!("🗑️  Pruning datastore '{}'...", name);
-        
+
         let output = Command::new("proxmox-backup-manager")
             .args(&["prune", &name, "--dry-run"])
             .output()
             .unwrap_or_default();
-        
+
         if output.status.success() {
             println!("\nDry run results:");
             println!("{}", String::from_utf8_lossy(&output.stdout));
-            
-            if Confirm::new()
+
+            let execute = Confirm::new()
                 .with_prompt("Execute prune?")
                 .default(false)
-                .interact()
-                .unwrap()
-            {
+                .interact_opt()
+                .ok()
+                .flatten()
+                .unwrap_or(false);
+
+            if execute {
                 let _ = Command::new("proxmox-backup-manager")
                     .args(&["prune", &name])
                     .status();
@@ -817,41 +895,56 @@ fn prune_datastore() {
 
 fn configure_retention(datastore: &str) {
     println!("📅 Configure retention policy for '{}'", datastore);
-    
-    let keep_last: u32 = Input::new()
+
+    let keep_last: u32 = match Input::new()
         .with_prompt("Keep last N backups")
         .default(5)
         .interact()
-        .unwrap();
-    
-    let keep_daily: u32 = Input::new()
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+
+    let keep_daily: u32 = match Input::new()
         .with_prompt("Keep daily backups for N days")
         .default(7)
         .interact()
-        .unwrap();
-    
-    let keep_weekly: u32 = Input::new()
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+
+    let keep_weekly: u32 = match Input::new()
         .with_prompt("Keep weekly backups for N weeks")
         .default(4)
         .interact()
-        .unwrap();
-    
-    let keep_monthly: u32 = Input::new()
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+
+    let keep_monthly: u32 = match Input::new()
         .with_prompt("Keep monthly backups for N months")
         .default(6)
         .interact()
-        .unwrap();
-    
-    let keep_yearly: u32 = Input::new()
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+
+    let keep_yearly: u32 = match Input::new()
         .with_prompt("Keep yearly backups for N years")
         .default(1)
         .interact()
-        .unwrap();
-    
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+
     // Apply retention settings
     let mut cmd = Command::new("proxmox-backup-manager");
     cmd.args(&["datastore", "update", datastore]);
-    
+
     if keep_last > 0 {
         cmd.arg("--keep-last").arg(keep_last.to_string());
     }
@@ -867,9 +960,9 @@ fn configure_retention(datastore: &str) {
     if keep_yearly > 0 {
         cmd.arg("--keep-yearly").arg(keep_yearly.to_string());
     }
-    
+
     let output = cmd.output().unwrap_or_default();
-    
+
     if output.status.success() {
         println!("✅ Retention policy configured");
     } else {
@@ -878,20 +971,23 @@ fn configure_retention(datastore: &str) {
 }
 
 fn garbage_collection() {
-    let name: String = Input::new()
+    let name: String = match Input::new()
         .with_prompt("Datastore name")
         .interact_text()
-        .unwrap();
-    
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+
     println!("🗑️  Running garbage collection on '{}'...", name);
-    
+
     let status = Command::new("proxmox-backup-manager")
         .args(&["garbage-collection", "start", &name])
         .status();
-    
+
     if status.map(|s| s.success()).unwrap_or(false) {
         println!("✅ Garbage collection complete");
-        
+
         // Show results
         let _ = Command::new("proxmox-backup-manager")
             .args(&["garbage-collection", "status", &name])
@@ -912,13 +1008,16 @@ fn backup_job_management() {
             "Job Schedule Management",
             "Back",
         ];
-        
-        let selection = Select::with_theme(&ColorfulTheme::default())
+
+        let selection = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("📅 Backup Job Management")
             .items(&options)
-            .interact()
-            .unwrap();
-        
+            .interact_opt()
+        {
+            Ok(Some(s)) => s,
+            Ok(None) | Err(_) => break,
+        };
+
         match selection {
             0 => list_backup_jobs(),
             1 => create_backup_job(),
@@ -933,12 +1032,12 @@ fn backup_job_management() {
 
 fn list_backup_jobs() {
     println!("\n📋 Backup Jobs:\n");
-    
+
     let output = Command::new("proxmox-backup-manager")
         .args(&["sync-job", "list"])
         .output()
         .unwrap_or_default();
-    
+
     if output.status.success() {
         let result = String::from_utf8_lossy(&output.stdout);
         if result.trim().is_empty() {
@@ -951,33 +1050,48 @@ fn list_backup_jobs() {
 
 fn create_backup_job() {
     println!("📝 Create Backup Job\n");
-    
-    let id: String = Input::new()
+
+    let id: String = match Input::new()
         .with_prompt("Job ID")
         .interact_text()
-        .unwrap();
-    
-    let remote: String = Input::new()
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
+
+    let remote: String = match Input::new()
         .with_prompt("Remote PBS server")
         .interact_text()
-        .unwrap();
-    
-    let remote_store: String = Input::new()
+    {
+        Ok(r) => r,
+        Err(_) => return,
+    };
+
+    let remote_store: String = match Input::new()
         .with_prompt("Remote datastore")
         .interact_text()
-        .unwrap();
-    
-    let local_store: String = Input::new()
+    {
+        Ok(r) => r,
+        Err(_) => return,
+    };
+
+    let local_store: String = match Input::new()
         .with_prompt("Local datastore")
         .interact_text()
-        .unwrap();
-    
-    let schedule: String = Input::new()
+    {
+        Ok(l) => l,
+        Err(_) => return,
+    };
+
+    let schedule: String = match Input::new()
         .with_prompt("Schedule (cron format, e.g., '0 2 * * *' for 2 AM daily)")
         .default("0 2 * * *".to_string())
         .interact_text()
-        .unwrap();
-    
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+
     let output = Command::new("proxmox-backup-manager")
         .args(&[
             "sync-job", "create", &id,
@@ -988,7 +1102,7 @@ fn create_backup_job() {
         ])
         .output()
         .unwrap_or_default();
-    
+
     if output.status.success() {
         println!("✅ Backup job created");
     } else {
@@ -997,31 +1111,40 @@ fn create_backup_job() {
 }
 
 fn edit_backup_job() {
-    let id: String = Input::new()
+    let id: String = match Input::new()
         .with_prompt("Job ID to edit")
         .interact_text()
-        .unwrap();
-    
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
+
     let options = vec![
         "Change Schedule",
         "Enable/Disable",
         "Change Rate Limit",
         "Back",
     ];
-    
-    let selection = Select::with_theme(&ColorfulTheme::default())
+
+    let selection = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("What to edit?")
         .items(&options)
-        .interact()
-        .unwrap();
-    
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        Ok(None) | Err(_) => return,
+    };
+
     match selection {
         0 => {
-            let schedule: String = Input::new()
+            let schedule: String = match Input::new()
                 .with_prompt("New schedule (cron format)")
                 .interact_text()
-                .unwrap();
-            
+            {
+                Ok(s) => s,
+                Err(_) => return,
+            };
+
             let _ = Command::new("proxmox-backup-manager")
                 .args(&["sync-job", "update", &id, "--schedule", &schedule])
                 .status();
@@ -1030,20 +1153,25 @@ fn edit_backup_job() {
             let enable = Confirm::new()
                 .with_prompt("Enable job?")
                 .default(true)
-                .interact()
-                .unwrap();
-            
+                .interact_opt()
+                .ok()
+                .flatten()
+                .unwrap_or(true);
+
             let _ = Command::new("proxmox-backup-manager")
                 .args(&["sync-job", "update", &id, "--enable", &enable.to_string()])
                 .status();
         }
         2 => {
-            let rate: u32 = Input::new()
+            let rate: u32 = match Input::new()
                 .with_prompt("Rate limit (MB/s, 0 for unlimited)")
                 .default(0)
                 .interact()
-                .unwrap();
-            
+            {
+                Ok(r) => r,
+                Err(_) => return,
+            };
+
             if rate > 0 {
                 let _ = Command::new("proxmox-backup-manager")
                     .args(&["sync-job", "update", &id, "--rate", &rate.to_string()])
@@ -1055,25 +1183,31 @@ fn edit_backup_job() {
 }
 
 fn delete_backup_job() {
-    let id: String = Input::new()
+    let id: String = match Input::new()
         .with_prompt("Job ID to delete")
         .interact_text()
-        .unwrap();
-    
-    if !Confirm::new()
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
+
+    let confirm = Confirm::new()
         .with_prompt(&format!("Delete backup job '{}'?", id))
         .default(false)
-        .interact()
-        .unwrap()
-    {
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
+
+    if !confirm {
         return;
     }
-    
+
     let output = Command::new("proxmox-backup-manager")
         .args(&["sync-job", "remove", &id])
         .output()
         .unwrap_or_default();
-    
+
     if output.status.success() {
         println!("✅ Backup job deleted");
     } else {
@@ -1082,17 +1216,20 @@ fn delete_backup_job() {
 }
 
 fn run_backup_job() {
-    let id: String = Input::new()
+    let id: String = match Input::new()
         .with_prompt("Job ID to run")
         .interact_text()
-        .unwrap();
-    
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
+
     println!("🔄 Running backup job '{}'...", id);
-    
+
     let status = Command::new("proxmox-backup-manager")
         .args(&["sync-job", "run", &id])
         .status();
-    
+
     if status.map(|s| s.success()).unwrap_or(false) {
         println!("✅ Backup job completed");
     } else {
@@ -1102,7 +1239,7 @@ fn run_backup_job() {
 
 fn schedule_management() {
     println!("📅 Schedule Management\n");
-    
+
     let schedules = vec![
         ("Hourly", "0 * * * *"),
         ("Daily at 2 AM", "0 2 * * *"),
@@ -1110,14 +1247,14 @@ fn schedule_management() {
         ("Monthly on 1st", "0 2 1 * *"),
         ("Custom", ""),
     ];
-    
+
     println!("Common schedules:");
     for (name, cron) in &schedules {
         if !cron.is_empty() {
             println!("  {} - {}", name, cron);
         }
     }
-    
+
     println!("\nCron format: minute hour day month weekday");
     println!("Example: 0 2 * * * = Daily at 2:00 AM");
 }
@@ -1134,13 +1271,16 @@ fn maintenance_tasks() {
             "Filesystem Trim",
             "Back",
         ];
-        
-        let selection = Select::with_theme(&ColorfulTheme::default())
+
+        let selection = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🔧 Maintenance Tasks")
             .items(&options)
-            .interact()
-            .unwrap();
-        
+            .interact_opt()
+        {
+            Ok(Some(s)) => s,
+            Ok(None) | Err(_) => break,
+        };
+
         match selection {
             0 => run_all_maintenance(),
             1 => verify_all_datastores(),
@@ -1156,24 +1296,24 @@ fn maintenance_tasks() {
 
 fn run_all_maintenance() {
     println!("🔧 Running all maintenance tasks...\n");
-    
+
     verify_all_datastores();
     prune_all_datastores();
     gc_all_datastores();
     update_microcode();
     clean_system_logs();
     filesystem_trim();
-    
+
     println!("\n✅ All maintenance tasks complete");
 }
 
 fn verify_all_datastores() {
     println!("🔍 Verifying all datastores...");
-    
+
     let output = Command::new("proxmox-backup-manager")
         .args(&["verify", "--all"])
         .status();
-    
+
     if output.map(|s| s.success()).unwrap_or(false) {
         println!("✅ All datastores verified");
     }
@@ -1181,13 +1321,13 @@ fn verify_all_datastores() {
 
 fn prune_all_datastores() {
     println!("🗑️  Pruning all datastores...");
-    
+
     // Get list of datastores
     let output = Command::new("proxmox-backup-manager")
         .args(&["datastore", "list", "--output-format", "json"])
         .output()
         .unwrap_or_default();
-    
+
     if output.status.success() {
         // Parse and prune each datastore
         // This would need JSON parsing in real implementation
@@ -1197,11 +1337,11 @@ fn prune_all_datastores() {
 
 fn gc_all_datastores() {
     println!("🗑️  Running garbage collection on all datastores...");
-    
+
     let output = Command::new("proxmox-backup-manager")
         .args(&["garbage-collection", "start", "--all"])
         .status();
-    
+
     if output.map(|s| s.success()).unwrap_or(false) {
         println!("✅ Garbage collection complete on all datastores");
     }
@@ -1209,37 +1349,37 @@ fn gc_all_datastores() {
 
 fn update_microcode() {
     println!("🔄 Updating CPU microcode...");
-    
+
     // Detect CPU vendor
     let cpuinfo = fs::read_to_string("/proc/cpuinfo").unwrap_or_default();
     let is_intel = cpuinfo.contains("GenuineIntel");
     let is_amd = cpuinfo.contains("AuthenticAMD");
-    
+
     if is_intel {
         println!("📦 Installing Intel microcode...");
         let _ = Command::new("apt")
             .args(&["install", "-y", "intel-microcode"])
             .status();
     }
-    
+
     if is_amd {
         println!("📦 Installing AMD microcode...");
         let _ = Command::new("apt")
             .args(&["install", "-y", "amd64-microcode"])
             .status();
     }
-    
+
     println!("✅ Microcode updated (reboot required for changes to take effect)");
 }
 
 fn clean_system_logs() {
     println!("🧹 Cleaning system logs...");
-    
+
     // Clean old journal logs
     let _ = Command::new("journalctl")
         .args(&["--vacuum-time=30d"])
         .status();
-    
+
     // Clean PBS task logs
     let task_log_dir = "/var/log/proxmox-backup/tasks";
     if Path::new(task_log_dir).exists() {
@@ -1247,23 +1387,23 @@ fn clean_system_logs() {
             .args(&[task_log_dir, "-name", "*.log", "-mtime", "+30", "-delete"])
             .status();
     }
-    
+
     // Clean apt cache
     let _ = Command::new("apt")
         .args(&["clean"])
         .status();
-    
+
     println!("✅ System logs cleaned");
 }
 
 fn filesystem_trim() {
     println!("✂️  Running filesystem trim...");
-    
+
     // Run fstrim on all mounted filesystems
     let status = Command::new("fstrim")
         .args(&["-a", "-v"])
         .status();
-    
+
     if status.map(|s| s.success()).unwrap_or(false) {
         println!("✅ Filesystem trim complete");
     } else {
@@ -1281,13 +1421,16 @@ fn performance_tuning() {
             "CPU Governor Settings",
             "Back",
         ];
-        
-        let selection = Select::with_theme(&ColorfulTheme::default())
+
+        let selection = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("⚡ Performance Tuning")
             .items(&options)
-            .interact()
-            .unwrap();
-        
+            .interact_opt()
+        {
+            Ok(Some(s)) => s,
+            Ok(None) | Err(_) => break,
+        };
+
         match selection {
             0 => auto_tune_system(),
             1 => configure_chunk_store(),
@@ -1301,7 +1444,7 @@ fn performance_tuning() {
 
 fn auto_tune_system() {
     println!("🔧 Auto-tuning system based on hardware...\n");
-    
+
     // Get system info
     let meminfo = fs::read_to_string("/proc/meminfo").unwrap_or_default();
     let total_ram_kb: u64 = meminfo
@@ -1310,104 +1453,113 @@ fn auto_tune_system() {
         .and_then(|l| l.split_whitespace().nth(1))
         .and_then(|v| v.parse().ok())
         .unwrap_or(0);
-    
+
     let total_ram_gb = total_ram_kb / 1024 / 1024;
     let cpu_count = num_cpus::get();
-    
+
     println!("💾 RAM: {} GB", total_ram_gb);
     println!("🖥️  CPUs: {}", cpu_count);
-    
+
     // Apply optimizations
     optimize_zfs_arc(total_ram_gb);
     optimize_kernel_params();
     optimize_pbs_settings();
-    
+
     // Set worker threads based on CPU count
     let workers = (cpu_count as f32 * 1.5) as u32;
     println!("🔧 Setting worker threads to {}", workers);
-    
+
     println!("\n✅ Auto-tuning complete");
 }
 
 fn configure_chunk_store() {
     println!("📦 Chunk Store Configuration\n");
-    
-    let chunk_size = Select::with_theme(&ColorfulTheme::default())
+
+    let chunk_size = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select chunk size")
         .items(&["64 KB", "256 KB", "1 MB", "4 MB"])
         .default(1)
-        .interact()
-        .unwrap();
-    
-    let compression = Select::with_theme(&ColorfulTheme::default())
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        Ok(None) | Err(_) => return,
+    };
+
+    let compression = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Compression algorithm")
         .items(&["None", "LZ4", "ZSTD", "GZIP"])
         .default(1)
-        .interact()
-        .unwrap();
-    
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        Ok(None) | Err(_) => return,
+    };
+
     println!("✅ Chunk store configured");
 }
 
 fn network_optimization() {
     println!("🌐 Network Optimization\n");
-    
+
     // Enable TCP BBR
     println!("Enabling TCP BBR congestion control...");
     let _ = Command::new("sysctl")
         .args(&["-w", "net.ipv4.tcp_congestion_control=bbr"])
         .status();
-    
+
     // Increase network buffers
     let _ = Command::new("sysctl")
         .args(&["-w", "net.core.rmem_max=134217728"])
         .status();
-    
+
     let _ = Command::new("sysctl")
         .args(&["-w", "net.core.wmem_max=134217728"])
         .status();
-    
+
     println!("✅ Network optimized");
 }
 
 fn storage_optimization() {
     println!("💾 Storage Optimization\n");
-    
+
     // Check for SSDs and enable TRIM
     let _ = Command::new("systemctl")
         .args(&["enable", "fstrim.timer"])
         .status();
-    
+
     let _ = Command::new("systemctl")
         .args(&["start", "fstrim.timer"])
         .status();
-    
+
     println!("✅ Storage optimization complete");
 }
 
 fn cpu_governor_settings() {
     println!("🖥️  CPU Governor Settings\n");
-    
+
     let governors = vec![
         "performance",
         "powersave",
         "ondemand",
         "conservative",
     ];
-    
-    let selection = Select::with_theme(&ColorfulTheme::default())
+
+    let selection = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select CPU governor")
         .items(&governors)
         .default(0)
-        .interact()
-        .unwrap();
-    
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        Ok(None) | Err(_) => return,
+    };
+
     let governor = governors[selection];
-    
+
     let _ = Command::new("cpupower")
         .args(&["frequency-set", "-g", governor])
         .status();
-    
+
     println!("✅ CPU governor set to {}", governor);
 }
 
@@ -1421,13 +1573,16 @@ fn subscription_updates() {
             "Upgrade PBS",
             "Back",
         ];
-        
-        let selection = Select::with_theme(&ColorfulTheme::default())
+
+        let selection = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("📋 Subscription & Updates")
             .items(&options)
-            .interact()
-            .unwrap();
-        
+            .interact_opt()
+        {
+            Ok(Some(s)) => s,
+            Ok(None) | Err(_) => break,
+        };
+
         match selection {
             0 => check_subscription(),
             1 => disable_subscription_nag(),
@@ -1441,12 +1596,12 @@ fn subscription_updates() {
 
 fn check_subscription() {
     println!("📋 Checking subscription status...\n");
-    
+
     let output = Command::new("proxmox-backup-manager")
         .args(&["subscription", "get"])
         .output()
         .unwrap_or_default();
-    
+
     if output.status.success() {
         let result = String::from_utf8_lossy(&output.stdout);
         if result.contains("Active") {
@@ -1460,19 +1615,22 @@ fn check_subscription() {
 
 fn configure_update_policy() {
     println!("🔄 Configure Update Policy\n");
-    
+
     let policies = vec![
         "Manual updates only",
         "Security updates only",
         "All updates",
     ];
-    
-    let selection = Select::with_theme(&ColorfulTheme::default())
+
+    let selection = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select update policy")
         .items(&policies)
-        .interact()
-        .unwrap();
-    
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        Ok(None) | Err(_) => return,
+    };
+
     match selection {
         0 => println!("✅ Manual updates configured"),
         1 => {
@@ -1489,16 +1647,16 @@ fn configure_update_policy() {
 
 fn check_updates() {
     println!("🔍 Checking for updates...\n");
-    
+
     let _ = Command::new("apt")
         .args(&["update"])
         .status();
-    
+
     let output = Command::new("apt")
         .args(&["list", "--upgradable"])
         .output()
         .unwrap_or_default();
-    
+
     if output.status.success() {
         let result = String::from_utf8_lossy(&output.stdout);
         if result.lines().count() > 1 {
@@ -1512,35 +1670,41 @@ fn check_updates() {
 
 fn upgrade_pbs() {
     println!("🚀 Upgrading Proxmox Backup Server...\n");
-    
-    if !Confirm::new()
+
+    let confirm = Confirm::new()
         .with_prompt("Upgrade PBS now?")
         .default(false)
-        .interact()
-        .unwrap()
-    {
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
+
+    if !confirm {
         return;
     }
-    
+
     // Update package lists
     let _ = Command::new("apt")
         .args(&["update"])
         .status();
-    
+
     // Upgrade PBS
     let status = Command::new("apt")
         .args(&["dist-upgrade", "-y"])
         .status();
-    
+
     if status.map(|s| s.success()).unwrap_or(false) {
         println!("✅ PBS upgraded successfully");
-        
-        if Confirm::new()
+
+        let reboot = Confirm::new()
             .with_prompt("Reboot required. Reboot now?")
             .default(false)
-            .interact()
-            .unwrap()
-        {
+            .interact_opt()
+            .ok()
+            .flatten()
+            .unwrap_or(false);
+
+        if reboot {
             let _ = Command::new("systemctl")
                 .arg("reboot")
                 .status();
@@ -1550,35 +1714,35 @@ fn upgrade_pbs() {
 
 fn system_health_check() {
     println!("🏥 System Health Check\n");
-    
+
     // Check services
     println!("🔍 Checking services...");
     check_service_status("proxmox-backup");
     check_service_status("proxmox-backup-proxy");
-    
+
     // Check disk space
     println!("\n💾 Disk usage:");
     let _ = Command::new("df")
         .args(&["-h"])
         .status();
-    
+
     // Check memory
     println!("\n💾 Memory usage:");
     let _ = Command::new("free")
         .args(&["-h"])
         .status();
-    
+
     // Check load average
     if let Ok(loadavg) = fs::read_to_string("/proc/loadavg") {
         println!("\n📊 Load average: {}", loadavg.trim());
     }
-    
+
     // Check for errors in journal
     println!("\n📋 Recent errors:");
     let _ = Command::new("journalctl")
         .args(&["-p", "err", "-n", "10", "--no-pager"])
         .status();
-    
+
     println!("\n✅ Health check complete");
 }
 
@@ -1587,9 +1751,9 @@ fn check_service_status(service: &str) {
         .args(&["is-active", service])
         .output()
         .unwrap_or_default();
-    
+
     let status = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    
+
     if status == "active" {
         println!("  ✅ {} is running", service);
     } else {
@@ -1602,7 +1766,7 @@ fn get_pbs_version() -> String {
         .arg("version")
         .output()
         .unwrap_or_default();
-    
+
     if output.status.success() {
         String::from_utf8_lossy(&output.stdout)
             .lines()

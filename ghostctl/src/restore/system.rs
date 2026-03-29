@@ -6,7 +6,13 @@ pub fn restore_from_restic() {
     println!("💾 Restore from Restic Backup");
     println!("=============================");
 
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(dir) => dir.join("ghostctl/restic.env"),
+        None => {
+            println!("❌ Could not determine config directory");
+            return;
+        }
+    };
     if !config_path.exists() {
         println!("❌ No restic configuration found. Run backup setup first.");
         return;
@@ -22,25 +28,34 @@ pub fn restore_from_restic() {
         ))
         .status();
 
-    let snapshot_id: String = Input::new()
+    let snapshot_id: String = match Input::new()
         .with_prompt("Snapshot ID to restore")
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
-    let restore_path: String = Input::new()
+    let restore_path: String = match Input::new()
         .with_prompt("Restore to path")
         .default("/tmp/restic-restore".into())
         .interact_text()
-        .unwrap();
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt(format!(
             "Restore snapshot {} to {}?",
             snapshot_id, restore_path
         ))
         .default(false)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     if confirm {
         println!("🔄 Restoring snapshot...");
@@ -77,25 +92,31 @@ pub fn rollback_btrfs_snapshot() {
         .args(&["btrfs", "subvolume", "list", "/"])
         .status();
 
-    let snapshot_name: String = Input::new()
-        .with_prompt("Snapshot name")
-        .interact_text()
-        .unwrap();
+    let snapshot_name: String = match Input::new().with_prompt("Snapshot name").interact_text() {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
-    let target: String = Input::new()
+    let target: String = match Input::new()
         .with_prompt("Target subvolume (e.g., /)")
         .default("/".into())
         .interact_text()
-        .unwrap();
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt(format!(
             "⚠️  This will replace {} with snapshot {}. Continue?",
             target, snapshot_name
         ))
         .default(false)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     if confirm {
         println!("🔄 Rolling back to snapshot...");
@@ -120,22 +141,28 @@ pub fn enter_recovery_chroot() {
     println!("🛠️  Enter Recovery Chroot");
     println!("========================");
 
-    let mountpoint: String = Input::new()
+    let mountpoint: String = match Input::new()
         .with_prompt("Root filesystem mountpoint")
         .default("/mnt".into())
         .interact_text()
-        .unwrap();
+    {
+        Ok(m) => m,
+        Err(_) => return,
+    };
 
     if !Path::new(&mountpoint).exists() {
         println!("❌ Mountpoint {} does not exist", mountpoint);
         return;
     }
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt(format!("Enter chroot environment at {}?", mountpoint))
         .default(false)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     if confirm {
         setup_chroot_environment(&mountpoint);
@@ -154,12 +181,15 @@ pub fn full_system_recovery() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Recovery Type")
         .items(&recovery_options)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     match choice {
         0 => restore_system_from_backup(),
@@ -176,7 +206,14 @@ pub fn list_available_backups() {
 
     // List Restic snapshots
     println!("💾 Restic Snapshots:");
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(dir) => dir.join("ghostctl/restic.env"),
+        None => {
+            println!("  ❌ Could not determine config directory");
+            // Continue to show other backup types
+            std::path::PathBuf::new()
+        }
+    };
     if config_path.exists() {
         let _ = Command::new("bash")
             .arg("-c")
@@ -263,7 +300,7 @@ fn restore_system_from_backup() {
     println!("🔄 Restore System from Backup");
     println!("=============================");
 
-    let backup_type = Select::with_theme(&ColorfulTheme::default())
+    let backup_type = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Backup source")
         .items(&[
             "💾 Latest Restic backup",
@@ -272,7 +309,10 @@ fn restore_system_from_backup() {
         ])
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(b) => b,
+        Err(_) => return,
+    };
 
     match backup_type {
         0 => {
@@ -300,16 +340,22 @@ fn rollback_to_last_snapshot() {
         println!("🔍 Finding latest snapshot...");
         let _ = Command::new("sudo").args(&["snapper", "list"]).status();
 
-        let snapshot_id: String = Input::new()
+        let snapshot_id: String = match Input::new()
             .with_prompt("Snapshot number to rollback to")
             .interact_text()
-            .unwrap();
+        {
+            Ok(s) => s,
+            Err(_) => return,
+        };
 
-        let confirm = Confirm::new()
+        let confirm = match Confirm::new()
             .with_prompt(format!("Rollback to snapshot {}?", snapshot_id))
             .default(false)
             .interact()
-            .unwrap();
+        {
+            Ok(c) => c,
+            Err(_) => return,
+        };
 
         if confirm {
             let _ = Command::new("sudo")
@@ -339,12 +385,15 @@ fn manual_system_recovery() {
         println!("  {}. {}", i + 1, step);
     }
 
-    let step = Select::with_theme(&ColorfulTheme::default())
+    let step = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select recovery step")
         .items(&recovery_steps)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     match step {
         0 => check_filesystem_integrity(),
@@ -404,12 +453,15 @@ fn rebuild_initramfs() {
 
 fn fix_bootloader() {
     println!("⚙️  Fixing bootloader...");
-    let bootloader = Select::with_theme(&ColorfulTheme::default())
+    let bootloader = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Bootloader type")
         .items(&["GRUB", "systemd-boot", "rEFInd"])
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(b) => b,
+        Err(_) => return,
+    };
 
     match bootloader {
         0 => {

@@ -5,12 +5,9 @@ use std::time::Duration;
 /// Execute a command with a spinner progress indicator
 pub fn execute_with_spinner(cmd: &mut Command, message: &str) -> std::io::Result<Output> {
     let spinner = ProgressBar::new_spinner();
-    spinner.set_style(
-        ProgressStyle::default_spinner()
-            .template("{spinner:.green} {msg}")
-            .unwrap()
-            .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]),
-    );
+    if let Ok(style) = ProgressStyle::default_spinner().template("{spinner:.green} {msg}") {
+        spinner.set_style(style.tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]));
+    }
     spinner.set_message(message.to_string());
     spinner.enable_steady_tick(Duration::from_millis(80));
 
@@ -23,12 +20,9 @@ pub fn execute_with_spinner(cmd: &mut Command, message: &str) -> std::io::Result
 /// Execute a command with a spinner and display success/failure
 pub fn execute_with_status(cmd: &mut Command, message: &str) -> std::io::Result<Output> {
     let spinner = ProgressBar::new_spinner();
-    spinner.set_style(
-        ProgressStyle::default_spinner()
-            .template("{spinner:.green} {msg}")
-            .unwrap()
-            .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]),
-    );
+    if let Ok(style) = ProgressStyle::default_spinner().template("{spinner:.green} {msg}") {
+        spinner.set_style(style.tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]));
+    }
     spinner.set_message(message.to_string());
     spinner.enable_steady_tick(Duration::from_millis(80));
 
@@ -130,12 +124,11 @@ pub fn parse_broken_packages(output: &str) -> Vec<String> {
 /// Create a progress bar for iterating over items
 pub fn create_progress_bar(len: u64, message: &str) -> ProgressBar {
     let pb = ProgressBar::new(len);
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template("{msg} [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
-            .unwrap()
-            .progress_chars("#>-"),
-    );
+    if let Ok(style) =
+        ProgressStyle::default_bar().template("{msg} [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
+    {
+        pb.set_style(style.progress_chars("#>-"));
+    }
     pb.set_message(message.to_string());
     pb
 }

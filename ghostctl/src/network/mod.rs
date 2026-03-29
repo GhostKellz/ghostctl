@@ -17,12 +17,14 @@ pub fn network_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Network Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => dns_menu(),
@@ -39,18 +41,22 @@ fn dns_menu() {
 
     let options = ["🔍 DNS Lookup", "🔒 DNSSEC Check", "⬅️  Back"];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("DNS Tools")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     use dialoguer::Input;
-    let domain: String = Input::new()
+    let Ok(domain) = Input::<String>::new()
         .with_prompt("Domain name")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => dns::lookup(&domain),
@@ -65,20 +71,24 @@ fn scan_menu() {
 
     let options = ["🎯 Target Scan", "🔍 Interactive Scan", "⬅️  Back"];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Scanning Options")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
             use dialoguer::Input;
-            let target: String = Input::new()
+            let Ok(target) = Input::<String>::new()
                 .with_prompt("Target IP, CIDR, or range")
                 .interact_text()
-                .unwrap();
+            else {
+                return;
+            };
             // Launch new scanner with default settings
             println!("🔍 Launching scanner for {}...", target);
             let _ = scan::scan_cli(vec![target], None, None);
@@ -103,47 +113,63 @@ fn netcat_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Netcat Utilities")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
             use dialoguer::Input;
-            let file: String = Input::new()
+            let Ok(file) = Input::<String>::new()
                 .with_prompt("File to send")
                 .interact_text()
-                .unwrap();
-            let host: String = Input::new()
+            else {
+                return;
+            };
+            let Ok(host) = Input::<String>::new()
                 .with_prompt("Target host")
                 .interact_text()
-                .unwrap();
-            let port: u16 = Input::new().with_prompt("Target port").interact().unwrap();
+            else {
+                return;
+            };
+            let Ok(port) = Input::<u16>::new().with_prompt("Target port").interact() else {
+                return;
+            };
             netcat::send_file(&file, &host, port);
         }
         1 => {
             use dialoguer::Input;
-            let file: String = Input::new()
+            let Ok(file) = Input::<String>::new()
                 .with_prompt("File to save as")
                 .interact_text()
-                .unwrap();
-            let port: u16 = Input::new()
+            else {
+                return;
+            };
+            let Ok(port) = Input::<u16>::new()
                 .with_prompt("Port to listen on")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
             netcat::receive_file(&file, port);
         }
         2 => {
             use dialoguer::Input;
-            let port: u16 = Input::new().with_prompt("Port to use").interact().unwrap();
-            let host = Input::<String>::new()
+            let Ok(port) = Input::<u16>::new().with_prompt("Port to use").interact() else {
+                return;
+            };
+            let Ok(host) = Input::<String>::new()
                 .with_prompt("Host to connect to (leave empty to start server)")
                 .allow_empty(true)
                 .interact_text()
-                .unwrap();
+            else {
+                return;
+            };
             let host_opt = if host.is_empty() {
                 None
             } else {
@@ -153,14 +179,15 @@ fn netcat_menu() {
         }
         3 => {
             use dialoguer::Input;
-            let host: String = Input::new()
+            let Ok(host) = Input::<String>::new()
                 .with_prompt("Host to check")
                 .interact_text()
-                .unwrap();
-            let port: u16 = Input::new()
-                .with_prompt("Port to check")
-                .interact()
-                .unwrap();
+            else {
+                return;
+            };
+            let Ok(port) = Input::<u16>::new().with_prompt("Port to check").interact() else {
+                return;
+            };
             netcat::check_port(&host, port);
         }
         _ => return,

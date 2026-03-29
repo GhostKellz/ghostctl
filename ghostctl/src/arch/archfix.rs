@@ -65,13 +65,30 @@ fn upgrade_system() {
 
 pub fn mirrors() {
     println!("ghostctl :: Arch Mirror Optimization");
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("command -v reflector && sudo reflector --latest 20 --sort rate --save /etc/pacman.d/mirrorlist || echo 'reflector not installed'")
-        .status();
-    match status {
-        Ok(s) if s.success() => println!("Mirrorlist refreshed (if reflector installed)."),
-        _ => println!("Could not refresh mirrorlist (reflector missing?)."),
+    // Check if reflector is installed
+    let reflector_check = std::process::Command::new("which")
+        .arg("reflector")
+        .output();
+
+    match reflector_check {
+        Ok(output) if output.status.success() => {
+            let status = std::process::Command::new("sudo")
+                .args([
+                    "reflector",
+                    "--latest",
+                    "20",
+                    "--sort",
+                    "rate",
+                    "--save",
+                    "/etc/pacman.d/mirrorlist",
+                ])
+                .status();
+            match status {
+                Ok(s) if s.success() => println!("Mirrorlist refreshed."),
+                _ => println!("Could not refresh mirrorlist."),
+            }
+        }
+        _ => println!("reflector not installed"),
     }
 }
 

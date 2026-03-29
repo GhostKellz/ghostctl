@@ -2,6 +2,56 @@
 
 All notable changes to GhostCTL will be documented in this file.
 
+## [0.9.6] - 2026-03-28
+
+### 🛡️ Security Hardening
+
+This release addresses findings from a comprehensive third-party security audit, significantly improving credential handling, supply-chain security, and runtime reliability.
+
+#### Credential & Secret Handling
+- **Docker Registry**: All registry authentication now uses masked password input and `--password-stdin` instead of command-line arguments
+- **Proxmox Storage**: CIFS storage credentials use secure temp files with `--smbcredentials` flag instead of `--password` argv exposure
+- **PVE Authentication**: Password prompts now use masked input with confirmation
+
+#### Supply-Chain Security
+- **CI Actions**: All GitHub Actions SHA-pinned to immutable commit hashes
+- **Fork Isolation**: External PR builds run on GitHub-hosted runners, not self-hosted infrastructure
+- **Installer Verification**: Both install scripts now verify SHA256 checksums before extraction
+- **PKGBUILD**: Updated to use git source with tag verification for Arch Linux builds
+- **Regression Guards**: CI now blocks reintroduction of forbidden patterns (docker `-p`, chmod 666, shell injection)
+
+#### Shell Injection Prevention
+- **Networking Module**: Removed all `sh -c` shell interpolation from `advanced_firewall.rs` and `troubleshoot.rs`
+- **Direct Execution**: All commands now use argument arrays instead of shell strings
+- **Input Validation**: Added namespace and profile name validation to prevent path traversal
+
+#### Runtime Reliability
+- **Firewall Module**: Replaced 120+ `unwrap()` calls with graceful `interact_opt()` error handling
+- **Command Results**: Critical operations in PVE, Docker, and networking modules now check and report command failures
+- **Temp File Safety**: Uses `NamedTempFile` for secure, unpredictable temp file creation
+
+### 🔧 Infrastructure Improvements
+
+- **Docker Socket**: Replaced insecure `chmod 666` with proper group-based access (`chgrp docker`)
+- **Script Safety**: Default `require_checksum: true` for Proxmox script execution
+- **Cache Security**: Script cache uses `~/.cache` with 0700 permissions instead of `/tmp` fallback
+
+### 📋 Files Changed
+
+- `src/docker/registry.rs` - Secure Docker login helper
+- `src/proxmox/storage_migration.rs` - Credentials file handling
+- `src/proxmox/firewall_automation.rs` - Profile name validation
+- `src/proxmox/script_safety.rs` - Hardened defaults
+- `src/networking/firewall.rs` - Graceful error handling
+- `src/networking/advanced_firewall.rs` - Shell injection removal
+- `src/networking/troubleshoot.rs` - Direct sysfs reads
+- `src/networking/safe_commands.rs` - Secure temp files
+- `src/nvidia/container.rs` - Group-based Docker access
+- `src/pve.rs` - Masked password input
+- `.github/workflows/*.yml` - SHA-pinned actions
+- `install.sh`, `install/install.sh` - Checksum verification
+- `PKGBUILD` - Git source with tag verification
+
 ## [1.0.0] - 2025-08-08
 
 ### 🚀 **MAJOR RELEASE: Professional Homelab & Enterprise Infrastructure Management**

@@ -15,12 +15,14 @@ pub fn package_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Package Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => search_packages(),
@@ -34,10 +36,12 @@ pub fn package_management() {
 }
 
 fn search_packages() {
-    let query: String = Input::new()
+    let Ok(query) = Input::<String>::new()
         .with_prompt("Search term")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔍 Searching for: {}", query);
     let _ = Command::new("nix")
@@ -46,10 +50,12 @@ fn search_packages() {
 }
 
 fn install_package() {
-    let package: String = Input::new()
+    let Ok(package) = Input::<String>::new()
         .with_prompt("Package name")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📦 Installing: {}", package);
     let _ = Command::new("nix-env")
@@ -58,10 +64,12 @@ fn install_package() {
 }
 
 fn remove_package() {
-    let package: String = Input::new()
+    let Ok(package) = Input::<String>::new()
         .with_prompt("Package name to remove")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🗑️  Removing: {}", package);
     let _ = Command::new("nix-env").args(&["-e", &package]).status();
@@ -78,10 +86,12 @@ fn update_packages() {
 }
 
 fn package_info() {
-    let package: String = Input::new()
+    let Ok(package) = Input::<String>::new()
         .with_prompt("Package name")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📊 Package information for: {}", package);
     let _ = Command::new("nix")

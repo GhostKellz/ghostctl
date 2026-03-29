@@ -1,6 +1,55 @@
 use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 
+/// Validate project/crate name
+fn validate_project_name(name: &str) -> Result<(), &'static str> {
+    if name.is_empty() {
+        return Err("Project name cannot be empty");
+    }
+    if name.len() > 64 {
+        return Err("Project name too long");
+    }
+    // Cargo crate names: alphanumeric, hyphen, underscore (no leading hyphen/underscore)
+    if !name
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err("Project name contains invalid characters");
+    }
+    if name.starts_with('-') || name.starts_with('_') {
+        return Err("Project name cannot start with hyphen or underscore");
+    }
+    // Cannot be a Rust keyword
+    let keywords = [
+        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
+        "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
+        "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe",
+        "use", "where", "while", "async", "await", "dyn",
+    ];
+    if keywords.contains(&name) {
+        return Err("Project name cannot be a Rust keyword");
+    }
+    Ok(())
+}
+
+/// Validate Rust target triple
+fn validate_target(target: &str) -> Result<(), &'static str> {
+    if target.is_empty() {
+        return Err("Target cannot be empty");
+    }
+    if target.len() > 100 {
+        return Err("Target too long");
+    }
+    // Target triples: alphanumeric, hyphen, underscore
+    if !target
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err("Target contains invalid characters");
+    }
+    Ok(())
+}
+
 pub fn rust_development() {
     println!("🦀 Rust Development Environment");
     println!("===============================");
@@ -15,12 +64,14 @@ pub fn rust_development() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Rust Development")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_rust_toolchain(),
@@ -51,12 +102,14 @@ fn install_rust_toolchain() {
             "📋 Show toolchain info",
         ];
 
-        let action = Select::with_theme(&ColorfulTheme::default())
+        let Ok(action) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Rust Actions")
             .items(&actions)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         match action {
             0 => update_rust(),
@@ -74,12 +127,14 @@ fn install_rust_toolchain() {
         "📦 Package manager",
     ];
 
-    let method = Select::with_theme(&ColorfulTheme::default())
+    let Ok(method) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Installation method")
         .items(&install_methods)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match method {
         0 => install_rustup(),
@@ -112,59 +167,119 @@ fn install_rustup() {
 }
 
 fn install_rust_package_manager() {
-    println!("📦 Installing Rust via package manager...");
+    println!("Installing Rust via package manager...");
 
-    if Command::new("which").arg("pacman").status().is_ok() {
-        let _ = Command::new("sudo")
-            .args(&["pacman", "-S", "--noconfirm", "rust", "cargo"])
-            .status();
-    } else if Command::new("which").arg("apt").status().is_ok() {
-        let _ = Command::new("sudo").args(&["apt", "update"]).status();
-        let _ = Command::new("sudo")
-            .args(&["apt", "install", "-y", "rustc", "cargo"])
-            .status();
-    } else if Command::new("which").arg("dnf").status().is_ok() {
-        let _ = Command::new("sudo")
-            .args(&["dnf", "install", "-y", "rust", "cargo"])
-            .status();
+    let install_result = if Command::new("which")
+        .arg("pacman")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        Command::new("sudo")
+            .args(["pacman", "-S", "--noconfirm", "rust", "cargo"])
+            .status()
+    } else if Command::new("which")
+        .arg("apt")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        if let Err(e) = Command::new("sudo").args(["apt", "update"]).status() {
+            eprintln!("Warning: apt update failed: {}", e);
+        }
+        Command::new("sudo")
+            .args(["apt", "install", "-y", "rustc", "cargo"])
+            .status()
+    } else if Command::new("which")
+        .arg("dnf")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        Command::new("sudo")
+            .args(["dnf", "install", "-y", "rust", "cargo"])
+            .status()
+    } else {
+        eprintln!("No supported package manager found");
+        return;
+    };
+
+    match install_result {
+        Ok(status) if status.success() => {
+            println!("Installation completed");
+        }
+        Ok(status) => {
+            eprintln!("Installation exited with code: {:?}", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run installation: {}", e);
+        }
     }
 
-    if Command::new("which").arg("cargo").status().is_ok() {
-        println!("✅ Rust installed via package manager");
+    if Command::new("which")
+        .arg("cargo")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("Rust installed via package manager");
         install_default_rust_tools();
     } else {
-        println!("❌ Rust installation failed");
+        eprintln!("Rust installation failed");
     }
 }
 
 fn install_default_rust_tools() {
-    println!("🔧 Installing essential Rust tools...");
+    println!("Installing essential Rust tools...");
 
+    // Trusted tool names from crates.io
     let tools = [
         ("cargo-edit", "Add/remove dependencies"),
         ("cargo-watch", "Watch for changes"),
-        ("clippy", "Linter"),
-        ("rustfmt", "Code formatter"),
     ];
 
     for (tool, description) in &tools {
-        println!("📦 Installing {} - {}", tool, description);
-        let _ = Command::new("cargo").args(&["install", tool]).status();
+        println!("Installing {} - {}", tool, description);
+        match Command::new("cargo").args(["install", tool]).status() {
+            Ok(status) if status.success() => {
+                println!("{} installed", tool);
+            }
+            Ok(status) => {
+                eprintln!("Failed to install {} (code: {:?})", tool, status.code());
+            }
+            Err(e) => {
+                eprintln!("Failed to run cargo install {}: {}", tool, e);
+            }
+        }
+    }
+
+    // Install clippy and rustfmt via rustup (they're components, not crates)
+    println!("Installing clippy and rustfmt via rustup...");
+    if let Err(e) = Command::new("rustup")
+        .args(["component", "add", "clippy", "rustfmt"])
+        .status()
+    {
+        eprintln!("Warning: Failed to add components: {}", e);
     }
 }
 
 fn update_rust() {
-    println!("🔄 Updating Rust toolchain...");
+    println!("Updating Rust toolchain...");
 
-    let _ = Command::new("rustup").args(&["update"]).status();
-
-    println!("✅ Rust updated");
+    match Command::new("rustup").args(["update"]).status() {
+        Ok(status) if status.success() => {
+            println!("Rust updated successfully");
+        }
+        Ok(status) => {
+            eprintln!("rustup update failed with code: {:?}", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run rustup: {}", e);
+        }
+    }
 }
 
 fn add_rust_targets() {
-    println!("🎯 Add Rust Targets");
+    println!("Add Rust Targets");
     println!("===================");
 
+    // Known valid target triples
     let targets = [
         "wasm32-unknown-unknown (WebAssembly)",
         "x86_64-pc-windows-gnu (Windows cross-compile)",
@@ -173,42 +288,59 @@ fn add_rust_targets() {
         "Custom target",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select target to add")
         .items(&targets)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let target = match choice {
-        0 => "wasm32-unknown-unknown",
-        1 => "x86_64-pc-windows-gnu",
-        2 => "aarch64-unknown-linux-gnu",
-        3 => "x86_64-apple-darwin",
+        0 => "wasm32-unknown-unknown".to_string(),
+        1 => "x86_64-pc-windows-gnu".to_string(),
+        2 => "aarch64-unknown-linux-gnu".to_string(),
+        3 => "x86_64-apple-darwin".to_string(),
         4 => {
-            let custom: String = Input::new()
+            let Ok(custom) = Input::<String>::new()
                 .with_prompt("Enter target triple")
                 .interact_text()
-                .unwrap();
-            println!("📦 Adding target: {}", custom);
-            let _ = Command::new("rustup")
-                .args(&["target", "add", &custom])
-                .status();
-            return;
+            else {
+                return;
+            };
+            // Validate custom target
+            if let Err(e) = validate_target(&custom) {
+                eprintln!("Invalid target: {}", e);
+                return;
+            }
+            custom
         }
         _ => return,
     };
 
-    println!("📦 Adding target: {}", target);
-    let _ = Command::new("rustup")
-        .args(&["target", "add", target])
-        .status();
+    println!("Adding target: {}", target);
+    match Command::new("rustup")
+        .args(["target", "add", &target])
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("Target {} added", target);
+        }
+        Ok(status) => {
+            eprintln!("Failed to add target (code: {:?})", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run rustup: {}", e);
+        }
+    }
 }
 
 fn add_rust_components() {
-    println!("🔧 Add Rust Components");
+    println!("Add Rust Components");
     println!("======================");
 
+    // Known valid rustup components
     let components = [
         "clippy (Linter)",
         "rustfmt (Formatter)",
@@ -218,12 +350,14 @@ fn add_rust_components() {
         "rust-analyzer (Language server - modern)",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select component to add")
         .items(&components)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let component = match choice {
         0 => "clippy",
@@ -235,34 +369,57 @@ fn add_rust_components() {
         _ => return,
     };
 
-    println!("📦 Adding component: {}", component);
-    let _ = Command::new("rustup")
-        .args(&["component", "add", component])
-        .status();
+    println!("Adding component: {}", component);
+    match Command::new("rustup")
+        .args(["component", "add", component])
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("Component {} added", component);
+        }
+        Ok(status) => {
+            eprintln!("Failed to add component (code: {:?})", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run rustup: {}", e);
+        }
+    }
 }
 
 fn show_rust_info() {
-    println!("📋 Rust Toolchain Information");
+    println!("Rust Toolchain Information");
     println!("=============================");
 
-    println!("🦀 Rust version:");
-    let _ = Command::new("rustc").arg("--version").status();
+    println!("Rust version:");
+    if let Err(e) = Command::new("rustc").arg("--version").status() {
+        eprintln!("Failed to get rustc version: {}", e);
+    }
 
-    println!("\n📦 Cargo version:");
-    let _ = Command::new("cargo").arg("--version").status();
+    println!("\nCargo version:");
+    if let Err(e) = Command::new("cargo").arg("--version").status() {
+        eprintln!("Failed to get cargo version: {}", e);
+    }
 
-    println!("\n🔧 Installed toolchains:");
-    let _ = Command::new("rustup").args(&["toolchain", "list"]).status();
+    println!("\nInstalled toolchains:");
+    if let Err(e) = Command::new("rustup").args(["toolchain", "list"]).status() {
+        eprintln!("Failed to list toolchains: {}", e);
+    }
 
-    println!("\n🎯 Installed targets:");
-    let _ = Command::new("rustup")
-        .args(&["target", "list", "--installed"])
-        .status();
+    println!("\nInstalled targets:");
+    if let Err(e) = Command::new("rustup")
+        .args(["target", "list", "--installed"])
+        .status()
+    {
+        eprintln!("Failed to list targets: {}", e);
+    }
 
-    println!("\n🔧 Installed components:");
-    let _ = Command::new("rustup")
-        .args(&["component", "list", "--installed"])
-        .status();
+    println!("\nInstalled components:");
+    if let Err(e) = Command::new("rustup")
+        .args(["component", "list", "--installed"])
+        .status()
+    {
+        eprintln!("Failed to list components: {}", e);
+    }
 }
 
 fn install_oxygen() {
@@ -273,12 +430,14 @@ fn install_oxygen() {
     if Command::new("which").arg("oxygen").status().is_ok() {
         println!("✅ Oxygen is already installed");
 
-        let action = Select::with_theme(&ColorfulTheme::default())
+        let Ok(action) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Oxygen Options")
             .items(&["🔄 Update Oxygen", "📋 Show Oxygen Info", "⬅️  Back"])
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         match action {
             0 => {
@@ -299,11 +458,13 @@ fn install_oxygen() {
         return;
     }
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Install Oxygen via official installer?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         install_oxygen_script();
@@ -329,28 +490,38 @@ fn install_oxygen_script() {
 }
 
 fn create_rust_project() {
-    println!("🚀 Create New Rust Project");
+    println!("Create New Rust Project");
     println!("==========================");
 
-    let project_name: String = Input::new()
+    let Ok(project_name) = Input::<String>::new()
         .with_prompt("Project name")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
+
+    // Validate project name
+    if let Err(e) = validate_project_name(&project_name) {
+        eprintln!("Invalid project name: {}", e);
+        return;
+    }
 
     let project_types = [
-        "📦 Binary (executable)",
-        "📚 Library",
-        "🌐 Web project (with framework)",
-        "🎮 Game project",
-        "🔧 CLI tool",
+        "Binary (executable)",
+        "Library",
+        "Web project (with framework)",
+        "Game project",
+        "CLI tool",
     ];
 
-    let project_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(project_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Project type")
         .items(&project_types)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let mut args = vec!["new"];
 
@@ -361,12 +532,10 @@ fn create_rust_project() {
 
     args.push(&project_name);
 
-    println!("📁 Creating Rust project: {}", project_name);
-    let status = Command::new("cargo").args(&args).status();
-
-    match status {
+    println!("Creating Rust project: {}", project_name);
+    match Command::new("cargo").args(&args).status() {
         Ok(s) if s.success() => {
-            println!("✅ Rust project '{}' created successfully!", project_name);
+            println!("Rust project '{}' created successfully!", project_name);
 
             // Add framework-specific setup
             match project_type {
@@ -376,11 +545,16 @@ fn create_rust_project() {
                 _ => {}
             }
 
-            println!("📁 Project directory: ./{}", project_name);
-            println!("🔨 Build with: cd {} && cargo build", project_name);
-            println!("🚀 Run with: cd {} && cargo run", project_name);
+            println!("Project directory: ./{}", project_name);
+            println!("Build with: cd {} && cargo build", project_name);
+            println!("Run with: cd {} && cargo run", project_name);
         }
-        _ => println!("❌ Failed to create Rust project"),
+        Ok(status) => {
+            eprintln!("cargo new failed with code: {:?}", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run cargo: {}", e);
+        }
     }
 }
 
@@ -394,13 +568,16 @@ fn setup_web_project(project_name: &str) {
         "📡 Rocket (type-safe)",
     ];
 
-    let framework = Select::with_theme(&ColorfulTheme::default())
+    let Ok(framework) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Web framework")
         .items(&frameworks)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
+    // Trusted crate names from crates.io
     let dependency = match framework {
         0 => "axum",
         1 => "actix-web",
@@ -409,48 +586,61 @@ fn setup_web_project(project_name: &str) {
         _ => return,
     };
 
-    let _ = Command::new("cargo")
-        .args(&["add", dependency, "tokio", "serde"])
+    if let Err(e) = Command::new("cargo")
+        .args(["add", dependency, "tokio", "serde"])
         .current_dir(project_name)
-        .status();
+        .status()
+    {
+        eprintln!("Failed to add dependencies: {}", e);
+    }
 }
 
 fn setup_game_project(project_name: &str) {
-    println!("🎮 Setting up game project dependencies...");
+    println!("Setting up game project dependencies...");
 
     let engines = [
-        "🎯 Bevy (ECS-based)",
-        "⚡ Macroquad (simple 2D)",
-        "🎮 Amethyst (data-driven)",
+        "Bevy (ECS-based)",
+        "Macroquad (simple 2D)",
+        "ggez (2D game library)",
     ];
 
-    let engine = Select::with_theme(&ColorfulTheme::default())
+    let Ok(engine) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Game engine")
         .items(&engines)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
+    // Trusted crate names from crates.io
     let dependency = match engine {
         0 => "bevy",
         1 => "macroquad",
-        2 => "amethyst",
+        2 => "ggez",
         _ => return,
     };
 
-    let _ = Command::new("cargo")
-        .args(&["add", dependency])
+    if let Err(e) = Command::new("cargo")
+        .args(["add", dependency])
         .current_dir(project_name)
-        .status();
+        .status()
+    {
+        eprintln!("Failed to add game engine dependency: {}", e);
+    }
 }
 
 fn setup_cli_project(project_name: &str) {
-    println!("🔧 Setting up CLI project dependencies...");
+    println!("Setting up CLI project dependencies...");
 
-    let _ = Command::new("cargo")
-        .args(&["add", "clap", "anyhow", "serde"])
+    // Trusted crate names from crates.io
+    if let Err(e) = Command::new("cargo")
+        .args(["add", "clap", "anyhow", "serde"])
         .current_dir(project_name)
-        .status();
+        .status()
+    {
+        eprintln!("Failed to add CLI dependencies: {}", e);
+    }
 }
 
 fn rust_development_tools() {
@@ -473,37 +663,50 @@ fn rust_development_tools() {
 }
 
 fn cargo_utilities() {
-    println!("📊 Cargo Utilities");
+    println!("Cargo Utilities");
     println!("==================");
 
+    // Trusted cargo tool names from crates.io
     let utilities = [
-        "🔍 cargo-audit (Security audit)",
-        "📊 cargo-bloat (Binary size analysis)",
-        "🧹 cargo-sweep (Clean old builds)",
-        "⏱️  cargo-time (Build timing)",
-        "🔧 cargo-edit (Dependency management)",
-        "👀 cargo-watch (Auto rebuild)",
+        "cargo-audit (Security audit)",
+        "cargo-bloat (Binary size analysis)",
+        "cargo-sweep (Clean old builds)",
+        "cargo-nextest (Next-gen test runner)",
+        "cargo-edit (Dependency management)",
+        "cargo-watch (Auto rebuild)",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Install utility")
         .items(&utilities)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let tool = match choice {
         0 => "cargo-audit",
         1 => "cargo-bloat",
         2 => "cargo-sweep",
-        3 => "cargo-time",
+        3 => "cargo-nextest",
         4 => "cargo-edit",
         5 => "cargo-watch",
         _ => return,
     };
 
-    println!("📦 Installing {}...", tool);
-    let _ = Command::new("cargo").args(&["install", tool]).status();
+    println!("Installing {}...", tool);
+    match Command::new("cargo").args(["install", tool]).status() {
+        Ok(status) if status.success() => {
+            println!("{} installed successfully", tool);
+        }
+        Ok(status) => {
+            eprintln!("Installation failed with code: {:?}", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run cargo install: {}", e);
+        }
+    }
 }
 
 fn rust_resources() {

@@ -1,6 +1,64 @@
 use dialoguer::{Confirm, MultiSelect, Select, theme::ColorfulTheme};
+use reqwest::blocking::get;
+use sha2::{Digest, Sha256};
+use std::fs;
+use std::io::Write;
+use std::os::unix::fs::PermissionsExt;
 use std::process::Command;
+use tempfile::NamedTempFile;
 use which::which;
+
+/// Validate tool/binary name to prevent shell injection and path traversal
+fn validate_tool_name(name: &str) -> Result<(), &'static str> {
+    if name.is_empty() {
+        return Err("Tool name cannot be empty");
+    }
+    if name.len() > 50 {
+        return Err("Tool name too long");
+    }
+    // Only allow alphanumeric, hyphen, underscore
+    if !name
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err("Tool name contains invalid characters");
+    }
+    if name.starts_with('-') {
+        return Err("Tool name cannot start with hyphen");
+    }
+    Ok(())
+}
+
+/// Validate repository path (user/repo format)
+fn validate_repo_path(repo: &str) -> Result<(), &'static str> {
+    if repo.is_empty() {
+        return Err("Repository path cannot be empty");
+    }
+    if repo.len() > 100 {
+        return Err("Repository path too long");
+    }
+    // Must be in user/repo format
+    let parts: Vec<&str> = repo.split('/').collect();
+    if parts.len() != 2 {
+        return Err("Repository must be in 'user/repo' format");
+    }
+    // Validate each part
+    for part in parts {
+        if part.is_empty() {
+            return Err("Repository user/name cannot be empty");
+        }
+        if !part
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+        {
+            return Err("Repository contains invalid characters");
+        }
+        if part.starts_with('-') || part.ends_with('-') {
+            return Err("Repository parts cannot start/end with hyphen");
+        }
+    }
+    Ok(())
+}
 
 // Ghost Ecosystem Tools - Real planned tools
 const GHOST_ECOSYSTEM: &[(&str, &str, &str, &str)] = &[
@@ -88,12 +146,15 @@ pub fn ghost_ecosystem_menu() {
             "AI & Automation",
         ];
 
-        let category_idx = Select::with_theme(&ColorfulTheme::default())
+        let category_idx = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("👻 Ghost Ecosystem - Select Category")
             .items(&categories)
             .default(0)
             .interact()
-            .unwrap();
+        {
+            Ok(c) => c,
+            Err(_) => return,
+        };
 
         if category_idx == 0 {
             show_all_tools();
@@ -150,12 +211,15 @@ fn show_all_tools() {
             "⬅️  Back".to_string(),
         ]);
 
-        let idx = Select::with_theme(&ColorfulTheme::default())
+        let idx = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("👻 Ghost Ecosystem - All Tools")
             .items(&menu_items)
             .default(0)
             .interact()
-            .unwrap();
+        {
+            Ok(i) => i,
+            Err(_) => break,
+        };
 
         if idx == menu_items.len() - 1 {
             break; // Back
@@ -200,12 +264,15 @@ fn show_category_tools(category_filter: &str, category_name: &str) {
 
     menu_items.push("⬅️  Back".to_string());
 
-    let idx = Select::with_theme(&ColorfulTheme::default())
+    let idx = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt(format!("👻 {} Tools", category_name))
         .items(&menu_items)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     if idx == menu_items.len() - 1 {
         return; // Back
@@ -234,11 +301,14 @@ fn batch_install_ghost_tools() {
 
     let tool_names: Vec<&str> = available_tools.iter().map(|(name, _)| *name).collect();
 
-    let selections = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selections = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select tools to install (Space to select, Enter to confirm)")
         .items(&tool_names)
         .interact()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     if selections.is_empty() {
         println!("❌ No tools selected");
@@ -273,11 +343,14 @@ fn batch_uninstall_ghost_tools() {
         return;
     }
 
-    let selections = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selections = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("⚠️  Select tools to UNINSTALL (Space to select, Enter to confirm)")
         .items(&installed_tools)
         .interact()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     if selections.is_empty() {
         println!("❌ No tools selected for removal");
@@ -285,11 +358,14 @@ fn batch_uninstall_ghost_tools() {
     }
 
     // Confirmation
-    let confirm = dialoguer::Confirm::new()
+    let confirm = match dialoguer::Confirm::new()
         .with_prompt(format!("⚠️  Really uninstall {} tools?", selections.len()))
         .default(false)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     if !confirm {
         println!("❌ Uninstall cancelled");
@@ -387,12 +463,15 @@ fn individual_tool_menu(name: &str, repo: &str) {
         vec!["Install", "View Info", "Back"]
     };
 
-    let action = Select::with_theme(&ColorfulTheme::default())
+    let action = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt(format!("{}: Choose action", name))
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(a) => a,
+        Err(_) => return,
+    };
 
     match options[action] {
         "Install" | "Update" => install_ghost_tool(name, repo),
@@ -403,108 +482,196 @@ fn individual_tool_menu(name: &str, repo: &str) {
 }
 
 fn install_ghost_tool(name: &str, repo: &str) {
-    println!("🚀 Installing/Updating {}...", name);
+    // Validate inputs to prevent shell injection
+    if let Err(e) = validate_tool_name(name) {
+        eprintln!("Invalid tool name '{}': {}", name, e);
+        return;
+    }
+    if let Err(e) = validate_repo_path(repo) {
+        eprintln!("Invalid repository '{}': {}", repo, e);
+        return;
+    }
 
-    // Special handling for different tool types
-    let build_command = match name {
-        "zion" | "zaur" | "zigdns" => {
-            // Zig-based tools
-            format!(
-                r#"
-                if [ -f build.zig ]; then
-                    zig build -Doptimize=ReleaseFast
-                    sudo install -Dm755 zig-out/bin/{name} /usr/bin/{name}
-                else
-                    echo "❌ No build.zig found for {name}"
-                    exit 1
-                fi
-            "#,
-                name = name
-            )
+    println!("Installing/Updating {}...", name);
+
+    let tmp_dir = format!("/tmp/ghostctl-install-{}", name);
+    let repo_url = format!("https://github.com/{}.git", repo);
+    let install_path = format!("/usr/bin/{}", name);
+
+    // Clean up any previous attempt
+    if std::path::Path::new(&tmp_dir).exists() {
+        if let Err(e) = std::fs::remove_dir_all(&tmp_dir) {
+            eprintln!("Warning: Failed to clean up {}: {}", tmp_dir, e);
         }
-        "ghostview" | "phantomlink" | "nvcontrol" => {
-            // GUI tools (might need additional deps)
-            format!(
-                r#"
-                if [ -f Cargo.toml ]; then
-                    cargo build --release --features gui
-                    sudo install -Dm755 target/release/{name} /usr/bin/{name}
-                    # Install .desktop file if present
-                    if [ -f {name}.desktop ]; then
-                        sudo install -Dm644 {name}.desktop /usr/share/applications/{name}.desktop
-                    fi
-                else
-                    echo "❌ No Cargo.toml found for {name}"
-                    exit 1
-                fi
-            "#,
-                name = name
-            )
+    }
+
+    // Clone repository - using direct command args, no shell interpolation
+    println!("Cloning repository...");
+    match Command::new("git")
+        .args(["clone", "--depth", "1", &repo_url, &tmp_dir])
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("Repository cloned successfully");
         }
-        _ => {
-            // Standard Rust tools
-            format!(
-                r#"
-                if [ -f Cargo.toml ]; then
-                    cargo build --release
-                    sudo install -Dm755 target/release/{name} /usr/bin/{name}
-                else
-                    echo "❌ No Cargo.toml found for {name}"
-                    exit 1
-                fi
-            "#,
-                name = name
-            )
-        }
-    };
-
-    let install_script = format!(
-        r#"
-        set -e
-        cd /tmp
-        rm -rf {name}
-        
-        if ! git clone https://github.com/{repo}.git {name}; then
-            echo "❌ Repository not found or not yet created: {repo}"
-            echo "💡 This tool may be in development. Check https://github.com/{repo}"
-            exit 1
-        fi
-        
-        cd {name}
-        {build_command}
-        
-        echo "✅ {name} installed successfully!"
-        echo "🔧 Run '{name} --help' to get started"
-        "#,
-        name = name,
-        repo = repo,
-        build_command = build_command
-    );
-
-    let status = Command::new("bash").arg("-c").arg(install_script).status();
-
-    match status {
-        Ok(s) if s.success() => println!("✅ {} installed successfully!", name),
-        _ => {
-            println!("❌ Failed to install {}", name);
-            println!(
-                "💡 This tool may not be available yet. Check https://github.com/{}",
+        Ok(_) => {
+            eprintln!("Repository not found or not yet created: {}", repo);
+            eprintln!(
+                "This tool may be in development. Check https://github.com/{}",
                 repo
             );
+            return;
+        }
+        Err(e) => {
+            eprintln!("Failed to clone repository: {}", e);
+            return;
+        }
+    }
+
+    // Determine build type based on tool name (from trusted GHOST_ECOSYSTEM list)
+    let is_zig_tool = matches!(name, "zion" | "zaur" | "zigdns");
+    let is_gui_tool = matches!(name, "ghostview" | "phantomlink" | "nvcontrol");
+
+    // Build the tool
+    println!("Building {}...", name);
+    let build_success = if is_zig_tool {
+        build_zig_tool(&tmp_dir, name)
+    } else if is_gui_tool {
+        build_rust_tool(&tmp_dir, name, true)
+    } else {
+        build_rust_tool(&tmp_dir, name, false)
+    };
+
+    if !build_success {
+        eprintln!("Build failed for {}", name);
+        return;
+    }
+
+    // Install the binary
+    let binary_path = if is_zig_tool {
+        format!("{}/zig-out/bin/{}", tmp_dir, name)
+    } else {
+        format!("{}/target/release/{}", tmp_dir, name)
+    };
+
+    println!("Installing binary...");
+    match Command::new("sudo")
+        .args(["install", "-Dm755", &binary_path, &install_path])
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("{} installed successfully!", name);
+            println!("Run '{} --help' to get started", name);
+        }
+        Ok(status) => {
+            eprintln!("Failed to install binary (exit code: {:?})", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run install command: {}", e);
+        }
+    }
+
+    // Install .desktop file for GUI tools
+    if is_gui_tool {
+        let desktop_file = format!("{}/{}.desktop", tmp_dir, name);
+        if std::path::Path::new(&desktop_file).exists() {
+            let desktop_dest = format!("/usr/share/applications/{}.desktop", name);
+            if let Err(e) = Command::new("sudo")
+                .args(["install", "-Dm644", &desktop_file, &desktop_dest])
+                .status()
+            {
+                eprintln!("Warning: Failed to install .desktop file: {}", e);
+            }
+        }
+    }
+
+    // Clean up
+    if let Err(e) = std::fs::remove_dir_all(&tmp_dir) {
+        eprintln!("Warning: Failed to clean up {}: {}", tmp_dir, e);
+    }
+}
+
+fn build_zig_tool(dir: &str, name: &str) -> bool {
+    let build_zig = format!("{}/build.zig", dir);
+    if !std::path::Path::new(&build_zig).exists() {
+        eprintln!("No build.zig found for {}", name);
+        return false;
+    }
+
+    match Command::new("zig")
+        .args(["build", "-Doptimize=ReleaseFast"])
+        .current_dir(dir)
+        .status()
+    {
+        Ok(status) if status.success() => true,
+        Ok(status) => {
+            eprintln!("Zig build failed with code: {:?}", status.code());
+            false
+        }
+        Err(e) => {
+            eprintln!("Failed to run zig build: {}", e);
+            false
+        }
+    }
+}
+
+fn build_rust_tool(dir: &str, name: &str, gui: bool) -> bool {
+    let cargo_toml = format!("{}/Cargo.toml", dir);
+    if !std::path::Path::new(&cargo_toml).exists() {
+        eprintln!("No Cargo.toml found for {}", name);
+        return false;
+    }
+
+    let mut args = vec!["build", "--release"];
+    if gui {
+        args.push("--features");
+        args.push("gui");
+    }
+
+    match Command::new("cargo").args(&args).current_dir(dir).status() {
+        Ok(status) if status.success() => true,
+        Ok(status) => {
+            eprintln!("Cargo build failed with code: {:?}", status.code());
+            false
+        }
+        Err(e) => {
+            eprintln!("Failed to run cargo build: {}", e);
+            false
         }
     }
 }
 
 fn uninstall_ghost_tool(name: &str) {
-    println!("🗑️  Uninstalling {}...", name);
+    // Validate tool name to prevent path traversal
+    if let Err(e) = validate_tool_name(name) {
+        eprintln!("Invalid tool name '{}': {}", name, e);
+        return;
+    }
 
-    let status = Command::new("sudo")
-        .args(["rm", "-f", &format!("/usr/bin/{}", name)])
-        .status();
+    println!("Uninstalling {}...", name);
 
-    match status {
-        Ok(s) if s.success() => println!("✅ {} uninstalled successfully", name),
-        _ => println!("❌ Failed to uninstall {}", name),
+    let bin_path = format!("/usr/bin/{}", name);
+
+    // Check if file exists before trying to remove
+    if !std::path::Path::new(&bin_path).exists() {
+        println!("{} is not installed at {}", name, bin_path);
+        return;
+    }
+
+    match Command::new("sudo").args(["rm", "-f", &bin_path]).status() {
+        Ok(status) if status.success() => {
+            println!("{} uninstalled successfully", name);
+        }
+        Ok(status) => {
+            eprintln!(
+                "Failed to uninstall {} (exit code: {:?})",
+                name,
+                status.code()
+            );
+        }
+        Err(e) => {
+            eprintln!("Failed to run uninstall command: {}", e);
+        }
     }
 }
 
@@ -544,7 +711,7 @@ pub fn install_all_ghost_tools() {
         ("NVControl", "NVIDIA Control", install_nvcontrol as fn()),
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select tools to install")
         .items(
             &tools
@@ -553,7 +720,10 @@ pub fn install_all_ghost_tools() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     for &index in &selected {
         let (name, _, install_fn) = tools[index];
@@ -562,6 +732,78 @@ pub fn install_all_ghost_tools() {
     }
 
     println!("\n✅ Ghost tools installation completed!");
+}
+
+/// Securely download and execute a script with verification
+/// Downloads to temp file, shows hash for verification, requires confirmation
+fn secure_script_install(url: &str, tool_name: &str) -> Result<(), String> {
+    println!("📥 Downloading {} install script...", tool_name);
+    println!("   URL: {}", url);
+
+    // Download script content
+    let response = get(url).map_err(|e| format!("Download failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("HTTP error: {}", response.status()));
+    }
+
+    let content = response
+        .text()
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    // Calculate SHA256 hash
+    let mut hasher = Sha256::new();
+    hasher.update(content.as_bytes());
+    let hash = format!("{:x}", hasher.finalize());
+
+    println!("\n📝 Script SHA256: {}", hash);
+    println!("\n📄 Script preview (first 500 chars):");
+    println!("{}", "─".repeat(50));
+    let preview: String = content.chars().take(500).collect();
+    println!("{}", preview);
+    if content.len() > 500 {
+        println!("... (truncated, {} total chars)", content.len());
+    }
+    println!("{}", "─".repeat(50));
+
+    // Require explicit confirmation
+    let confirm = Confirm::new()
+        .with_prompt(format!(
+            "⚠️  Execute this script to install {}? Review the content above.",
+            tool_name
+        ))
+        .default(false)
+        .interact()
+        .unwrap_or(false);
+
+    if !confirm {
+        return Err("Installation cancelled by user".to_string());
+    }
+
+    // Create secure temp file
+    let mut temp_file =
+        NamedTempFile::new().map_err(|e| format!("Failed to create temp file: {}", e))?;
+
+    // Write content
+    temp_file
+        .write_all(content.as_bytes())
+        .map_err(|e| format!("Failed to write script: {}", e))?;
+
+    // Set executable permissions (owner only)
+    let path = temp_file.path();
+    fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+        .map_err(|e| format!("Failed to set permissions: {}", e))?;
+
+    // Execute
+    println!("🚀 Executing install script...");
+    let status = Command::new("bash").arg(path).status();
+
+    match status {
+        Ok(s) if s.success() => Ok(()),
+        Ok(s) => Err(format!("Script exited with code: {:?}", s.code())),
+        Err(e) => Err(format!("Failed to execute: {}", e)),
+    }
+    // temp_file is automatically deleted when dropped
 }
 
 pub fn install_reaper() {
@@ -573,26 +815,15 @@ pub fn install_reaper() {
         return;
     }
 
-    let confirm = Confirm::new()
-        .with_prompt("Install Reaper AUR helper?")
-        .default(true)
-        .interact()
-        .unwrap();
-
-    if confirm {
-        println!("📥 Downloading and installing Reaper...");
-        let status = Command::new("bash")
-            .arg("-c")
-            .arg("curl -sSL https://raw.githubusercontent.com/face-hh/reaper/main/release/install.sh | bash")
-            .status();
-
-        match status {
-            Ok(s) if s.success() => {
-                println!("✅ Reaper installed successfully");
-                println!("💡 Usage: reap <package_name>");
-            }
-            _ => println!("❌ Failed to install Reaper"),
+    match secure_script_install(
+        "https://raw.githubusercontent.com/face-hh/reaper/main/release/install.sh",
+        "Reaper",
+    ) {
+        Ok(()) => {
+            println!("✅ Reaper installed successfully");
+            println!("💡 Usage: reap <package_name>");
         }
+        Err(e) => println!("❌ Failed to install Reaper: {}", e),
     }
 }
 
@@ -605,27 +836,16 @@ pub fn install_oxygen() {
         return;
     }
 
-    let confirm = Confirm::new()
-        .with_prompt("Install Oxygen Rust development tool?")
-        .default(true)
-        .interact()
-        .unwrap();
-
-    if confirm {
-        println!("📥 Downloading and installing Oxygen...");
-        let status = Command::new("bash")
-            .arg("-c")
-            .arg("curl -sSL https://raw.githubusercontent.com/ghostkellz/oxygen/main/install.sh | bash")
-            .status();
-
-        match status {
-            Ok(s) if s.success() => {
-                println!("✅ Oxygen installed successfully");
-                println!("💡 Oxygen is a Rust development toolkit");
-                println!("📚 Features: project management, testing, deployment");
-            }
-            _ => println!("❌ Failed to install Oxygen"),
+    match secure_script_install(
+        "https://raw.githubusercontent.com/ghostkellz/oxygen/main/install.sh",
+        "Oxygen",
+    ) {
+        Ok(()) => {
+            println!("✅ Oxygen installed successfully");
+            println!("💡 Oxygen is a Rust development toolkit");
+            println!("📚 Features: project management, testing, deployment");
         }
+        Err(e) => println!("❌ Failed to install Oxygen: {}", e),
     }
 }
 
@@ -638,74 +858,53 @@ pub fn install_zion() {
         return;
     }
 
-    let confirm = Confirm::new()
-        .with_prompt("Install Zion Zig meta-tool?")
-        .default(true)
-        .interact()
-        .unwrap();
-
-    if confirm {
-        println!("📥 Downloading and installing Zion...");
-        let status = Command::new("bash")
-            .arg("-c")
-            .arg("curl -sSL https://raw.githubusercontent.com/ghostkellz/zion/main/release/install.sh | bash")
-            .status();
-
-        match status {
-            Ok(s) if s.success() => {
-                println!("✅ Zion installed successfully");
-                println!("💡 Zion is a Zig meta-tool for project management");
-                println!("🔗 GitHub: https://github.com/GhostKellz/zion");
-            }
-            _ => println!("❌ Failed to install Zion"),
+    match secure_script_install(
+        "https://raw.githubusercontent.com/ghostkellz/zion/main/release/install.sh",
+        "Zion",
+    ) {
+        Ok(()) => {
+            println!("✅ Zion installed successfully");
+            println!("💡 Zion is a Zig meta-tool for project management");
+            println!("🔗 GitHub: https://github.com/GhostKellz/zion");
         }
+        Err(e) => println!("❌ Failed to install Zion: {}", e),
     }
 }
 
 fn install_nvcontrol() {
-    println!("🎮 Installing NVControl (NVIDIA Control)");
+    println!("Installing NVControl (NVIDIA Control)");
     println!("=========================================");
 
-    if Command::new("which").arg("nvcontrol").status().is_ok() {
-        println!("✅ NVControl is already installed");
+    if Command::new("which")
+        .arg("nvcontrol")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("NVControl is already installed");
         return;
     }
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Install NVControl NVIDIA management tool?")
         .default(true)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     if confirm {
-        println!("📥 Downloading NVControl installer...");
-
-        // Download the install script
-        let status = Command::new("curl")
-            .args(&[
-                "-O",
-                "https://raw.githubusercontent.com/GhostKellz/nvcontrol/main/install.sh",
-            ])
-            .status();
-
-        if status.is_ok() && status.unwrap().success() {
-            // Make it executable and run
-            let _ = Command::new("chmod").args(&["+x", "install.sh"]).status();
-            let install_status = Command::new("bash").arg("install.sh").status();
-
-            match install_status {
-                Ok(s) if s.success() => {
-                    println!("✅ NVControl installed successfully");
-                    println!("💡 NVControl provides NVIDIA GPU management");
-                    println!("🔗 GitHub: https://github.com/GhostKellz/nvcontrol");
-                }
-                _ => println!("❌ Failed to install NVControl"),
+        // Use the secure script installer
+        match secure_script_install(
+            "https://raw.githubusercontent.com/GhostKellz/nvcontrol/main/install.sh",
+            "NVControl",
+        ) {
+            Ok(()) => {
+                println!("NVControl installed successfully");
+                println!("NVControl provides NVIDIA GPU management");
+                println!("GitHub: https://github.com/GhostKellz/nvcontrol");
             }
-
-            // Cleanup
-            let _ = std::fs::remove_file("install.sh");
-        } else {
-            println!("❌ Failed to download NVControl installer");
+            Err(e) => eprintln!("Failed to install NVControl: {}", e),
         }
     }
 }
@@ -724,7 +923,7 @@ pub fn check_tool_status() {
     for (cmd, name) in &tools {
         let status = Command::new("which").arg(cmd).status();
 
-        if status.is_ok() && status.unwrap().success() {
+        if status.map(|s| s.success()).unwrap_or(false) {
             println!("  ✅ {} - Installed", name);
 
             // Try to get version info
@@ -744,45 +943,71 @@ pub fn check_tool_status() {
 
 #[allow(dead_code)]
 fn uninstall_ghost_tools() {
-    println!("🗑️  Uninstall Ghost Tools");
+    println!("Uninstall Ghost Tools");
     println!("=========================");
 
-    let warning = "⚠️  This will remove Ghost-branded tools from your system";
+    let warning = "Warning: This will remove Ghost-branded tools from your system";
     println!("{}", warning);
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Are you sure you want to uninstall Ghost tools?")
         .default(false)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     if confirm {
+        // Trusted tool names from the ecosystem
         let tools = ["reap", "oxygen", "zion", "nvcontrol"];
 
         for tool in &tools {
-            if Command::new("which").arg(tool).status().is_ok() {
-                println!("🗑️  Removing {}...", tool);
+            // Validate tool name even though these are hardcoded - defense in depth
+            if validate_tool_name(tool).is_err() {
+                continue;
+            }
+
+            if Command::new("which")
+                .arg(tool)
+                .output()
+                .is_ok_and(|o| o.status.success())
+            {
+                println!("Removing {}...", tool);
 
                 // Try to remove from common installation paths
-                let paths = [
-                    format!("/usr/local/bin/{}", tool),
-                    format!("/usr/bin/{}", tool),
-                    format!(
-                        "{}/.local/bin/{}",
-                        dirs::home_dir().unwrap().display(),
-                        tool
-                    ),
-                ];
+                // Paths are constructed safely with validated tool names
+                let home_local_bin =
+                    dirs::home_dir().map(|h| format!("{}/.local/bin/{}", h.display(), tool));
+
+                let paths: Vec<String> = [
+                    Some(format!("/usr/local/bin/{}", tool)),
+                    Some(format!("/usr/bin/{}", tool)),
+                    home_local_bin,
+                ]
+                .into_iter()
+                .flatten()
+                .collect();
 
                 for path in &paths {
                     if std::path::Path::new(path).exists() {
-                        let _ = Command::new("sudo").args(&["rm", "-f", path]).status();
+                        match Command::new("sudo").args(["rm", "-f", path]).status() {
+                            Ok(status) if status.success() => {
+                                println!("Removed: {}", path);
+                            }
+                            Ok(_) => {
+                                eprintln!("Warning: Failed to remove {}", path);
+                            }
+                            Err(e) => {
+                                eprintln!("Warning: Error removing {}: {}", path, e);
+                            }
+                        }
                     }
                 }
             }
         }
 
-        println!("✅ Ghost tools uninstalled");
+        println!("Ghost tools uninstalled");
     }
 }
 

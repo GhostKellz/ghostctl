@@ -31,12 +31,14 @@ pub fn nixos_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("NixOS Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => packages::package_management(),
@@ -62,12 +64,14 @@ fn rebuild_system() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Rebuild type")
         .items(&rebuild_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let rebuild_cmd = match choice {
         0 => "switch",
@@ -77,11 +81,13 @@ fn rebuild_system() {
         _ => return,
     };
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt(format!("Rebuild system with '{}'?", rebuild_cmd))
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("🚀 Running: sudo nixos-rebuild {}", rebuild_cmd);
@@ -132,12 +138,14 @@ fn garbage_collection() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Garbage collection type")
         .items(&gc_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let gc_cmd = match choice {
         0 => vec!["nix-collect-garbage", "-d"],
@@ -148,11 +156,13 @@ fn garbage_collection() {
     };
 
     if choice != 3 {
-        let confirm = Confirm::new()
+        let Ok(confirm) = Confirm::new()
             .with_prompt("Run garbage collection?")
             .default(false)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if !confirm {
             return;
@@ -180,12 +190,14 @@ fn generation_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Generation management")
         .items(&gen_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => rollback_generation(),
@@ -196,11 +208,13 @@ fn generation_management() {
 }
 
 fn rollback_generation() {
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Rollback to previous generation?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let _ = Command::new("sudo")
@@ -210,16 +224,20 @@ fn rollback_generation() {
 }
 
 fn switch_to_generation() {
-    let generation: String = Input::new()
+    let Ok(generation) = Input::<String>::new()
         .with_prompt("Generation number")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt(format!("Switch to generation {}?", generation))
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let _ = Command::new("sudo")
@@ -232,17 +250,21 @@ fn switch_to_generation() {
 }
 
 fn delete_old_generations() {
-    let keep: String = Input::new()
+    let Ok(keep) = Input::<String>::new()
         .with_prompt("Keep how many generations")
         .default("5".into())
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt(format!("Delete generations older than {}?", keep))
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let _ = Command::new("sudo")

@@ -11,7 +11,10 @@ pub fn create_release_structure() {
 
     // Create directories
     for dir in [release_dir, &install_dir, &pkg_dir, &debian_dir] {
-        fs::create_dir_all(dir).unwrap();
+        if let Err(e) = fs::create_dir_all(dir) {
+            eprintln!("Failed to create directory {}: {}", dir, e);
+            continue;
+        }
         println!("📁 Created: {}", dir);
     }
 
@@ -24,7 +27,9 @@ pub fn create_release_structure() {
 }
 
 fn create_arch_pkgbuild(pkg_dir: &str) {
-    let pkgbuild_content = r#"# Maintainer: Christopher Kelley <ckelley@ghostkellz.sh>
+    let version = env!("CARGO_PKG_VERSION");
+
+    let pkgbuild_template = r#"# Maintainer: Christopher Kelley <ckelley@ghostkellz.sh>
 # Contributor: GhostCTL Development Team
 
 pkgname=ghostctl
@@ -138,10 +143,15 @@ pre_remove() {
 }
 "#;
 
-    fs::write(format!("{}/PKGBUILD", pkg_dir), pkgbuild_content).unwrap();
+    let pkgbuild_content = pkgbuild_template.replace("pkgver=0.3.0", &format!("pkgver={version}"));
+
+    if let Err(e) = fs::write(format!("{}/PKGBUILD", pkg_dir), pkgbuild_content) {
+        eprintln!("Failed to write PKGBUILD: {}", e);
+        return;
+    }
 
     // Create .SRCINFO
-    let srcinfo_content = r#"pkgbase = ghostctl
+    let srcinfo_template = r#"pkgbase = ghostctl
 	pkgdesc = Comprehensive system administration toolkit for Linux power users, homelabbers, and DevOps professionals
 	pkgver = 0.4.0
 	pkgrel = 1
@@ -176,13 +186,27 @@ pre_remove() {
 pkgname = ghostctl
 "#;
 
-    fs::write(format!("{}/.SRCINFO", pkg_dir), srcinfo_content).unwrap();
+    let srcinfo_content = srcinfo_template
+        .replace("\tpkgver = 0.4.0", &format!("\tpkgver = {version}"))
+        .replace(
+            "\tsource = ghostctl-1.0.0.tar.gz::https://github.com/ghostkellz/ghostctl/archive/v1.0.0.tar.gz",
+            &format!(
+                "\tsource = ghostctl-{version}.tar.gz::https://github.com/ghostkellz/ghostctl/archive/v{version}.tar.gz"
+            ),
+        );
+
+    if let Err(e) = fs::write(format!("{}/.SRCINFO", pkg_dir), srcinfo_content) {
+        eprintln!("Failed to write .SRCINFO: {}", e);
+        return;
+    }
 
     println!("📦 Created Arch package files in: {}", pkg_dir);
 }
 
 fn create_debian_package(debian_dir: &str) {
-    let control_content = r#"Package: ghostctl
+    let version = env!("CARGO_PKG_VERSION");
+
+    let control_template = r#"Package: ghostctl
 Version: 0.3.0
 Section: admin
 Priority: optional
@@ -210,7 +234,13 @@ Description: Comprehensive system administration toolkit
 Homepage: https://github.com/ghostkellz/ghostctl
 "#;
 
-    fs::write(format!("{}/control", debian_dir), control_content).unwrap();
+    let control_content =
+        control_template.replace("Version: 0.3.0", &format!("Version: {version}"));
+
+    if let Err(e) = fs::write(format!("{}/control", debian_dir), control_content) {
+        eprintln!("Failed to write debian/control: {}", e);
+        return;
+    }
 
     let postinst_content = r#"#!/bin/bash
 set -e
@@ -242,7 +272,10 @@ fi
 exit 0
 "#;
 
-    fs::write(format!("{}/postinst", debian_dir), postinst_content).unwrap();
+    if let Err(e) = fs::write(format!("{}/postinst", debian_dir), postinst_content) {
+        eprintln!("Failed to write debian/postinst: {}", e);
+        return;
+    }
 
     let prerm_content = r#"#!/bin/bash
 set -e
@@ -253,7 +286,10 @@ systemctl --user disable --now ghostctl-backup.timer 2>/dev/null || true
 exit 0
 "#;
 
-    fs::write(format!("{}/prerm", debian_dir), prerm_content).unwrap();
+    if let Err(e) = fs::write(format!("{}/prerm", debian_dir), prerm_content) {
+        eprintln!("Failed to write debian/prerm: {}", e);
+        return;
+    }
 
     println!("📦 Created Debian package files in: {}", debian_dir);
 }
@@ -715,15 +751,21 @@ esac
 main "$@"
 "#;
 
-    fs::write(format!("{}/install.sh", install_dir), installer_content).unwrap();
+    let install_path = format!("{}/install.sh", install_dir);
+    if let Err(e) = fs::write(&install_path, installer_content) {
+        eprintln!("Failed to write install.sh: {}", e);
+        return;
+    }
 
     // Make executable
     use std::os::unix::fs::PermissionsExt;
-    let mut perms = fs::metadata(format!("{}/install.sh", install_dir))
-        .unwrap()
-        .permissions();
-    perms.set_mode(0o755);
-    fs::set_permissions(format!("{}/install.sh", install_dir), perms).unwrap();
+    if let Ok(metadata) = fs::metadata(&install_path) {
+        let mut perms = metadata.permissions();
+        perms.set_mode(0o755);
+        if let Err(e) = fs::set_permissions(&install_path, perms) {
+            eprintln!("Failed to set permissions on install.sh: {}", e);
+        }
+    }
 
     println!("🚀 Created universal installer: {}/install.sh", install_dir);
 }
@@ -855,19 +897,21 @@ echo "  • Network configuration"
 rm -rf "$TEMP_DIR"
 "#;
 
-    fs::write(
-        format!("{}/install-proxmox.sh", install_dir),
-        proxmox_installer,
-    )
-    .unwrap();
+    let proxmox_path = format!("{}/install-proxmox.sh", install_dir);
+    if let Err(e) = fs::write(&proxmox_path, proxmox_installer) {
+        eprintln!("Failed to write install-proxmox.sh: {}", e);
+        return;
+    }
 
     // Make executable
     use std::os::unix::fs::PermissionsExt;
-    let mut perms = fs::metadata(format!("{}/install-proxmox.sh", install_dir))
-        .unwrap()
-        .permissions();
-    perms.set_mode(0o755);
-    fs::set_permissions(format!("{}/install-proxmox.sh", install_dir), perms).unwrap();
+    if let Ok(metadata) = fs::metadata(&proxmox_path) {
+        let mut perms = metadata.permissions();
+        perms.set_mode(0o755);
+        if let Err(e) = fs::set_permissions(&proxmox_path, perms) {
+            eprintln!("Failed to set permissions on install-proxmox.sh: {}", e);
+        }
+    }
 
     println!(
         "🏥 Created Proxmox installer: {}/install-proxmox.sh",

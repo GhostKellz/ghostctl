@@ -193,5 +193,5 @@ ghostctl pve wave --nodes n2,n3,n4 [--no-sub]
 * `ghostctl pve vm passthrough-wizard --vmid <id>` (writes hostpci lines + validates topology).
 * `ghostctl pve upgrade rollback` (flip back to Bookworm/PVE8 in chroot).
 
-[https://ghostctl.sh/](https://ghostctl.sh/)
+[https://ghostctl.cktech.sh/](https://ghostctl.cktech.sh/)
 

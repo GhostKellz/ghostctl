@@ -299,6 +299,12 @@ pub enum FixAction {
     RemoveOrphans,
 }
 
+impl std::fmt::Display for FixAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.description())
+    }
+}
+
 impl FixAction {
     pub fn description(&self) -> &str {
         match self {
@@ -309,6 +315,32 @@ impl FixAction {
             FixAction::RefreshKeyring => "Refresh keyring",
             FixAction::SyncDatabase => "Sync package database",
             FixAction::RemoveOrphans => "Remove orphaned packages",
+        }
+    }
+
+    /// Get the priority of this fix action (lower = higher priority)
+    pub fn priority(&self) -> u8 {
+        match self {
+            FixAction::FixGetcwd => 1,
+            FixAction::RemovePacmanLock => 2,
+            FixAction::FixNetwork => 3,
+            FixAction::UpdateMirrors => 4,
+            FixAction::RefreshKeyring => 5,
+            FixAction::SyncDatabase => 6,
+            FixAction::RemoveOrphans => 7,
+        }
+    }
+
+    /// Check if this action requires sudo
+    pub fn requires_sudo(&self) -> bool {
+        match self {
+            FixAction::FixGetcwd => false,
+            FixAction::RemovePacmanLock => true,
+            FixAction::FixNetwork => true,
+            FixAction::UpdateMirrors => true,
+            FixAction::RefreshKeyring => true,
+            FixAction::SyncDatabase => true,
+            FixAction::RemoveOrphans => true,
         }
     }
 
@@ -595,7 +627,8 @@ impl FixAction {
                     .args(&["pacman-key", "--init"])
                     .status();
 
-                if init.is_err() || !init.unwrap().success() {
+                let init_ok = matches!(init, Ok(s) if s.success());
+                if !init_ok {
                     println!("  ❌ Failed to initialize keyring");
                     println!(
                         "  💡 Restore backup: sudo cp -a /etc/pacman.d/gnupg.backup /etc/pacman.d/gnupg"
@@ -674,5 +707,326 @@ impl FixAction {
                 false
             }
         }
+    }
+}
+
+// ============= Utility functions for testing =============
+
+/// Parse a mirrorlist file content to check for active servers
+pub fn has_active_mirrors(content: &str) -> bool {
+    content
+        .lines()
+        .any(|line| line.trim_start().starts_with("Server = "))
+}
+
+/// Count the number of active mirrors in a mirrorlist
+pub fn count_active_mirrors(content: &str) -> usize {
+    content
+        .lines()
+        .filter(|line| line.trim_start().starts_with("Server = "))
+        .count()
+}
+
+/// Parse a network interface status from ip link output
+pub fn parse_interface_state(line: &str) -> Option<(String, bool)> {
+    // Format: "2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> ..."
+    if let Some(colon_pos) = line.find(':') {
+        let rest = &line[colon_pos + 1..];
+        if let Some(second_colon) = rest.find(':') {
+            let iface_name = rest[..second_colon].trim().to_string();
+            let is_up = line.contains("state UP") || line.contains(",UP,");
+            return Some((iface_name, is_up));
+        }
+    }
+    None
+}
+
+/// Check if a network error message indicates DNS issues
+pub fn is_dns_error(error_msg: &str) -> bool {
+    let dns_indicators = [
+        "dns",
+        "resolve",
+        "name resolution",
+        "no address associated",
+        "nxdomain",
+        "servfail",
+    ];
+    let lower = error_msg.to_lowercase();
+    dns_indicators.iter().any(|&ind| lower.contains(ind))
+}
+
+/// Check if a network error message indicates connectivity issues
+pub fn is_connectivity_error(error_msg: &str) -> bool {
+    let conn_indicators = [
+        "network unreachable",
+        "no route to host",
+        "connection refused",
+        "connection timed out",
+        "network is down",
+    ];
+    let lower = error_msg.to_lowercase();
+    conn_indicators.iter().any(|&ind| lower.contains(ind))
+}
+
+/// Validate keyring directory structure
+pub fn validate_keyring_structure(keyring_path: &std::path::Path) -> KeyringValidation {
+    let mut validation = KeyringValidation::default();
+
+    validation.directory_exists = keyring_path.exists();
+    if !validation.directory_exists {
+        return validation;
+    }
+
+    let pubring = keyring_path.join("pubring.gpg");
+    validation.pubring_exists = pubring.exists();
+
+    if validation.pubring_exists {
+        if let Ok(metadata) = std::fs::metadata(&pubring) {
+            validation.pubring_size = metadata.len();
+            validation.pubring_valid = metadata.len() >= 100;
+        }
+    }
+
+    let trustdb = keyring_path.join("trustdb.gpg");
+    validation.trustdb_exists = trustdb.exists();
+
+    validation
+}
+
+/// Result of keyring validation
+#[derive(Debug, Default, PartialEq)]
+pub struct KeyringValidation {
+    pub directory_exists: bool,
+    pub pubring_exists: bool,
+    pub pubring_size: u64,
+    pub pubring_valid: bool,
+    pub trustdb_exists: bool,
+}
+
+impl KeyringValidation {
+    /// Check if keyring appears healthy
+    pub fn is_healthy(&self) -> bool {
+        self.directory_exists && self.pubring_exists && self.pubring_valid
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_system_diagnostics_new() {
+        let diag = SystemDiagnostics::new();
+        assert!(!diag.has_network_issues);
+        assert!(!diag.has_mirror_issues);
+        assert!(!diag.has_pacman_lock);
+        assert!(!diag.has_keyring_issues);
+        assert!(!diag.has_getcwd_error);
+        assert!(!diag.has_permission_errors);
+        assert!(!diag.has_orphaned_packages);
+        assert!(!diag.has_database_issues);
+        assert!(diag.network_error_details.is_none());
+    }
+
+    #[test]
+    fn test_system_diagnostics_has_issues() {
+        let mut diag = SystemDiagnostics::new();
+        assert!(!diag.has_issues());
+
+        diag.has_network_issues = true;
+        assert!(diag.has_issues());
+
+        diag = SystemDiagnostics::new();
+        diag.has_pacman_lock = true;
+        assert!(diag.has_issues());
+    }
+
+    #[test]
+    fn test_system_diagnostics_get_fix_sequence_empty() {
+        let diag = SystemDiagnostics::new();
+        let actions = diag.get_fix_sequence();
+        assert!(actions.is_empty());
+    }
+
+    #[test]
+    fn test_system_diagnostics_get_fix_sequence_priority() {
+        let mut diag = SystemDiagnostics::new();
+        diag.has_mirror_issues = true;
+        diag.has_pacman_lock = true;
+        diag.has_getcwd_error = true;
+
+        let actions = diag.get_fix_sequence();
+        assert_eq!(actions.len(), 3);
+        // Should be in priority order
+        assert_eq!(actions[0], FixAction::FixGetcwd);
+        assert_eq!(actions[1], FixAction::RemovePacmanLock);
+        assert_eq!(actions[2], FixAction::UpdateMirrors);
+    }
+
+    #[test]
+    fn test_fix_action_description() {
+        assert_eq!(FixAction::FixGetcwd.description(), "Fix working directory");
+        assert_eq!(
+            FixAction::RemovePacmanLock.description(),
+            "Remove pacman lock"
+        );
+        assert_eq!(
+            FixAction::FixNetwork.description(),
+            "Fix network connectivity"
+        );
+        assert_eq!(FixAction::UpdateMirrors.description(), "Update mirror list");
+        assert_eq!(FixAction::RefreshKeyring.description(), "Refresh keyring");
+        assert_eq!(
+            FixAction::SyncDatabase.description(),
+            "Sync package database"
+        );
+        assert_eq!(
+            FixAction::RemoveOrphans.description(),
+            "Remove orphaned packages"
+        );
+    }
+
+    #[test]
+    fn test_fix_action_priority() {
+        assert!(FixAction::FixGetcwd.priority() < FixAction::RemovePacmanLock.priority());
+        assert!(FixAction::RemovePacmanLock.priority() < FixAction::FixNetwork.priority());
+        assert!(FixAction::FixNetwork.priority() < FixAction::UpdateMirrors.priority());
+    }
+
+    #[test]
+    fn test_fix_action_requires_sudo() {
+        assert!(!FixAction::FixGetcwd.requires_sudo());
+        assert!(FixAction::RemovePacmanLock.requires_sudo());
+        assert!(FixAction::FixNetwork.requires_sudo());
+        assert!(FixAction::UpdateMirrors.requires_sudo());
+        assert!(FixAction::RefreshKeyring.requires_sudo());
+        assert!(FixAction::SyncDatabase.requires_sudo());
+        assert!(FixAction::RemoveOrphans.requires_sudo());
+    }
+
+    #[test]
+    fn test_has_active_mirrors_true() {
+        let content =
+            "## Some comment\nServer = https://mirror.example.com/archlinux/$repo/os/$arch\n";
+        assert!(has_active_mirrors(content));
+    }
+
+    #[test]
+    fn test_has_active_mirrors_commented() {
+        let content =
+            "## Some comment\n#Server = https://mirror.example.com/archlinux/$repo/os/$arch\n";
+        assert!(!has_active_mirrors(content));
+    }
+
+    #[test]
+    fn test_has_active_mirrors_empty() {
+        let content = "## Empty mirrorlist\n";
+        assert!(!has_active_mirrors(content));
+    }
+
+    #[test]
+    fn test_count_active_mirrors() {
+        let content = "Server = https://mirror1.com/$repo/os/$arch\n\
+                       #Server = https://mirror2.com/$repo/os/$arch\n\
+                       Server = https://mirror3.com/$repo/os/$arch\n";
+        assert_eq!(count_active_mirrors(content), 2);
+    }
+
+    #[test]
+    fn test_count_active_mirrors_none() {
+        let content = "#Server = https://mirror1.com/$repo/os/$arch\n";
+        assert_eq!(count_active_mirrors(content), 0);
+    }
+
+    #[test]
+    fn test_parse_interface_state_up() {
+        let line = "2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP";
+        let result = parse_interface_state(line);
+        let Some((name, is_up)) = result else {
+            panic!("Expected Some result from parse_interface_state");
+        };
+        assert_eq!(name, "enp0s3");
+        assert!(is_up);
+    }
+
+    #[test]
+    fn test_parse_interface_state_down() {
+        let line = "3: wlan0: <NO-CARRIER,BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN";
+        let result = parse_interface_state(line);
+        assert!(result.is_some());
+        let (name, is_up) = result.unwrap();
+        assert_eq!(name, "wlan0");
+        assert!(!is_up);
+    }
+
+    #[test]
+    fn test_is_dns_error() {
+        assert!(is_dns_error("Name resolution failed"));
+        assert!(is_dns_error("DNS lookup failed"));
+        assert!(is_dns_error("no address associated with hostname"));
+        assert!(!is_dns_error("Connection refused"));
+        assert!(!is_dns_error("Some other error"));
+    }
+
+    #[test]
+    fn test_is_connectivity_error() {
+        assert!(is_connectivity_error("Network unreachable"));
+        assert!(is_connectivity_error("No route to host"));
+        assert!(is_connectivity_error("Connection refused"));
+        assert!(is_connectivity_error("Connection timed out"));
+        assert!(!is_connectivity_error("DNS lookup failed"));
+    }
+
+    #[test]
+    fn test_keyring_validation_default() {
+        let validation = KeyringValidation::default();
+        assert!(!validation.directory_exists);
+        assert!(!validation.pubring_exists);
+        assert_eq!(validation.pubring_size, 0);
+        assert!(!validation.pubring_valid);
+        assert!(!validation.trustdb_exists);
+        assert!(!validation.is_healthy());
+    }
+
+    #[test]
+    fn test_keyring_validation_healthy() {
+        let validation = KeyringValidation {
+            directory_exists: true,
+            pubring_exists: true,
+            pubring_size: 1000,
+            pubring_valid: true,
+            trustdb_exists: true,
+        };
+        assert!(validation.is_healthy());
+    }
+
+    #[test]
+    fn test_keyring_validation_missing_pubring() {
+        let validation = KeyringValidation {
+            directory_exists: true,
+            pubring_exists: false,
+            pubring_size: 0,
+            pubring_valid: false,
+            trustdb_exists: true,
+        };
+        assert!(!validation.is_healthy());
+    }
+
+    #[test]
+    fn test_keyring_validation_small_pubring() {
+        let validation = KeyringValidation {
+            directory_exists: true,
+            pubring_exists: true,
+            pubring_size: 50, // Too small
+            pubring_valid: false,
+            trustdb_exists: true,
+        };
+        assert!(!validation.is_healthy());
+    }
+
+    #[test]
+    fn test_fix_action_display() {
+        let action = FixAction::FixNetwork;
+        assert_eq!(format!("{}", action), "Fix network connectivity");
     }
 }

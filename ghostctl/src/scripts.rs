@@ -1,8 +1,11 @@
 use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use reqwest::blocking::get;
 use std::fs;
+use std::io::Write;
+use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::Command;
+use tempfile::NamedTempFile;
 
 const SCRIPT_CATEGORIES: &[(&str, &str)] = &[
     ("System", "system"),
@@ -28,12 +31,18 @@ pub fn scripts_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Scripts & Tools")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to display menu: {}", e);
+            return;
+        }
+    };
 
     match choice {
         0 => remote_script_runner(),
@@ -62,12 +71,18 @@ fn ghostcert_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Certificate Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to display menu: {}", e);
+            return;
+        }
+    };
 
     match choice {
         0 => run_ghostcert_script(),
@@ -95,12 +110,18 @@ fn remote_script_runner() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Remote Scripts")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to display menu: {}", e);
+            return;
+        }
+    };
 
     match choice {
         0 => list_script_categories(),
@@ -122,12 +143,18 @@ fn script_templates() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Script Templates")
         .items(&templates)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to display menu: {}", e);
+            return;
+        }
+    };
 
     match choice {
         0 => create_bash_template(),
@@ -298,17 +325,24 @@ fi
 }
 
 fn save_template(filename: &str, content: &str) {
-    let scripts_dir = dirs::config_dir().unwrap().join("ghostctl/scripts");
-    fs::create_dir_all(&scripts_dir).unwrap();
+    let Some(config_dir) = dirs::config_dir() else {
+        eprintln!("Failed to get config directory");
+        return;
+    };
+    let scripts_dir = config_dir.join("ghostctl/scripts");
+    if let Err(e) = fs::create_dir_all(&scripts_dir) {
+        eprintln!("Failed to create scripts directory: {}", e);
+        return;
+    }
 
     let file_path = scripts_dir.join(filename);
 
     match fs::write(&file_path, content) {
         Ok(_) => {
             // Make executable
-            let _ = Command::new("chmod")
-                .args(&["+x", file_path.to_str().unwrap()])
-                .status();
+            if let Some(path_str) = file_path.to_str() {
+                let _ = Command::new("chmod").args(["+x", path_str]).status();
+            }
 
             println!("✅ Template saved: {:?}", file_path);
         }
@@ -324,26 +358,45 @@ pub fn run_script_by_url(url: &str) {
             if response.status().is_success() {
                 match response.text() {
                     Ok(content) => {
-                        // Save to temp file and execute
-                        let temp_file = "/tmp/ghostctl_script.sh";
+                        // Use secure tempfile with random name (auto-deleted on drop)
+                        match NamedTempFile::new() {
+                            Ok(mut temp_file) => {
+                                // Write content to temp file
+                                if let Err(e) = temp_file.write_all(content.as_bytes()) {
+                                    println!("❌ Failed to write script: {}", e);
+                                    return;
+                                }
 
-                        match fs::write(temp_file, content) {
-                            Ok(_) => {
-                                let _ = Command::new("chmod").args(&["+x", temp_file]).status();
+                                // Set executable permissions (0700 - owner only)
+                                let path = temp_file.path();
+                                if let Err(e) =
+                                    fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+                                {
+                                    println!("❌ Failed to set permissions: {}", e);
+                                    return;
+                                }
+
+                                // Show script hash for verification
+                                let hash = sha256_hash(&content);
+                                println!("📝 Script SHA256: {}", hash);
+                                println!("📄 Script preview (first 500 chars):");
+                                println!("{}", content.chars().take(500).collect::<String>());
+                                if content.len() > 500 {
+                                    println!("... (truncated)");
+                                }
 
                                 let confirm = Confirm::new()
                                     .with_prompt("Execute downloaded script?")
                                     .default(false)
                                     .interact()
-                                    .unwrap();
+                                    .unwrap_or(false);
 
                                 if confirm {
-                                    let _ = Command::new("bash").arg(temp_file).status();
+                                    let _ = Command::new("bash").arg(path).status();
                                 }
-
-                                let _ = fs::remove_file(temp_file);
+                                // temp_file is automatically deleted when dropped
                             }
-                            Err(e) => println!("❌ Failed to save script: {}", e),
+                            Err(e) => println!("❌ Failed to create temp file: {}", e),
                         }
                     }
                     Err(e) => println!("❌ Failed to read response: {}", e),
@@ -354,6 +407,14 @@ pub fn run_script_by_url(url: &str) {
         }
         Err(e) => println!("❌ Network error: {}", e),
     }
+}
+
+/// Calculate SHA256 hash of content for verification
+fn sha256_hash(content: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(content.as_bytes());
+    format!("{:x}", hasher.finalize())
 }
 
 pub fn list_script_categories() {
@@ -391,10 +452,17 @@ fn local_scripts_menu() {
     println!("📄 Local Scripts");
     println!("================");
 
-    let scripts_dir = dirs::config_dir().unwrap().join("ghostctl/scripts");
+    let Some(config_dir) = dirs::config_dir() else {
+        eprintln!("Failed to get config directory");
+        return;
+    };
+    let scripts_dir = config_dir.join("ghostctl/scripts");
 
     if !scripts_dir.exists() {
-        fs::create_dir_all(&scripts_dir).unwrap();
+        if let Err(e) = fs::create_dir_all(&scripts_dir) {
+            eprintln!("Failed to create scripts directory: {}", e);
+            return;
+        }
         println!("📁 Created scripts directory: {:?}", scripts_dir);
         return;
     }
@@ -421,10 +489,13 @@ fn local_scripts_menu() {
 }
 
 fn custom_script_url() {
-    let url: String = Input::new()
-        .with_prompt("Script URL")
-        .interact_text()
-        .unwrap();
+    let url: String = match Input::new().with_prompt("Script URL").interact_text() {
+        Ok(u) => u,
+        Err(e) => {
+            eprintln!("Failed to read input: {}", e);
+            return;
+        }
+    };
 
     if !url.trim().is_empty() {
         run_script_by_url(&url);
@@ -454,8 +525,15 @@ fn run_ghostcert_script() {
 fn download_ghostcert_script() {
     println!("📥 Downloading GhostCert Script");
 
-    let config_dir = dirs::config_dir().unwrap().join("ghostctl/scripts");
-    fs::create_dir_all(&config_dir).unwrap();
+    let Some(base_config_dir) = dirs::config_dir() else {
+        eprintln!("Failed to get config directory");
+        return;
+    };
+    let config_dir = base_config_dir.join("ghostctl/scripts");
+    if let Err(e) = fs::create_dir_all(&config_dir) {
+        eprintln!("Failed to create config directory: {}", e);
+        return;
+    }
 
     let script_url = "https://raw.githubusercontent.com/ghostkellz/ghostcert/main/ghostcert.sh";
     let script_path = config_dir.join("ghostcert.sh");
@@ -466,9 +544,9 @@ fn download_ghostcert_script() {
                 match response.text() {
                     Ok(content) => match fs::write(&script_path, content) {
                         Ok(_) => {
-                            let _ = Command::new("chmod")
-                                .args(&["+x", script_path.to_str().unwrap()])
-                                .status();
+                            if let Some(path_str) = script_path.to_str() {
+                                let _ = Command::new("chmod").args(["+x", path_str]).status();
+                            }
                             println!("✅ Downloaded: {:?}", script_path);
                             let _ = Command::new("bash").arg(&script_path).status();
                         }
@@ -514,14 +592,13 @@ fn check_letsencrypt_certificates() {
 }
 
 fn check_certificate_expiry(cert_path: &Path) {
+    let Some(cert_path_str) = cert_path.to_str() else {
+        eprintln!("  Invalid certificate path");
+        return;
+    };
+
     let output = Command::new("openssl")
-        .args(&[
-            "x509",
-            "-in",
-            cert_path.to_str().unwrap(),
-            "-checkend",
-            "2592000",
-        ])
+        .args(["x509", "-in", cert_path_str, "-checkend", "2592000"])
         .output();
 
     match output {
@@ -539,10 +616,13 @@ fn check_certificate_expiry(cert_path: &Path) {
 fn view_certificate_details() {
     println!("📋 Certificate Details");
 
-    let domain_name: String = Input::new()
-        .with_prompt("Domain name")
-        .interact_text()
-        .unwrap();
+    let domain_name: String = match Input::new().with_prompt("Domain name").interact_text() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("Failed to read input: {}", e);
+            return;
+        }
+    };
 
     // Create filenames that will live long enough
     let cert_filename = format!("{}.crt", domain_name);
@@ -572,12 +652,14 @@ fn generate_new_certificate() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Certificate type")
         .items(&cert_types)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => println!("💡 Use: sudo certbot --nginx -d yourdomain.com"),
@@ -606,10 +688,12 @@ fn certificate_inventory() {
 fn check_web_server_ssl() {
     println!("🌐 Web Server SSL Check");
 
-    let domain: String = Input::new()
+    let Ok(domain) = Input::<String>::new()
         .with_prompt("Domain to check")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔍 Checking SSL for: {}", domain);
     let _ = Command::new("curl")
@@ -629,8 +713,10 @@ fn view_ghostcert_help() {
 }
 
 fn find_ghostcert_script() -> Option<String> {
-    let home_path = dirs::home_dir()
-        .unwrap()
+    let Some(home_dir) = dirs::home_dir() else {
+        return None;
+    };
+    let home_path = home_dir
         .join(".config/ghostctl/scripts/ghostcert.sh")
         .to_string_lossy()
         .to_string();

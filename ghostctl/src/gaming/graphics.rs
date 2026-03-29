@@ -14,12 +14,14 @@ pub fn graphics_menu() {
             "⬅️  Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🎨 Graphics & Compatibility")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => graphics_driver_management(),
@@ -47,12 +49,14 @@ fn graphics_driver_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Graphics Driver Management")
         .items(&driver_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => nvidia_driver_management(),
@@ -77,12 +81,14 @@ fn nvidia_driver_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("NVIDIA Management")
         .items(&nvidia_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_nvidia_drivers(),
@@ -98,11 +104,13 @@ fn install_nvidia_drivers() {
     println!("📦 Installing NVIDIA Drivers");
     println!("============================");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Install NVIDIA drivers and utilities?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let nvidia_packages = [
@@ -202,12 +210,14 @@ fn amd_driver_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("AMD Management")
         .items(&amd_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_amd_drivers(),
@@ -317,11 +327,13 @@ fn amd_gpu_configuration() {
     );
     println!("  • Configure fan curves with corectrl");
 
-    let apply_optimizations = Confirm::new()
+    let Ok(apply_optimizations) = Confirm::new()
         .with_prompt("Apply basic AMD optimizations?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if apply_optimizations {
         apply_amd_optimizations();
@@ -382,11 +394,13 @@ fn intel_driver_management() {
         "libva-intel-driver",
     ];
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Install Intel graphics drivers?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let status = Command::new("sudo")
@@ -456,12 +470,14 @@ fn vulkan_setup() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Vulkan Setup")
         .items(&vulkan_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_vulkan_drivers(),
@@ -535,11 +551,13 @@ fn vulkan_performance_tuning() {
     println!("  export ACO_DEBUG=validateir,validatera");
     println!("  export MESA_VK_WSI_PRESENT_MODE=fifo"); // VSync
 
-    let apply_config = Confirm::new()
+    let Ok(apply_config) = Confirm::new()
         .with_prompt("Add Vulkan optimizations to ~/.profile?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if apply_config {
         setup_vulkan_optimizations();
@@ -554,9 +572,10 @@ export RADV_PERFTEST=aco
 export MESA_VK_WSI_PRESENT_MODE=fifo
 "#;
 
-    let profile_path = std::env::home_dir()
-        .map(|h| h.join(".profile"))
-        .unwrap_or_else(|| std::path::PathBuf::from("~/.profile"));
+    let Some(profile_path) = std::env::home_dir().map(|h| h.join(".profile")) else {
+        println!("❌ Could not determine home directory");
+        return;
+    };
 
     use std::fs::OpenOptions;
     use std::io::Write;
@@ -618,12 +637,14 @@ fn opengl_configuration() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("OpenGL Configuration")
         .items(&opengl_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => opengl_status(),
@@ -658,11 +679,13 @@ fn opengl_performance_settings() {
     println!("  export __GL_SHADER_DISK_CACHE_PATH=~/.cache/gl_shader");
     println!("  export MESA_GL_VERSION_OVERRIDE=4.6");
 
-    let apply_config = Confirm::new()
+    let Ok(apply_config) = Confirm::new()
         .with_prompt("Add OpenGL optimizations to ~/.profile?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if apply_config {
         setup_opengl_optimizations();
@@ -677,9 +700,10 @@ export __GL_SHADER_DISK_CACHE=1
 export __GL_SHADER_DISK_CACHE_PATH=~/.cache/gl_shader
 "#;
 
-    let profile_path = std::env::home_dir()
-        .map(|h| h.join(".profile"))
-        .unwrap_or_else(|| std::path::PathBuf::from("~/.profile"));
+    let Some(profile_path) = std::env::home_dir().map(|h| h.join(".profile")) else {
+        println!("❌ Could not determine home directory");
+        return;
+    };
 
     use std::fs::OpenOptions;
     use std::io::Write;
@@ -717,11 +741,13 @@ fn opengl_testing() {
     println!("  glxinfo -B       # OpenGL information");
     println!("  mesa-demos       # Mesa demo applications");
 
-    let install_demos = Confirm::new()
+    let Ok(install_demos) = Confirm::new()
         .with_prompt("Install mesa-demos for testing?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_demos {
         let status = Command::new("sudo")
@@ -751,12 +777,14 @@ fn graphics_performance_tuning() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Performance Tuning")
         .items(&perf_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => gpu_frequency_scaling(),
@@ -790,11 +818,13 @@ fn temperature_management() {
     println!("  • nvidia-smi - NVIDIA GPU temp");
     println!("  • radeontop - AMD GPU monitoring");
 
-    let install_sensors = Confirm::new()
+    let Ok(install_sensors) = Confirm::new()
         .with_prompt("Install temperature monitoring tools?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_sensors {
         let tools = ["lm_sensors", "nvtop", "radeontop"];
@@ -840,12 +870,14 @@ fn gaming_specific_tweaks() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Gaming Tweaks")
         .items(&gaming_tweaks)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => setup_gaming_gpu_profile(),
@@ -868,9 +900,10 @@ fn configure_shader_cache() {
     println!("🔧 Configuring Shader Cache");
     println!("===========================");
 
-    let cache_dir = std::env::home_dir()
-        .map(|h| h.join(".cache/gl_shader"))
-        .unwrap_or_else(|| std::path::PathBuf::from("~/.cache/gl_shader"));
+    let Some(cache_dir) = std::env::home_dir().map(|h| h.join(".cache/gl_shader")) else {
+        println!("❌ Could not determine home directory");
+        return;
+    };
 
     if !cache_dir.exists() && std::fs::create_dir_all(&cache_dir).is_err() {
         println!("❌ Failed to create shader cache directory");
@@ -919,12 +952,14 @@ fn performance_monitoring() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Performance Monitoring")
         .items(&monitoring_tools)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_mangohud(),
@@ -992,12 +1027,14 @@ fn multi_gpu_setup() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Multi-GPU Setup")
         .items(&multi_gpu_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => detect_multiple_gpus(),
@@ -1080,12 +1117,14 @@ fn game_specific_fixes() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Game Fixes")
         .items(&fix_categories)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => directx_dxvk_fixes(),
@@ -1152,12 +1191,14 @@ fn graphics_diagnostics() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Graphics Diagnostics")
         .items(&diagnostic_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => hardware_information(),
@@ -1257,12 +1298,14 @@ fn graphics_tests() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Graphics Tests")
         .items(&test_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => run_opengl_test(),
@@ -1303,11 +1346,13 @@ fn run_benchmark_test() {
     println!("  • vkmark - Vulkan benchmark");
     println!("  • Unigine Heaven/Valley");
 
-    let install_glmark2 = Confirm::new()
+    let Ok(install_glmark2) = Confirm::new()
         .with_prompt("Install and run glmark2 benchmark?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_glmark2 {
         let status = Command::new("sudo")

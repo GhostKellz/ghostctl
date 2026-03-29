@@ -17,12 +17,15 @@ pub fn container_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Container Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => list_containers(),
@@ -30,7 +33,9 @@ pub fn container_management() {
         2 => {
             println!("Enter container ID to stop:");
             let mut input = String::new();
-            std::io::stdin().read_line(&mut input).unwrap();
+            if std::io::stdin().read_line(&mut input).is_err() {
+                return;
+            }
             let id = input.trim().to_string();
             if !id.is_empty() {
                 stop_container(id);
@@ -47,22 +52,41 @@ pub fn container_management() {
 
 pub fn list_containers() {
     println!("📋 Docker Containers");
-    let _ = Command::new("docker").args(&["ps", "-a"]).status();
+    if let Err(e) = Command::new("docker").args(["ps", "-a"]).status() {
+        println!("❌ Failed to list containers: {}", e);
+    }
 }
 
 fn run_container() {
     use dialoguer::Input;
 
-    let image: String = Input::new()
-        .with_prompt("Image name")
-        .interact_text()
-        .unwrap();
+    let image: String = match Input::new().with_prompt("Image name").interact_text() {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
-    let name: String = Input::new()
+    // Validate image name
+    if let Err(e) = crate::docker::validate_image_name(&image) {
+        println!("❌ Invalid image name: {}", e);
+        return;
+    }
+
+    let name: String = match Input::new()
         .with_prompt("Container name (optional)")
         .allow_empty(true)
         .interact_text()
-        .unwrap();
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+
+    // Validate container name if provided
+    if !name.is_empty() {
+        if let Err(e) = crate::docker::validate_container_name(&name) {
+            println!("❌ Invalid container name: {}", e);
+            return;
+        }
+    }
 
     let mut args = vec!["run", "-d"];
 
@@ -77,49 +101,82 @@ fn run_container() {
 
     match status {
         Ok(s) if s.success() => println!("✅ Container started successfully"),
-        _ => println!("❌ Failed to start container"),
+        Ok(s) => println!("❌ Failed to start container (exit code: {:?})", s.code()),
+        Err(e) => println!("❌ Failed to start container: {}", e),
     }
 }
 
 pub fn stop_container(id: String) {
+    // Validate container ID/name
+    if let Err(e) = crate::docker::validate_container_name(&id) {
+        println!("❌ Invalid container ID/name: {}", e);
+        return;
+    }
+
     println!("🛑 Stopping Docker Container: {}", id);
-    let _ = std::process::Command::new("docker")
-        .args(&["stop", &id])
-        .status();
+    match std::process::Command::new("docker")
+        .args(["stop", &id])
+        .status()
+    {
+        Ok(s) if s.success() => println!("✅ Container stopped"),
+        Ok(_) => println!("⚠️  Container stop returned non-zero exit"),
+        Err(e) => println!("❌ Failed to stop container: {}", e),
+    }
 }
 
 fn restart_container() {
     use dialoguer::Input;
 
-    let container: String = Input::new()
+    let container: String = match Input::new()
         .with_prompt("Container name or ID")
         .interact_text()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+
+    // Validate container name/ID
+    if let Err(e) = crate::docker::validate_container_name(&container) {
+        println!("❌ Invalid container name/ID: {}", e);
+        return;
+    }
 
     println!("🔄 Restarting container: {}", container);
     let status = Command::new("docker")
-        .args(&["restart", &container])
+        .args(["restart", &container])
         .status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Container restarted successfully"),
-        _ => println!("❌ Failed to restart container"),
+        Ok(s) => println!("❌ Failed to restart container (exit code: {:?})", s.code()),
+        Err(e) => println!("❌ Failed to restart container: {}", e),
     }
 }
 
 fn remove_container() {
     use dialoguer::{Confirm, Input};
 
-    let container: String = Input::new()
+    let container: String = match Input::new()
         .with_prompt("Container name or ID")
         .interact_text()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+
+    // Validate container name/ID
+    if let Err(e) = crate::docker::validate_container_name(&container) {
+        println!("❌ Invalid container name/ID: {}", e);
+        return;
+    }
 
     let force = Confirm::new()
         .with_prompt("Force remove (stop if running)?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     let mut args = vec!["rm"];
     if force {
@@ -132,30 +189,45 @@ fn remove_container() {
 
     match status {
         Ok(s) if s.success() => println!("✅ Container removed successfully"),
-        _ => println!("❌ Failed to remove container"),
+        Ok(s) => println!("❌ Failed to remove container (exit code: {:?})", s.code()),
+        Err(e) => println!("❌ Failed to remove container: {}", e),
     }
 }
 
 fn container_stats() {
     println!("📊 Container Stats");
-    let _ = Command::new("docker")
-        .args(&["stats", "--no-stream"])
-        .status();
+    if let Err(e) = Command::new("docker")
+        .args(["stats", "--no-stream"])
+        .status()
+    {
+        println!("❌ Failed to get container stats: {}", e);
+    }
 }
 
 fn container_logs() {
     use dialoguer::{Confirm, Input};
 
-    let container: String = Input::new()
+    let container: String = match Input::new()
         .with_prompt("Container name or ID")
         .interact_text()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+
+    // Validate container name/ID
+    if let Err(e) = crate::docker::validate_container_name(&container) {
+        println!("❌ Invalid container name/ID: {}", e);
+        return;
+    }
 
     let follow = Confirm::new()
         .with_prompt("Follow logs (real-time)?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     let mut args = vec!["logs"];
     if follow {
@@ -165,19 +237,33 @@ fn container_logs() {
     args.push(&container);
 
     println!("📜 Container logs for: {}", container);
-    let _ = Command::new("docker").args(&args).status();
+    if let Err(e) = Command::new("docker").args(&args).status() {
+        println!("❌ Failed to get container logs: {}", e);
+    }
 }
 
 fn inspect_container() {
     use dialoguer::Input;
 
-    let container: String = Input::new()
+    let container: String = match Input::new()
         .with_prompt("Container name or ID")
         .interact_text()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+
+    // Validate container name/ID
+    if let Err(e) = crate::docker::validate_container_name(&container) {
+        println!("❌ Invalid container name/ID: {}", e);
+        return;
+    }
 
     println!("🔍 Inspecting container: {}", container);
-    let _ = Command::new("docker")
-        .args(&["inspect", &container])
-        .status();
+    if let Err(e) = Command::new("docker")
+        .args(["inspect", &container])
+        .status()
+    {
+        println!("❌ Failed to inspect container: {}", e);
+    }
 }

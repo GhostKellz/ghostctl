@@ -82,12 +82,15 @@ pub fn dlss_menu() {
             "⬅️  Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let choice = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("DLSS Management")
             .items(&options)
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => break,
+        };
 
         match choice {
             0 => dlss_status(),
@@ -174,7 +177,7 @@ fn check_gpu_dlss_support() {
                     let compute_cap = parts[1].trim();
 
                     // DLSS requires Tensor Cores (RTX series, compute capability 7.5+)
-                    let compute_ver: f32 = compute_cap.parse().unwrap_or(0.0);
+                    let compute_ver: f32 = compute_cap.parse().unwrap_or_default();
 
                     if compute_ver >= 7.5 {
                         println!(
@@ -394,12 +397,15 @@ fn dlss_upgrade_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("DLSS Upgrade Options")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => configure_proton_dlss_upgrade(),
@@ -429,21 +435,27 @@ fn configure_proton_dlss_upgrade() {
         "Disable DLSS upgrade",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select DLSS upgrade mode")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     let version = match choice {
         0 => "1".to_string(), // Force latest
         1 => "310.5.0".to_string(),
         2 => "310.2.1".to_string(),
-        3 => Input::<String>::with_theme(&ColorfulTheme::default())
+        3 => match Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter DLSS version (e.g., 310.5.0)")
             .interact()
-            .unwrap(),
+        {
+            Ok(v) => v,
+            Err(_) => return,
+        },
         _ => {
             println!("✅ DLSS upgrade disabled");
             return;
@@ -474,8 +486,10 @@ fn configure_proton_dlss_upgrade() {
     let create_env = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Create/update ~/.config/environment.d/dlss.conf?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if create_env {
         let home = std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string());
@@ -573,12 +587,15 @@ fn ge_proton_dlss_config() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("GE-Proton DLSS Options")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => configure_proton_dlss_upgrade(),
@@ -601,8 +618,10 @@ fn configure_dlss_indicator() {
     let enable = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Enable DLSS indicator overlay?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if enable {
         println!("\n📝 Add to your environment or Steam launch options:");
@@ -628,12 +647,15 @@ fn configure_dlss_drs_settings() {
         "Custom DRS string",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select DLSS preset configuration")
         .items(&presets)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -654,10 +676,13 @@ fn configure_dlss_drs_settings() {
             );
         }
         5 => {
-            let custom = Input::<String>::with_theme(&ColorfulTheme::default())
+            let custom = match Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter custom DRS settings string")
                 .interact()
-                .unwrap();
+            {
+                Ok(c) => c,
+                Err(_) => return,
+            };
             println!("\n📝 Add to environment:");
             println!("   DXVK_NVAPI_DRS_SETTINGS=\"{}\"", custom);
         }
@@ -676,8 +701,10 @@ fn generate_steam_launch_options() {
     let enable_upgrade = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Enable DLSS auto-upgrade to latest (310.5.0)?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if enable_upgrade {
         options.push("PROTON_DLSS_UPGRADE=1".to_string());
@@ -687,8 +714,10 @@ fn generate_steam_launch_options() {
     let enable_indicator = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Enable DLSS indicator overlay?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if enable_indicator {
         options.push("PROTON_DLSS_INDICATOR=1".to_string());
@@ -698,8 +727,10 @@ fn generate_steam_launch_options() {
     let enable_gamemode = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Enable GameMode?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if enable_gamemode {
         options.push("gamemoderun".to_string());
@@ -709,8 +740,10 @@ fn generate_steam_launch_options() {
     let enable_mangohud = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Enable MangoHud?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if enable_mangohud {
         options.push("mangohud".to_string());
@@ -820,12 +853,15 @@ fn dxvk_nvapi_dlss_settings() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("DXVK-NVAPI Options")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -840,22 +876,28 @@ fn dxvk_nvapi_dlss_settings() {
             println!("   PROTON_ENABLE_NVAPI=0");
         }
         2 => {
-            let version = Input::<String>::with_theme(&ColorfulTheme::default())
+            let version = match Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter driver version to spoof (e.g., 56538)")
                 .default("56538".to_string())
                 .interact()
-                .unwrap();
+            {
+                Ok(v) => v,
+                Err(_) => return,
+            };
             println!("\n📝 Add to environment:");
             println!("   DXVK_NVAPI_DRIVER_VERSION={}", version);
         }
         3 => {
             let levels = ["none", "error", "warn", "info", "debug"];
-            let level = Select::with_theme(&ColorfulTheme::default())
+            let level = match Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select log level")
                 .items(&levels)
                 .default(0)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(l)) => l,
+                _ => return,
+            };
             println!("\n📝 Add to environment:");
             println!("   DXVK_NVAPI_LOG_LEVEL={}", levels[level]);
         }
@@ -885,7 +927,7 @@ fn dlss_compatibility_check() {
                 .split('.')
                 .next()
                 .and_then(|s| s.parse().ok())
-                .unwrap_or(0);
+                .unwrap_or_default();
 
             if major >= 545 {
                 println!("  ✅ Driver {} - Full DLSS 3.5+ support", version);

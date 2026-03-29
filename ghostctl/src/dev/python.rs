@@ -1,6 +1,60 @@
 use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
 use std::process::Command;
 
+/// Validate Python package name
+fn validate_package_name(name: &str) -> Result<(), &'static str> {
+    if name.is_empty() {
+        return Err("Package name cannot be empty");
+    }
+    if name.len() > 200 {
+        return Err("Package name too long");
+    }
+    // PyPI package names: alphanumeric, hyphen, underscore, dot, brackets for extras
+    // Also allow comparison operators and version specifiers
+    if !name.chars().all(|c| {
+        c.is_alphanumeric()
+            || c == '-'
+            || c == '_'
+            || c == '.'
+            || c == '['
+            || c == ']'
+            || c == ','
+            || c == '>'
+            || c == '<'
+            || c == '='
+            || c == '!'
+            || c == '~'
+    }) {
+        return Err("Package name contains invalid characters");
+    }
+    // Prevent path traversal attempts
+    if name.contains("..") || name.starts_with('/') || name.starts_with('-') {
+        return Err("Invalid package name format");
+    }
+    Ok(())
+}
+
+/// Validate environment/directory name
+fn validate_env_name(name: &str) -> Result<(), &'static str> {
+    if name.is_empty() {
+        return Err("Environment name cannot be empty");
+    }
+    if name.len() > 100 {
+        return Err("Environment name too long");
+    }
+    // Only allow safe directory names
+    if !name
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err("Environment name contains invalid characters");
+    }
+    if name.starts_with('-') {
+        return Err("Environment name cannot start with hyphen");
+    }
+    Ok(())
+}
+
 pub fn python_development_menu() {
     println!("🐍 Python Development Environment");
     println!("=================================");
@@ -15,12 +69,14 @@ pub fn python_development_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Python Development")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_python(),
@@ -51,12 +107,14 @@ fn install_python() {
         "🔨 Build from Source",
     ];
 
-    let method = Select::with_theme(&ColorfulTheme::default())
+    let Ok(method) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Installation method")
         .items(&install_methods)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match method {
         0 => install_python_package_manager(),
@@ -69,20 +127,36 @@ fn install_python() {
 
 fn install_python_package_manager() {
     // Try different package managers with reaper priority
-    if Command::new("which").arg("reap").status().is_ok() {
-        println!("📦 Installing Python with reaper...");
-        let _ = Command::new("reap").arg("python").status();
-        let _ = Command::new("reap").arg("python-pip").status();
-    } else if Command::new("which").arg("pacman").status().is_ok() {
-        println!("📦 Installing Python with pacman...");
-        let _ = Command::new("sudo")
-            .args(&["pacman", "-S", "--noconfirm", "python", "python-pip"])
-            .status();
-    } else if Command::new("which").arg("apt").status().is_ok() {
-        println!("📦 Installing Python with apt...");
-        let _ = Command::new("sudo").args(&["apt", "update"]).status();
-        let _ = Command::new("sudo")
-            .args(&[
+    let install_result = if Command::new("which")
+        .arg("reap")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("Installing Python with reaper...");
+        if let Err(e) = Command::new("reap").arg("python").status() {
+            eprintln!("Warning: Failed to install python: {}", e);
+        }
+        Command::new("reap").arg("python-pip").status()
+    } else if Command::new("which")
+        .arg("pacman")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("Installing Python with pacman...");
+        Command::new("sudo")
+            .args(["pacman", "-S", "--noconfirm", "python", "python-pip"])
+            .status()
+    } else if Command::new("which")
+        .arg("apt")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("Installing Python with apt...");
+        if let Err(e) = Command::new("sudo").args(["apt", "update"]).status() {
+            eprintln!("Warning: apt update failed: {}", e);
+        }
+        Command::new("sudo")
+            .args([
                 "apt",
                 "install",
                 "-y",
@@ -90,20 +164,43 @@ fn install_python_package_manager() {
                 "python3-pip",
                 "python3-venv",
             ])
-            .status();
-    } else if Command::new("which").arg("dnf").status().is_ok() {
-        println!("📦 Installing Python with dnf...");
-        let _ = Command::new("sudo")
-            .args(&["dnf", "install", "-y", "python3", "python3-pip"])
-            .status();
+            .status()
+    } else if Command::new("which")
+        .arg("dnf")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("Installing Python with dnf...");
+        Command::new("sudo")
+            .args(["dnf", "install", "-y", "python3", "python3-pip"])
+            .status()
+    } else {
+        eprintln!("No supported package manager found");
+        return;
+    };
+
+    match install_result {
+        Ok(status) if status.success() => {
+            println!("Installation command completed");
+        }
+        Ok(status) => {
+            eprintln!("Installation exited with code: {:?}", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run installation: {}", e);
+        }
     }
 
-    if Command::new("which").arg("python3").status().is_ok() {
-        println!("✅ Python installed successfully");
+    if Command::new("which")
+        .arg("python3")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("Python installed successfully");
         show_python_version();
         setup_python_environment();
     } else {
-        println!("❌ Package manager installation failed");
+        eprintln!("Package manager installation failed");
     }
 }
 
@@ -116,11 +213,13 @@ fn install_pyenv() {
         return;
     }
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Install pyenv for Python version management?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("📥 Installing pyenv...");
@@ -148,17 +247,19 @@ fn install_python_from_source() {
 
     println!("⚠️  Building Python from source requires development tools");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Continue with source build?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         // Install build dependencies first
         if Command::new("which").arg("pacman").status().is_ok() {
-            let _ = Command::new("sudo")
-                .args(&[
+            if let Err(e) = Command::new("sudo")
+                .args([
                     "pacman",
                     "-S",
                     "--noconfirm",
@@ -167,13 +268,19 @@ fn install_python_from_source() {
                     "zlib",
                     "bzip2",
                 ])
-                .status();
+                .status()
+            {
+                eprintln!("Failed to install build dependencies: {}", e);
+            }
         }
 
         println!("📥 Downloading Python source...");
-        let _ = Command::new("wget")
-            .args(&["https://www.python.org/ftp/python/3.11.0/Python-3.11.0.tgz"])
-            .status();
+        if let Err(e) = Command::new("wget")
+            .args(["https://www.python.org/ftp/python/3.11.0/Python-3.11.0.tgz"])
+            .status()
+        {
+            eprintln!("Failed to download Python source: {}", e);
+        }
 
         println!("🔨 Building... (this will take a while)");
         println!(
@@ -196,12 +303,14 @@ fn virtual_environment_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Virtual Environment")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => create_virtual_environment(),
@@ -215,40 +324,73 @@ fn virtual_environment_management() {
 }
 
 fn create_virtual_environment() {
-    let env_name: String = Input::new()
-        .with_prompt("Environment name")
-        .interact_text()
-        .unwrap();
+    let Ok(env_name): Result<String, _> =
+        Input::new().with_prompt("Environment name").interact_text()
+    else {
+        return;
+    };
+
+    // Validate environment name
+    if let Err(e) = validate_env_name(&env_name) {
+        eprintln!("Invalid environment name: {}", e);
+        return;
+    }
 
     let tools = ["venv (built-in)", "virtualenv", "conda"];
-    let tool = Select::with_theme(&ColorfulTheme::default())
+    let Ok(tool) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Environment tool")
         .items(&tools)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match tool {
         0 => {
-            let _ = Command::new("python3")
-                .args(&["-m", "venv", &env_name])
-                .status();
-            println!("✅ Virtual environment '{}' created with venv", env_name);
-            println!("💡 Activate with: source {}/bin/activate", env_name);
+            match Command::new("python3")
+                .args(["-m", "venv", &env_name])
+                .status()
+            {
+                Ok(status) if status.success() => {
+                    println!("Virtual environment '{}' created with venv", env_name);
+                    println!("Activate with: source {}/bin/activate", env_name);
+                }
+                Ok(status) => {
+                    eprintln!("venv creation failed with code: {:?}", status.code());
+                }
+                Err(e) => {
+                    eprintln!("Failed to create venv: {}", e);
+                }
+            }
         }
-        1 => {
-            let _ = Command::new("virtualenv").arg(&env_name).status();
-            println!(
-                "✅ Virtual environment '{}' created with virtualenv",
-                env_name
-            );
-        }
+        1 => match Command::new("virtualenv").arg(&env_name).status() {
+            Ok(status) if status.success() => {
+                println!("Virtual environment '{}' created with virtualenv", env_name);
+            }
+            Ok(status) => {
+                eprintln!("virtualenv failed with code: {:?}", status.code());
+            }
+            Err(e) => {
+                eprintln!("Failed to run virtualenv: {}", e);
+            }
+        },
         2 => {
-            let _ = Command::new("conda")
-                .args(&["create", "-n", &env_name, "python"])
-                .status();
-            println!("✅ Conda environment '{}' created", env_name);
-            println!("💡 Activate with: conda activate {}", env_name);
+            match Command::new("conda")
+                .args(["create", "-n", &env_name, "python", "-y"])
+                .status()
+            {
+                Ok(status) if status.success() => {
+                    println!("Conda environment '{}' created", env_name);
+                    println!("Activate with: conda activate {}", env_name);
+                }
+                Ok(status) => {
+                    eprintln!("conda create failed with code: {:?}", status.code());
+                }
+                Err(e) => {
+                    eprintln!("Failed to run conda: {}", e);
+                }
+            }
         }
         _ => return,
     }
@@ -271,13 +413,17 @@ fn list_environments() {
     // List conda environments
     if Command::new("which").arg("conda").status().is_ok() {
         println!("🐍 Conda environments:");
-        let _ = Command::new("conda").args(&["env", "list"]).status();
+        if let Err(e) = Command::new("conda").args(["env", "list"]).status() {
+            eprintln!("Failed to list conda environments: {}", e);
+        }
     }
 
     // List pyenv environments
     if Command::new("which").arg("pyenv").status().is_ok() {
         println!("\n🐍 Pyenv versions:");
-        let _ = Command::new("pyenv").args(&["versions"]).status();
+        if let Err(e) = Command::new("pyenv").args(["versions"]).status() {
+            eprintln!("Failed to list pyenv versions: {}", e);
+        }
     }
 
     // List local venv directories
@@ -293,39 +439,98 @@ fn list_environments() {
 }
 
 fn remove_environment() {
-    let env_name: String = Input::new()
+    let Ok(env_name): Result<String, _> = Input::new()
         .with_prompt("Environment name to remove")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
+
+    // Validate environment name to prevent path traversal
+    if let Err(e) = validate_env_name(&env_name) {
+        eprintln!("Invalid environment name: {}", e);
+        return;
+    }
 
     let tools = ["venv/virtualenv (delete directory)", "conda"];
-    let tool = Select::with_theme(&ColorfulTheme::default())
+    let Ok(tool) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Environment type")
         .items(&tools)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt(&format!("Remove environment '{}'?", env_name))
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    if confirm {
-        match tool {
-            0 => {
-                let _ = std::fs::remove_dir_all(&env_name);
-                println!("✅ Removed directory: {}", env_name);
+    if !confirm {
+        println!("Cancelled");
+        return;
+    }
+
+    match tool {
+        0 => {
+            // Check if path exists and is a directory
+            let path = std::path::Path::new(&env_name);
+            if !path.exists() {
+                eprintln!("Environment directory does not exist: {}", env_name);
+                return;
             }
-            1 => {
-                let _ = Command::new("conda")
-                    .args(&["env", "remove", "-n", &env_name])
-                    .status();
-                println!("✅ Removed conda environment: {}", env_name);
+            if !path.is_dir() {
+                eprintln!("Path is not a directory: {}", env_name);
+                return;
             }
-            _ => return,
+            // Verify it looks like a venv (has pyvenv.cfg)
+            if !path.join("pyvenv.cfg").exists() {
+                eprintln!(
+                    "Warning: {} does not look like a Python virtual environment",
+                    env_name
+                );
+                let Ok(really_confirm) = Confirm::new()
+                    .with_prompt("Delete anyway?")
+                    .default(false)
+                    .interact()
+                else {
+                    return;
+                };
+                if !really_confirm {
+                    return;
+                }
+            }
+
+            match std::fs::remove_dir_all(&env_name) {
+                Ok(()) => {
+                    println!("Removed directory: {}", env_name);
+                }
+                Err(e) => {
+                    eprintln!("Failed to remove directory: {}", e);
+                }
+            }
         }
+        1 => {
+            match Command::new("conda")
+                .args(["env", "remove", "-n", &env_name, "-y"])
+                .status()
+            {
+                Ok(status) if status.success() => {
+                    println!("Removed conda environment: {}", env_name);
+                }
+                Ok(status) => {
+                    eprintln!("conda env remove failed with code: {:?}", status.code());
+                }
+                Err(e) => {
+                    eprintln!("Failed to run conda: {}", e);
+                }
+            }
+        }
+        _ => return,
     }
 }
 
@@ -333,9 +538,13 @@ fn install_virtualenv() {
     println!("📦 Installing virtualenv");
     println!("========================");
 
-    let _ = Command::new("pip3")
-        .args(&["install", "--user", "virtualenv"])
-        .status();
+    if let Err(e) = Command::new("pip3")
+        .args(["install", "--user", "virtualenv"])
+        .status()
+    {
+        eprintln!("Failed to install virtualenv: {}", e);
+        return;
+    }
 
     println!("✅ virtualenv installed");
 }
@@ -349,22 +558,32 @@ fn install_conda() {
         return;
     }
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Download and install Miniconda?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("📥 Downloading Miniconda...");
-        let _ = Command::new("wget")
-            .args(&["https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"])
-            .status();
+        if let Err(e) = Command::new("wget")
+            .args(["https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"])
+            .status()
+        {
+            eprintln!("Failed to download Miniconda: {}", e);
+            return;
+        }
 
         println!("🔧 Installing Miniconda...");
-        let _ = Command::new("bash")
-            .args(&["Miniconda3-latest-Linux-x86_64.sh", "-b"])
-            .status();
+        if let Err(e) = Command::new("bash")
+            .args(["Miniconda3-latest-Linux-x86_64.sh", "-b"])
+            .status()
+        {
+            eprintln!("Failed to install Miniconda: {}", e);
+            return;
+        }
 
         // Add to PATH
         setup_conda_environment();
@@ -391,12 +610,14 @@ fn package_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Package Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => list_packages(),
@@ -414,64 +635,99 @@ fn list_packages() {
     println!("📋 Installed Python Packages");
     println!("=============================");
 
-    let _ = Command::new("pip3").args(&["list"]).status();
+    if let Err(e) = Command::new("pip3").args(["list"]).status() {
+        eprintln!("Failed to list packages: {}", e);
+    }
 }
 
 fn search_packages() {
-    let query: String = Input::new()
-        .with_prompt("Search query")
-        .interact_text()
-        .unwrap();
+    let Ok(query): Result<String, _> = Input::new().with_prompt("Search query").interact_text()
+    else {
+        return;
+    };
 
     println!("🔍 Searching for: {}", query);
     println!("💡 Visit https://pypi.org/search/?q={}", query);
 }
 
 fn install_package() {
-    let package: String = Input::new()
-        .with_prompt("Package name")
-        .interact_text()
-        .unwrap();
+    let Ok(package): Result<String, _> = Input::new().with_prompt("Package name").interact_text()
+    else {
+        return;
+    };
+
+    // Validate package name
+    if let Err(e) = validate_package_name(&package) {
+        eprintln!("Invalid package name: {}", e);
+        return;
+    }
 
     let options = [
-        "📦 Install normally",
-        "👤 Install for user only",
-        "🛠️  Install in development mode",
+        "Install normally",
+        "Install for user only",
+        "Install in development mode",
     ];
-    let install_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(install_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Installation type")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    match install_type {
-        0 => {
-            let _ = Command::new("pip3").args(&["install", &package]).status();
-        }
-        1 => {
-            let _ = Command::new("pip3")
-                .args(&["install", "--user", &package])
-                .status();
-        }
-        2 => {
-            let _ = Command::new("pip3")
-                .args(&["install", "-e", &package])
-                .status();
-        }
+    let result = match install_type {
+        0 => Command::new("pip3").args(["install", &package]).status(),
+        1 => Command::new("pip3")
+            .args(["install", "--user", &package])
+            .status(),
+        2 => Command::new("pip3")
+            .args(["install", "-e", &package])
+            .status(),
         _ => return,
-    }
+    };
 
-    println!("✅ Package '{}' installed", package);
+    match result {
+        Ok(status) if status.success() => {
+            println!("Package '{}' installed", package);
+        }
+        Ok(status) => {
+            eprintln!("pip install failed with code: {:?}", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run pip: {}", e);
+        }
+    }
 }
 
 fn uninstall_package() {
-    let package: String = Input::new()
+    let Ok(package): Result<String, _> = Input::new()
         .with_prompt("Package name to uninstall")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let _ = Command::new("pip3").args(&["uninstall", &package]).status();
+    // Validate package name
+    if let Err(e) = validate_package_name(&package) {
+        eprintln!("Invalid package name: {}", e);
+        return;
+    }
+
+    match Command::new("pip3")
+        .args(["uninstall", "-y", &package])
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("Package '{}' uninstalled", package);
+        }
+        Ok(status) => {
+            eprintln!("pip uninstall failed with code: {:?}", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run pip: {}", e);
+        }
+    }
 }
 
 fn update_packages() {
@@ -479,13 +735,18 @@ fn update_packages() {
     println!("===========================");
 
     // Update pip first
-    let _ = Command::new("pip3")
-        .args(&["install", "--upgrade", "pip"])
-        .status();
+    if let Err(e) = Command::new("pip3")
+        .args(["install", "--upgrade", "pip"])
+        .status()
+    {
+        eprintln!("Failed to upgrade pip: {}", e);
+    }
 
     // List outdated packages
     println!("📋 Checking for outdated packages...");
-    let _ = Command::new("pip3").args(&["list", "--outdated"]).status();
+    if let Err(e) = Command::new("pip3").args(["list", "--outdated"]).status() {
+        eprintln!("Failed to list outdated packages: {}", e);
+    }
 
     println!("💡 To update all packages: pip-review --auto");
     println!("💡 Install pip-review with: pip install pip-review");
@@ -502,28 +763,35 @@ fn requirements_management() {
         "📊 Show dependency tree",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Requirements")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
-        0 => {
-            let _ = Command::new("pip3")
-                .args(&["freeze"])
-                .output()
-                .and_then(|output| {
-                    std::fs::write("requirements.txt", output.stdout)?;
-                    Ok(())
-                });
-            println!("✅ requirements.txt generated");
-        }
+        0 => match Command::new("pip3").args(["freeze"]).output() {
+            Ok(output) => {
+                if let Err(e) = std::fs::write("requirements.txt", output.stdout) {
+                    eprintln!("Failed to write requirements.txt: {}", e);
+                } else {
+                    println!("✅ requirements.txt generated");
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to run pip freeze: {}", e);
+            }
+        },
         1 => {
-            let _ = Command::new("pip3")
-                .args(&["install", "-r", "requirements.txt"])
-                .status();
+            if let Err(e) = Command::new("pip3")
+                .args(["install", "-r", "requirements.txt"])
+                .status()
+            {
+                eprintln!("Failed to install from requirements.txt: {}", e);
+            }
         }
         2 => {
             println!("💡 Use pip-tools: pip install pip-tools");
@@ -531,7 +799,9 @@ fn requirements_management() {
         }
         3 => {
             println!("💡 Install pipdeptree: pip install pipdeptree");
-            let _ = Command::new("pipdeptree").status();
+            if let Err(e) = Command::new("pipdeptree").status() {
+                eprintln!("Failed to run pipdeptree: {}", e);
+            }
         }
         _ => return,
     }
@@ -542,7 +812,9 @@ fn pip_configuration() {
     println!("====================");
 
     println!("📋 Current pip configuration:");
-    let _ = Command::new("pip3").args(&["config", "list"]).status();
+    if let Err(e) = Command::new("pip3").args(["config", "list"]).status() {
+        eprintln!("Failed to list pip config: {}", e);
+    }
 
     println!("\n💡 Common pip configurations:");
     println!("  pip config set global.timeout 60");
@@ -562,12 +834,14 @@ fn development_tools() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Development Tools")
         .items(&tools)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_language_server(),
@@ -589,29 +863,42 @@ fn install_language_server() {
         "jedi-language-server",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select language servers to install")
         .items(&servers)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selected {
         match index {
             0 => {
-                let _ = Command::new("pip3")
-                    .args(&["install", "python-lsp-server"])
-                    .status();
-                println!("✅ pylsp installed");
+                if let Err(e) = Command::new("pip3")
+                    .args(["install", "python-lsp-server"])
+                    .status()
+                {
+                    eprintln!("Failed to install pylsp: {}", e);
+                } else {
+                    println!("✅ pylsp installed");
+                }
             }
             1 => {
-                let _ = Command::new("pip3").args(&["install", "pyright"]).status();
-                println!("✅ pyright installed");
+                if let Err(e) = Command::new("pip3").args(["install", "pyright"]).status() {
+                    eprintln!("Failed to install pyright: {}", e);
+                } else {
+                    println!("✅ pyright installed");
+                }
             }
             2 => {
-                let _ = Command::new("pip3")
-                    .args(&["install", "jedi-language-server"])
-                    .status();
-                println!("✅ jedi-language-server installed");
+                if let Err(e) = Command::new("pip3")
+                    .args(["install", "jedi-language-server"])
+                    .status()
+                {
+                    eprintln!("Failed to install jedi-language-server: {}", e);
+                } else {
+                    println!("✅ jedi-language-server installed");
+                }
             }
             _ => {}
         }
@@ -629,29 +916,43 @@ fn install_formatters() {
         "yapf (Google's formatter)",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select formatters to install")
         .items(&formatters)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selected {
         match index {
             0 => {
-                let _ = Command::new("pip3").args(&["install", "black"]).status();
-                println!("✅ black installed");
+                if let Err(e) = Command::new("pip3").args(["install", "black"]).status() {
+                    eprintln!("Failed to install black: {}", e);
+                } else {
+                    println!("✅ black installed");
+                }
             }
             1 => {
-                let _ = Command::new("pip3").args(&["install", "autopep8"]).status();
-                println!("✅ autopep8 installed");
+                if let Err(e) = Command::new("pip3").args(["install", "autopep8"]).status() {
+                    eprintln!("Failed to install autopep8: {}", e);
+                } else {
+                    println!("✅ autopep8 installed");
+                }
             }
             2 => {
-                let _ = Command::new("pip3").args(&["install", "isort"]).status();
-                println!("✅ isort installed");
+                if let Err(e) = Command::new("pip3").args(["install", "isort"]).status() {
+                    eprintln!("Failed to install isort: {}", e);
+                } else {
+                    println!("✅ isort installed");
+                }
             }
             3 => {
-                let _ = Command::new("pip3").args(&["install", "yapf"]).status();
-                println!("✅ yapf installed");
+                if let Err(e) = Command::new("pip3").args(["install", "yapf"]).status() {
+                    eprintln!("Failed to install yapf: {}", e);
+                } else {
+                    println!("✅ yapf installed");
+                }
             }
             _ => {}
         }
@@ -669,29 +970,43 @@ fn install_linters() {
         "bandit (Security linter)",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select linters to install")
         .items(&linters)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selected {
         match index {
             0 => {
-                let _ = Command::new("pip3").args(&["install", "flake8"]).status();
-                println!("✅ flake8 installed");
+                if let Err(e) = Command::new("pip3").args(["install", "flake8"]).status() {
+                    eprintln!("Failed to install flake8: {}", e);
+                } else {
+                    println!("✅ flake8 installed");
+                }
             }
             1 => {
-                let _ = Command::new("pip3").args(&["install", "pylint"]).status();
-                println!("✅ pylint installed");
+                if let Err(e) = Command::new("pip3").args(["install", "pylint"]).status() {
+                    eprintln!("Failed to install pylint: {}", e);
+                } else {
+                    println!("✅ pylint installed");
+                }
             }
             2 => {
-                let _ = Command::new("pip3").args(&["install", "mypy"]).status();
-                println!("✅ mypy installed");
+                if let Err(e) = Command::new("pip3").args(["install", "mypy"]).status() {
+                    eprintln!("Failed to install mypy: {}", e);
+                } else {
+                    println!("✅ mypy installed");
+                }
             }
             3 => {
-                let _ = Command::new("pip3").args(&["install", "bandit"]).status();
-                println!("✅ bandit installed");
+                if let Err(e) = Command::new("pip3").args(["install", "bandit"]).status() {
+                    eprintln!("Failed to install bandit: {}", e);
+                } else {
+                    println!("✅ bandit installed");
+                }
             }
             _ => {}
         }
@@ -709,33 +1024,49 @@ fn install_jupyter() {
         "All of the above",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Jupyter tools")
         .items(&tools)
         .default(3)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
-            let _ = Command::new("pip3").args(&["install", "ipython"]).status();
-            println!("✅ IPython installed");
+            if let Err(e) = Command::new("pip3").args(["install", "ipython"]).status() {
+                eprintln!("Failed to install ipython: {}", e);
+            } else {
+                println!("✅ IPython installed");
+            }
         }
         1 => {
-            let _ = Command::new("pip3").args(&["install", "notebook"]).status();
-            println!("✅ Jupyter Notebook installed");
+            if let Err(e) = Command::new("pip3").args(["install", "notebook"]).status() {
+                eprintln!("Failed to install notebook: {}", e);
+            } else {
+                println!("✅ Jupyter Notebook installed");
+            }
         }
         2 => {
-            let _ = Command::new("pip3")
-                .args(&["install", "jupyterlab"])
-                .status();
-            println!("✅ JupyterLab installed");
+            if let Err(e) = Command::new("pip3")
+                .args(["install", "jupyterlab"])
+                .status()
+            {
+                eprintln!("Failed to install jupyterlab: {}", e);
+            } else {
+                println!("✅ JupyterLab installed");
+            }
         }
         3 => {
-            let _ = Command::new("pip3")
-                .args(&["install", "ipython", "jupyterlab"])
-                .status();
-            println!("✅ IPython and JupyterLab installed");
+            if let Err(e) = Command::new("pip3")
+                .args(["install", "ipython", "jupyterlab"])
+                .status()
+            {
+                eprintln!("Failed to install IPython/JupyterLab: {}", e);
+            } else {
+                println!("✅ IPython and JupyterLab installed");
+            }
         }
         _ => return,
     }
@@ -753,37 +1084,56 @@ fn install_dev_utilities() {
         "pipenv (Pip + virtualenv)",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select utilities to install")
         .items(&utilities)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selected {
         match index {
             0 => {
-                let _ = Command::new("pip3")
-                    .args(&["install", "cookiecutter"])
-                    .status();
-                println!("✅ cookiecutter installed");
+                if let Err(e) = Command::new("pip3")
+                    .args(["install", "cookiecutter"])
+                    .status()
+                {
+                    eprintln!("Failed to install cookiecutter: {}", e);
+                } else {
+                    println!("✅ cookiecutter installed");
+                }
             }
             1 => {
-                let _ = Command::new("pip3")
-                    .args(&["install", "pre-commit"])
-                    .status();
-                println!("✅ pre-commit installed");
+                if let Err(e) = Command::new("pip3")
+                    .args(["install", "pre-commit"])
+                    .status()
+                {
+                    eprintln!("Failed to install pre-commit: {}", e);
+                } else {
+                    println!("✅ pre-commit installed");
+                }
             }
             2 => {
-                let _ = Command::new("pip3").args(&["install", "tox"]).status();
-                println!("✅ tox installed");
+                if let Err(e) = Command::new("pip3").args(["install", "tox"]).status() {
+                    eprintln!("Failed to install tox: {}", e);
+                } else {
+                    println!("✅ tox installed");
+                }
             }
             3 => {
-                let _ = Command::new("pip3").args(&["install", "poetry"]).status();
-                println!("✅ poetry installed");
+                if let Err(e) = Command::new("pip3").args(["install", "poetry"]).status() {
+                    eprintln!("Failed to install poetry: {}", e);
+                } else {
+                    println!("✅ poetry installed");
+                }
             }
             4 => {
-                let _ = Command::new("pip3").args(&["install", "pipenv"]).status();
-                println!("✅ pipenv installed");
+                if let Err(e) = Command::new("pip3").args(["install", "pipenv"]).status() {
+                    eprintln!("Failed to install pipenv: {}", e);
+                } else {
+                    println!("✅ pipenv installed");
+                }
             }
             _ => {}
         }
@@ -803,12 +1153,14 @@ fn testing_quality() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Testing & Quality")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_testing_frameworks(),
@@ -828,30 +1180,42 @@ fn install_testing_frameworks() {
         "hypothesis (Property-based testing)",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select testing frameworks")
         .items(&frameworks)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selected {
         match index {
             0 => {
-                let _ = Command::new("pip3").args(&["install", "pytest"]).status();
-                println!("✅ pytest installed");
+                if let Err(e) = Command::new("pip3").args(["install", "pytest"]).status() {
+                    eprintln!("Failed to install pytest: {}", e);
+                } else {
+                    println!("✅ pytest installed");
+                }
             }
             1 => {
                 println!("✅ unittest is built-in with Python");
             }
             2 => {
-                let _ = Command::new("pip3").args(&["install", "nose2"]).status();
-                println!("✅ nose2 installed");
+                if let Err(e) = Command::new("pip3").args(["install", "nose2"]).status() {
+                    eprintln!("Failed to install nose2: {}", e);
+                } else {
+                    println!("✅ nose2 installed");
+                }
             }
             3 => {
-                let _ = Command::new("pip3")
-                    .args(&["install", "hypothesis"])
-                    .status();
-                println!("✅ hypothesis installed");
+                if let Err(e) = Command::new("pip3")
+                    .args(["install", "hypothesis"])
+                    .status()
+                {
+                    eprintln!("Failed to install hypothesis: {}", e);
+                } else {
+                    println!("✅ hypothesis installed");
+                }
             }
             _ => {}
         }
@@ -859,17 +1223,23 @@ fn install_testing_frameworks() {
 }
 
 fn install_coverage_tools() {
-    let _ = Command::new("pip3")
-        .args(&["install", "coverage", "pytest-cov"])
-        .status();
-    println!("✅ Coverage tools installed");
+    if let Err(e) = Command::new("pip3")
+        .args(["install", "coverage", "pytest-cov"])
+        .status()
+    {
+        eprintln!("Failed to install coverage tools: {}", e);
+    } else {
+        println!("✅ Coverage tools installed");
+    }
 }
 
 fn install_quality_tools() {
     let tools = ["flake8", "pylint", "mypy", "bandit", "safety", "pydocstyle"];
 
     for tool in &tools {
-        let _ = Command::new("pip3").args(&["install", tool]).status();
+        if let Err(e) = Command::new("pip3").args(["install", tool]).status() {
+            eprintln!("Failed to install {}: {}", tool, e);
+        }
     }
 
     println!("✅ Quality tools installed");
@@ -880,11 +1250,14 @@ fn run_tests() {
     println!("=======================");
 
     if Command::new("which").arg("pytest").status().is_ok() {
-        let _ = Command::new("pytest").status();
-    } else {
-        let _ = Command::new("python3")
-            .args(&["-m", "unittest", "discover"])
-            .status();
+        if let Err(e) = Command::new("pytest").status() {
+            eprintln!("Failed to run pytest: {}", e);
+        }
+    } else if let Err(e) = Command::new("python3")
+        .args(["-m", "unittest", "discover"])
+        .status()
+    {
+        eprintln!("Failed to run unittest: {}", e);
     }
 }
 
@@ -892,11 +1265,19 @@ fn generate_coverage_report() {
     println!("📋 Generating Coverage Report");
     println!("=============================");
 
-    let _ = Command::new("coverage")
-        .args(&["run", "-m", "pytest"])
-        .status();
-    let _ = Command::new("coverage").args(&["report"]).status();
-    let _ = Command::new("coverage").args(&["html"]).status();
+    if let Err(e) = Command::new("coverage")
+        .args(["run", "-m", "pytest"])
+        .status()
+    {
+        eprintln!("Failed to run coverage: {}", e);
+        return;
+    }
+    if let Err(e) = Command::new("coverage").args(["report"]).status() {
+        eprintln!("Failed to generate report: {}", e);
+    }
+    if let Err(e) = Command::new("coverage").args(["html"]).status() {
+        eprintln!("Failed to generate HTML report: {}", e);
+    }
 
     println!("✅ Coverage report generated in htmlcov/");
 }
@@ -931,13 +1312,19 @@ fn check_pip_installation() {
 
 fn install_pip() {
     if Command::new("which").arg("pacman").status().is_ok() {
-        let _ = Command::new("sudo")
-            .args(&["pacman", "-S", "--noconfirm", "python-pip"])
-            .status();
+        if let Err(e) = Command::new("sudo")
+            .args(["pacman", "-S", "--noconfirm", "python-pip"])
+            .status()
+        {
+            eprintln!("Failed to install python-pip: {}", e);
+        }
     } else if Command::new("which").arg("apt").status().is_ok() {
-        let _ = Command::new("sudo")
-            .args(&["apt", "install", "-y", "python3-pip"])
-            .status();
+        if let Err(e) = Command::new("sudo")
+            .args(["apt", "install", "-y", "python3-pip"])
+            .status()
+        {
+            eprintln!("Failed to install python3-pip: {}", e);
+        }
     } else {
         println!("💡 Install pip manually: python3 -m ensurepip");
     }
@@ -947,25 +1334,35 @@ fn setup_python_environment() {
     println!("⚙️  Setting up Python environment...");
 
     // Upgrade pip
-    let _ = Command::new("pip3")
-        .args(&["install", "--upgrade", "pip"])
-        .status();
+    if let Err(e) = Command::new("pip3")
+        .args(["install", "--upgrade", "pip"])
+        .status()
+    {
+        eprintln!("Failed to upgrade pip: {}", e);
+    }
 
     // Install essential packages
     let essential_packages = ["wheel", "setuptools", "virtualenv"];
     for package in &essential_packages {
-        let _ = Command::new("pip3")
-            .args(&["install", "--user", package])
-            .status();
+        if let Err(e) = Command::new("pip3")
+            .args(["install", "--user", package])
+            .status()
+        {
+            eprintln!("Failed to install {}: {}", package, e);
+        }
     }
 
     println!("✅ Python environment setup completed");
 }
 
 fn setup_pyenv_environment() {
+    let Some(home_dir) = dirs::home_dir() else {
+        return;
+    };
+
     let shell_files = [
-        format!("{}/.bashrc", dirs::home_dir().unwrap().display()),
-        format!("{}/.zshrc", dirs::home_dir().unwrap().display()),
+        format!("{}/.bashrc", home_dir.display()),
+        format!("{}/.zshrc", home_dir.display()),
     ];
 
     let pyenv_setup = vec![
@@ -979,15 +1376,14 @@ fn setup_pyenv_environment() {
             && let Ok(content) = std::fs::read_to_string(shell_file)
             && !content.contains("PYENV_ROOT")
         {
-            let mut file = std::fs::OpenOptions::new()
-                .append(true)
-                .open(shell_file)
-                .unwrap();
+            let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(shell_file) else {
+                continue;
+            };
 
             use std::io::Write;
-            writeln!(file, "\n# pyenv").unwrap();
+            let _ = writeln!(file, "\n# pyenv");
             for line in &pyenv_setup {
-                writeln!(file, "{}", line).unwrap();
+                let _ = writeln!(file, "{}", line);
             }
 
             println!("✅ Added pyenv to {}", shell_file);
@@ -996,26 +1392,29 @@ fn setup_pyenv_environment() {
 }
 
 fn setup_conda_environment() {
+    let Some(home_dir) = dirs::home_dir() else {
+        return;
+    };
+
     let shell_files = [
-        format!("{}/.bashrc", dirs::home_dir().unwrap().display()),
-        format!("{}/.zshrc", dirs::home_dir().unwrap().display()),
+        format!("{}/.bashrc", home_dir.display()),
+        format!("{}/.zshrc", home_dir.display()),
     ];
 
-    let conda_path = format!("{}/miniconda3/bin", dirs::home_dir().unwrap().display());
+    let conda_path = format!("{}/miniconda3/bin", home_dir.display());
 
     for shell_file in &shell_files {
         if std::path::Path::new(shell_file).exists()
             && let Ok(content) = std::fs::read_to_string(shell_file)
             && !content.contains("miniconda3")
         {
-            let mut file = std::fs::OpenOptions::new()
-                .append(true)
-                .open(shell_file)
-                .unwrap();
+            let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(shell_file) else {
+                continue;
+            };
 
             use std::io::Write;
-            writeln!(file, "\n# Miniconda").unwrap();
-            writeln!(file, "export PATH=\"{}:$PATH\"", conda_path).unwrap();
+            let _ = writeln!(file, "\n# Miniconda");
+            let _ = writeln!(file, "export PATH=\"{}:$PATH\"", conda_path);
 
             println!("✅ Added conda to {}", shell_file);
         }

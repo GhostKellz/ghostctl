@@ -111,6 +111,9 @@ impl SystemRunner {
     }
 
     fn is_root_impl(&self) -> bool {
+        // SAFETY: `geteuid()` is a simple libc FFI call that reads the effective user ID.
+        // It has no preconditions, no side effects, and cannot cause undefined behavior.
+        // The function always returns a valid uid_t value.
         unsafe { libc::geteuid() == 0 }
     }
 
@@ -347,61 +350,79 @@ impl MockRunner {
     /// Add a mock response for a command
     pub fn mock_command(&self, cmd: &str, args: &[&str], result: CommandResult) -> &Self {
         let key = format!("{} {}", cmd, args.join(" "));
-        self.responses.lock().unwrap().insert(key, result);
+        if let Ok(mut responses) = self.responses.lock() {
+            responses.insert(key, result);
+        }
         self
     }
 
     /// Add a mock response for a shell command
     pub fn mock_shell(&self, shell_cmd: &str, result: CommandResult) -> &Self {
         let key = format!("bash -c {}", shell_cmd);
-        self.responses.lock().unwrap().insert(key, result);
+        if let Ok(mut responses) = self.responses.lock() {
+            responses.insert(key, result);
+        }
         self
     }
 
     /// Set default response for unmatched commands
     pub fn set_default(&self, result: CommandResult) -> &Self {
-        *self.default_response.lock().unwrap() = Some(result);
+        if let Ok(mut default) = self.default_response.lock() {
+            *default = Some(result);
+        }
         self
     }
 
     /// Add a mock file
     pub fn mock_file(&self, path: &str, content: &str) -> &Self {
-        self.files
-            .lock()
-            .unwrap()
-            .insert(path.to_string(), content.to_string());
+        if let Ok(mut files) = self.files.lock() {
+            files.insert(path.to_string(), content.to_string());
+        }
         self
     }
 
     /// Get command history
     pub fn get_history(&self) -> Vec<String> {
-        self.history.lock().unwrap().clone()
+        self.history
+            .lock()
+            .ok()
+            .map(|h| h.clone())
+            .unwrap_or_default()
     }
 
     /// Clear command history
     pub fn clear_history(&self) {
-        self.history.lock().unwrap().clear();
+        if let Ok(mut history) = self.history.lock() {
+            history.clear();
+        }
     }
 
     /// Check if a command was executed
     pub fn was_called(&self, cmd: &str) -> bool {
-        self.history.lock().unwrap().iter().any(|h| h.contains(cmd))
+        self.history
+            .lock()
+            .ok()
+            .map(|h| h.iter().any(|entry| entry.contains(cmd)))
+            .unwrap_or(false)
     }
 
     /// Get the number of times a command was called
     pub fn call_count(&self, cmd: &str) -> usize {
         self.history
             .lock()
-            .unwrap()
-            .iter()
-            .filter(|h| h.contains(cmd))
-            .count()
+            .ok()
+            .map(|h| h.iter().filter(|entry| entry.contains(cmd)).count())
+            .unwrap_or(0)
     }
 
     fn record_and_respond(&self, key: &str) -> io::Result<CommandResult> {
-        self.history.lock().unwrap().push(key.to_string());
+        if let Ok(mut history) = self.history.lock() {
+            history.push(key.to_string());
+        }
 
-        let responses = self.responses.lock().unwrap();
+        let Ok(responses) = self.responses.lock() else {
+            return Ok(CommandResult::ok(""));
+        };
         if let Some(result) = responses.get(key) {
             return Ok(result.clone());
         }
@@ -414,8 +435,10 @@ impl MockRunner {
         }
 
         // Return default if set
-        if let Some(default) = self.default_response.lock().unwrap().as_ref() {
-            return Ok(default.clone());
+        if let Ok(default_response) = self.default_response.lock() {
+            if let Some(default) = default_response.as_ref() {
+                return Ok(default.clone());
+            }
         }
 
         // Default success if no mock configured
@@ -468,7 +491,9 @@ impl CommandRunner for MockRunner {
 
     fn command_exists(&self, cmd: &str) -> bool {
         // Check if we have a mock response for this command
-        let responses = self.responses.lock().unwrap();
+        let Ok(responses) = self.responses.lock() else {
+            return false;
+        };
         responses.keys().any(|k| k.starts_with(cmd))
     }
 
@@ -481,24 +506,35 @@ impl CommandRunner for MockRunner {
     }
 
     fn read_file(&self, path: &str) -> io::Result<String> {
-        self.files
-            .lock()
-            .unwrap()
+        let Ok(files) = self.files.lock() else {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "Failed to acquire lock",
+            ));
+        };
+        files
             .get(path)
             .cloned()
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "File not found in mock"))
     }
 
     fn write_file(&self, path: &str, content: &str) -> io::Result<()> {
-        self.files
-            .lock()
-            .unwrap()
-            .insert(path.to_string(), content.to_string());
+        let Ok(mut files) = self.files.lock() else {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "Failed to acquire lock",
+            ));
+        };
+        files.insert(path.to_string(), content.to_string());
         Ok(())
     }
 
     fn file_exists(&self, path: &str) -> bool {
-        self.files.lock().unwrap().contains_key(path)
+        self.files
+            .lock()
+            .ok()
+            .map(|f| f.contains_key(path))
+            .unwrap_or(false)
     }
 }
 

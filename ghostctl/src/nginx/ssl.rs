@@ -14,12 +14,15 @@ pub fn ssl_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("SSL Management")
         .items(&ssl_options)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     match choice {
         0 => setup_letsencrypt(),
@@ -43,15 +46,15 @@ fn setup_letsencrypt() {
             .status();
     }
 
-    let domain: String = Input::new()
-        .with_prompt("Domain name")
-        .interact_text()
-        .unwrap();
+    let domain: String = match Input::new().with_prompt("Domain name").interact_text() {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
-    let email: String = Input::new()
-        .with_prompt("Email address")
-        .interact_text()
-        .unwrap();
+    let email: String = match Input::new().with_prompt("Email address").interact_text() {
+        Ok(e) => e,
+        Err(_) => return,
+    };
 
     // Create custom nginx cert directory structure
     let cert_dir = format!("/etc/nginx/certs/{}", domain);
@@ -76,28 +79,30 @@ fn setup_letsencrypt() {
         ])
         .status();
 
-    if status.is_ok() && status.unwrap().success() {
-        // Copy certificates to custom structure
-        println!("📋 Copying certificates to custom nginx structure...");
-        let letsencrypt_dir = format!("/etc/letsencrypt/live/{}", domain);
+    if let Ok(s) = status {
+        if s.success() {
+            // Copy certificates to custom structure
+            println!("📋 Copying certificates to custom nginx structure...");
+            let letsencrypt_dir = format!("/etc/letsencrypt/live/{}", domain);
 
-        let _ = Command::new("sudo")
-            .args(&[
-                "cp",
-                &format!("{}/fullchain.pem", letsencrypt_dir),
-                &format!("{}/cert.pem", cert_dir),
-            ])
-            .status();
+            let _ = Command::new("sudo")
+                .args(&[
+                    "cp",
+                    &format!("{}/fullchain.pem", letsencrypt_dir),
+                    &format!("{}/cert.pem", cert_dir),
+                ])
+                .status();
 
-        let _ = Command::new("sudo")
-            .args(&[
-                "cp",
-                &format!("{}/privkey.pem", letsencrypt_dir),
-                &format!("{}/privkey.pem", cert_dir),
-            ])
-            .status();
+            let _ = Command::new("sudo")
+                .args(&[
+                    "cp",
+                    &format!("{}/privkey.pem", letsencrypt_dir),
+                    &format!("{}/privkey.pem", cert_dir),
+                ])
+                .status();
 
-        println!("✅ Certificates installed to: {}", cert_dir);
+            println!("✅ Certificates installed to: {}", cert_dir);
+        }
     }
 }
 
@@ -105,10 +110,12 @@ fn generate_self_signed() {
     println!("🔐 Generate Self-Signed Certificate");
     println!("===================================");
 
-    let domain: String = Input::new()
+    let Ok(domain): Result<String, _> = Input::new()
         .with_prompt("Domain/Common Name")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔑 Generating self-signed certificate for: {}", domain);
 
@@ -146,20 +153,25 @@ fn install_custom_cert() {
     println!("📜 Install Custom Certificate");
     println!("=============================");
 
-    let cert_path: String = Input::new()
+    let Ok(cert_path): Result<String, _> = Input::new()
         .with_prompt("Certificate file path")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let key_path: String = Input::new()
+    let Ok(key_path): Result<String, _> = Input::new()
         .with_prompt("Private key file path")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let dest_name: String = Input::new()
-        .with_prompt("Certificate name")
-        .interact_text()
-        .unwrap();
+    let Ok(dest_name): Result<String, _> =
+        Input::new().with_prompt("Certificate name").interact_text()
+    else {
+        return;
+    };
 
     // Copy certificate files to nginx SSL directory
     let _ = Command::new("sudo")
@@ -268,4 +280,9 @@ fn ensure_custom_cert_structure(domain: &str) {
         .status();
 
     println!("📁 Certificate directory: {}", cert_dir);
+}
+
+#[allow(dead_code)]
+pub fn get_ssl_paths_for_domain(domain: &str) -> (String, String) {
+    get_certificate_paths(domain)
 }

@@ -32,12 +32,14 @@ pub fn wine_prefix_menu() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🍾 Wine Prefix Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => create_new_prefix(),
@@ -58,28 +60,34 @@ pub fn wine_prefix_menu() {
 fn create_new_prefix() {
     println!("🍷 Creating New Wine Prefix");
 
-    let prefix_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(prefix_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter prefix name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let prefix_path = format!("{}/prefixes/{}", get_games_dir(), prefix_name);
 
-    let arch = Select::with_theme(&ColorfulTheme::default())
+    let Ok(arch) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select architecture")
         .items(&["64-bit (win64)", "32-bit (win32)"])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let arch_str = if arch == 0 { "win64" } else { "win32" };
 
-    let windows_version = Select::with_theme(&ColorfulTheme::default())
+    let Ok(windows_version) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Windows version")
         .items(&["Windows 10", "Windows 7", "Windows XP", "Windows 11"])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let win_version = match windows_version {
         0 => "win10",
@@ -121,12 +129,14 @@ fn create_new_prefix() {
             println!("💾 Prefix metadata saved");
 
             // Ask about common components
-            if Confirm::with_theme(&ColorfulTheme::default())
+            let Ok(install_components) = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Install common gaming components?")
                 .default(true)
                 .interact()
-                .unwrap()
-            {
+            else {
+                return;
+            };
+            if install_components {
                 install_common_components(&prefix_path);
             }
         }
@@ -158,13 +168,19 @@ fn list_prefixes() {
         return;
     }
 
-    let entries = fs::read_dir(&prefixes_dir).unwrap();
+    let Ok(entries) = fs::read_dir(&prefixes_dir) else {
+        println!("❌ Failed to read prefixes directory");
+        return;
+    };
     let mut prefixes = Vec::new();
 
     for entry in entries.flatten() {
         let path = entry.path();
         if path.is_dir() {
-            let name = path.file_name().unwrap().to_string_lossy().to_string();
+            let Some(file_name) = path.file_name() else {
+                continue;
+            };
+            let name = file_name.to_string_lossy().to_string();
 
             // Try to read metadata
             let info_path = format!("{}/prefix.info", path.display());
@@ -202,9 +218,10 @@ fn list_prefixes() {
 
     if Path::new(&lutris_prefixes).exists() {
         println!("\n🎮 Lutris Wine Prefixes:");
-        let entries = fs::read_dir(&lutris_prefixes).unwrap();
-        for entry in entries.flatten() {
-            println!("  📁 {}", entry.file_name().to_string_lossy());
+        if let Ok(entries) = fs::read_dir(&lutris_prefixes) {
+            for entry in entries.flatten() {
+                println!("  📁 {}", entry.file_name().to_string_lossy());
+            }
         }
     }
 }
@@ -212,20 +229,24 @@ fn list_prefixes() {
 fn clone_prefix() {
     println!("🔄 Clone Wine Prefix");
 
-    let source = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(source) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter source prefix path")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !Path::new(&source).exists() {
         println!("❌ Source prefix not found");
         return;
     }
 
-    let dest_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(dest_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter new prefix name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let dest = format!("{}/Games/prefixes/{}", get_home_dir(), dest_name);
 
@@ -255,24 +276,28 @@ fn clone_prefix() {
 fn backup_prefix() {
     println!("💾 Backup Wine Prefix");
 
-    let prefix_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(prefix_path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter prefix path to backup")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !Path::new(&prefix_path).exists() {
         println!("❌ Prefix not found");
         return;
     }
 
-    let backup_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(backup_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter backup name")
         .default(format!(
             "backup_{}",
             chrono::Local::now().format("%Y%m%d_%H%M%S")
         ))
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let backup_dir = format!("{}/Games/prefix_backups", get_home_dir());
 
@@ -317,13 +342,19 @@ fn restore_prefix() {
     }
 
     // List available backups
-    let entries = fs::read_dir(&backup_dir).unwrap();
+    let Ok(entries) = fs::read_dir(&backup_dir) else {
+        println!("❌ Failed to read backup directory");
+        return;
+    };
     let mut backups = Vec::new();
 
     for entry in entries.flatten() {
         let path = entry.path();
         if path.extension().and_then(|s| s.to_str()) == Some("gz") {
-            let name = path.file_stem().unwrap().to_string_lossy().to_string();
+            let Some(file_stem) = path.file_stem() else {
+                continue;
+            };
+            let name = file_stem.to_string_lossy().to_string();
 
             // Read metadata if exists
             let info_path = format!("{}.info", path.display());
@@ -347,28 +378,34 @@ fn restore_prefix() {
         .map(|(name, _, info)| format!("{}\n{}", name, info))
         .collect();
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select backup to restore")
         .items(&backup_names)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let (_, backup_path, _) = &backups[choice];
 
-    let restore_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(restore_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter prefix name for restoration")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let restore_path = format!("{}/Games/prefixes/{}", get_home_dir(), restore_name);
 
     if Path::new(&restore_path).exists() {
-        let overwrite = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(overwrite) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Prefix exists. Overwrite?")
             .default(false)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if !overwrite {
             return;
@@ -396,10 +433,12 @@ fn restore_prefix() {
 fn delete_prefix() {
     println!("🗑️ Delete Wine Prefix");
 
-    let prefix_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(prefix_path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter prefix path to delete")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !Path::new(&prefix_path).exists() {
         println!("❌ Prefix not found");
@@ -413,18 +452,22 @@ fn delete_prefix() {
         println!("📋 Prefix info:\n{}", info);
     }
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Are you sure you want to delete this prefix?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
-        let backup = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(backup) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Create backup before deletion?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if backup {
             backup_prefix_internal(&prefix_path);
@@ -456,10 +499,12 @@ fn backup_prefix_internal(prefix_path: &str) {
 fn configure_prefix() {
     println!("🔧 Configure Wine Prefix");
 
-    let prefix_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(prefix_path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter prefix path")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !Path::new(&prefix_path).exists() {
         println!("❌ Prefix not found");
@@ -479,12 +524,14 @@ fn configure_prefix() {
     ];
 
     loop {
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Configure Prefix")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => change_windows_version(&prefix_path),
@@ -508,12 +555,14 @@ fn change_windows_version(prefix_path: &str) {
         "win11", "win10", "win81", "win8", "win7", "winxp", "win98", "win95",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Windows version")
         .items(&versions)
         .default(1)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let cmd = format!("WINEPREFIX={} winecfg /v {}", prefix_path, versions[choice]);
 
@@ -539,18 +588,22 @@ fn install_prefix_components(prefix_path: &str) {
         "Windows Media Player (wmp10)",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select components to install")
         .items(&components)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for idx in selected {
-        let component = components[idx]
+        let Some(component) = components[idx]
             .split('(')
             .nth(1)
-            .unwrap()
-            .trim_end_matches(')');
+            .map(|s| s.trim_end_matches(')'))
+        else {
+            continue;
+        };
         println!("📦 Installing {}...", component);
 
         let cmd = format!("WINEPREFIX={} winetricks -q {}", prefix_path, component);
@@ -596,12 +649,14 @@ fn apply_gaming_optimizations(prefix_path: &str) {
 fn configure_audio(prefix_path: &str) {
     let audio_systems = ["pulse", "alsa", "oss", "jack"];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select audio system")
         .items(&audio_systems)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let cmd = format!(
         "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\Drivers' /v Audio /d {} /f",
@@ -621,20 +676,24 @@ fn configure_display(prefix_path: &str) {
         "Disable Window Decorations",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Display configuration")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
-            let _resolution = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(_resolution) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter resolution (e.g., 1920x1080)")
                 .default("1920x1080".to_string())
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             let cmd = format!("WINEPREFIX={} winecfg", prefix_path);
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
@@ -646,11 +705,13 @@ fn configure_display(prefix_path: &str) {
             println!("✅ Please disable virtual desktop in the opened window");
         }
         2 => {
-            let dpi = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(dpi) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter DPI value")
                 .default("96".to_string())
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             let cmd = format!(
                 "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Control Panel\\Desktop' /v LogPixels /t REG_DWORD /d {} /f",
@@ -685,11 +746,13 @@ fn edit_registry(prefix_path: &str) {
 }
 
 fn reset_prefix(prefix_path: &str) {
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will reset the prefix to default settings. Continue?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("🔄 Resetting prefix...");
@@ -707,10 +770,12 @@ fn reset_prefix(prefix_path: &str) {
 fn game_specific_prefix() {
     println!("🎮 Game-Specific Prefix Setup");
 
-    let game_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(game_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter game name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let templates = [
         "Modern AAA Game (DX12, Ray Tracing)",
@@ -720,12 +785,14 @@ fn game_specific_prefix() {
         "Custom Configuration",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select game template")
         .items(&templates)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let prefix_path = format!(
         "{}/Games/prefixes/{}",
@@ -863,10 +930,10 @@ fn auto_detect_prefixes() {
                         if path.is_dir() {
                             let pfx_path = format!("{}/pfx", path.display());
                             if Path::new(&pfx_path).exists() {
-                                found_prefixes.push(format!(
-                                    "Steam: {}",
-                                    path.file_name().unwrap().to_string_lossy()
-                                ));
+                                if let Some(file_name) = path.file_name() {
+                                    found_prefixes
+                                        .push(format!("Steam: {}", file_name.to_string_lossy()));
+                                }
                             }
                         }
                     }
@@ -877,10 +944,10 @@ fn auto_detect_prefixes() {
                     for entry in entries.flatten() {
                         let path = entry.path();
                         if path.is_dir() {
-                            found_prefixes.push(format!(
-                                "Bottles: {}",
-                                path.file_name().unwrap().to_string_lossy()
-                            ));
+                            if let Some(file_name) = path.file_name() {
+                                found_prefixes
+                                    .push(format!("Bottles: {}", file_name.to_string_lossy()));
+                            }
                         }
                     }
                 }
@@ -926,20 +993,24 @@ fn prefix_templates() {
 
     let template_names: Vec<&str> = templates.iter().map(|(name, _)| *name).collect();
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select template")
         .items(&template_names)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let (_, template_id) = templates[choice];
 
-    let prefix_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(prefix_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter prefix name")
         .default(template_id.to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let prefix_path = format!("{}/prefixes/{}", get_games_dir(), prefix_name);
 

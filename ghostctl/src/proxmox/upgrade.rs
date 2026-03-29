@@ -45,12 +45,14 @@ pub fn upgrade_menu() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🚀 PVE Upgrade Tools (8→9)")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => precheck(),
@@ -153,24 +155,31 @@ fn manual_precheck() {
 fn configure_repositories() {
     println!("📦 Repository Configuration\n");
     
-    let use_enterprise = !Confirm::new()
+    let Ok(use_no_sub) = Confirm::new()
         .with_prompt("Use no-subscription repositories? (recommended for homelab)")
         .default(true)
         .interact()
-        .unwrap();
-    
-    let manage_ceph = Confirm::new()
+    else {
+        return;
+    };
+    let use_enterprise = !use_no_sub;
+
+    let Ok(manage_ceph) = Confirm::new()
         .with_prompt("Manage Ceph repositories?")
         .default(false)
         .interact()
-        .unwrap();
-    
-    let target_version = Select::with_theme(&ColorfulTheme::default())
+    else {
+        return;
+    };
+
+    let Ok(target_version) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Target PVE version")
         .items(&["PVE 9 (Trixie)", "PVE 8 (Bookworm)", "Current (no change)"])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
     
     match target_version {
         0 => setup_pve9_repos(use_enterprise, manage_ceph),
@@ -181,21 +190,27 @@ fn configure_repositories() {
 
 fn setup_pve9_repos(use_enterprise: bool, manage_ceph: bool) {
     println!("\n📝 Configuring PVE 9 repositories...");
-    
+
     // Update Debian base to Trixie
     let debian_sources = r#"deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware
 deb http://deb.debian.org/debian trixie-updates main contrib non-free non-free-firmware
 deb http://security.debian.org/debian-security trixie-security main contrib non-free non-free-firmware"#;
-    
-    fs::write(DEBIAN_SOURCES, debian_sources).expect("Failed to write Debian sources");
+
+    if let Err(e) = fs::write(DEBIAN_SOURCES, debian_sources) {
+        eprintln!("Failed to write Debian sources to {}: {}", DEBIAN_SOURCES, e);
+        return;
+    }
     println!("✅ Updated Debian sources to Trixie");
-    
+
     // Configure PVE repos
     if use_enterprise {
         // Enterprise repo
         let pve_enterprise = "deb https://enterprise.proxmox.com/debian/pve trixie pve-enterprise";
-        fs::write(PVE_ENTERPRISE_LIST, pve_enterprise).expect("Failed to write PVE enterprise repo");
-        
+        if let Err(e) = fs::write(PVE_ENTERPRISE_LIST, pve_enterprise) {
+            eprintln!("Failed to write PVE enterprise repo to {}: {}", PVE_ENTERPRISE_LIST, e);
+            return;
+        }
+
         // Disable no-subscription
         if Path::new(PVE_NO_SUB_LIST).exists() {
             let content = fs::read_to_string(PVE_NO_SUB_LIST).unwrap_or_default();
@@ -207,8 +222,11 @@ deb http://security.debian.org/debian-security trixie-security main contrib non-
     } else {
         // No-subscription repo
         let pve_no_sub = "deb http://download.proxmox.com/debian/pve trixie pve-no-subscription";
-        fs::write(PVE_NO_SUB_LIST, pve_no_sub).expect("Failed to write PVE no-sub repo");
-        
+        if let Err(e) = fs::write(PVE_NO_SUB_LIST, pve_no_sub) {
+            eprintln!("Failed to write PVE no-sub repo to {}: {}", PVE_NO_SUB_LIST, e);
+            return;
+        }
+
         // Disable enterprise
         if Path::new(PVE_ENTERPRISE_LIST).exists() {
             let content = fs::read_to_string(PVE_ENTERPRISE_LIST).unwrap_or_default();
@@ -218,11 +236,11 @@ deb http://security.debian.org/debian-security trixie-security main contrib non-
         }
         println!("✅ Configured PVE 9 No-Subscription repository");
     }
-    
+
     if manage_ceph {
         setup_ceph_repo("reef", use_enterprise);
     }
-    
+
     // Update package lists
     println!("\n🔄 Updating package lists...");
     let _ = Command::new("apt").args(&["update"]).status();
@@ -230,20 +248,26 @@ deb http://security.debian.org/debian-security trixie-security main contrib non-
 
 fn setup_pve8_repos(use_enterprise: bool, manage_ceph: bool) {
     println!("\n📝 Configuring PVE 8 repositories...");
-    
+
     // Update Debian base to Bookworm
     let debian_sources = r#"deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
 deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
 deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware"#;
-    
-    fs::write(DEBIAN_SOURCES, debian_sources).expect("Failed to write Debian sources");
+
+    if let Err(e) = fs::write(DEBIAN_SOURCES, debian_sources) {
+        eprintln!("Failed to write Debian sources to {}: {}", DEBIAN_SOURCES, e);
+        return;
+    }
     println!("✅ Updated Debian sources to Bookworm");
-    
+
     // Configure PVE repos
     if use_enterprise {
         let pve_enterprise = "deb https://enterprise.proxmox.com/debian/pve bookworm pve-enterprise";
-        fs::write(PVE_ENTERPRISE_LIST, pve_enterprise).expect("Failed to write PVE enterprise repo");
-        
+        if let Err(e) = fs::write(PVE_ENTERPRISE_LIST, pve_enterprise) {
+            eprintln!("Failed to write PVE enterprise repo to {}: {}", PVE_ENTERPRISE_LIST, e);
+            return;
+        }
+
         if Path::new(PVE_NO_SUB_LIST).exists() {
             let content = fs::read_to_string(PVE_NO_SUB_LIST).unwrap_or_default();
             if !content.starts_with('#') {
@@ -253,7 +277,10 @@ deb http://security.debian.org/debian-security bookworm-security main contrib no
         println!("✅ Configured PVE 8 Enterprise repository");
     } else {
         let pve_no_sub = "deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription";
-        fs::write(PVE_NO_SUB_LIST, pve_no_sub).expect("Failed to write PVE no-sub repo");
+        if let Err(e) = fs::write(PVE_NO_SUB_LIST, pve_no_sub) {
+            eprintln!("Failed to write PVE no-sub repo to {}: {}", PVE_NO_SUB_LIST, e);
+            return;
+        }
         
         if Path::new(PVE_ENTERPRISE_LIST).exists() {
             let content = fs::read_to_string(PVE_ENTERPRISE_LIST).unwrap_or_default();
@@ -285,19 +312,24 @@ fn ceph_management() {
         "Back",
     ];
     
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Ceph version")
         .items(&ceph_versions)
         .default(0)
         .interact()
-        .unwrap();
-    
+    else {
+        return;
+    };
+
     let use_enterprise = if selection < 4 {
-        !Confirm::new()
+        let Ok(use_no_sub) = Confirm::new()
             .with_prompt("Use no-subscription Ceph repository?")
             .default(true)
             .interact()
-            .unwrap()
+        else {
+            return;
+        };
+        !use_no_sub
     } else {
         false
     };
@@ -314,23 +346,40 @@ fn ceph_management() {
 
 fn setup_ceph_repo(version: &str, use_enterprise: bool) {
     println!("\n📝 Configuring Ceph {} repository...", version);
-    
+
     let debian_version = match version {
         "reef" => "bookworm", // Can also be trixie for PVE 9
         "quincy" => "bookworm",
         "pacific" | "octopus" => "bullseye",
         _ => "bookworm",
     };
-    
+
     let ceph_repo = if use_enterprise {
-        format!("deb https://enterprise.proxmox.com/debian/ceph-{} {} enterprise", version, debian_version)
+        format!(
+            "deb https://enterprise.proxmox.com/debian/ceph-{} {} enterprise",
+            version, debian_version
+        )
     } else {
-        format!("deb http://download.proxmox.com/debian/ceph-{} {} no-subscription", version, debian_version)
+        format!(
+            "deb http://download.proxmox.com/debian/ceph-{} {} no-subscription",
+            version, debian_version
+        )
     };
-    
-    fs::write(CEPH_LIST, ceph_repo).expect("Failed to write Ceph repository");
-    println!("✅ Configured Ceph {} ({}) repository", version, if use_enterprise { "enterprise" } else { "no-subscription" });
-    
+
+    if let Err(e) = fs::write(CEPH_LIST, ceph_repo) {
+        eprintln!("Failed to write Ceph repository to {}: {}", CEPH_LIST, e);
+        return;
+    }
+    println!(
+        "✅ Configured Ceph {} ({}) repository",
+        version,
+        if use_enterprise {
+            "enterprise"
+        } else {
+            "no-subscription"
+        }
+    );
+
     // Update package lists
     println!("🔄 Updating package lists...");
     let _ = Command::new("apt").args(&["update"]).status();
@@ -354,11 +403,13 @@ fn remove_ceph_repos() {
 fn upgrade_single_node() {
     println!("🚀 Single Node Upgrade\n");
     
-    let node_name = Input::<String>::new()
+    let Ok(node_name) = Input::<String>::new()
         .with_prompt("Node name (leave empty for local node)")
         .allow_empty(true)
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
     
     let node = if node_name.is_empty() {
         "localhost"
@@ -373,12 +424,14 @@ fn upgrade_single_node() {
     println!("  4. Refresh boot configuration");
     println!("  5. Reboot");
     
-    if !Confirm::new()
+    let Ok(proceed) = Confirm::new()
         .with_prompt("Proceed with upgrade?")
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if !proceed {
         return;
     }
     
@@ -402,12 +455,14 @@ fn perform_node_upgrade(node: &str, log_file: &str) {
     println!("\nStep 2/5: Repository configuration");
     println!("ℹ️  Ensure repositories are configured for PVE 9");
     
-    if !Confirm::new()
+    let Ok(repos_ok) = Confirm::new()
         .with_prompt("Are repositories configured correctly?")
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if !repos_ok {
         println!("❌ Upgrade cancelled. Please configure repositories first.");
         return;
     }
@@ -440,12 +495,14 @@ fn perform_node_upgrade(node: &str, log_file: &str) {
     println!("\nStep 5/5: Reboot required");
     println!("✅ Upgrade complete! Node must be rebooted to complete the upgrade.");
     
-    if Confirm::new()
+    let Ok(reboot_now) = Confirm::new()
         .with_prompt("Reboot now?")
         .default(true)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if reboot_now {
         println!("🔄 Rebooting...");
         let _ = Command::new("systemctl")
             .arg("reboot")
@@ -466,25 +523,31 @@ fn drain_node_menu() {
         format!("{} ({})", n.name, n.status)
     }).collect();
     
-    let node_idx = Select::with_theme(&ColorfulTheme::default())
+    let Ok(node_idx) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select node to drain")
         .items(&node_names)
         .interact()
-        .unwrap();
-    
+    else {
+        return;
+    };
+
     let node = &nodes[node_idx];
-    
-    let with_local = Confirm::new()
+
+    let Ok(with_local) = Confirm::new()
         .with_prompt("Migrate VMs with local disks? (requires offline migration)")
         .default(false)
         .interact()
-        .unwrap();
-    
-    let offline = Confirm::new()
+    else {
+        return;
+    };
+
+    let Ok(offline) = Confirm::new()
         .with_prompt("Use offline migration? (shuts down VMs before migration)")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
     
     println!("\n📋 Drain plan for node: {}", node.name);
     println!("  • List all VMs and CTs");
@@ -497,12 +560,14 @@ fn drain_node_menu() {
         println!("  • Including VMs with local disks");
     }
     
-    if !Confirm::new()
+    let Ok(proceed) = Confirm::new()
         .with_prompt("Proceed with drain?")
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if !proceed {
         return;
     }
     
@@ -598,11 +663,13 @@ fn wave_upgrade() {
     
     let node_names: Vec<String> = nodes.iter().map(|n| n.name.clone()).collect();
     
-    let selected_indices = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected_indices) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select nodes to upgrade (in order)")
         .items(&node_names)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
     
     if selected_indices.is_empty() {
         println!("No nodes selected");
@@ -625,12 +692,14 @@ fn wave_upgrade() {
     println!("  3. Rebooted");
     println!("  4. Checked for cluster health");
     
-    if !Confirm::new()
+    let Ok(proceed) = Confirm::new()
         .with_prompt("Proceed with wave upgrade?")
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if !proceed {
         return;
     }
     
@@ -660,12 +729,14 @@ fn wave_upgrade() {
             println!("⚠️  Cluster health check failed! Pausing wave upgrade.");
             println!("Please resolve issues before continuing.");
             
-            if !Confirm::new()
+            let Ok(continue_anyway) = Confirm::new()
                 .with_prompt("Continue with next node anyway?")
                 .default(false)
                 .interact()
-                .unwrap()
-            {
+            else {
+                break;
+            };
+            if !continue_anyway {
                 break;
             }
         }
@@ -686,32 +757,38 @@ fn rollback_menu() {
         "Back",
     ];
     
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select rollback target")
         .items(&options)
         .default(2)
         .interact()
-        .unwrap();
-    
+    else {
+        return;
+    };
+
     match selection {
         0 => {
-            if Confirm::new()
+            let Ok(rollback) = Confirm::new()
                 .with_prompt("Rollback repositories to PVE 8?")
                 .default(false)
                 .interact()
-                .unwrap()
-            {
+            else {
+                return;
+            };
+            if rollback {
                 setup_pve8_repos(false, false);
                 println!("✅ Rolled back to PVE 8 repositories");
             }
         }
         1 => {
-            if Confirm::new()
+            let Ok(rollback) = Confirm::new()
                 .with_prompt("Rollback repositories to PVE 7?")
                 .default(false)
                 .interact()
-                .unwrap()
-            {
+            else {
+                return;
+            };
+            if rollback {
                 rollback_to_pve7();
             }
         }
@@ -721,18 +798,24 @@ fn rollback_menu() {
 
 fn rollback_to_pve7() {
     println!("📝 Rolling back to PVE 7 repositories...");
-    
+
     // Debian Bullseye sources
     let debian_sources = r#"deb http://deb.debian.org/debian bullseye main contrib
 deb http://deb.debian.org/debian bullseye-updates main contrib
 deb http://security.debian.org/debian-security bullseye-security main contrib"#;
-    
-    fs::write(DEBIAN_SOURCES, debian_sources).expect("Failed to write Debian sources");
-    
+
+    if let Err(e) = fs::write(DEBIAN_SOURCES, debian_sources) {
+        eprintln!("Failed to write Debian sources to {}: {}", DEBIAN_SOURCES, e);
+        return;
+    }
+
     // PVE 7 no-subscription
     let pve_no_sub = "deb http://download.proxmox.com/debian/pve bullseye pve-no-subscription";
-    fs::write(PVE_NO_SUB_LIST, pve_no_sub).expect("Failed to write PVE repo");
-    
+    if let Err(e) = fs::write(PVE_NO_SUB_LIST, pve_no_sub) {
+        eprintln!("Failed to write PVE repo to {}: {}", PVE_NO_SUB_LIST, e);
+        return;
+    }
+
     println!("✅ Rolled back to PVE 7 repositories");
     println!("⚠️  You may need to downgrade packages manually");
 }
@@ -745,8 +828,11 @@ fn view_logs() {
         return;
     }
     
-    let logs = fs::read_dir(log_dir)
-        .unwrap()
+    let Ok(entries) = fs::read_dir(log_dir) else {
+        println!("Failed to read log directory");
+        return;
+    };
+    let logs = entries
         .filter_map(|entry| {
             entry.ok().and_then(|e| {
                 let name = e.file_name().to_string_lossy().to_string();
@@ -758,20 +844,22 @@ fn view_logs() {
             })
         })
         .collect::<Vec<String>>();
-    
+
     if logs.is_empty() {
         println!("No upgrade logs found");
         return;
     }
-    
+
     let mut log_options = logs.clone();
     log_options.push("Back".to_string());
-    
-    let selection = Select::with_theme(&ColorfulTheme::default())
+
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select log to view")
         .items(&log_options)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
     
     if selection < logs.len() {
         let log_path = format!("{}/{}", log_dir, logs[selection]);

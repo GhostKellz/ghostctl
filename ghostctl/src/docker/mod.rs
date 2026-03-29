@@ -9,6 +9,104 @@ use crate::tui;
 use crate::utils::is_headless;
 use std::process::Command;
 
+/// Validate a Docker container name or ID
+/// Container names must match: [a-zA-Z0-9][a-zA-Z0-9_.-]*
+/// Container IDs are 12 or 64 hex characters
+pub fn validate_container_name(name: &str) -> Result<(), String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err("Container name cannot be empty".to_string());
+    }
+
+    // Check for shell injection characters
+    if name.contains(|c: char| {
+        matches!(
+            c,
+            '`' | '$' | '(' | ')' | '{' | '}' | ';' | '&' | '|' | '<' | '>' | '\n' | '\r'
+        )
+    }) {
+        return Err("Container name contains invalid characters".to_string());
+    }
+
+    // Check if it looks like a container ID (12 or 64 hex chars)
+    if (name.len() == 12 || name.len() == 64) && name.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Ok(());
+    }
+
+    // Check container name format
+    let chars: Vec<char> = name.chars().collect();
+    if !chars[0].is_ascii_alphanumeric() {
+        return Err("Container name must start with an alphanumeric character".to_string());
+    }
+
+    for c in &chars {
+        if !c.is_ascii_alphanumeric() && *c != '_' && *c != '.' && *c != '-' {
+            return Err(format!(
+                "Container name contains invalid character: '{}'",
+                c
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+/// Validate a Docker image name
+/// Format: [registry/][repository/]name[:tag]
+pub fn validate_image_name(image: &str) -> Result<(), String> {
+    let image = image.trim();
+    if image.is_empty() {
+        return Err("Image name cannot be empty".to_string());
+    }
+
+    // Check for shell injection characters
+    if image.contains(|c: char| {
+        matches!(
+            c,
+            '`' | '$' | '(' | ')' | '{' | '}' | ';' | '&' | '|' | '<' | '>' | '\n' | '\r' | ' '
+        )
+    }) {
+        return Err("Image name contains invalid characters".to_string());
+    }
+
+    // Basic validation: must contain only valid characters
+    for c in image.chars() {
+        if !c.is_ascii_alphanumeric() && !matches!(c, '/' | ':' | '.' | '-' | '_' | '@') {
+            return Err(format!("Image name contains invalid character: '{}'", c));
+        }
+    }
+
+    Ok(())
+}
+
+/// Validate a filter duration string (e.g., "24h", "7d")
+pub fn validate_duration_filter(duration: &str) -> Result<(), String> {
+    let duration = duration.trim();
+    if duration.is_empty() {
+        return Err("Duration cannot be empty".to_string());
+    }
+
+    // Must be digits followed by a valid unit
+    let chars: Vec<char> = duration.chars().collect();
+    let unit_start = chars.iter().position(|c| !c.is_ascii_digit());
+
+    if unit_start.is_none() || unit_start == Some(0) {
+        return Err("Duration must be a number followed by a unit (h, d, w, m)".to_string());
+    }
+
+    let unit_idx = unit_start.unwrap();
+    let unit: String = chars[unit_idx..].iter().collect();
+
+    if !matches!(unit.as_str(), "h" | "d" | "w" | "m" | "s") {
+        return Err(
+            "Duration unit must be one of: s (seconds), h (hours), d (days), w (weeks), m (months)"
+                .to_string(),
+        );
+    }
+
+    Ok(())
+}
+
 /// Check if Docker is installed
 pub fn is_docker_installed() -> bool {
     Command::new("which")
@@ -92,10 +190,29 @@ fn offer_docker_install() -> bool {
     match choice {
         0 => {
             println!("📥 Installing Docker via official script...");
-            let status = Command::new("bash")
-                .arg("-c")
-                .arg("curl -fsSL https://get.docker.com | sh")
+            println!(
+                "  Note: For production use, verify the install script manually before running."
+            );
+
+            // Download and execute in two steps (slightly safer than direct pipe)
+            let download = Command::new("curl")
+                .args([
+                    "-fsSL",
+                    "-o",
+                    "/tmp/get-docker.sh",
+                    "https://get.docker.com",
+                ])
                 .status();
+
+            if !download.map(|s| s.success()).unwrap_or(false) {
+                println!("❌ Failed to download Docker installation script");
+                return false;
+            }
+
+            let status = Command::new("sh").arg("/tmp/get-docker.sh").status();
+
+            // Clean up
+            let _ = std::fs::remove_file("/tmp/get-docker.sh");
 
             match status {
                 Ok(s) if s.success() => {
@@ -103,20 +220,35 @@ fn offer_docker_install() -> bool {
 
                     // Add user to docker group
                     let user = std::env::var("USER").unwrap_or_else(|_| "user".to_string());
-                    let _ = Command::new("sudo")
-                        .args(&["usermod", "-aG", "docker", &user])
-                        .status();
-
-                    println!("👤 Added {} to docker group", user);
+                    match Command::new("sudo")
+                        .args(["usermod", "-aG", "docker", &user])
+                        .status()
+                    {
+                        Ok(s) if s.success() => {
+                            println!("👤 Added {} to docker group", user);
+                        }
+                        _ => {
+                            tui::warn(&format!(
+                                "Could not add {} to docker group. You may need to do this manually.",
+                                user
+                            ));
+                        }
+                    }
                     println!("⚠️  Please log out and back in for group changes to take effect");
 
                     // Start and enable docker service
-                    let _ = Command::new("sudo")
-                        .args(&["systemctl", "start", "docker"])
-                        .status();
-                    let _ = Command::new("sudo")
-                        .args(&["systemctl", "enable", "docker"])
-                        .status();
+                    if let Err(e) = Command::new("sudo")
+                        .args(["systemctl", "start", "docker"])
+                        .status()
+                    {
+                        tui::warn(&format!("Could not start docker service: {}", e));
+                    }
+                    if let Err(e) = Command::new("sudo")
+                        .args(["systemctl", "enable", "docker"])
+                        .status()
+                    {
+                        tui::warn(&format!("Could not enable docker service: {}", e));
+                    }
 
                     println!("🚀 Docker service started and enabled");
                     true
@@ -130,21 +262,30 @@ fn offer_docker_install() -> bool {
         1 => {
             println!("📥 Installing Docker via pacman...");
             let status = Command::new("sudo")
-                .args(&["pacman", "-S", "--noconfirm", "docker", "docker-compose"])
+                .args(["pacman", "-S", "--noconfirm", "docker", "docker-compose"])
                 .status();
 
             match status {
                 Ok(s) if s.success() => {
                     let user = std::env::var("USER").unwrap_or_else(|_| "user".to_string());
-                    let _ = Command::new("sudo")
-                        .args(&["usermod", "-aG", "docker", &user])
-                        .status();
-                    let _ = Command::new("sudo")
-                        .args(&["systemctl", "start", "docker"])
-                        .status();
-                    let _ = Command::new("sudo")
-                        .args(&["systemctl", "enable", "docker"])
-                        .status();
+                    if let Err(e) = Command::new("sudo")
+                        .args(["usermod", "-aG", "docker", &user])
+                        .status()
+                    {
+                        tui::warn(&format!("Could not add user to docker group: {}", e));
+                    }
+                    if let Err(e) = Command::new("sudo")
+                        .args(["systemctl", "start", "docker"])
+                        .status()
+                    {
+                        tui::warn(&format!("Could not start docker: {}", e));
+                    }
+                    if let Err(e) = Command::new("sudo")
+                        .args(["systemctl", "enable", "docker"])
+                        .status()
+                    {
+                        tui::warn(&format!("Could not enable docker: {}", e));
+                    }
 
                     println!("✅ Docker installed and started");
                     println!("⚠️  Please log out and back in for group changes to take effect");
@@ -159,21 +300,30 @@ fn offer_docker_install() -> bool {
         2 => {
             println!("📥 Installing Docker via apt...");
             let status = Command::new("sudo")
-                .args(&["apt", "install", "-y", "docker.io", "docker-compose"])
+                .args(["apt", "install", "-y", "docker.io", "docker-compose"])
                 .status();
 
             match status {
                 Ok(s) if s.success() => {
                     let user = std::env::var("USER").unwrap_or_else(|_| "user".to_string());
-                    let _ = Command::new("sudo")
-                        .args(&["usermod", "-aG", "docker", &user])
-                        .status();
-                    let _ = Command::new("sudo")
-                        .args(&["systemctl", "start", "docker"])
-                        .status();
-                    let _ = Command::new("sudo")
-                        .args(&["systemctl", "enable", "docker"])
-                        .status();
+                    if let Err(e) = Command::new("sudo")
+                        .args(["usermod", "-aG", "docker", &user])
+                        .status()
+                    {
+                        tui::warn(&format!("Could not add user to docker group: {}", e));
+                    }
+                    if let Err(e) = Command::new("sudo")
+                        .args(["systemctl", "start", "docker"])
+                        .status()
+                    {
+                        tui::warn(&format!("Could not start docker: {}", e));
+                    }
+                    if let Err(e) = Command::new("sudo")
+                        .args(["systemctl", "enable", "docker"])
+                        .status()
+                    {
+                        tui::warn(&format!("Could not enable docker: {}", e));
+                    }
 
                     println!("✅ Docker installed and started");
                     println!("⚠️  Please log out and back in for group changes to take effect");
@@ -218,7 +368,7 @@ fn offer_docker_start() -> bool {
 
     tui::status("🚀", "Starting Docker daemon...");
     let status = Command::new("sudo")
-        .args(&["systemctl", "start", "docker"])
+        .args(["systemctl", "start", "docker"])
         .status();
 
     match status {
@@ -306,4 +456,56 @@ pub fn homelab_stacks_menu() {
     println!("🏠 Homelab Docker Stacks");
     println!("========================");
     compose::compose_stack_manager();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_docker_status_display_not_installed() {
+        let status = DockerStatus {
+            installed: false,
+            running: false,
+        };
+        // Just verify no panic when displaying
+        status.display();
+    }
+
+    #[test]
+    fn test_docker_status_display_not_running() {
+        let status = DockerStatus {
+            installed: true,
+            running: false,
+        };
+        // Just verify no panic when displaying
+        status.display();
+    }
+
+    #[test]
+    fn test_docker_status_display_running() {
+        let status = DockerStatus {
+            installed: true,
+            running: true,
+        };
+        // Display should do nothing when both are true
+        status.display();
+    }
+
+    #[test]
+    fn test_docker_status_fields() {
+        let status = DockerStatus {
+            installed: true,
+            running: true,
+        };
+        assert!(status.installed);
+        assert!(status.running);
+
+        let status2 = DockerStatus {
+            installed: false,
+            running: false,
+        };
+        assert!(!status2.installed);
+        assert!(!status2.running);
+    }
 }

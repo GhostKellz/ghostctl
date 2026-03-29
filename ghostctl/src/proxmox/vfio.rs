@@ -42,12 +42,14 @@ pub fn vfio_menu() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🎮 PVE VFIO Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => enable_vfio(),
@@ -76,11 +78,13 @@ fn enable_vfio() {
         .map(|g| format!("{} - {} ({})", g.pci_address, g.description, g.current_driver.as_ref().unwrap_or(&"no driver".to_string())))
         .collect();
 
-    let gpu_idx = Select::with_theme(&ColorfulTheme::default())
+    let Ok(gpu_idx) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select GPU for passthrough")
         .items(&gpu_strings)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let selected_gpu = &gpus[gpu_idx];
     
@@ -93,11 +97,13 @@ fn enable_vfio() {
         }
     }
 
-    let persist = Confirm::new()
+    let Ok(persist) = Confirm::new()
         .with_prompt("Make changes persistent? (requires reboot)")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📝 Configuring VFIO with IDs: {}", ids.join(","));
     
@@ -108,11 +114,10 @@ fn enable_vfio() {
 
     if persist {
         println!("✅ VFIO configured! System will reboot for changes to take effect.");
-        if Confirm::new()
+        if let Ok(true) = Confirm::new()
             .with_prompt("Reboot now?")
             .default(false)
             .interact()
-            .unwrap()
         {
             let _ = Command::new("systemctl").arg("reboot").status();
         }
@@ -122,11 +127,13 @@ fn enable_vfio() {
 }
 
 fn disable_vfio() {
-    let persist = Confirm::new()
+    let Ok(persist) = Confirm::new()
         .with_prompt("Remove persistent VFIO configuration?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔄 Removing VFIO configuration...");
     
@@ -142,11 +149,10 @@ fn disable_vfio() {
         refresh_boot();
         
         println!("✅ VFIO disabled! Reboot required for changes to take effect.");
-        if Confirm::new()
+        if let Ok(true) = Confirm::new()
             .with_prompt("Reboot now?")
             .default(false)
             .interact()
-            .unwrap()
         {
             let _ = Command::new("systemctl").arg("reboot").status();
         }
@@ -160,12 +166,14 @@ fn rescue_mode() {
     println!("  • Remove GPU blacklists");
     println!("  • Remove VFIO bindings");
     
-    if !Confirm::new()
+    let Ok(proceed) = Confirm::new()
         .with_prompt("Continue with rescue mode?")
         .default(true)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if !proceed {
         return;
     }
 
@@ -185,12 +193,11 @@ fn rescue_mode() {
     
     println!("✅ Rescue mode configured! Your console should be visible after reboot.");
     println!("⚠️  IMPORTANT: Reboot required!");
-    
-    if Confirm::new()
+
+    if let Ok(true) = Confirm::new()
         .with_prompt("Reboot now?")
         .default(true)
         .interact()
-        .unwrap()
     {
         let _ = Command::new("systemctl").arg("reboot").status();
     }
@@ -206,11 +213,13 @@ fn runtime_bind_menu() {
         "Back",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select operation")
         .items(&options)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => runtime_unbind(),
@@ -232,14 +241,16 @@ fn runtime_unbind() {
         .map(|g| format!("{} - {} ({})", g.pci_address, g.description, g.current_driver.as_ref().unwrap_or(&"unbound".to_string())))
         .collect();
 
-    let gpu_idx = Select::with_theme(&ColorfulTheme::default())
+    let Ok(gpu_idx) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select GPU to unbind")
         .items(&gpu_strings)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let gpu = &gpus[gpu_idx];
-    
+
     if gpu.current_driver.is_none() {
         println!("⚠️  GPU is not bound to any driver");
         return;
@@ -265,14 +276,16 @@ fn runtime_bind() {
         .map(|g| format!("{} - {} ({})", g.pci_address, g.description, g.current_driver.as_ref().unwrap_or(&"unbound".to_string())))
         .collect();
 
-    let gpu_idx = Select::with_theme(&ColorfulTheme::default())
+    let Ok(gpu_idx) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select GPU to bind to vfio-pci")
         .items(&gpu_strings)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let gpu = &gpus[gpu_idx];
-    
+
     // First ensure vfio-pci knows about this device
     let new_id_path = "/sys/bus/pci/drivers/vfio-pci/new_id";
     let vendor_device = format!("{} {}", gpu.vendor_id.replace("0x", ""), gpu.device_id.replace("0x", ""));
@@ -314,12 +327,14 @@ fn nvidia_passthrough_menu() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🟢 NVIDIA Passthrough Helper")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => nvidia_prepare(),
@@ -354,17 +369,22 @@ fn nvidia_prepare() {
         .map(|g| format!("{} - {}", g.pci_address, g.description))
         .collect();
 
-    let gpu_idx = Select::with_theme(&ColorfulTheme::default())
+    let Ok(gpu_idx) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select NVIDIA GPU")
         .items(&gpu_strings)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let gpu = nvidia_gpus[gpu_idx];
     
     // Blacklist nouveau
     let blacklist_content = format!("{}\nblacklist nouveau\noptions nouveau modeset=0\n", MARKER);
-    fs::write(BLACKLIST_NOUVEAU_PATH, blacklist_content).expect("Failed to write nouveau blacklist");
+    if let Err(e) = fs::write(BLACKLIST_NOUVEAU_PATH, blacklist_content) {
+        println!("❌ Failed to write nouveau blacklist: {}", e);
+        return;
+    }
     println!("✅ Blacklisted nouveau driver");
     
     // Setup VFIO with GPU and audio
@@ -377,8 +397,11 @@ fn nvidia_prepare() {
         }
     }
     
-    configure_vfio(&ids, true).expect("Failed to configure VFIO");
-    
+    if let Err(e) = configure_vfio(&ids, true) {
+        println!("❌ Failed to configure VFIO: {}", e);
+        return;
+    }
+
     // Add NVIDIA-specific GRUB flags
     add_nvidia_grub_flags();
     
@@ -387,12 +410,11 @@ fn nvidia_prepare() {
     
     println!("\n✅ NVIDIA GPU prepared for passthrough!");
     show_nvidia_vm_config(gpu);
-    
-    if Confirm::new()
+
+    if let Ok(true) = Confirm::new()
         .with_prompt("Reboot now to apply changes?")
         .default(true)
         .interact()
-        .unwrap()
     {
         let _ = Command::new("systemctl").arg("reboot").status();
     }
@@ -461,12 +483,14 @@ fn amd_passthrough_menu() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🔴 AMD Passthrough Helper")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => amd_prepare(),
@@ -497,17 +521,22 @@ fn amd_prepare() {
         .map(|g| format!("{} - {}", g.pci_address, g.description))
         .collect();
 
-    let gpu_idx = Select::with_theme(&ColorfulTheme::default())
+    let Ok(gpu_idx) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select AMD GPU")
         .items(&gpu_strings)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let gpu = amd_gpus[gpu_idx];
-    
+
     // Blacklist amdgpu
     let blacklist_content = format!("{}\nblacklist amdgpu\nblacklist radeon\n", MARKER);
-    fs::write(BLACKLIST_AMD_PATH, blacklist_content).expect("Failed to write AMD blacklist");
+    if let Err(e) = fs::write(BLACKLIST_AMD_PATH, blacklist_content) {
+        println!("❌ Failed to write AMD blacklist: {}", e);
+        return;
+    }
     println!("✅ Blacklisted amdgpu/radeon drivers");
     
     // Setup VFIO
@@ -520,19 +549,21 @@ fn amd_prepare() {
         }
     }
     
-    configure_vfio(&ids, true).expect("Failed to configure VFIO");
-    
+    if let Err(e) = configure_vfio(&ids, true) {
+        println!("❌ Failed to configure VFIO: {}", e);
+        return;
+    }
+
     rebuild_initramfs();
     refresh_boot();
-    
+
     println!("\n✅ AMD GPU prepared for passthrough!");
     show_amd_vm_config(gpu);
-    
-    if Confirm::new()
+
+    if let Ok(true) = Confirm::new()
         .with_prompt("Reboot now to apply changes?")
         .default(true)
         .interact()
-        .unwrap()
     {
         let _ = Command::new("systemctl").arg("reboot").status();
     }
@@ -587,12 +618,14 @@ fn diagnostics_menu() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🔍 VFIO Diagnostics")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => check_iommu_status(),
@@ -670,7 +703,7 @@ fn show_iommu_groups() {
         }
     }
     
-    groups.sort_by(|a, b| a.0.parse::<u32>().unwrap_or(0).cmp(&b.0.parse::<u32>().unwrap_or(0)));
+    groups.sort_by_key(|a| a.0.parse::<u32>().unwrap_or(0));
     
     for (group, devices) in groups {
         println!("Group {}: {}", group, devices.join(", "));
@@ -777,7 +810,9 @@ fn detect_gpus() -> Vec<GpuDevice> {
         }
         
         // Check for audio function (typically .1)
-        let base_addr = gpu.pci_address.split('.').next().unwrap_or(&gpu.pci_address);
+        let Some(base_addr) = gpu.pci_address.split('.').next() else {
+            continue;
+        };
         let audio_addr = format!("{}.1", base_addr);
         if Path::new(&format!("/sys/bus/pci/devices/{}", audio_addr)).exists() {
             gpu.audio_function = Some(audio_addr);
@@ -1034,12 +1069,14 @@ fn setup_vendor_reset() {
     println!("This addresses the AMD GPU reset bug that prevents proper VM restart.");
     println!("");
     
-    if !Confirm::new()
+    let Ok(proceed) = Confirm::new()
         .with_prompt("Install vendor-reset kernel module?")
         .default(true)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if !proceed {
         return;
     }
     
@@ -1056,11 +1093,10 @@ fn setup_vendor_reset() {
     if Path::new(vendor_reset_path).exists() {
         println!("ℹ️  Vendor-reset already installed");
         
-        if Confirm::new()
+        if let Ok(true) = Confirm::new()
             .with_prompt("Reinstall vendor-reset?")
             .default(false)
             .interact()
-            .unwrap()
         {
             uninstall_vendor_reset();
         } else {
@@ -1234,13 +1270,15 @@ fn configure_vendor_reset_usage() {
         "Auto-detect best method",
     ];
     
-    let method_idx = Select::with_theme(&ColorfulTheme::default())
+    let Ok(method_idx) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select reset method")
         .items(&reset_methods)
         .default(0)
         .interact()
-        .unwrap();
-    
+    else {
+        return;
+    };
+
     let reset_method = match method_idx {
         0 => "device_specific",
         1 => "function_level", 

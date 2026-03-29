@@ -2,13 +2,21 @@ pub mod advanced_firewall;
 pub mod advanced_scanner;
 pub mod bridge_management;
 pub mod enterprise_networking;
+pub mod errors;
+pub mod export;
+pub mod fingerprint;
 pub mod firewall;
 pub mod hw_offload;
 pub mod libvirt_advanced;
 pub mod nftables_enterprise;
+pub mod safe_commands;
 pub mod scanner;
+pub mod services;
 pub mod troubleshoot;
 pub mod virtualization;
+
+// Note: safe_commands provides secure command execution helpers
+// Import specific functions as needed in firewall modules
 
 use dialoguer::{Select, theme::ColorfulTheme};
 
@@ -29,12 +37,14 @@ pub fn networking_menu() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🌐 Network Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => firewall::firewall_menu(),

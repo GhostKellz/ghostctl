@@ -366,12 +366,15 @@ pub fn backup_integration() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Backup Integration")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => backup_snapshots_to_restic(),
@@ -411,20 +414,26 @@ pub fn create_manual_snapshot() {
         return;
     }
 
-    let config_choice = Select::with_theme(&ColorfulTheme::default())
+    let config_choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select configuration")
         .items(&configs)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     let config = &configs[config_choice];
 
-    let description: String = Input::new()
+    let description: String = match Input::new()
         .with_prompt("Snapshot description")
         .default("Manual snapshot".into())
         .interact_text()
-        .unwrap();
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
     let status = Command::new("sudo")
         .args(&[
@@ -454,7 +463,13 @@ pub fn backup_snapshots_to_restic() {
     }
 
     // Check if restic is configured
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(d) => d.join("ghostctl/restic.env"),
+        None => {
+            println!("❌ Could not determine config directory");
+            return;
+        }
+    };
     if !config_path.exists() {
         println!("❌ Restic not configured. Please run backup setup first.");
         println!("💡 Go to: Backup Menu > Setup > Initialize New Repository");
@@ -477,12 +492,15 @@ pub fn backup_snapshots_to_restic() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Snapshot Backup Options")
         .items(&backup_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => backup_latest_snapshot(&config_path, &configs),
@@ -500,12 +518,15 @@ fn backup_latest_snapshot(config_path: &std::path::Path, configs: &[String]) {
     let config = if configs.len() == 1 {
         configs[0].clone()
     } else {
-        let config_choice = Select::with_theme(&ColorfulTheme::default())
+        let config_choice = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Select snapper configuration")
             .items(configs)
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => return,
+        };
         configs[config_choice].clone()
     };
 
@@ -549,11 +570,17 @@ fn backup_latest_snapshot(config_path: &std::path::Path, configs: &[String]) {
 
     println!("📂 Snapshot path: {}", snapshot_path);
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Backup this snapshot to restic?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => {
+            println!("❌ Backup cancelled");
+            return;
+        }
+    };
 
     if !confirm {
         println!("❌ Backup cancelled");
@@ -601,12 +628,15 @@ fn backup_specific_snapshot(config_path: &std::path::Path, configs: &[String]) {
     let config = if configs.len() == 1 {
         configs[0].clone()
     } else {
-        let config_choice = Select::with_theme(&ColorfulTheme::default())
+        let config_choice = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Select snapper configuration")
             .items(configs)
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => return,
+        };
         configs[config_choice].clone()
     };
 
@@ -616,10 +646,13 @@ fn backup_specific_snapshot(config_path: &std::path::Path, configs: &[String]) {
         .args(&["snapper", "-c", &config, "list"])
         .status();
 
-    let snapshot_num: String = Input::new()
+    let snapshot_num: String = match Input::new()
         .with_prompt("Enter snapshot number to backup")
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     let snapshot_path = format!("/.snapshots/{}/snapshot", snapshot_num);
 
@@ -628,11 +661,17 @@ fn backup_specific_snapshot(config_path: &std::path::Path, configs: &[String]) {
         return;
     }
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt(format!("Backup snapshot #{} to restic?", snapshot_num))
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => {
+            println!("❌ Backup cancelled");
+            return;
+        }
+    };
 
     if !confirm {
         println!("❌ Backup cancelled");
@@ -664,20 +703,26 @@ fn backup_recent_snapshots(config_path: &std::path::Path, configs: &[String]) {
     let config = if configs.len() == 1 {
         configs[0].clone()
     } else {
-        let config_choice = Select::with_theme(&ColorfulTheme::default())
+        let config_choice = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Select snapper configuration")
             .items(configs)
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => return,
+        };
         configs[config_choice].clone()
     };
 
-    let count: String = Input::new()
+    let count: String = match Input::new()
         .with_prompt("How many recent snapshots to backup?")
         .default("5".to_string())
         .interact_text()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     let count_num: usize = count.parse().unwrap_or(5);
 
@@ -714,11 +759,17 @@ fn backup_recent_snapshots(config_path: &std::path::Path, configs: &[String]) {
         snapshot_nums
     );
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Start backup of these snapshots?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => {
+            println!("❌ Backup cancelled");
+            return;
+        }
+    };
 
     if !confirm {
         println!("❌ Backup cancelled");
@@ -788,12 +839,15 @@ pub fn automated_backup_workflows() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Automated Workflows")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => create_btrfs_backup_timer(),
@@ -809,7 +863,13 @@ fn create_btrfs_backup_timer() {
     println!("\n⏰ Create Automated Backup Timer");
     println!("=================================");
 
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(d) => d.join("ghostctl/restic.env"),
+        None => {
+            println!("❌ Could not determine config directory");
+            return;
+        }
+    };
     if !config_path.exists() {
         println!("❌ Restic not configured. Please run backup setup first.");
         return;
@@ -822,23 +882,28 @@ fn create_btrfs_backup_timer() {
         "Custom schedule",
     ];
 
-    let freq_choice = Select::with_theme(&ColorfulTheme::default())
+    let freq_choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Backup frequency")
         .items(&frequency_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     let timer_spec = match freq_choice {
         0 => "*-*-* 02:00:00".to_string(),
         1 => "*-*-* 02,14:00:00".to_string(),
         2 => "Sun *-*-* 03:00:00".to_string(),
         3 => {
-            let custom: String = Input::new()
+            match Input::new()
                 .with_prompt("Enter systemd calendar spec (e.g., '*-*-* 04:00:00')")
                 .interact_text()
-                .unwrap();
-            custom
+            {
+                Ok(custom) => custom,
+                Err(_) => return,
+            }
         }
         _ => return,
     };
@@ -851,12 +916,15 @@ fn create_btrfs_backup_timer() {
     } else if configs.len() == 1 {
         configs[0].clone()
     } else {
-        let config_choice = Select::with_theme(&ColorfulTheme::default())
+        let config_choice = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Snapper config to backup (or select for paths)")
             .items(&configs)
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => return,
+        };
         configs[config_choice].clone()
     };
 
@@ -920,18 +988,32 @@ echo "Backup completed successfully"
         )
     };
 
-    let script_dir = dirs::config_dir().unwrap().join("ghostctl/scripts");
-    std::fs::create_dir_all(&script_dir).unwrap();
+    let script_dir = match dirs::config_dir() {
+        Some(d) => d.join("ghostctl/scripts"),
+        None => {
+            println!("❌ Could not determine config directory");
+            return;
+        }
+    };
+    if let Err(e) = std::fs::create_dir_all(&script_dir) {
+        println!("❌ Failed to create script directory: {}", e);
+        return;
+    }
     let script_path = script_dir.join("btrfs-backup.sh");
-    std::fs::write(&script_path, script_content).unwrap();
+    if let Err(e) = std::fs::write(&script_path, script_content) {
+        println!("❌ Failed to write backup script: {}", e);
+        return;
+    }
 
     // Make script executable
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(&script_path).unwrap().permissions();
-        perms.set_mode(0o755);
-        std::fs::set_permissions(&script_path, perms).unwrap();
+        if let Ok(metadata) = std::fs::metadata(&script_path) {
+            let mut perms = metadata.permissions();
+            perms.set_mode(0o755);
+            let _ = std::fs::set_permissions(&script_path, perms);
+        }
     }
 
     // Create systemd service
@@ -967,14 +1049,29 @@ WantedBy=timers.target
         timer_spec
     );
 
-    let systemd_dir = dirs::config_dir().unwrap().join("systemd/user");
-    std::fs::create_dir_all(&systemd_dir).unwrap();
+    let systemd_dir = match dirs::config_dir() {
+        Some(d) => d.join("systemd/user"),
+        None => {
+            println!("❌ Could not determine config directory");
+            return;
+        }
+    };
+    if let Err(e) = std::fs::create_dir_all(&systemd_dir) {
+        println!("❌ Failed to create systemd directory: {}", e);
+        return;
+    }
 
     let service_path = systemd_dir.join("ghostctl-backup.service");
     let timer_path = systemd_dir.join("ghostctl-backup.timer");
 
-    std::fs::write(&service_path, service_content).unwrap();
-    std::fs::write(&timer_path, timer_content).unwrap();
+    if let Err(e) = std::fs::write(&service_path, service_content) {
+        println!("❌ Failed to write service file: {}", e);
+        return;
+    }
+    if let Err(e) = std::fs::write(&timer_path, timer_content) {
+        println!("❌ Failed to write timer file: {}", e);
+        return;
+    }
 
     println!("✅ Created systemd files:");
     println!("   📄 Service: {}", service_path.display());
@@ -989,11 +1086,14 @@ WantedBy=timers.target
     println!("   systemctl --user status ghostctl-backup.timer");
     println!("   systemctl --user list-timers");
 
-    let enable_now = Confirm::new()
+    let enable_now = match Confirm::new()
         .with_prompt("Enable and start the timer now?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => false,
+    };
 
     if enable_now {
         let _ = Command::new("systemctl")
@@ -1038,24 +1138,36 @@ fn edit_backup_schedule() {
     println!("\n🔧 Edit Backup Schedule");
     println!("=======================");
 
-    let timer_path = dirs::config_dir()
-        .unwrap()
-        .join("systemd/user/ghostctl-backup.timer");
+    let timer_path = match dirs::config_dir() {
+        Some(d) => d.join("systemd/user/ghostctl-backup.timer"),
+        None => {
+            println!("❌ Could not determine config directory");
+            return;
+        }
+    };
 
     if !timer_path.exists() {
         println!("❌ No backup timer found. Create one first.");
         return;
     }
 
-    let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
+    let editor = std::env::var("EDITOR").unwrap_or_default();
+    let editor = if editor.is_empty() {
+        "nano".to_string()
+    } else {
+        editor
+    };
     let _ = Command::new(&editor).arg(&timer_path).status();
 
     println!("💡 Reload timer with: systemctl --user daemon-reload");
-    let reload = Confirm::new()
+    let reload = match Confirm::new()
         .with_prompt("Reload systemd now?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => false,
+    };
 
     if reload {
         let _ = Command::new("systemctl")
@@ -1069,11 +1181,14 @@ fn remove_backup_timer() {
     println!("\n🗑️  Remove Backup Timer");
     println!("=======================");
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Remove GhostCTL backup timer?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => false,
+    };
 
     if !confirm {
         println!("❌ Removal cancelled");
@@ -1086,7 +1201,13 @@ fn remove_backup_timer() {
         .status();
 
     // Remove files
-    let systemd_dir = dirs::config_dir().unwrap().join("systemd/user");
+    let systemd_dir = match dirs::config_dir() {
+        Some(d) => d.join("systemd/user"),
+        None => {
+            println!("❌ Could not determine config directory");
+            return;
+        }
+    };
     let _ = std::fs::remove_file(systemd_dir.join("ghostctl-backup.service"));
     let _ = std::fs::remove_file(systemd_dir.join("ghostctl-backup.timer"));
 
@@ -1101,7 +1222,13 @@ fn view_backup_status() {
     println!("\n📊 Backup Status");
     println!("================");
 
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(d) => d.join("ghostctl/restic.env"),
+        None => {
+            println!("❌ Could not determine config directory");
+            return;
+        }
+    };
 
     if !config_path.exists() {
         println!("❌ Restic not configured");
@@ -1149,11 +1276,14 @@ fn check_restic_installed() -> bool {
 
 fn offer_snapper_installation() {
     println!("❌ Snapper is not installed.");
-    let install = Confirm::new()
+    let install = match Confirm::new()
         .with_prompt("Install snapper?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => false,
+    };
 
     if install {
         let _ = Command::new("sudo")
@@ -1165,11 +1295,14 @@ fn offer_snapper_installation() {
 
 fn offer_restic_installation() {
     println!("❌ Restic is not installed.");
-    let install = Confirm::new()
+    let install = match Confirm::new()
         .with_prompt("Install restic?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => false,
+    };
 
     if install {
         let _ = Command::new("sudo")

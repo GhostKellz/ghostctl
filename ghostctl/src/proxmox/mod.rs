@@ -4,11 +4,13 @@ use std::process::Command;
 pub mod advanced_security;
 pub mod backup_rotation;
 pub mod enhanced;
+pub mod errors;
 pub mod firewall_automation;
 pub mod helper;
 pub mod script_safety;
 pub mod storage_migration;
 pub mod template_management;
+pub mod validation;
 // pub mod vfio;
 // pub mod upgrade;
 // pub mod pbs;
@@ -58,7 +60,7 @@ const CKTECH_REPO: &str = "https://api.github.com/repos/GhostKellz/proxmox/conte
 
 pub fn proxmox_menu() {
     loop {
-        let menu_type = Select::with_theme(&ColorfulTheme::default())
+        let Ok(menu_type) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🏥 Proxmox VE Tools")
             .items(&[
                 "🚀 Quick Access (Popular Scripts)",
@@ -72,7 +74,9 @@ pub fn proxmox_menu() {
             ])
             .default(1)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         match menu_type {
             0 => quick_access_menu(),
@@ -100,12 +104,14 @@ fn quick_access_menu() {
             "Back".to_string(),
         ]);
 
-        let idx = Select::with_theme(&ColorfulTheme::default())
+        let Ok(idx) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Proxmox Helper Scripts")
             .items(&menu_items)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if idx == menu_items.len() - 1 {
             break; // Back
@@ -140,10 +146,12 @@ pub fn list_popular_scripts() {
 }
 
 fn custom_script_url() {
-    let url: String = Input::new()
+    let Ok(url) = Input::<String>::new()
         .with_prompt("Enter the script URL")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     if url.trim().is_empty() {
         println!("❌ No URL provided.");
@@ -155,9 +163,13 @@ fn custom_script_url() {
 
 pub fn browse_all_scripts() {
     println!("🌐 Opening Proxmox VE Community Scripts repository...");
-    let _ = Command::new("xdg-open")
+    if let Err(e) = Command::new("xdg-open")
         .arg("https://community-scripts.github.io/ProxmoxVE/")
-        .status();
+        .status()
+    {
+        println!("Could not open browser. Visit: https://community-scripts.github.io/ProxmoxVE/");
+        println!("Error: {}", e);
+    }
 }
 
 fn confirm_and_run_script(name: &str, url: &str) {
@@ -202,20 +214,37 @@ fn vfio_gpu_passthrough_guide() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("VFIO Options")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
             println!("\n🔍 IOMMU Status:");
             println!("================");
-            let _ = std::process::Command::new("dmesg")
-                .args(&["|", "grep", "-i", "iommu"])
-                .status();
+            // Use dmesg directly and filter in Rust to avoid shell pipe issues
+            match std::process::Command::new("dmesg").output() {
+                Ok(output) => {
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    let iommu_lines: Vec<&str> = stdout
+                        .lines()
+                        .filter(|line| line.to_lowercase().contains("iommu"))
+                        .collect();
+                    if iommu_lines.is_empty() {
+                        println!("No IOMMU messages found in dmesg");
+                    } else {
+                        for line in iommu_lines.iter().take(20) {
+                            println!("{}", line);
+                        }
+                    }
+                }
+                Err(e) => println!("Failed to run dmesg: {}", e),
+            }
 
             // Check if IOMMU is enabled
             if let Ok(cmdline) = std::fs::read_to_string("/proc/cmdline") {
@@ -234,7 +263,9 @@ fn vfio_gpu_passthrough_guide() {
         1 => {
             println!("\n📋 PCI Devices for Passthrough:");
             println!("================================");
-            let _ = std::process::Command::new("lspci").args(&["-nn"]).status();
+            if let Err(e) = std::process::Command::new("lspci").args(["-nn"]).status() {
+                println!("Failed to list PCI devices: {}", e);
+            }
 
             println!("\n💡 Look for your GPU (usually starts with 'VGA' or 'Display')");
             println!("   Note the device IDs in format [XXXX:XXXX]");
@@ -272,9 +303,13 @@ fn vfio_gpu_passthrough_guide() {
         }
         3 => {
             println!("🌐 Opening Proxmox VFIO Wiki...");
-            let _ = std::process::Command::new("xdg-open")
+            if let Err(e) = std::process::Command::new("xdg-open")
                 .arg("https://pve.proxmox.com/wiki/PCI_Passthrough")
-                .status();
+                .status()
+            {
+                println!("Could not open browser: {}", e);
+                println!("Visit: https://pve.proxmox.com/wiki/PCI_Passthrough");
+            }
         }
         _ => return,
     }
@@ -294,42 +329,57 @@ fn pve_upgrade_guide() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("PVE Upgrade Options")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
             println!("\n📊 Current Proxmox VE Version:");
-            let _ = std::process::Command::new("pveversion")
+            if let Err(e) = std::process::Command::new("pveversion")
                 .arg("--verbose")
-                .status();
+                .status()
+            {
+                println!("Failed to get PVE version: {}", e);
+                println!("(pveversion command may not be available on this system)");
+            }
         }
         1 => {
             println!("\n🔍 Checking Upgrade Readiness...");
             println!("================================");
 
-            // Check Debian version
+            // Check Debian version - read file directly instead of using cat
             println!("\nOS Version:");
-            let _ = std::process::Command::new("cat")
-                .arg("/etc/os-release")
-                .status();
+            match std::fs::read_to_string("/etc/os-release") {
+                Ok(content) => println!("{}", content),
+                Err(e) => println!("Failed to read /etc/os-release: {}", e),
+            }
 
             // Check disk space
             println!("\nDisk Space:");
-            let _ = std::process::Command::new("df").args(&["-h", "/"]).status();
+            if let Err(e) = std::process::Command::new("df").args(["-h", "/"]).status() {
+                println!("Failed to check disk space: {}", e);
+            }
 
             // Check cluster status
             println!("\nCluster Status:");
-            let _ = std::process::Command::new("pvecm").arg("status").status();
+            if let Err(e) = std::process::Command::new("pvecm").arg("status").status() {
+                println!("(Cluster check skipped - pvecm not available or not in cluster)");
+            }
 
             // Check for running VMs
             println!("\nRunning VMs/Containers:");
-            let _ = std::process::Command::new("qm").arg("list").status();
-            let _ = std::process::Command::new("pct").arg("list").status();
+            if let Err(_) = std::process::Command::new("qm").arg("list").status() {
+                println!("(VM list not available)");
+            }
+            if let Err(_) = std::process::Command::new("pct").arg("list").status() {
+                println!("(Container list not available)");
+            }
 
             println!("\n⚠️  Before upgrading:");
             println!("   1. Backup all VMs and important data");
@@ -364,19 +414,25 @@ fn pve_upgrade_guide() {
         }
         3 => {
             println!("🌐 Opening Proxmox upgrade documentation...");
-            let _ = std::process::Command::new("xdg-open")
+            if let Err(e) = std::process::Command::new("xdg-open")
                 .arg("https://pve.proxmox.com/wiki/Upgrade")
-                .status();
+                .status()
+            {
+                println!("Could not open browser: {}", e);
+                println!("Visit: https://pve.proxmox.com/wiki/Upgrade");
+            }
         }
         4 => {
             println!("\n🔧 Community PVE Upgrade Script");
             println!("================================");
 
-            let confirm = Confirm::new()
+            let Ok(confirm) = Confirm::new()
                 .with_prompt("Run community-scripts PVE upgrade tool?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if confirm {
                 let url = "https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/tools/pve/pve8-upgrade.sh";
@@ -402,25 +458,35 @@ fn pbs_management_guide() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("PBS Options")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
             println!("\n📊 PBS Service Status:");
-            let _ = std::process::Command::new("systemctl")
-                .args(&["status", "proxmox-backup"])
-                .status();
+            if let Err(e) = std::process::Command::new("systemctl")
+                .args(["status", "proxmox-backup"])
+                .status()
+            {
+                println!("Failed to check PBS status: {}", e);
+                println!("(Proxmox Backup Server may not be installed on this system)");
+            }
         }
         1 => {
             println!("\n📋 PBS Datastores:");
-            let _ = std::process::Command::new("proxmox-backup-manager")
-                .args(&["datastore", "list"])
-                .status();
+            if let Err(e) = std::process::Command::new("proxmox-backup-manager")
+                .args(["datastore", "list"])
+                .status()
+            {
+                println!("Failed to list datastores: {}", e);
+                println!("(proxmox-backup-manager may not be available)");
+            }
         }
         2 => {
             println!("\n🔧 PBS Maintenance Tasks:");
@@ -433,43 +499,78 @@ fn pbs_management_guide() {
                 "⬅️  Back",
             ];
 
-            let task = Select::with_theme(&ColorfulTheme::default())
+            let Ok(task) = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select maintenance task")
                 .items(&tasks)
                 .default(0)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             match task {
                 0 => {
-                    let ds: String = Input::new()
+                    let Ok(ds) = Input::<String>::new()
                         .with_prompt("Datastore name")
                         .interact_text()
-                        .unwrap();
+                    else {
+                        return;
+                    };
 
-                    let _ = std::process::Command::new("proxmox-backup-manager")
-                        .args(&["garbage-collection", "start", &ds])
-                        .status();
+                    // Validate datastore name
+                    if let Err(e) = validation::validate_datastore_name(&ds) {
+                        println!("Invalid datastore name: {}", e);
+                        return;
+                    }
+
+                    if let Err(e) = std::process::Command::new("proxmox-backup-manager")
+                        .args(["garbage-collection", "start", &ds])
+                        .status()
+                    {
+                        println!("Failed to start garbage collection: {}", e);
+                    }
                 }
                 1 => {
-                    let ds: String = Input::new()
+                    let Ok(ds) = Input::<String>::new()
                         .with_prompt("Datastore name")
                         .interact_text()
-                        .unwrap();
+                    else {
+                        return;
+                    };
 
-                    let _ = std::process::Command::new("proxmox-backup-manager")
-                        .args(&["verify", "start", &ds])
-                        .status();
+                    // Validate datastore name
+                    if let Err(e) = validation::validate_datastore_name(&ds) {
+                        println!("Invalid datastore name: {}", e);
+                        return;
+                    }
+
+                    if let Err(e) = std::process::Command::new("proxmox-backup-manager")
+                        .args(["verify", "start", &ds])
+                        .status()
+                    {
+                        println!("Failed to start verification: {}", e);
+                    }
                 }
                 2 => {
-                    let ds: String = Input::new()
+                    let Ok(ds) = Input::<String>::new()
                         .with_prompt("Datastore name")
                         .interact_text()
-                        .unwrap();
+                    else {
+                        return;
+                    };
 
-                    let _ = std::process::Command::new("proxmox-backup-manager")
-                        .args(&["datastore", "show", &ds])
-                        .status();
+                    // Validate datastore name
+                    if let Err(e) = validation::validate_datastore_name(&ds) {
+                        println!("Invalid datastore name: {}", e);
+                        return;
+                    }
+
+                    if let Err(e) = std::process::Command::new("proxmox-backup-manager")
+                        .args(["datastore", "show", &ds])
+                        .status()
+                    {
+                        println!("Failed to show datastore: {}", e);
+                    }
                 }
                 _ => return,
             }
@@ -497,18 +598,24 @@ fn pbs_management_guide() {
         }
         4 => {
             println!("🌐 Opening PBS documentation...");
-            let _ = std::process::Command::new("xdg-open")
+            if let Err(e) = std::process::Command::new("xdg-open")
                 .arg("https://pbs.proxmox.com/docs/")
-                .status();
+                .status()
+            {
+                println!("Could not open browser: {}", e);
+                println!("Visit: https://pbs.proxmox.com/docs/");
+            }
         }
         5 => {
             println!("\n🔧 Community PBS Install Script");
 
-            let confirm = Confirm::new()
+            let Ok(confirm) = Confirm::new()
                 .with_prompt("Run community PBS install script?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if confirm {
                 let url = "https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/pbs-install.sh";

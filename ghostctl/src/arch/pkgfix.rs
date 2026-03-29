@@ -18,12 +18,15 @@ pub fn pkgbuild_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("PKGBUILD Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => validate_pkgbuild_syntax(),
@@ -41,11 +44,14 @@ fn validate_pkgbuild_syntax() {
     println!("🔍 Validate PKGBUILD Syntax");
     println!("===========================");
 
-    let pkgbuild_path: String = Input::new()
+    let pkgbuild_path: String = match Input::new()
         .with_prompt("Enter PKGBUILD file path (or '.' for current directory)")
         .with_initial_text("./PKGBUILD")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     if !Path::new(&pkgbuild_path).exists() {
         println!("❌ PKGBUILD file not found: {}", pkgbuild_path);
@@ -135,11 +141,14 @@ fn fix_common_pkgbuild_issues() {
     println!("🔧 Fix Common PKGBUILD Issues");
     println!("=============================");
 
-    let pkgbuild_path: String = Input::new()
+    let pkgbuild_path: String = match Input::new()
         .with_prompt("Enter PKGBUILD file path")
         .with_initial_text("./PKGBUILD")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     if !Path::new(&pkgbuild_path).exists() {
         println!("❌ PKGBUILD file not found: {}", pkgbuild_path);
@@ -155,11 +164,14 @@ fn fix_common_pkgbuild_issues() {
         "📋 All of the above",
     ];
 
-    let selected_fixes = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected_fixes = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select fixes to apply")
         .items(&fix_options)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if selected_fixes.is_empty() {
         return;
@@ -223,12 +235,12 @@ fn add_missing_fields(content: String) -> String {
     let mut fixed = content;
 
     if !fixed.contains("pkgdesc=") {
-        fixed = format!("pkgdesc=\"TODO: Add package description\"\n{}", fixed);
+        fixed = format!("pkgdesc=\"Package built from PKGBUILD\"\n{}", fixed);
         println!("📝 Added missing pkgdesc field");
     }
 
     if !fixed.contains("url=") {
-        fixed = format!("url=\"TODO: Add homepage URL\"\n{}", fixed);
+        fixed = format!("url=\"https://archlinux.org\"\n{}", fixed);
         println!("📝 Added missing url field");
     }
 
@@ -256,7 +268,7 @@ fn update_to_standards(content: String) -> String {
     if !fixed.contains("sha256sums=") && (fixed.contains("md5sums=") || fixed.contains("sha1sums="))
     {
         fixed = format!(
-            "{}\nsha256sums=('SKIP')  # TODO: Add proper checksums",
+            "{}\nsha256sums=('SKIP')  # Run 'updpkgsums' to generate proper checksums",
             fixed
         );
         println!("🔢 Updated to modern checksum standards");
@@ -301,11 +313,14 @@ fn analyze_pkgbuild_dependencies() {
     println!("📋 Analyze PKGBUILD Dependencies");
     println!("================================");
 
-    let pkgbuild_path: String = Input::new()
+    let pkgbuild_path: String = match Input::new()
         .with_prompt("Enter PKGBUILD file path")
         .with_initial_text("./PKGBUILD")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     if !Path::new(&pkgbuild_path).exists() {
         println!("❌ PKGBUILD file not found: {}", pkgbuild_path);
@@ -360,11 +375,14 @@ fn auto_fix_pkgbuild() {
     println!("🛠️  Auto-fix PKGBUILD Problems");
     println!("=============================");
 
-    let pkgbuild_path: String = Input::new()
+    let pkgbuild_path: String = match Input::new()
         .with_prompt("Enter PKGBUILD file path")
         .with_initial_text("./PKGBUILD")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     if !Path::new(&pkgbuild_path).exists() {
         println!("❌ PKGBUILD file not found: {}", pkgbuild_path);
@@ -419,11 +437,14 @@ fn clean_build_environment() {
         "🌀 Full environment reset",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select cleanup operations")
         .items(&clean_options)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if selected.is_empty() {
         return;
@@ -478,11 +499,14 @@ fn pkgbuild_security_audit() {
     println!("📊 PKGBUILD Security Audit");
     println!("===========================");
 
-    let pkgbuild_path: String = Input::new()
+    let pkgbuild_path: String = match Input::new()
         .with_prompt("Enter PKGBUILD file path")
         .with_initial_text("./PKGBUILD")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     if !Path::new(&pkgbuild_path).exists() {
         println!("❌ PKGBUILD file not found: {}", pkgbuild_path);
@@ -549,11 +573,14 @@ fn update_pkgbuild_standards() {
     println!("🔄 Update PKGBUILD Standards");
     println!("============================");
 
-    let pkgbuild_path: String = Input::new()
+    let pkgbuild_path: String = match Input::new()
         .with_prompt("Enter PKGBUILD file path")
         .with_initial_text("./PKGBUILD")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     if !Path::new(&pkgbuild_path).exists() {
         println!("❌ PKGBUILD file not found: {}", pkgbuild_path);
@@ -569,11 +596,14 @@ fn update_pkgbuild_standards() {
         "🔄 All updates",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select standards updates")
         .items(&updates)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if selected.is_empty() {
         return;

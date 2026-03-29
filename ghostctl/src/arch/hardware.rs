@@ -19,12 +19,15 @@ pub fn hardware_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Hardware Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => hardware_detection(),
@@ -59,12 +62,15 @@ fn hardware_detection() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Hardware Detection")
         .items(&detection_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => system_overview(),
@@ -270,12 +276,15 @@ fn graphics_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Graphics Management")
         .items(&graphics_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => detect_graphics_hardware(),
@@ -342,12 +351,15 @@ fn nvidia_driver_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("NVIDIA Management")
         .items(&nvidia_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => install_nvidia_drivers(),
@@ -380,12 +392,15 @@ fn install_nvidia_drivers() {
                 "nouveau (Open source)",
             ];
 
-            let choice = Select::with_theme(&ColorfulTheme::default())
+            let choice = match Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select NVIDIA driver")
                 .items(&driver_options)
                 .default(0)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => return,
+            };
 
             let packages = match choice {
                 0 => vec!["nvidia", "nvidia-utils", "nvidia-settings"],
@@ -397,11 +412,14 @@ fn install_nvidia_drivers() {
 
             println!("📦 Installing NVIDIA packages: {:?}", packages);
 
-            let confirm = Confirm::new()
+            let confirm = match Confirm::new()
                 .with_prompt("Install NVIDIA drivers?")
                 .default(true)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => return,
+            };
 
             if confirm {
                 let _ = Command::new("sudo")
@@ -452,12 +470,15 @@ fn fix_nvidia_issues() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("NVIDIA Fix")
         .items(&fix_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -476,13 +497,19 @@ fn fix_nvidia_issues() {
         }
         3 => {
             println!("🚫 Blacklisting nouveau driver...");
-            let _ = Command::new("sudo")
-                .args([
-                    "bash",
-                    "-c",
-                    "echo 'blacklist nouveau' >> /etc/modprobe.d/blacklist-nouveau.conf",
-                ])
-                .status();
+            // Write to temp file and move with sudo
+            let temp_file = "/tmp/blacklist-nouveau.conf.tmp";
+            // Read existing content if file exists
+            let mut content = std::fs::read_to_string("/etc/modprobe.d/blacklist-nouveau.conf")
+                .unwrap_or_default();
+            if !content.contains("blacklist nouveau") {
+                content.push_str("blacklist nouveau\n");
+            }
+            if std::fs::write(temp_file, &content).is_ok() {
+                let _ = Command::new("sudo")
+                    .args(["mv", temp_file, "/etc/modprobe.d/blacklist-nouveau.conf"])
+                    .status();
+            }
         }
         4 => {
             println!("🖥️  Fixing display issues...");
@@ -508,11 +535,14 @@ fn nvidia_gaming_optimizations() {
         "Install gaming-specific packages",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select optimizations")
         .items(&optimizations)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        _ => return,
+    };
 
     for &opt in &selected {
         match opt {
@@ -574,20 +604,29 @@ fn nvidia_wayland_support() {
             println!("Add to /etc/modprobe.d/nvidia.conf:");
             println!("options nvidia-drm modeset=1");
 
-            let confirm = Confirm::new()
+            let confirm = match Confirm::new()
                 .with_prompt("Apply Wayland configuration?")
                 .default(true)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => return,
+            };
 
             if confirm {
-                let _ = Command::new("sudo")
-                    .args([
-                        "bash",
-                        "-c",
-                        "echo 'options nvidia-drm modeset=1' >> /etc/modprobe.d/nvidia.conf",
-                    ])
-                    .status();
+                // Write to temp file and move with sudo
+                let temp_file = "/tmp/nvidia.conf.tmp";
+                // Read existing content if file exists
+                let mut content =
+                    std::fs::read_to_string("/etc/modprobe.d/nvidia.conf").unwrap_or_default();
+                if !content.contains("options nvidia-drm modeset=1") {
+                    content.push_str("options nvidia-drm modeset=1\n");
+                }
+                if std::fs::write(temp_file, &content).is_ok() {
+                    let _ = Command::new("sudo")
+                        .args(["mv", temp_file, "/etc/modprobe.d/nvidia.conf"])
+                        .status();
+                }
 
                 println!("✅ Wayland support configured");
                 println!("🔄 Reboot required");
@@ -612,12 +651,15 @@ fn amd_driver_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("AMD Management")
         .items(&amd_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => install_amd_drivers(),
@@ -670,11 +712,14 @@ fn configure_amd_settings() {
     println!("• Configure via Xorg configuration");
     println!("• Use gaming-mode for performance");
 
-    let install_tools = Confirm::new()
+    let install_tools = match Confirm::new()
         .with_prompt("Install AMD monitoring tools?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if install_tools {
         let _ = Command::new("sudo")
@@ -695,12 +740,15 @@ fn fix_amd_issues() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("AMD Fix")
         .items(&fix_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -740,11 +788,14 @@ fn amd_gaming_optimizations() {
         "Configure GPU scheduling",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select optimizations")
         .items(&optimizations)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        _ => return,
+    };
 
     for &opt in &selected {
         match opt {
@@ -787,11 +838,14 @@ fn intel_driver_management() {
     println!("📦 Intel graphics drivers (usually pre-installed):");
     let packages = ["xf86-video-intel", "mesa", "vulkan-intel"];
 
-    let install = Confirm::new()
+    let install = match Confirm::new()
         .with_prompt("Install/update Intel graphics packages?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if install {
         let _ = Command::new("sudo")
@@ -816,12 +870,15 @@ fn display_configuration() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Display Configuration")
         .items(&display_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -839,15 +896,21 @@ fn display_configuration() {
 fn configure_resolution() {
     println!("⚙️  Configure Resolution");
 
-    let resolution: String = Input::new()
+    let resolution: String = match Input::new()
         .with_prompt("Enter resolution (e.g., 1920x1080)")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
-    let display: String = Input::new()
+    let display: String = match Input::new()
         .with_prompt("Display name (from xrandr, or 'auto')")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     if display == "auto" {
         let _ = Command::new("xrandr")
@@ -871,11 +934,14 @@ fn multi_monitor_setup() {
     println!("\n💡 Multi-monitor setup:");
     println!("Use arandr GUI: sudo pacman -S arandr && arandr");
 
-    let install_arandr = Confirm::new()
+    let install_arandr = match Confirm::new()
         .with_prompt("Install arandr GUI tool?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if install_arandr {
         let _ = Command::new("sudo")
@@ -890,12 +956,15 @@ fn rotate_display() {
     println!("🔄 Rotate Display");
 
     let rotations = ["normal", "left", "right", "inverted"];
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select rotation")
         .items(&rotations)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     let rotation = rotations[choice];
 
@@ -908,10 +977,13 @@ fn rotate_display() {
 fn brightness_control() {
     println!("💡 Brightness Control");
 
-    let brightness: String = Input::new()
+    let brightness: String = match Input::new()
         .with_prompt("Enter brightness (0.1 to 1.0)")
         .interact_text()
-        .unwrap();
+    {
+        Ok(i) => i,
+        Err(_) => return,
+    };
 
     let _ = Command::new("xrandr")
         .args(["--output", "auto", "--brightness", &brightness])
@@ -931,12 +1003,15 @@ fn gaming_graphics_setup() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Gaming Setup")
         .items(&gaming_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => install_gaming_packages(),
@@ -1027,11 +1102,14 @@ fn gaming_performance_optimizations() {
         "Configure GPU performance mode",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select optimizations")
         .items(&optimizations)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        _ => return,
+    };
 
     for &opt in &selected {
         match opt {
@@ -1043,9 +1121,31 @@ fn gaming_performance_optimizations() {
             }
             1 => {
                 println!("⚡ Setting performance CPU governor...");
-                let _ = Command::new("sudo")
-                    .args(["bash", "-c", "echo performance | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"])
-                    .status();
+                // Set CPU governor for all CPUs using sudo tee
+                if let Ok(entries) = std::fs::read_dir("/sys/devices/system/cpu") {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                        if name.starts_with("cpu") && name[3..].chars().all(|c| c.is_ascii_digit())
+                        {
+                            let governor_path = path.join("cpufreq/scaling_governor");
+                            if governor_path.exists() {
+                                let _ = Command::new("sudo")
+                                    .args(["tee", governor_path.to_str().unwrap_or("")])
+                                    .stdin(std::process::Stdio::piped())
+                                    .stdout(std::process::Stdio::null())
+                                    .spawn()
+                                    .and_then(|mut child| {
+                                        use std::io::Write;
+                                        if let Some(ref mut stdin) = child.stdin {
+                                            let _ = stdin.write_all(b"performance");
+                                        }
+                                        child.wait()
+                                    });
+                            }
+                        }
+                    }
+                }
             }
             2 => {
                 println!("🖥️  Compositing disabled during gaming");
@@ -1066,11 +1166,14 @@ fn gaming_monitoring_tools() {
 
     let tools = ["MangoHUD", "GOverlay", "GameMode", "System monitoring"];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Install monitoring tools")
         .items(&tools)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        _ => return,
+    };
 
     for &tool in &selected {
         match tool {
@@ -1113,12 +1216,15 @@ fn wayland_x11_setup() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Session Setup")
         .items(&session_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {

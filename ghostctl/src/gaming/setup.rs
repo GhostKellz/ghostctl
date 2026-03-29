@@ -18,12 +18,14 @@ pub fn automated_setup() {
             "⬅️  Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🛠️  Automated Gaming Setup")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => complete_gaming_setup(),
@@ -55,11 +57,13 @@ fn complete_gaming_setup() {
     println!("  • Monitoring and overlays");
     println!("  • Performance optimizations");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("⚠️  This will install many packages and may take time. Continue?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !confirm {
         return;
@@ -706,11 +710,13 @@ fn final_setup_summary() {
     println!("  • Run: ~/.config/ghostctl/profiles/gaming.sh");
     println!("  • Or find 'Gaming Performance Profile' in applications");
 
-    let reboot = Confirm::new()
+    let Ok(reboot) = Confirm::new()
         .with_prompt("🔄 Reboot now to ensure all changes take effect?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if reboot {
         println!("🔄 Rebooting system...");
@@ -826,12 +832,14 @@ fn custom_component_installation() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select component category")
         .items(&component_categories)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_gaming_platforms(),
@@ -860,11 +868,13 @@ fn install_gaming_platforms() {
         ("DOSBox", vec!["dosbox"]),
     ];
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select platforms to install")
         .items(&platforms.iter().map(|(name, _)| *name).collect::<Vec<_>>())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selections {
         let (name, packages) = &platforms[index];
@@ -957,7 +967,7 @@ fn install_graphics_drivers() {
         ),
     ];
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select drivers to install")
         .items(
             &driver_options
@@ -966,7 +976,9 @@ fn install_graphics_drivers() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selections {
         let (name, packages) = &driver_options[index];
@@ -1014,7 +1026,7 @@ fn install_audio_systems() {
         ),
     ];
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select audio systems to install")
         .items(
             &audio_systems
@@ -1023,7 +1035,9 @@ fn install_audio_systems() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selections {
         let (name, packages) = &audio_systems[index];
@@ -1054,7 +1068,7 @@ fn install_performance_tools() {
         ("Benchmarking", vec!["glmark2", "unigine-heaven"]),
     ];
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select performance tools to install")
         .items(
             &performance_tools
@@ -1063,7 +1077,9 @@ fn install_performance_tools() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selections {
         let (name, packages) = &performance_tools[index];
@@ -1110,7 +1126,7 @@ fn install_monitoring_overlays() {
         ("Network Monitoring", vec!["iftop", "bandwhich", "nload"]),
     ];
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select monitoring tools to install")
         .items(
             &monitoring_tools
@@ -1119,7 +1135,9 @@ fn install_monitoring_overlays() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selections {
         let (name, packages) = &monitoring_tools[index];
@@ -1158,7 +1176,7 @@ fn install_controllers_input() {
         ("Bluetooth Support", vec!["bluez", "bluez-utils"]),
     ];
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select controller tools to install")
         .items(
             &controller_tools
@@ -1167,7 +1185,9 @@ fn install_controllers_input() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selections {
         let (name, packages) = &controller_tools[index];
@@ -1200,7 +1220,7 @@ fn install_wine_compatibility() {
         ("Additional Tools", vec!["zenity", "kdialog"]),
     ];
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Wine components to install")
         .items(
             &wine_components
@@ -1209,7 +1229,9 @@ fn install_wine_compatibility() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selections {
         let (name, packages) = &wine_components[index];
@@ -1242,11 +1264,13 @@ fn install_development_tools() {
         ("Version Control", vec!["git", "git-lfs", "mercurial"]),
     ];
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select development tools to install")
         .items(&dev_tools.iter().map(|(name, _)| *name).collect::<Vec<_>>())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selections {
         let (name, packages) = &dev_tools[index];
@@ -1277,12 +1301,14 @@ fn gaming_platform_setup() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select platform to setup")
         .items(&platform_setups)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => steam_complete_setup(),
@@ -1335,11 +1361,13 @@ fn steam_complete_setup() {
     println!("  5. Select latest Proton version");
 
     // Install ProtonUp-Qt for easy Proton management
-    let protonup_install = Confirm::new()
+    let Ok(protonup_install) = Confirm::new()
         .with_prompt("Install ProtonUp-Qt for easy Proton version management?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if protonup_install {
         install_protonup_qt();
@@ -1512,12 +1540,14 @@ fn heroic_setup() {
         "Skip installation",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select installation method")
         .items(&install_methods)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
@@ -1622,12 +1652,14 @@ fn performance_optimization_setup() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select optimization area")
         .items(&optimization_areas)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => setup_cpu_performance(),
@@ -1699,11 +1731,13 @@ fn setup_memory_management() {
         .status();
 
     // Install zram if wanted
-    let install_zram = Confirm::new()
+    let Ok(install_zram) = Confirm::new()
         .with_prompt("Install zram for memory compression?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_zram {
         let _ = Command::new("sudo")
@@ -1789,11 +1823,13 @@ fn setup_thermal_management() {
     println!("🔧 Run 'sudo sensors-detect' to configure sensors");
 
     // Install fan control if wanted
-    let install_fancontrol = Confirm::new()
+    let Ok(install_fancontrol) = Confirm::new()
         .with_prompt("Setup fancontrol for custom fan curves?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_fancontrol {
         println!("💨 fancontrol is part of lm_sensors");
@@ -1819,11 +1855,13 @@ done
 "#;
 
     println!("⚠️  This will increase power consumption but improve performance");
-    let apply_power_config = Confirm::new()
+    let Ok(apply_power_config) = Confirm::new()
         .with_prompt("Apply gaming power configuration?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if apply_power_config {
         // This would need to be added to the gaming profile script
@@ -1933,11 +1971,13 @@ fn graphics_display_setup() {
     println!("  • Configure refresh rates optimally");
     println!("  • Setup multi-monitor configurations");
 
-    let apply_display_optimizations = Confirm::new()
+    let Ok(apply_display_optimizations) = Confirm::new()
         .with_prompt("Apply gaming display optimizations?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if apply_display_optimizations {
         setup_display_optimizations();
@@ -2058,11 +2098,13 @@ fn controller_input_setup() {
     println!("  • Steam Input configuration");
     println!("  • Wireless optimization");
 
-    let test_controllers = Confirm::new()
+    let Ok(test_controllers) = Confirm::new()
         .with_prompt("Test connected controllers?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if test_controllers {
         test_controller_setup();
@@ -2085,11 +2127,13 @@ fn test_controller_setup() {
                 println!("  • {}", controller);
             }
 
-            let test_input = Confirm::new()
+            let Ok(test_input) = Confirm::new()
                 .with_prompt("Test controller input with jstest?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if test_input {
                 println!("🧪 Testing controller input (press Ctrl+C to exit):");
@@ -2170,12 +2214,14 @@ fn troubleshooting_repair_tools() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select troubleshooting area")
         .items(&troubleshooting_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => system_diagnostics(),
@@ -2231,12 +2277,14 @@ fn gaming_platform_repair() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select platform to repair")
         .items(&repair_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => repair_steam_issues(),
@@ -2259,12 +2307,14 @@ fn repair_steam_issues() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Steam fix")
         .items(&steam_fixes)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
@@ -2311,11 +2361,13 @@ fn repair_lutris_problems() {
     println!("  • Update Lutris runners");
     println!("  • Fix permissions");
 
-    let apply_fixes = Confirm::new()
+    let Ok(apply_fixes) = Confirm::new()
         .with_prompt("Apply common Lutris fixes?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if apply_fixes {
         // Clear Lutris cache
@@ -2347,20 +2399,24 @@ fn repair_wine_proton() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Wine fix")
         .items(&wine_fixes)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
-            let confirm = Confirm::new()
+            let Ok(confirm) = Confirm::new()
                 .with_prompt("⚠️  Reset Wine prefix? This will delete all Windows software!")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if confirm {
                 let wine_prefix = std::env::home_dir()
@@ -2442,11 +2498,13 @@ fn diagnose_nvidia_issues() {
         }
         _ => {
             println!("❌ NVIDIA drivers not working");
-            let reinstall = Confirm::new()
+            let Ok(reinstall) = Confirm::new()
                 .with_prompt("Reinstall NVIDIA drivers?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if reinstall {
                 let _ = Command::new("sudo")
@@ -2487,11 +2545,13 @@ fn diagnose_intel_issues() {
     println!("💡 Intel graphics are usually well-supported");
     println!("🔧 Ensure mesa and vulkan-intel are installed");
 
-    let install_intel = Confirm::new()
+    let Ok(install_intel) = Confirm::new()
         .with_prompt("Install Intel graphics packages?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_intel {
         let _ = Command::new("sudo")
@@ -2550,11 +2610,13 @@ fn diagnose_pipewire_issues() {
     println!("  • Install lib32-pipewire for 32-bit games");
     println!("  • Check audio device permissions");
 
-    let restart_pipewire = Confirm::new()
+    let Ok(restart_pipewire) = Confirm::new()
         .with_prompt("Restart PipeWire services?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if restart_pipewire {
         let _ = Command::new("systemctl")
@@ -2579,11 +2641,13 @@ fn diagnose_pulseaudio_issues() {
     println!("  • Install lib32-libpulse for 32-bit games");
     println!("  • Check audio device settings");
 
-    let restart_pulse = Confirm::new()
+    let Ok(restart_pulse) = Confirm::new()
         .with_prompt("Restart PulseAudio?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if restart_pulse {
         let _ = Command::new("pulseaudio").arg("-k").status();
@@ -2596,12 +2660,14 @@ fn install_audio_system() {
     println!("🎵 Installing Audio System");
     println!("==========================");
 
-    let audio_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(audio_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select audio system to install")
         .items(&["PipeWire (recommended)", "PulseAudio"])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match audio_choice {
         0 => {
@@ -2653,11 +2719,13 @@ fn controller_issues() {
     if js_devices > 0 {
         println!("✅ Found {} controller device(s)", js_devices);
 
-        let test_controller = Confirm::new()
+        let Ok(test_controller) = Confirm::new()
             .with_prompt("Test controller input?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if test_controller {
             println!("🧪 Testing controller (press Ctrl+C to exit):");
@@ -2670,11 +2738,13 @@ fn controller_issues() {
         println!("  • Install controller support packages");
         println!("  • Check USB permissions");
 
-        let install_controller_support = Confirm::new()
+        let Ok(install_controller_support) = Confirm::new()
             .with_prompt("Install controller support packages?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if install_controller_support {
             let controller_packages = ["lib32-libusb", "jstest-gtk", "linuxconsole"];

@@ -1,6 +1,6 @@
 [package]
 name = "ghostctl"
-version = "0.9.5"
+version = "0.9.6"
 edition = "2024"
 license = "MIT"
 description = "Modular CLI toolkit for Linux sysadmins, homelabbers, and power users."
@@ -42,8 +42,12 @@ ipnet = "2.9"
 indicatif = "0.17"
 rayon = "1.10"
 sha2 = "0.10.9"
+argon2 = "0.5"
+getrandom = "0.2"
 libc = "0.2.179"
 futures = "0.3"
+tempfile = "3.10"
+socket2 = { version = "0.5", features = ["all"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 bluer = { version = "0.17", features = ["bluetoothd"] }

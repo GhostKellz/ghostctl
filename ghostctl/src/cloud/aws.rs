@@ -12,8 +12,13 @@ pub fn aws_cli_tools() {
             .with_prompt("Installation method")
             .items(&["pip install", "Download installer", "Package manager"])
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+            .ok()
+            .flatten();
+
+        let Some(install_method) = install_method else {
+            return;
+        };
 
         match install_method {
             0 => {
@@ -57,8 +62,13 @@ pub fn aws_cli_tools() {
         .with_prompt("AWS CLI Actions")
         .items(&aws_actions)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(action) = action else {
+        return;
+    };
 
     match action {
         0 => configure_aws_credentials(),
@@ -114,8 +124,13 @@ fn list_ec2_instances() {
         .with_prompt("EC2 Actions")
         .items(&options)
         .default(4)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => filter_instances_by_state(),
@@ -142,8 +157,13 @@ fn list_s3_buckets() {
         .with_prompt("S3 Actions")
         .items(&options)
         .default(4)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => bucket_sizes(),
@@ -176,8 +196,13 @@ fn aws_cost_estimation() {
         .with_prompt("Cost Analysis")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => current_month_costs(),
@@ -204,8 +229,13 @@ fn cloudwatch_metrics() {
         .with_prompt("CloudWatch Metrics")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => ec2_metrics(),
@@ -277,8 +307,13 @@ fn manage_iam() {
         .with_prompt("IAM Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => list_iam_users(),
@@ -295,7 +330,11 @@ fn filter_instances_by_state() {
         .with_prompt("Instance state (running, stopped, pending, etc.)")
         .default("running".into())
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if state.is_empty() {
+        return;
+    }
 
     let _ = Command::new("aws")
         .args([
@@ -349,7 +388,11 @@ fn list_bucket_contents() {
     let bucket_name: String = Input::new()
         .with_prompt("Bucket name")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if bucket_name.is_empty() {
+        return;
+    }
 
     let _ = Command::new("aws")
         .args([

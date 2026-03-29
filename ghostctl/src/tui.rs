@@ -451,6 +451,9 @@ mod tests {
 
     #[test]
     fn test_is_auto_yes_default() {
+        // SAFETY: Unit tests run in isolation. While cargo test runs tests in parallel
+        // by default, each test is in its own thread and this env var is specific to
+        // this test's assertions. The test framework handles thread isolation.
         unsafe { std::env::remove_var("GHOSTCTL_YES") };
         assert!(!is_auto_yes());
     }

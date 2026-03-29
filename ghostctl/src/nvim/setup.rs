@@ -17,12 +17,14 @@ pub fn configuration_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Configuration Tools")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_distributions(),
@@ -54,12 +56,14 @@ fn install_distributions() {
     let mut all_options = display_options;
     all_options.push("⬅️  Back".to_string());
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select distribution to install")
         .items(&all_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if choice < distributions.len() {
         let (name, _) = distributions[choice];
@@ -70,7 +74,9 @@ fn install_distributions() {
 fn install_specific_distribution(name: &str) {
     println!("🚀 Installing {}", name);
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        return;
+    };
     let nvim_config = home.join(".config/nvim");
 
     // Backup existing config
@@ -79,9 +85,11 @@ fn install_specific_distribution(name: &str) {
         let backup_path = home.join(&format!(".config/{}", backup_name));
 
         println!("💾 Backing up existing config to: {:?}", backup_path);
-        let _ = Command::new("mv")
-            .args(&[nvim_config.to_str().unwrap(), backup_path.to_str().unwrap()])
-            .status();
+        let (Some(nvim_str), Some(backup_str)) = (nvim_config.to_str(), backup_path.to_str())
+        else {
+            return;
+        };
+        let _ = Command::new("mv").args(&[nvim_str, backup_str]).status();
     }
 
     // Install distribution
@@ -106,8 +114,11 @@ fn install_specific_distribution(name: &str) {
     };
 
     println!("📥 Cloning {} from {}", name, repo_url);
+    let Some(nvim_config_str) = nvim_config.to_str() else {
+        return;
+    };
     let status = Command::new("git")
-        .args(&["clone", repo_url, nvim_config.to_str().unwrap()])
+        .args(&["clone", repo_url, nvim_config_str])
         .status();
 
     match status {
@@ -140,7 +151,9 @@ fn install_specific_distribution(name: &str) {
 fn setup_lazyvim_starter() {
     println!("⚙️  Setting up LazyVim starter configuration...");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        return;
+    };
     let nvim_config = home.join(".config/nvim");
 
     // Remove .git directory to make it your own
@@ -210,7 +223,7 @@ fn install_starship_prompt() {
                 if Command::new("which").arg(name).status().is_ok() {
                     println!("📦 Installing via {}...", name);
                     let status = Command::new(&cmd[0]).args(&cmd[1..]).status();
-                    if status.is_ok() && status.unwrap().success() {
+                    if status.map(|s| s.success()).unwrap_or(false) {
                         println!("✅ Starship installed via {}", name);
                         configure_starship();
                         break;
@@ -224,9 +237,13 @@ fn install_starship_prompt() {
 fn configure_starship() {
     println!("⚙️  Configuring Starship...");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        return;
+    };
     let config_dir = home.join(".config");
-    std::fs::create_dir_all(&config_dir).unwrap();
+    let Ok(_) = std::fs::create_dir_all(&config_dir) else {
+        return;
+    };
 
     // Create starship config
     let starship_config = r#"# Starship Configuration for Neovim Development
@@ -289,7 +306,9 @@ format = "[⬢ $version](bold green) "
 }
 
 fn configure_shell_starship() {
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        return;
+    };
 
     // Configure bash
     let bashrc = home.join(".bashrc");
@@ -318,11 +337,14 @@ fn add_starship_to_shell(shell_config: &std::path::Path, init_command: &str) {
         if !content.contains("starship init") {
             let updated_content = format!("{}\n\n# Starship prompt\n{}\n", content, init_command);
             let _ = std::fs::write(shell_config, updated_content);
-            println!("✅ Updated {:?}", shell_config.file_name().unwrap());
+            println!(
+                "✅ Updated {:?}",
+                shell_config.file_name().unwrap_or_default()
+            );
         } else {
             println!(
                 "⏭️  Starship already configured in {:?}",
-                shell_config.file_name().unwrap()
+                shell_config.file_name().unwrap_or_default()
             );
         }
     }
@@ -332,7 +354,9 @@ fn edit_configuration() {
     println!("📝 Edit Neovim Configuration");
     println!("============================");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        return;
+    };
     let nvim_config = home.join(".config/nvim");
 
     if !nvim_config.exists() {
@@ -364,12 +388,14 @@ fn edit_configuration() {
     available_files.push("📁 Browse config directory");
     available_files.push("⬅️  Back");
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select file to edit")
         .items(&available_files)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if choice < available_files.len() - 2 {
         let file = available_files[choice];
@@ -378,9 +404,9 @@ fn edit_configuration() {
 
         let _ = Command::new(&editor).arg(file_path).status();
     } else if choice == available_files.len() - 2 {
-        let _ = Command::new("ls")
-            .args(&["-la", nvim_config.to_str().unwrap()])
-            .status();
+        if let Some(nvim_config_str) = nvim_config.to_str() {
+            let _ = Command::new("ls").args(&["-la", nvim_config_str]).status();
+        }
     }
 }
 
@@ -388,7 +414,9 @@ fn backup_configuration() {
     println!("💾 Backup Neovim Configuration");
     println!("==============================");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        return;
+    };
     let nvim_config = home.join(".config/nvim");
 
     if !nvim_config.exists() {
@@ -396,21 +424,22 @@ fn backup_configuration() {
         return;
     }
 
-    let backup_name: String = Input::new()
+    let Ok(backup_name) = Input::<String>::new()
         .with_prompt("Backup name")
         .default(format!("nvim-backup-{}", chrono::Utc::now().timestamp()))
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     let backup_path = home.join(&format!(".config/{}", backup_name));
 
     println!("💾 Creating backup at {:?}", backup_path);
+    let (Some(nvim_str), Some(backup_str)) = (nvim_config.to_str(), backup_path.to_str()) else {
+        return;
+    };
     let status = Command::new("cp")
-        .args(&[
-            "-r",
-            nvim_config.to_str().unwrap(),
-            backup_path.to_str().unwrap(),
-        ])
+        .args(&["-r", nvim_str, backup_str])
         .status();
 
     match status {
@@ -443,7 +472,9 @@ fn reset_configuration() {
     println!("🔄 Reset Neovim Configuration");
     println!("=============================");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        return;
+    };
     let nvim_config = home.join(".config/nvim");
 
     if !nvim_config.exists() {
@@ -451,18 +482,22 @@ fn reset_configuration() {
         return;
     }
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Are you sure you want to reset your Neovim configuration? This will delete everything!")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
-        let backup = Confirm::new()
+        let Ok(backup) = Confirm::new()
             .with_prompt("Create backup before reset?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if backup {
             backup_configuration();
@@ -477,23 +512,27 @@ fn manage_config_files() {
     println!("🗂️  Manage Configuration Files");
     println!("=============================");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        return;
+    };
     let nvim_config = home.join(".config/nvim");
 
     if nvim_config.exists() {
         println!("📁 Configuration directory: {:?}", nvim_config);
-        let _ = Command::new("find")
-            .args(&[
-                nvim_config.to_str().unwrap(),
-                "-type",
-                "f",
-                "-name",
-                "*.lua",
-                "-o",
-                "-name",
-                "*.vim",
-            ])
-            .status();
+        if let Some(nvim_config_str) = nvim_config.to_str() {
+            let _ = Command::new("find")
+                .args(&[
+                    nvim_config_str,
+                    "-type",
+                    "f",
+                    "-name",
+                    "*.lua",
+                    "-o",
+                    "-name",
+                    "*.vim",
+                ])
+                .status();
+        }
     } else {
         println!("❌ No configuration directory found");
     }
@@ -552,7 +591,9 @@ pub fn install_kickstart() {
     println!("🚀 Installing Kickstart.nvim");
     println!("============================");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        return;
+    };
     let nvim_config = home.join(".config/nvim");
 
     // Backup existing config
@@ -560,15 +601,21 @@ pub fn install_kickstart() {
         let backup_path = home.join(format!(".config/nvim.backup.{}", Utc::now().timestamp()));
         println!("📦 Backing up existing config to: {:?}", backup_path);
 
-        let confirm = Confirm::new()
+        let Ok(confirm) = Confirm::new()
             .with_prompt("Backup existing Neovim config?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if confirm {
+            let (Some(nvim_str), Some(backup_str)) = (nvim_config.to_str(), backup_path.to_str())
+            else {
+                return;
+            };
             let _ = std::process::Command::new("mv")
-                .args(&[nvim_config.to_str().unwrap(), backup_path.to_str().unwrap()])
+                .args(&[nvim_str, backup_str])
                 .status();
         } else {
             let _ = fs::remove_dir_all(&nvim_config);
@@ -577,11 +624,14 @@ pub fn install_kickstart() {
 
     // Clone Kickstart
     println!("📥 Cloning Kickstart.nvim...");
+    let Some(nvim_config_str) = nvim_config.to_str() else {
+        return;
+    };
     let status = std::process::Command::new("git")
         .args(&[
             "clone",
             "https://github.com/nvim-lua/kickstart.nvim.git",
-            nvim_config.to_str().unwrap(),
+            nvim_config_str,
         ])
         .status();
 
@@ -608,7 +658,9 @@ pub fn install_astronvim() {
     println!("🚀 Installing AstroNvim");
     println!("=======================");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        return;
+    };
     let nvim_config = home.join(".config/nvim");
 
     // Backup existing config
@@ -616,15 +668,21 @@ pub fn install_astronvim() {
         let backup_path = home.join(format!(".config/nvim.backup.{}", Utc::now().timestamp()));
         println!("📦 Backing up existing config to: {:?}", backup_path);
 
-        let confirm = Confirm::new()
+        let Ok(confirm) = Confirm::new()
             .with_prompt("Backup existing Neovim config?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if confirm {
+            let (Some(nvim_str), Some(backup_str)) = (nvim_config.to_str(), backup_path.to_str())
+            else {
+                return;
+            };
             let _ = std::process::Command::new("mv")
-                .args(&[nvim_config.to_str().unwrap(), backup_path.to_str().unwrap()])
+                .args(&[nvim_str, backup_str])
                 .status();
         } else {
             let _ = fs::remove_dir_all(&nvim_config);
@@ -633,13 +691,16 @@ pub fn install_astronvim() {
 
     // Clone AstroNvim
     println!("📥 Cloning AstroNvim...");
+    let Some(nvim_config_str) = nvim_config.to_str() else {
+        return;
+    };
     let status = std::process::Command::new("git")
         .args(&[
             "clone",
             "--depth",
             "1",
             "https://github.com/AstroNvim/template",
-            nvim_config.to_str().unwrap(),
+            nvim_config_str,
         ])
         .status();
 
@@ -666,7 +727,9 @@ pub fn install_nvchad() {
     println!("🚀 Installing NvChad");
     println!("====================");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        return;
+    };
     let nvim_config = home.join(".config/nvim");
 
     // Backup existing config
@@ -674,15 +737,21 @@ pub fn install_nvchad() {
         let backup_path = home.join(format!(".config/nvim.backup.{}", Utc::now().timestamp()));
         println!("📦 Backing up existing config to: {:?}", backup_path);
 
-        let confirm = Confirm::new()
+        let Ok(confirm) = Confirm::new()
             .with_prompt("Backup existing Neovim config?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if confirm {
+            let (Some(nvim_str), Some(backup_str)) = (nvim_config.to_str(), backup_path.to_str())
+            else {
+                return;
+            };
             let _ = std::process::Command::new("mv")
-                .args(&[nvim_config.to_str().unwrap(), backup_path.to_str().unwrap()])
+                .args(&[nvim_str, backup_str])
                 .status();
         } else {
             let _ = fs::remove_dir_all(&nvim_config);
@@ -691,11 +760,14 @@ pub fn install_nvchad() {
 
     // Clone NvChad
     println!("📥 Cloning NvChad starter...");
+    let Some(nvim_config_str) = nvim_config.to_str() else {
+        return;
+    };
     let status = std::process::Command::new("git")
         .args(&[
             "clone",
             "https://github.com/NvChad/starter",
-            nvim_config.to_str().unwrap(),
+            nvim_config_str,
         ])
         .status();
 

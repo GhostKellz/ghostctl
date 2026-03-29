@@ -14,12 +14,14 @@ pub fn flakes_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Flakes Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => initialize_flake(),
@@ -35,17 +37,21 @@ fn initialize_flake() {
     println!("🆕 Initialize Flake");
     println!("==================");
 
-    let path: String = Input::new()
+    let Ok(path) = Input::<String>::new()
         .with_prompt("Flake directory")
         .default(".".into())
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt(format!("Initialize flake in {}?", path))
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let _ = Command::new("nix")
@@ -80,11 +86,13 @@ fn clean_flake_cache() {
     println!("🧹 Clean Flake Cache");
     println!("====================");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Clean flake registry and cache?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let _ = Command::new("nix")

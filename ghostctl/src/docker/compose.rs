@@ -17,7 +17,7 @@ enum ComposeCommand {
 fn detect_compose_command() -> Option<ComposeCommand> {
     // First try docker compose (new CLI plugin)
     if Command::new("docker")
-        .args(&["compose", "version"])
+        .args(["compose", "version"])
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)
@@ -129,12 +129,15 @@ pub fn compose_stack_manager() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Compose Stack Manager")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => browse_local_stacks(),
@@ -165,12 +168,15 @@ fn browse_local_stacks() {
         .collect();
     menu_items.push("⬅️  Back".to_string());
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select stack to manage")
         .items(&menu_items)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     if choice < stack_dirs.len() {
         manage_stack(&stack_dirs[choice]);
@@ -220,12 +226,15 @@ fn manage_stack(stack_path: &std::path::Path) {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Stack Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => show_stack_status(stack_path),
@@ -296,11 +305,15 @@ fn view_stack_logs(stack_path: &std::path::Path) {
 
     match log_type {
         0 => {
-            let _ = run_compose(&["logs", "--tail=50"], Some(stack_path));
+            if let Err(e) = run_compose(&["logs", "--tail=50"], Some(stack_path)) {
+                tui::error(&format!("Failed to get logs: {}", e));
+            }
         }
         1 => {
             tui::info("Press Ctrl+C to stop following logs");
-            let _ = run_compose(&["logs", "-f"], Some(stack_path));
+            if let Err(e) = run_compose(&["logs", "-f"], Some(stack_path)) {
+                tui::error(&format!("Failed to follow logs: {}", e));
+            }
         }
         2 => {
             let service = match tui::input("Enter service name", None) {
@@ -308,7 +321,35 @@ fn view_stack_logs(stack_path: &std::path::Path) {
                 _ => return,
             };
 
-            let _ = run_compose(&["logs", "--tail=50", &service], Some(stack_path));
+            // Validate service name (similar to container name validation)
+            if service.contains(|c: char| {
+                matches!(
+                    c,
+                    '`' | '$'
+                        | '('
+                        | ')'
+                        | '{'
+                        | '}'
+                        | ';'
+                        | '&'
+                        | '|'
+                        | '<'
+                        | '>'
+                        | '\n'
+                        | '\r'
+                        | ' '
+                )
+            }) {
+                tui::error("Service name contains invalid characters");
+                return;
+            }
+
+            if let Err(e) = run_compose(&["logs", "--tail=50", &service], Some(stack_path)) {
+                tui::error(&format!(
+                    "Failed to get logs for service '{}': {}",
+                    service, e
+                ));
+            }
         }
         _ => {}
     }
@@ -369,12 +410,15 @@ fn deploy_new_stack() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Deployment source")
         .items(&deployment_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => deploy_from_directory(),
@@ -421,10 +465,13 @@ fn deploy_from_directory() {
 }
 
 fn deploy_from_url() {
-    let url: String = Input::new()
+    let url: String = match Input::new()
         .with_prompt("Enter URL to docker-compose.yml")
         .interact_text()
-        .unwrap();
+    {
+        Ok(u) => u,
+        Err(_) => return,
+    };
 
     println!("📥 Downloading compose file from: {}", url);
 
@@ -465,7 +512,7 @@ fn manage_running_stacks() {
     println!("========================");
 
     // Get all running compose projects
-    let _output = Command::new("docker").args(&[
+    let _output = Command::new("docker").args([
         "ps",
         "--filter",
         "label=com.docker.compose.project",
@@ -494,12 +541,15 @@ fn stack_templates_library() {
     let mut menu_items: Vec<String> = templates.iter().map(|t| t.to_string()).collect();
     menu_items.push("⬅️  Back".to_string());
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select template")
         .items(&menu_items)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     if choice < templates.len() {
         println!("📋 Template: {}", templates[choice]);
@@ -535,4 +585,231 @@ fn update_all_stacks() {
 
     tui::success("All stacks updated!");
     tui::info("Don't forget to restart stacks to use new images");
+}
+
+/// Check if a path contains a valid docker-compose file
+pub fn is_valid_compose_directory(path: &std::path::Path) -> bool {
+    path.join("docker-compose.yml").exists() || path.join("docker-compose.yaml").exists()
+}
+
+/// Get the compose file name in a directory
+pub fn get_compose_filename(path: &std::path::Path) -> Option<&'static str> {
+    if path.join("docker-compose.yml").exists() {
+        Some("docker-compose.yml")
+    } else if path.join("docker-compose.yaml").exists() {
+        Some("docker-compose.yaml")
+    } else {
+        None
+    }
+}
+
+/// Parse a basic compose file and extract service names
+pub fn extract_service_names(compose_content: &str) -> Vec<String> {
+    let mut services = Vec::new();
+    let mut in_services = false;
+    let mut indent_level = 0;
+
+    for line in compose_content.lines() {
+        let trimmed = line.trim();
+
+        // Check for services section
+        if trimmed == "services:" {
+            in_services = true;
+            indent_level = line.len() - line.trim_start().len();
+            continue;
+        }
+
+        if in_services {
+            // Check if we're still in services section (based on indentation)
+            let current_indent = line.len() - line.trim_start().len();
+
+            // Exit services if we hit a top-level key
+            if current_indent == 0 && !trimmed.is_empty() && !trimmed.starts_with('#') {
+                break;
+            }
+
+            // Service names are at one indentation level deeper than services:
+            if current_indent > indent_level
+                && current_indent <= indent_level + 4
+                && trimmed.ends_with(':')
+                && !trimmed.starts_with('#')
+            {
+                let service_name = trimmed.trim_end_matches(':');
+                if !service_name.is_empty() {
+                    services.push(service_name.to_string());
+                }
+            }
+        }
+    }
+
+    services
+}
+
+/// Validate compose file structure (basic validation)
+pub fn validate_compose_structure(content: &str) -> Result<(), String> {
+    let content_trimmed = content.trim();
+
+    if content_trimmed.is_empty() {
+        return Err("Compose file is empty".to_string());
+    }
+
+    // Check for basic YAML structure
+    if !content.contains("services:") && !content.contains("version:") {
+        return Err("Missing 'services:' or 'version:' key".to_string());
+    }
+
+    // Check for common issues
+    if content.contains("\t") {
+        return Err("Tabs detected - YAML requires spaces for indentation".to_string());
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compose_command_enum() {
+        // Test that ComposeCommand variants exist and can be used
+        let docker_compose = ComposeCommand::DockerCompose;
+        let standalone = ComposeCommand::Standalone;
+
+        // Test Copy trait
+        let _copy1 = docker_compose;
+        let _copy2 = standalone;
+    }
+
+    #[test]
+    fn test_compose_command_name_returns_string() {
+        let name = compose_command_name();
+        // Should return one of the known command names or default
+        assert!(
+            name == "docker compose" || name == "docker-compose",
+            "Expected 'docker compose' or 'docker-compose', got '{}'",
+            name
+        );
+    }
+
+    #[test]
+    fn test_extract_service_names_basic() {
+        let content = r#"
+version: '3.8'
+
+services:
+  web:
+    image: nginx
+  db:
+    image: postgres
+  redis:
+    image: redis
+"#;
+        let services = extract_service_names(content);
+        assert_eq!(services.len(), 3);
+        assert!(services.contains(&"web".to_string()));
+        assert!(services.contains(&"db".to_string()));
+        assert!(services.contains(&"redis".to_string()));
+    }
+
+    #[test]
+    fn test_extract_service_names_empty() {
+        let content = "";
+        let services = extract_service_names(content);
+        assert!(services.is_empty());
+    }
+
+    #[test]
+    fn test_extract_service_names_no_services() {
+        let content = r#"
+version: '3.8'
+
+volumes:
+  data:
+"#;
+        let services = extract_service_names(content);
+        assert!(services.is_empty());
+    }
+
+    #[test]
+    fn test_extract_service_names_with_comments() {
+        let content = r#"
+services:
+  # This is a comment
+  web:
+    image: nginx
+  # Another comment
+  db:
+    image: postgres
+"#;
+        let services = extract_service_names(content);
+        assert_eq!(services.len(), 2);
+        assert!(services.contains(&"web".to_string()));
+        assert!(services.contains(&"db".to_string()));
+    }
+
+    #[test]
+    fn test_validate_compose_structure_valid() {
+        let content = r#"
+version: '3.8'
+
+services:
+  web:
+    image: nginx
+"#;
+        assert!(validate_compose_structure(content).is_ok());
+    }
+
+    #[test]
+    fn test_validate_compose_structure_empty() {
+        let content = "";
+        let result = validate_compose_structure(content);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("empty"));
+    }
+
+    #[test]
+    fn test_validate_compose_structure_missing_services() {
+        let content = r#"
+networks:
+  mynet:
+"#;
+        let result = validate_compose_structure(content);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("services"));
+    }
+
+    #[test]
+    fn test_validate_compose_structure_tabs() {
+        let content = "services:\n\tweb:\n\t\timage: nginx";
+        let result = validate_compose_structure(content);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Tabs"));
+    }
+
+    #[test]
+    fn test_validate_compose_structure_services_only() {
+        // Compose v2 format without version
+        let content = r#"
+services:
+  web:
+    image: nginx
+"#;
+        assert!(validate_compose_structure(content).is_ok());
+    }
+
+    #[test]
+    fn test_get_compose_filename_none() {
+        use std::path::Path;
+        // A path that definitely doesn't have compose files
+        let path = Path::new("/nonexistent/path/for/testing");
+        assert_eq!(get_compose_filename(path), None);
+    }
+
+    #[test]
+    fn test_is_valid_compose_directory_false() {
+        use std::path::Path;
+        let path = Path::new("/nonexistent/path/for/testing");
+        assert!(!is_valid_compose_directory(path));
+    }
 }

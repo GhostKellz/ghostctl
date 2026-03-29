@@ -13,12 +13,18 @@ pub fn external_tools_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("External Tools")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(choice) => choice,
+        Err(e) => {
+            eprintln!("Failed to display menu: {}", e);
+            return;
+        }
+    };
 
     match choice {
         0 => crate::nginx::acme::acme_management(),

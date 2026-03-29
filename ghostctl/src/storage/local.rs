@@ -14,12 +14,14 @@ pub fn local_storage_menu() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("💾 Local Storage Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => disk_health_monitoring(),
@@ -66,21 +68,25 @@ fn smart_status_check() {
         println!("{}", String::from_utf8_lossy(&output.stdout));
     }
 
-    let disk: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(disk) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter disk to check (e.g., /dev/sda)")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔍 SMART status for {}:", disk);
     let _ = Command::new("smartctl").args(&["-a", &disk]).status();
 
     println!("\n🧪 Running SMART self-test...");
-    if Confirm::new()
+    let Ok(run_test) = Confirm::new()
         .with_prompt("Run short SMART self-test?")
         .default(true)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if run_test {
         let _ = Command::new("smartctl")
             .args(&["-t", "short", &disk])
             .status();
@@ -90,12 +96,14 @@ fn smart_status_check() {
     }
 
     // Check for bad sectors
-    if Confirm::new()
+    let Ok(check_sectors) = Confirm::new()
         .with_prompt("Check for bad sectors (read-only scan)?")
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if check_sectors {
         println!("🔍 Scanning for bad sectors (this may take a while)...");
         let _ = Command::new("badblocks").args(&["-v", &disk]).status();
     }
@@ -113,12 +121,14 @@ fn filesystem_tools() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🗂️  Filesystem Tools")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => check_filesystem(),
@@ -135,10 +145,12 @@ fn filesystem_tools() {
 fn check_filesystem() {
     println!("🔍 Filesystem Check\n");
 
-    let device: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(device) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter device/partition to check (e.g., /dev/sda1)")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Detect filesystem type
     let fs_output = Command::new("blkid")
@@ -176,17 +188,21 @@ fn repair_filesystem() {
     println!("🔧 Filesystem Repair\n");
     println!("⚠️  WARNING: Unmount the filesystem before repair!");
 
-    let device: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(device) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter device/partition to repair")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    if !Confirm::new()
+    let Ok(confirmed) = Confirm::new()
         .with_prompt("Have you unmounted the filesystem?")
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if !confirmed {
         return;
     }
 
@@ -222,16 +238,20 @@ fn repair_filesystem() {
 fn resize_filesystem() {
     println!("📏 Resize Filesystem\n");
 
-    let device: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(device) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter device/partition to resize")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let mount_point: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(mount_point) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter mount point (if mounted)")
         .default("".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Detect filesystem type
     let fs_output = Command::new("blkid")
@@ -244,12 +264,14 @@ fn resize_filesystem() {
         "unknown".to_string()
     };
 
-    let resize_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(resize_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select resize operation")
         .items(&["Grow to maximum size", "Shrink", "Specify size"])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match fs_type.as_str() {
         "ext2" | "ext3" | "ext4" => match resize_type {
@@ -261,10 +283,12 @@ fn resize_filesystem() {
                 }
             }
             1 | 2 => {
-                let size: String = Input::with_theme(&ColorfulTheme::default())
+                let Ok(size) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("Enter new size (e.g., 10G, 500M)")
                     .interact()
-                    .unwrap();
+                else {
+                    return;
+                };
 
                 let _ = Command::new("resize2fs").args(&[&device, &size]).status();
             }
@@ -296,30 +320,38 @@ fn create_filesystem() {
     println!("🏗️  Create Filesystem\n");
     println!("⚠️  WARNING: This will destroy all data on the device!");
 
-    let device: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(device) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter device to format")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let fs_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(fs_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select filesystem type")
         .items(&["ext4", "xfs", "btrfs", "fat32", "ntfs"])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let label: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(label) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter filesystem label (optional)")
         .default("".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    if !Confirm::new()
+    let Ok(confirmed) = Confirm::new()
         .with_prompt(&format!("Really format {} and destroy all data?", device))
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if !confirmed {
         return;
     }
 
@@ -370,10 +402,12 @@ fn create_filesystem() {
 fn filesystem_information() {
     println!("ℹ️  Filesystem Information\n");
 
-    let device: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(device) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter device/partition")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Basic information
     println!("📋 Basic Information:");
@@ -414,10 +448,12 @@ fn filesystem_information() {
 fn defragment_filesystem() {
     println!("🗜️  Filesystem Defragmentation\n");
 
-    let mount_point: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(mount_point) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter mount point to defragment")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Check filesystem type
     let fs_output = Command::new("findmnt")
@@ -462,12 +498,14 @@ fn mount_management() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🔗 Mount Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => list_mounts(),
@@ -492,21 +530,27 @@ fn list_mounts() {
 fn mount_device() {
     println!("🔗 Mount Device\n");
 
-    let device: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(device) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter device to mount")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let mount_point: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(mount_point) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter mount point")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let options: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(options) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter mount options (optional)")
         .default("defaults".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Create mount point if it doesn't exist
     let _ = Command::new("mkdir").args(&["-p", &mount_point]).status();
@@ -521,7 +565,7 @@ fn mount_device() {
             .status()
     };
 
-    if result.unwrap().success() {
+    if result.map(|s| s.success()).unwrap_or(false) {
         println!("✅ Mount successful!");
     } else {
         println!("❌ Mount failed!");
@@ -531,20 +575,22 @@ fn mount_device() {
 fn unmount_device() {
     println!("🔌 Unmount Device\n");
 
-    let target: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(target) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter device or mount point to unmount")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let result = Command::new("umount").args(&[&target]).status();
 
-    if result.unwrap().success() {
+    if result.map(|s| s.success()).unwrap_or(false) {
         println!("✅ Unmount successful!");
     } else {
         println!("❌ Unmount failed. Trying lazy unmount...");
         let lazy_result = Command::new("umount").args(&["-l", &target]).status();
 
-        if lazy_result.unwrap().success() {
+        if lazy_result.map(|s| s.success()).unwrap_or(false) {
             println!("✅ Lazy unmount successful!");
         } else {
             println!("❌ Unmount failed completely");
@@ -558,12 +604,14 @@ fn edit_fstab() {
     println!("Current /etc/fstab:");
     let _ = Command::new("cat").args(&["/etc/fstab"]).status();
 
-    if Confirm::new()
+    let Ok(edit) = Confirm::new()
         .with_prompt("Edit /etc/fstab?")
         .default(true)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if edit {
         let _ = Command::new("nano").args(&["/etc/fstab"]).status();
     }
 }
@@ -574,7 +622,7 @@ fn test_fstab() {
     println!("Testing all fstab entries...");
     let result = Command::new("mount").args(&["-a"]).status();
 
-    if result.unwrap().success() {
+    if result.map(|s| s.success()).unwrap_or(false) {
         println!("✅ All fstab entries mount successfully!");
     } else {
         println!("❌ Some fstab entries failed to mount");
@@ -619,12 +667,14 @@ fn storage_benchmarking() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("⚡ Storage Benchmarking")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => quick_disk_benchmark(),
@@ -640,10 +690,12 @@ fn storage_benchmarking() {
 fn quick_disk_benchmark() {
     println!("⚡ Quick Disk Benchmark\n");
 
-    let device: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(device) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter device/mount point to test")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔄 Running quick sequential read test...");
     let _ = Command::new("dd")
@@ -666,15 +718,17 @@ fn quick_disk_benchmark() {
 fn comprehensive_io_test() {
     println!("🔬 Comprehensive I/O Test using fio\n");
 
-    let device: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(device) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter device/mount point to test")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Check if fio is installed
     let fio_check = Command::new("which").args(&["fio"]).output();
 
-    if fio_check.unwrap().status.success() {
+    if fio_check.map(|o| o.status.success()).unwrap_or(false) {
         println!("🧪 Running comprehensive fio benchmark...");
 
         let _ = Command::new("fio")
@@ -696,17 +750,15 @@ fn comprehensive_io_test() {
         if Command::new("which")
             .args(&["apt"])
             .output()
-            .unwrap()
-            .status
-            .success()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
         {
             let _ = Command::new("apt").args(&["install", "-y", "fio"]).status();
         } else if Command::new("which")
             .args(&["pacman"])
             .output()
-            .unwrap()
-            .status
-            .success()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
         {
             let _ = Command::new("pacman")
                 .args(&["-S", "--noconfirm", "fio"])
@@ -718,10 +770,12 @@ fn comprehensive_io_test() {
 fn random_vs_sequential() {
     println!("📊 Random vs Sequential Performance Test\n");
 
-    let device: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(device) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter mount point to test")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📈 Testing sequential read performance...");
     let _ = Command::new("dd")
@@ -756,11 +810,13 @@ fn compare_multiple_disks() {
     let mut devices = Vec::new();
 
     loop {
-        let device: String = Input::with_theme(&ColorfulTheme::default())
+        let Ok(device) = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter device")
             .default("".to_string())
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         if device.is_empty() {
             break;
@@ -786,12 +842,14 @@ fn disk_cleanup_tools() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🧹 Disk Cleanup Tools")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => find_large_files(),
@@ -808,17 +866,21 @@ fn disk_cleanup_tools() {
 fn find_large_files() {
     println!("🔍 Finding Large Files\n");
 
-    let path: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter path to search")
         .default("/".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let size: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(size) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter minimum file size (e.g., +100M, +1G)")
         .default("+100M".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔍 Searching for files larger than {}...", size);
     let _ = Command::new("find")
@@ -831,19 +893,18 @@ fn find_large_files() {
 fn disk_usage_analysis() {
     println!("📊 Disk Usage Analysis\n");
 
-    let path: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter path to analyze")
         .default("/".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📈 Top 20 largest directories:");
-    let _ = Command::new("du")
-        .args(&["-h", &path])
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap();
+    if let Ok(mut child) = Command::new("du").args(&["-h", &path]).spawn() {
+        let _ = child.wait();
+    }
 }
 
 fn clean_package_cache() {
@@ -853,9 +914,8 @@ fn clean_package_cache() {
     if Command::new("which")
         .args(&["apt"])
         .output()
-        .unwrap()
-        .status
-        .success()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
     {
         println!("🧹 Cleaning APT cache...");
         let _ = Command::new("apt").args(&["clean"]).status();
@@ -866,9 +926,8 @@ fn clean_package_cache() {
     if Command::new("which")
         .args(&["pacman"])
         .output()
-        .unwrap()
-        .status
-        .success()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
     {
         println!("🧹 Cleaning Pacman cache...");
         let _ = Command::new("pacman").args(&["-Sc"]).status();
@@ -877,9 +936,8 @@ fn clean_package_cache() {
     if Command::new("which")
         .args(&["yum"])
         .output()
-        .unwrap()
-        .status
-        .success()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
     {
         println!("🧹 Cleaning YUM cache...");
         let _ = Command::new("yum").args(&["clean", "all"]).status();
@@ -894,12 +952,14 @@ fn clean_log_files() {
     println!("📊 Current log usage:");
     let _ = Command::new("du").args(&["-sh", "/var/log"]).status();
 
-    if Confirm::new()
+    let Ok(clean) = Confirm::new()
         .with_prompt("Clean old log files?")
         .default(true)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if clean {
         // Clean journalctl logs
         let _ = Command::new("journalctl")
             .args(&["--vacuum-time=7d"])
@@ -917,15 +977,17 @@ fn clean_log_files() {
 fn find_duplicate_files() {
     println!("🔍 Finding Duplicate Files\n");
 
-    let path: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter path to search for duplicates")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Check if fdupes is installed
     let fdupes_check = Command::new("which").args(&["fdupes"]).output();
 
-    if fdupes_check.unwrap().status.success() {
+    if fdupes_check.map(|o| o.status.success()).unwrap_or(false) {
         println!("🔍 Searching for duplicate files...");
         let _ = Command::new("fdupes").args(&["-r", &path]).status();
     } else {
@@ -933,9 +995,8 @@ fn find_duplicate_files() {
         if Command::new("which")
             .args(&["apt"])
             .output()
-            .unwrap()
-            .status
-            .success()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
         {
             let _ = Command::new("apt")
                 .args(&["install", "-y", "fdupes"])
@@ -943,9 +1004,8 @@ fn find_duplicate_files() {
         } else if Command::new("which")
             .args(&["pacman"])
             .output()
-            .unwrap()
-            .status
-            .success()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
         {
             let _ = Command::new("pacman")
                 .args(&["-S", "--noconfirm", "fdupes"])
@@ -960,12 +1020,14 @@ fn clean_temporary_files() {
     println!("📊 Current /tmp usage:");
     let _ = Command::new("du").args(&["-sh", "/tmp"]).status();
 
-    if Confirm::new()
+    let Ok(clean) = Confirm::new()
         .with_prompt("Clean temporary files older than 7 days?")
         .default(true)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if clean {
         let _ = Command::new("find")
             .args(&["/tmp", "-type", "f", "-mtime", "+7", "-delete"])
             .status();
@@ -988,12 +1050,14 @@ fn raid_management() {
     println!("  • mdadm - Linux Software RAID");
     println!("  • Hardware RAID (vendor specific)");
 
-    if Confirm::new()
+    let Ok(show_detail) = Confirm::new()
         .with_prompt("Show detailed RAID information?")
         .default(true)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if show_detail {
         let _ = Command::new("mdadm").args(&["--detail", "--scan"]).status();
     }
 }

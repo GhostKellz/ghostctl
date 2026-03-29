@@ -1,6 +1,27 @@
 use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 
+/// Validate Zig project name
+fn validate_project_name(name: &str) -> Result<(), &'static str> {
+    if name.is_empty() {
+        return Err("Project name cannot be empty");
+    }
+    if name.len() > 64 {
+        return Err("Project name too long");
+    }
+    // Zig identifiers: alphanumeric and underscore
+    if !name
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err("Project name contains invalid characters");
+    }
+    if name.starts_with('-') || name.starts_with('_') {
+        return Err("Project name cannot start with hyphen or underscore");
+    }
+    Ok(())
+}
+
 pub fn zig_development_menu() {
     println!("⚡ Zig Development Environment");
     println!("=============================");
@@ -14,12 +35,14 @@ pub fn zig_development_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Zig Development")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_zig_compiler(),
@@ -47,12 +70,14 @@ fn install_zig_compiler() {
         "🔨 Build from Source",
     ];
 
-    let method = Select::with_theme(&ColorfulTheme::default())
+    let Ok(method) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Installation method")
         .items(&install_methods)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match method {
         0 => install_zig_package_manager(),
@@ -64,114 +89,210 @@ fn install_zig_compiler() {
 
 fn install_zig_package_manager() {
     // Try different package managers with reaper priority
-    if Command::new("which").arg("reap").status().is_ok() {
-        println!("📦 Installing Zig with reaper...");
-        let _ = Command::new("reap").arg("zig").status();
-    } else if Command::new("which").arg("pacman").status().is_ok() {
-        println!("📦 Installing Zig with pacman...");
-        let _ = Command::new("sudo")
-            .args(&["pacman", "-S", "--noconfirm", "zig"])
-            .status();
-    } else if Command::new("which").arg("apt").status().is_ok() {
-        println!("📦 Installing Zig with apt...");
+    let install_result = if Command::new("which")
+        .arg("reap")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("Installing Zig with reaper...");
+        Command::new("reap").arg("zig").status()
+    } else if Command::new("which")
+        .arg("pacman")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("Installing Zig with pacman...");
+        Command::new("sudo")
+            .args(["pacman", "-S", "--noconfirm", "zig"])
+            .status()
+    } else if Command::new("which")
+        .arg("apt")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("Installing Zig with apt...");
         // Zig might not be in standard repos, suggest snap
-        println!("💡 Zig might not be available in apt. Trying snap...");
-        let _ = Command::new("sudo")
-            .args(&["snap", "install", "zig", "--classic", "--beta"])
-            .status();
-    } else if Command::new("which").arg("dnf").status().is_ok() {
-        println!("📦 Installing Zig with dnf...");
-        let _ = Command::new("sudo")
-            .args(&["dnf", "install", "-y", "zig"])
-            .status();
+        println!("Note: Zig might not be available in apt. Trying snap...");
+        Command::new("sudo")
+            .args(["snap", "install", "zig", "--classic", "--beta"])
+            .status()
+    } else if Command::new("which")
+        .arg("dnf")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("Installing Zig with dnf...");
+        Command::new("sudo")
+            .args(["dnf", "install", "-y", "zig"])
+            .status()
+    } else {
+        eprintln!("No supported package manager found");
+        return;
+    };
+
+    match install_result {
+        Ok(status) if status.success() => {
+            println!("Installation completed");
+        }
+        Ok(status) => {
+            eprintln!("Installation exited with code: {:?}", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run installation: {}", e);
+        }
     }
 
-    if Command::new("which").arg("zig").status().is_ok() {
-        println!("✅ Zig installed successfully");
+    if Command::new("which")
+        .arg("zig")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("Zig installed successfully");
         show_zig_version();
     } else {
-        println!("❌ Package manager installation failed. Try official download.");
+        eprintln!("Package manager installation failed. Try official download.");
     }
 }
 
 fn install_zig_official() {
-    println!("🌐 Installing Zig from Official Downloads");
+    println!("Installing Zig from Official Downloads");
     println!("=========================================");
 
-    println!("💡 Visit https://ziglang.org/download/ for the latest version");
-    println!("📥 This will download and install the latest development build");
+    println!("Visit https://ziglang.org/download/ for the latest version");
+    println!("This will download and install the latest development build");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Download and install latest Zig?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    if confirm {
-        // Create zig directory
-        let zig_dir = "/opt/zig";
-        let _ = Command::new("sudo")
-            .args(&["mkdir", "-p", zig_dir])
-            .status();
-
-        // Download latest (this is simplified - real implementation would get latest URL)
-        println!("📥 Downloading Zig...");
-        let download_url = "https://ziglang.org/builds/zig-linux-x86_64-0.12.0-dev.latest.tar.xz";
-
-        let _ = Command::new("curl")
-            .args(&["-L", download_url, "-o", "/tmp/zig.tar.xz"])
-            .status();
-
-        // Extract
-        let _ = Command::new("sudo")
-            .args(&[
-                "tar",
-                "-xf",
-                "/tmp/zig.tar.xz",
-                "-C",
-                zig_dir,
-                "--strip-components=1",
-            ])
-            .status();
-
-        // Add to PATH
-        add_zig_to_path();
-
-        // Cleanup
-        let _ = std::fs::remove_file("/tmp/zig.tar.xz");
-
-        println!("✅ Zig installed to {}", zig_dir);
+    if !confirm {
+        return;
     }
+
+    // Create zig directory
+    let zig_dir = "/opt/zig";
+    if let Err(e) = Command::new("sudo")
+        .args(["mkdir", "-p", zig_dir])
+        .status()
+    {
+        eprintln!("Failed to create directory: {}", e);
+        return;
+    }
+
+    // Download latest (using hardcoded trusted URL)
+    println!("Downloading Zig...");
+    let download_url = "https://ziglang.org/builds/zig-linux-x86_64-0.12.0-dev.latest.tar.xz";
+
+    match Command::new("curl")
+        .args(["-L", "-f", "--proto", "=https", download_url, "-o", "/tmp/zig.tar.xz"])
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("Download completed");
+        }
+        Ok(_) => {
+            eprintln!("Download failed");
+            return;
+        }
+        Err(e) => {
+            eprintln!("Failed to download: {}", e);
+            return;
+        }
+    }
+
+    // Extract
+    match Command::new("sudo")
+        .args([
+            "tar",
+            "-xf",
+            "/tmp/zig.tar.xz",
+            "-C",
+            zig_dir,
+            "--strip-components=1",
+        ])
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("Extraction completed");
+        }
+        Ok(_) => {
+            eprintln!("Extraction failed");
+            return;
+        }
+        Err(e) => {
+            eprintln!("Failed to extract: {}", e);
+            return;
+        }
+    }
+
+    // Add to PATH
+    add_zig_to_path();
+
+    // Cleanup
+    if let Err(e) = std::fs::remove_file("/tmp/zig.tar.xz") {
+        eprintln!("Warning: Failed to cleanup download: {}", e);
+    }
+
+    println!("Zig installed to {}", zig_dir);
 }
 
 fn install_zig_from_source() {
-    println!("🔨 Building Zig from Source");
+    println!("Building Zig from Source");
     println!("===========================");
 
-    println!("⚠️  Building Zig from source requires significant time and resources");
+    println!("Warning: Building Zig from source requires significant time and resources");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Continue with source build?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    if confirm {
-        // This is a simplified version - real build is complex
-        println!("📥 Cloning Zig repository...");
-        let _ = Command::new("git")
-            .args(&[
-                "clone",
-                "https://github.com/ziglang/zig.git",
-                "/tmp/zig-source",
-            ])
-            .status();
-
-        println!("🔨 Building... (this will take a while)");
-        println!(
-            "💡 For detailed build instructions, see: https://github.com/ziglang/zig/wiki/Building-Zig-From-Source"
-        );
+    if !confirm {
+        return;
     }
+
+    // Clean up previous attempt
+    if std::path::Path::new("/tmp/zig-source").exists() {
+        if let Err(e) = std::fs::remove_dir_all("/tmp/zig-source") {
+            eprintln!("Warning: Failed to clean previous build: {}", e);
+        }
+    }
+
+    println!("Cloning Zig repository...");
+    match Command::new("git")
+        .args([
+            "clone",
+            "--depth",
+            "1",
+            "https://github.com/ziglang/zig.git",
+            "/tmp/zig-source",
+        ])
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("Clone completed");
+        }
+        Ok(status) => {
+            eprintln!("Clone failed with code: {:?}", status.code());
+            return;
+        }
+        Err(e) => {
+            eprintln!("Failed to clone: {}", e);
+            return;
+        }
+    }
+
+    println!("Building... (this will take a while)");
+    println!(
+        "For detailed build instructions, see: https://github.com/ziglang/zig/wiki/Building-Zig-From-Source"
+    );
 }
 
 fn install_zion_tool() {
@@ -183,11 +304,13 @@ fn install_zion_tool() {
         return;
     }
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Install Zion meta-tool for Zig development?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("📥 Installing Zion...");
@@ -220,12 +343,14 @@ fn zig_project_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Project Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => create_zig_project(),
@@ -238,97 +363,163 @@ fn zig_project_management() {
 }
 
 fn create_zig_project() {
-    let project_name: String = Input::new()
+    let Ok(project_name) = Input::<String>::new()
         .with_prompt("Project name")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
+
+    // Validate project name
+    if let Err(e) = validate_project_name(&project_name) {
+        eprintln!("Invalid project name: {}", e);
+        return;
+    }
 
     let project_types = ["exe", "lib", "test"];
-    let project_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(project_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Project type")
         .items(&project_types)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Use Zion if available, otherwise use zig init
-    if Command::new("which").arg("zion").status().is_ok() {
-        println!("🛠️  Creating project with Zion...");
-        let _ = Command::new("zion")
-            .args(&["new", &project_name, "--type", project_types[project_type]])
-            .status();
+    if Command::new("which")
+        .arg("zion")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("Creating project with Zion...");
+        match Command::new("zion")
+            .args(["new", &project_name, "--type", project_types[project_type]])
+            .status()
+        {
+            Ok(status) if status.success() => {
+                println!("Zig project '{}' created with Zion", project_name);
+            }
+            Ok(status) => {
+                eprintln!("Zion exited with code: {:?}", status.code());
+            }
+            Err(e) => {
+                eprintln!("Failed to run zion: {}", e);
+            }
+        }
     } else {
-        println!("📁 Creating project directory...");
-        std::fs::create_dir_all(&project_name).unwrap();
+        println!("Creating project directory...");
+        if let Err(e) = std::fs::create_dir_all(&project_name) {
+            eprintln!("Failed to create project directory: {}", e);
+            return;
+        }
 
-        let _ = Command::new("zig")
-            .args(&["init-exe"])
+        match Command::new("zig")
+            .args(["init-exe"])
             .current_dir(&project_name)
-            .status();
+            .status()
+        {
+            Ok(status) if status.success() => {
+                println!("Zig project '{}' created", project_name);
+            }
+            Ok(status) => {
+                eprintln!("zig init-exe failed with code: {:?}", status.code());
+            }
+            Err(e) => {
+                eprintln!("Failed to run zig init: {}", e);
+            }
+        }
     }
-
-    println!("✅ Zig project '{}' created", project_name);
 }
 
 fn init_zig_project() {
-    println!("🔧 Initializing Zig project in current directory...");
+    println!("Initializing Zig project in current directory...");
 
-    let _ = Command::new("zig").args(&["init-exe"]).status();
-
-    println!("✅ Zig project initialized");
+    match Command::new("zig").args(["init-exe"]).status() {
+        Ok(status) if status.success() => {
+            println!("Zig project initialized");
+        }
+        Ok(status) => {
+            eprintln!("zig init-exe failed with code: {:?}", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run zig: {}", e);
+        }
+    }
 }
 
 fn manage_zig_dependencies() {
-    println!("📦 Zig Dependency Management");
+    println!("Zig Dependency Management");
     println!("============================");
 
     if !std::path::Path::new("build.zig").exists() {
-        println!("❌ No build.zig found. Initialize a Zig project first.");
+        eprintln!("No build.zig found. Initialize a Zig project first.");
         return;
     }
 
     // Check if using Zion for dependency management
-    if Command::new("which").arg("zion").status().is_ok() {
-        let _ = Command::new("zion").args(&["deps", "list"]).status();
+    if Command::new("which")
+        .arg("zion")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        if let Err(e) = Command::new("zion").args(["deps", "list"]).status() {
+            eprintln!("Failed to run zion deps: {}", e);
+        }
     } else {
-        println!("💡 Zig package management is evolving. Check build.zig for dependencies.");
+        println!("Zig package management is evolving. Check build.zig for dependencies.");
 
-        if let Ok(content) = std::fs::read_to_string("build.zig") {
-            println!("📋 Current build.zig:");
-            for (i, line) in content.lines().take(20).enumerate() {
-                println!("  {}: {}", i + 1, line);
+        match std::fs::read_to_string("build.zig") {
+            Ok(content) => {
+                println!("Current build.zig:");
+                for (i, line) in content.lines().take(20).enumerate() {
+                    println!("  {}: {}", i + 1, line);
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to read build.zig: {}", e);
             }
         }
     }
 }
 
 fn build_zig_project() {
-    println!("🏗️  Building Zig Project");
+    println!("Building Zig Project");
     println!("========================");
 
     if !std::path::Path::new("build.zig").exists() {
-        println!("❌ No build.zig found in current directory");
+        eprintln!("No build.zig found in current directory");
         return;
     }
 
-    println!("🔨 Building...");
-    let status = Command::new("zig").args(&["build"]).status();
-
-    match status {
-        Ok(s) if s.success() => println!("✅ Build successful"),
-        _ => println!("❌ Build failed"),
+    println!("Building...");
+    match Command::new("zig").args(["build"]).status() {
+        Ok(status) if status.success() => {
+            println!("Build successful");
+        }
+        Ok(status) => {
+            eprintln!("Build failed with code: {:?}", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run zig build: {}", e);
+        }
     }
 }
 
 fn run_zig_tests() {
-    println!("🧪 Running Zig Tests");
+    println!("Running Zig Tests");
     println!("====================");
 
-    let status = Command::new("zig").args(&["build", "test"]).status();
-
-    match status {
-        Ok(s) if s.success() => println!("✅ All tests passed"),
-        _ => println!("❌ Tests failed"),
+    match Command::new("zig").args(["build", "test"]).status() {
+        Ok(status) if status.success() => {
+            println!("All tests passed");
+        }
+        Ok(status) => {
+            eprintln!("Tests failed with code: {:?}", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to run tests: {}", e);
+        }
     }
 }
 
@@ -344,12 +535,14 @@ fn zig_development_tools() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Development Tools")
         .items(&tools)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_zls(),
@@ -361,37 +554,107 @@ fn zig_development_tools() {
 }
 
 fn install_zls() {
-    println!("📝 Installing zls (Zig Language Server)");
+    println!("Installing zls (Zig Language Server)");
     println!("========================================");
 
-    if Command::new("which").arg("zls").status().is_ok() {
-        println!("✅ zls is already installed");
+    if Command::new("which")
+        .arg("zls")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        println!("zls is already installed");
         return;
     }
 
     // Try package manager first
-    if Command::new("which").arg("reap").status().is_ok() {
-        let _ = Command::new("reap").arg("zls").status();
-    } else {
-        // Build from source
-        println!("🔨 Building zls from source...");
-        let _ = Command::new("git")
-            .args(&["clone", "https://github.com/zigtools/zls.git", "/tmp/zls"])
-            .status();
-
-        let build_status = Command::new("zig")
-            .args(&["build", "-Doptimize=ReleaseSafe"])
-            .current_dir("/tmp/zls")
-            .status();
-
-        if build_status.is_ok() {
-            // Install binary
-            let _ = Command::new("sudo")
-                .args(&["cp", "/tmp/zls/zig-out/bin/zls", "/usr/local/bin/"])
-                .status();
-
-            println!("✅ zls installed successfully");
+    if Command::new("which")
+        .arg("reap")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
+        match Command::new("reap").arg("zls").status() {
+            Ok(status) if status.success() => {
+                println!("zls installed via reaper");
+                return;
+            }
+            _ => {
+                println!("Package manager install failed, building from source...");
+            }
         }
+    }
+
+    // Build from source
+    println!("Building zls from source...");
+    let zls_dir = "/tmp/zls-build";
+
+    // Clean up previous attempt
+    if std::path::Path::new(zls_dir).exists() {
+        if let Err(e) = std::fs::remove_dir_all(zls_dir) {
+            eprintln!("Warning: Failed to clean up {}: {}", zls_dir, e);
+        }
+    }
+
+    match Command::new("git")
+        .args([
+            "clone",
+            "--depth",
+            "1",
+            "https://github.com/zigtools/zls.git",
+            zls_dir,
+        ])
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("Repository cloned");
+        }
+        Ok(_) => {
+            eprintln!("Failed to clone zls repository");
+            return;
+        }
+        Err(e) => {
+            eprintln!("Failed to run git: {}", e);
+            return;
+        }
+    }
+
+    match Command::new("zig")
+        .args(["build", "-Doptimize=ReleaseSafe"])
+        .current_dir(zls_dir)
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("Build completed");
+        }
+        Ok(status) => {
+            eprintln!("Build failed with code: {:?}", status.code());
+            return;
+        }
+        Err(e) => {
+            eprintln!("Failed to run zig build: {}", e);
+            return;
+        }
+    }
+
+    // Install binary
+    let zls_binary = format!("{}/zig-out/bin/zls", zls_dir);
+    match Command::new("sudo")
+        .args(["install", "-Dm755", &zls_binary, "/usr/local/bin/zls"])
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("zls installed successfully to /usr/local/bin/zls");
+        }
+        Ok(status) => {
+            eprintln!("Install failed with code: {:?}", status.code());
+        }
+        Err(e) => {
+            eprintln!("Failed to install binary: {}", e);
+        }
+    }
+
+    // Clean up
+    if let Err(e) = std::fs::remove_dir_all(zls_dir) {
+        eprintln!("Warning: Failed to clean up {}: {}", zls_dir, e);
     }
 }
 
@@ -437,9 +700,14 @@ fn show_zig_version() {
 }
 
 fn add_zig_to_path() {
+    let Some(home_dir) = dirs::home_dir() else {
+        println!("❌ Could not determine home directory");
+        return;
+    };
+
     let shell_files = [
-        format!("{}/.bashrc", dirs::home_dir().unwrap().display()),
-        format!("{}/.zshrc", dirs::home_dir().unwrap().display()),
+        format!("{}/.bashrc", home_dir.display()),
+        format!("{}/.zshrc", home_dir.display()),
     ];
 
     let zig_path_export = "export PATH=\"/opt/zig:$PATH\"";
@@ -449,14 +717,13 @@ fn add_zig_to_path() {
             && let Ok(content) = std::fs::read_to_string(shell_file)
             && !content.contains("/opt/zig")
         {
-            let mut file = std::fs::OpenOptions::new()
-                .append(true)
-                .open(shell_file)
-                .unwrap();
+            let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(shell_file) else {
+                continue;
+            };
 
             use std::io::Write;
-            writeln!(file, "\n# Zig compiler").unwrap();
-            writeln!(file, "{}", zig_path_export).unwrap();
+            let _ = writeln!(file, "\n# Zig compiler");
+            let _ = writeln!(file, "{}", zig_path_export);
 
             println!("✅ Added Zig to PATH in {}", shell_file);
         }

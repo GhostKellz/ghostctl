@@ -563,12 +563,14 @@ pub fn enterprise_networking_menu() {
             "⬅️  Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🏢 Enterprise Networking Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         match selection {
             0 => advanced_vlan_management(),
@@ -600,12 +602,14 @@ fn advanced_vlan_management() {
             "⬅️  Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🏷️  Advanced VLAN Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         match selection {
             0 => create_vlan(),
@@ -625,7 +629,7 @@ fn create_vlan() {
     println!("🏷️  Creating New VLAN");
     println!("=====================");
 
-    let vlan_id: u16 = Input::with_theme(&ColorfulTheme::default())
+    let Ok(vlan_id) = Input::<u16>::with_theme(&ColorfulTheme::default())
         .with_prompt("VLAN ID (1-4094)")
         .validate_with(|input: &u16| -> Result<(), &str> {
             if *input >= 1 && *input <= 4094 {
@@ -635,9 +639,11 @@ fn create_vlan() {
             }
         })
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let vlan_name: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(vlan_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("VLAN name")
         .validate_with(|input: &String| -> Result<(), &str> {
             if !input.is_empty() && input.len() <= 64 {
@@ -647,15 +653,19 @@ fn create_vlan() {
             }
         })
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let description: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(description) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Description")
         .allow_empty(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let subnet: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(subnet) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Subnet (CIDR format, e.g., 192.168.10.0/24)")
         .validate_with(|input: &String| -> Result<(), &str> {
             if input.contains('/') && input.parse::<ipnet::Ipv4Net>().is_ok() {
@@ -665,9 +675,11 @@ fn create_vlan() {
             }
         })
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let gateway: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(gateway) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Gateway IP address")
         .validate_with(|input: &String| -> Result<(), &str> {
             if input.parse::<IpAddr>().is_ok() {
@@ -677,7 +689,9 @@ fn create_vlan() {
             }
         })
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let security_levels = vec![
         "Public (Internet-facing)",
@@ -687,23 +701,28 @@ fn create_vlan() {
         "Isolated (Air-gapped)",
     ];
 
-    let security_level = Select::with_theme(&ColorfulTheme::default())
+    let Ok(security_level) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Security level")
         .items(&security_levels)
         .default(1)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let dhcp_enabled = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(dhcp_enabled) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Enable DHCP service?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let mut dhcp_config = None;
-    if dhcp_enabled {
-        dhcp_config = Some(configure_dhcp_settings());
-    }
+    let dhcp_config = if dhcp_enabled {
+        configure_dhcp_settings()
+    } else {
+        None
+    };
 
     let isolation_modes = vec![
         "None",
@@ -713,12 +732,14 @@ fn create_vlan() {
         "Micro-segmentation",
     ];
 
-    let isolation_mode = Select::with_theme(&ColorfulTheme::default())
+    let Ok(isolation_mode) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Isolation mode")
         .items(&isolation_modes)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("\n✅ VLAN Configuration Summary:");
     println!("  🏷️  VLAN ID: {}", vlan_id);
@@ -733,11 +754,13 @@ fn create_vlan() {
     );
     println!("  🔒 Isolation: {}", isolation_modes[isolation_mode]);
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Create this VLAN?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         create_vlan_configuration(vlan_id, &vlan_name, &subnet, &gateway, dhcp_config);
@@ -745,40 +768,60 @@ fn create_vlan() {
     }
 }
 
-fn configure_dhcp_settings() -> DhcpRange {
+fn configure_dhcp_settings() -> Option<DhcpRange> {
     println!("\n📡 DHCP Configuration");
 
-    let start_ip: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(start_ip) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("DHCP range start IP")
         .interact()
-        .unwrap();
+    else {
+        return None;
+    };
 
-    let end_ip: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(end_ip) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("DHCP range end IP")
         .interact()
-        .unwrap();
+    else {
+        return None;
+    };
 
-    let lease_time: u32 = Input::with_theme(&ColorfulTheme::default())
+    let Ok(lease_time) = Input::<u32>::with_theme(&ColorfulTheme::default())
         .with_prompt("Lease time (hours)")
         .default(24u32)
         .interact()
-        .unwrap();
+    else {
+        return None;
+    };
 
-    let dns_servers: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(dns_servers) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("DNS servers (comma-separated)")
         .default("8.8.8.8,8.8.4.4".to_string())
         .interact()
-        .unwrap();
+    else {
+        return None;
+    };
 
-    let domain_name: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(domain_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Domain name (optional)")
         .allow_empty(true)
         .interact()
-        .unwrap();
+    else {
+        return None;
+    };
 
-    DhcpRange {
-        start: start_ip.parse().unwrap(),
-        end: end_ip.parse().unwrap(),
+    let Some(start) = start_ip.parse().ok() else {
+        println!("  ❌ Invalid start IP address");
+        return None;
+    };
+
+    let Some(end) = end_ip.parse().ok() else {
+        println!("  ❌ Invalid end IP address");
+        return None;
+    };
+
+    Some(DhcpRange {
+        start,
+        end,
         lease_time: lease_time * 3600, // Convert hours to seconds
         dns_servers: dns_servers
             .split(',')
@@ -789,7 +832,7 @@ fn configure_dhcp_settings() -> DhcpRange {
         } else {
             Some(domain_name)
         },
-    }
+    })
 }
 
 fn create_vlan_configuration(
@@ -950,12 +993,14 @@ fn software_defined_networking() {
             "⬅️  Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🌐 Software Defined Networking (SDN)")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         match selection {
             0 => vxlan_overlay_networks(),
@@ -984,12 +1029,14 @@ fn vxlan_overlay_networks() {
         "🔧 VXLAN Troubleshooting",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select VXLAN action")
         .items(&actions)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => create_vxlan_network(),
@@ -1006,12 +1053,14 @@ fn create_vxlan_network() {
     println!("\n➕ Creating VXLAN Overlay Network");
     println!("=================================");
 
-    let network_name: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(network_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Network name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let vni: u32 = Input::with_theme(&ColorfulTheme::default())
+    let Ok(vni) = Input::<u32>::with_theme(&ColorfulTheme::default())
         .with_prompt("VXLAN Network Identifier (VNI)")
         .validate_with(|input: &u32| -> Result<(), &str> {
             if *input >= 1 && *input <= 16777215 {
@@ -1021,9 +1070,11 @@ fn create_vxlan_network() {
             }
         })
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let multicast_group: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(multicast_group) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Multicast group (optional, e.g., 239.1.1.1)")
         .allow_empty(true)
         .validate_with(|input: &String| -> Result<(), &str> {
@@ -1034,9 +1085,11 @@ fn create_vxlan_network() {
             }
         })
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let overlay_subnet: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(overlay_subnet) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Overlay subnet (e.g., 10.100.0.0/16)")
         .validate_with(|input: &String| -> Result<(), &str> {
             if input.parse::<ipnet::Ipv4Net>().is_ok() {
@@ -1046,29 +1099,37 @@ fn create_vxlan_network() {
             }
         })
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let encryption_enabled = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(encryption_enabled) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Enable encryption?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let mut encryption_config = None;
     if encryption_enabled {
         let algorithms = vec!["AES-256-GCM", "ChaCha20-Poly1305", "AES-128-GCM"];
-        let algorithm_choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(algorithm_choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Encryption algorithm")
             .items(&algorithms)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
-        let key_rotation_hours: u32 = Input::with_theme(&ColorfulTheme::default())
+        let Ok(key_rotation_hours) = Input::<u32>::with_theme(&ColorfulTheme::default())
             .with_prompt("Key rotation interval (hours)")
             .default(24u32)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         encryption_config = Some(EncryptionConfig {
             enabled: true,
@@ -1094,11 +1155,13 @@ fn create_vxlan_network() {
         println!("  🔒 Encryption: Enabled");
     }
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Create VXLAN network?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         create_vxlan_configuration(

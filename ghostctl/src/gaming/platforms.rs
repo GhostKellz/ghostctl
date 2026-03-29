@@ -22,12 +22,14 @@ pub fn platforms_menu() {
             "⬅️  Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🎯 Gaming Platforms Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => lutris_management(),
@@ -57,12 +59,14 @@ pub fn lutris_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Lutris Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_lutris(),
@@ -80,11 +84,13 @@ fn install_lutris() {
     println!("📦 Installing Lutris");
     println!("====================");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Install Lutris and recommended dependencies?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !confirm {
         return;
@@ -118,11 +124,13 @@ fn install_lutris() {
             // Install additional wine versions via AUR
             install_additional_wine_versions();
 
-            let launch = Confirm::new()
+            let Ok(launch) = Confirm::new()
                 .with_prompt("Launch Lutris now?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if launch {
                 let _ = Command::new("lutris").spawn();
@@ -186,7 +194,7 @@ fn install_lutris_runners() {
         println!("{}. {} - {}", i + 1, name, desc);
     }
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select runners to install")
         .items(
             &runners
@@ -195,7 +203,9 @@ fn install_lutris_runners() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if selections.is_empty() {
         println!("❌ No runners selected");
@@ -232,12 +242,14 @@ fn lutris_wine_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Wine Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => list_wine_versions(),
@@ -283,11 +295,13 @@ fn download_wine_ge() {
 
     println!("💡 Wine-GE (GloriousEggroll) provides optimizations for gaming");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Download latest Wine-GE?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !confirm {
         return;
@@ -304,11 +318,13 @@ fn download_wine_ge() {
     let protonup_check = Command::new("which").arg("protonup-qt").status();
     match protonup_check {
         Ok(s) if s.success() => {
-            let launch = Confirm::new()
+            let Ok(launch) = Confirm::new()
                 .with_prompt("Launch ProtonUp-Qt for Wine-GE installation?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if launch {
                 let _ = Command::new("protonup-qt").spawn();
@@ -340,12 +356,14 @@ fn configure_wine_versions() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Wine Configuration")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
@@ -376,11 +394,13 @@ fn install_common_libraries() {
         println!("{}. {}", i + 1, lib);
     }
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select libraries to install")
         .items(&libraries)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !selections.is_empty() {
         println!("🔧 Installing selected libraries with winetricks...");
@@ -415,11 +435,13 @@ fn clean_wine_prefixes() {
     println!("  - Remove old prefixes (BE CAREFUL!)");
     println!("  - Reset specific game prefixes");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Clean Wine cache and temporary files?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         // Clean common Wine cache locations
@@ -458,12 +480,14 @@ fn lutris_configuration() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Lutris Configuration")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => lutris_gaming_optimizations(),
@@ -490,11 +514,13 @@ fn lutris_gaming_optimizations() {
     println!("  • Runners > Wine > Enable DXVK");
     println!("  • Runners > Wine > Enable Esync");
 
-    let launch_lutris = Confirm::new()
+    let Ok(launch_lutris) = Confirm::new()
         .with_prompt("Launch Lutris to configure these settings?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if launch_lutris {
         let _ = Command::new("lutris").arg("-p").spawn();
@@ -521,11 +547,13 @@ fn lutris_audio_configuration() {
     println!("  • Install lib32-libpulse for 32-bit games");
     println!("  • Configure Wine audio driver (pulse recommended)");
 
-    let install_audio = Confirm::new()
+    let Ok(install_audio) = Confirm::new()
         .with_prompt("Install additional audio libraries?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_audio {
         let packages = ["lib32-libpulse", "lib32-alsa-plugins", "lib32-openal"];
@@ -555,11 +583,13 @@ fn lutris_directories() {
     println!("  Games: ~/Games/ (default)");
     println!("  Runners: {}runners/", lutris_dir.display());
 
-    let open_dir = Confirm::new()
+    let Ok(open_dir) = Confirm::new()
         .with_prompt("Open Lutris data directory?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if open_dir && lutris_dir.exists() {
         let _ = Command::new("xdg-open").arg(&lutris_dir).spawn();
@@ -607,11 +637,13 @@ fn install_popular_games_lutris() {
     println!("  3. Search for your game");
     println!("  4. Follow automated installation");
 
-    let launch = Confirm::new()
+    let Ok(launch) = Confirm::new()
         .with_prompt("Launch Lutris to browse games?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if launch {
         let _ = Command::new("lutris").spawn();
@@ -637,11 +669,13 @@ fn clean_lutris_prefixes() {
         println!("  • Remove unused prefixes");
         println!("  • Reset problematic game installations");
 
-        let clean_cache = Confirm::new()
+        let Ok(clean_cache) = Confirm::new()
             .with_prompt("Clean cache and temporary files from all prefixes?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if clean_cache {
             // Clean common locations in prefixes
@@ -737,12 +771,14 @@ pub fn heroic_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Heroic Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_heroic(),
@@ -765,12 +801,14 @@ fn install_heroic() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Installation method")
         .items(&install_methods)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_heroic_aur(),
@@ -821,11 +859,13 @@ fn install_heroic_appimage() {
     println!("  3. Run: ./Heroic-*.AppImage");
 
     println!("\n🔧 Or use automated download:");
-    let download = Confirm::new()
+    let Ok(download) = Confirm::new()
         .with_prompt("Download latest Heroic AppImage?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if download {
         println!("🔽 Downloading Heroic AppImage...");
@@ -841,11 +881,13 @@ fn install_heroic_appimage() {
                     .status();
                 println!("✅ Heroic AppImage downloaded to /tmp/heroic.AppImage");
 
-                let run_now = Confirm::new()
+                let Ok(run_now) = Confirm::new()
                     .with_prompt("Run Heroic now?")
                     .default(true)
                     .interact()
-                    .unwrap();
+                else {
+                    return;
+                };
 
                 if run_now {
                     let _ = Command::new("/tmp/heroic.AppImage").spawn();
@@ -923,11 +965,13 @@ fn heroic_configuration() {
     println!("  • Download directory");
     println!("  • Performance settings");
 
-    let launch_heroic = Confirm::new()
+    let Ok(launch_heroic) = Confirm::new()
         .with_prompt("Launch Heroic to configure settings?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if launch_heroic {
         let _ = Command::new("heroic").spawn();
@@ -979,12 +1023,14 @@ pub fn bottles_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Bottles Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_bottles(),
@@ -1006,12 +1052,14 @@ fn install_bottles() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Installation method")
         .items(&install_methods)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_bottles_flatpak(),
@@ -1151,12 +1199,14 @@ pub fn emulation_platforms() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Emulation Platforms")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_retroarch(),
@@ -1173,11 +1223,13 @@ fn install_retroarch() {
     println!("🕹️  Installing RetroArch");
     println!("=========================");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Install RetroArch and common cores?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let packages = [
@@ -1218,7 +1270,7 @@ fn console_emulators() {
         println!("{}. {} - {} ({})", i + 1, console, name, package);
     }
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select emulators to install")
         .items(
             &emulators
@@ -1227,7 +1279,9 @@ fn console_emulators() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selections {
         let (console, package, _) = emulators[index];
@@ -1357,12 +1411,14 @@ pub fn wine_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Wine Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_wine_versions(),
@@ -1398,7 +1454,7 @@ fn install_wine_versions() {
         println!("{}. {} - {} ({})", i + 1, name, desc, package);
     }
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Wine versions to install")
         .items(
             &wine_versions
@@ -1407,7 +1463,9 @@ fn install_wine_versions() {
                 .collect::<Vec<_>>(),
         )
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selections {
         let (name, package, _) = wine_versions[index];
@@ -1440,12 +1498,14 @@ fn configure_wine() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Wine Configuration")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
@@ -1468,11 +1528,13 @@ fn configure_wine_gaming() {
     println!("  • Install Visual C++ redistributables");
     println!("  • Configure Windows version compatibility");
 
-    let install_dxvk = Confirm::new()
+    let Ok(install_dxvk) = Confirm::new()
         .with_prompt("Install DXVK for DirectX translation?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_dxvk {
         let status = Command::new("sudo")
@@ -1522,11 +1584,13 @@ fn winetricks_management() {
         Ok(s) if s.success() => {
             println!("✅ Winetricks found");
 
-            let launch = Confirm::new()
+            let Ok(launch) = Confirm::new()
                 .with_prompt("Launch winetricks GUI?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if launch {
                 let _ = Command::new("winetricks").spawn();
@@ -1534,11 +1598,13 @@ fn winetricks_management() {
         }
         _ => {
             println!("❌ Winetricks not found");
-            let install = Confirm::new()
+            let Ok(install) = Confirm::new()
                 .with_prompt("Install winetricks?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if install {
                 let status = Command::new("sudo")
@@ -1575,11 +1641,13 @@ fn clean_wine_data() {
             "⚠️  Reset Wine prefix (DANGEROUS)",
         ];
 
-        let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+        let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
             .with_prompt("Select cleanup options")
             .items(&clean_options)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         for &index in &selections {
             match index {
@@ -1594,13 +1662,15 @@ fn clean_wine_data() {
                     println!("💾 Cleaning registry backups...");
                 }
                 3 => {
-                    let confirm = Confirm::new()
+                    let Ok(confirm) = Confirm::new()
                         .with_prompt(
                             "⚠️  Really reset Wine prefix? This will delete all Windows software!",
                         )
                         .default(false)
                         .interact()
-                        .unwrap();
+                    else {
+                        continue;
+                    };
 
                     if confirm {
                         let _ = Command::new("rm")

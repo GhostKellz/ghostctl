@@ -3,15 +3,21 @@ pub fn enter(mountpoint: &str) {
     use dialoguer::Confirm;
     use std::process::Command;
     println!("Setting up chroot environment at '{}'...", mountpoint);
-    if !Confirm::new()
+    let confirmed = match Confirm::new()
         .with_prompt(format!(
             "Proceed to mount and chroot into '{}'?",
             mountpoint
         ))
         .default(false)
         .interact()
-        .unwrap()
     {
+        Ok(c) => c,
+        Err(_) => {
+            println!("Aborted chroot setup.");
+            return;
+        }
+    };
+    if !confirmed {
         println!("Aborted chroot setup.");
         return;
     }

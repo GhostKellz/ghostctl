@@ -1,3 +1,4 @@
+use super::proton::{get_dxvk_versions, get_vkd3d_versions, load_version_cache_from_disk};
 use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use serde::{Deserialize, Serialize};
 use serde_yaml;
@@ -30,12 +31,15 @@ pub fn lutris_menu() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let choice = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🎮 Lutris Integration")
             .items(&options)
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            Ok(None) | Err(_) => break,
+        };
 
         match choice {
             0 => list_installed_games(),
@@ -122,19 +126,26 @@ fn list_installed_games() {
 fn install_game() {
     println!("📦 Install Game");
 
-    let install_method = Select::with_theme(&ColorfulTheme::default())
+    let install_method = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select installation method")
         .items(&["From Lutris.net", "Local installer", "Manual configuration"])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match install_method {
         0 => {
-            let game_slug = Input::<String>::with_theme(&ColorfulTheme::default())
+            let game_slug = match Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter game slug from Lutris.net")
                 .interact()
-                .unwrap();
+                .ok()
+            {
+                Some(s) => s,
+                None => return,
+            };
 
             println!("📥 Installing from Lutris.net...");
             let cmd = format!("lutris lutris:install/{}", game_slug);
@@ -147,10 +158,14 @@ fn install_game() {
             }
         }
         1 => {
-            let installer_path = Input::<String>::with_theme(&ColorfulTheme::default())
+            let installer_path = match Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter installer script path (.yml)")
                 .interact()
-                .unwrap();
+                .ok()
+            {
+                Some(s) => s,
+                None => return,
+            };
 
             if !Path::new(&installer_path).exists() {
                 println!("❌ Installer file not found");
@@ -176,31 +191,46 @@ fn install_game() {
 fn manual_game_configuration() {
     println!("🔧 Manual Game Configuration");
 
-    let game_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let game_name = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter game name")
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     let runners = ["wine", "steam", "native", "dosbox", "scummvm", "retroarch"];
-    let runner_choice = Select::with_theme(&ColorfulTheme::default())
+    let runner_choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select runner")
         .items(&runners)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     let runner = runners[runner_choice];
 
-    let executable = Input::<String>::with_theme(&ColorfulTheme::default())
+    let executable = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter executable path")
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
-    let working_dir = Input::<String>::with_theme(&ColorfulTheme::default())
+    let working_dir = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter working directory")
         .allow_empty(true)
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     // Create YAML configuration
     let config = format!(
@@ -238,10 +268,14 @@ system:
 fn configure_game() {
     println!("🔧 Configure Game");
 
-    let game_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let game_name = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter game name")
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     let config_file = format!(
         "{}/.config/lutris/games/{}.yml",
@@ -262,12 +296,15 @@ fn configure_game() {
         "Open in Lutris",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Configuration options")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => {
@@ -299,18 +336,25 @@ fn configure_wine_runner(config_file: &str) {
         "custom",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Wine version")
         .items(&wine_versions)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     let wine_version = if choice == 4 {
-        Input::<String>::with_theme(&ColorfulTheme::default())
+        match Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter custom Wine path")
             .interact()
-            .unwrap()
+            .ok()
+        {
+            Some(s) => s,
+            None => return,
+        }
     } else {
         wine_versions[choice].to_string()
     };
@@ -322,57 +366,119 @@ fn configure_wine_runner(config_file: &str) {
     config["wine"]["version"] = serde_yaml::Value::String(wine_version);
 
     // DXVK settings
-    let use_dxvk = Confirm::with_theme(&ColorfulTheme::default())
+    let use_dxvk = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Enable DXVK?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(b)) => b,
+        Ok(None) | Err(_) => return,
+    };
 
     config["wine"]["dxvk"] = serde_yaml::Value::Bool(use_dxvk);
 
     if use_dxvk {
-        let dxvk_versions = ["1.10.3", "2.0", "2.1", "2.2", "2.3"];
-        let dxvk_choice = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("Select DXVK version")
-            .items(&dxvk_versions)
-            .default(4)
-            .interact()
-            .unwrap();
+        // Load version cache and fetch available DXVK versions
+        load_version_cache_from_disk();
+        let versions = get_dxvk_versions();
 
-        config["wine"]["dxvk_version"] =
-            serde_yaml::Value::String(dxvk_versions[dxvk_choice].to_string());
+        // Build version display list
+        let version_display: Vec<String> = versions
+            .iter()
+            .enumerate()
+            .map(|(i, v)| {
+                if i == 0 {
+                    format!("{} (Latest)", v)
+                } else if v == "1.10.3" {
+                    format!("{} (for older GPUs)", v)
+                } else {
+                    v.clone()
+                }
+            })
+            .collect();
+
+        let dxvk_choice = match Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Select DXVK version")
+            .items(&version_display)
+            .default(0)
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            Ok(None) | Err(_) => return,
+        };
+
+        config["wine"]["dxvk_version"] = serde_yaml::Value::String(versions[dxvk_choice].clone());
     }
 
     // VKD3D settings
-    let use_vkd3d = Confirm::with_theme(&ColorfulTheme::default())
+    let use_vkd3d = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Enable VKD3D-Proton?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(b)) => b,
+        Ok(None) | Err(_) => return,
+    };
 
     config["wine"]["vkd3d"] = serde_yaml::Value::Bool(use_vkd3d);
 
-    // Esync/Fsync
-    config["wine"]["esync"] = serde_yaml::Value::Bool(
-        Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Enable Esync?")
-            .default(true)
-            .interact()
-            .unwrap(),
-    );
+    if use_vkd3d {
+        // Fetch available VKD3D versions
+        let versions = get_vkd3d_versions();
 
-    config["wine"]["fsync"] = serde_yaml::Value::Bool(
-        Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Enable Fsync?")
-            .default(true)
-            .interact()
-            .unwrap(),
-    );
+        let version_display: Vec<String> = versions
+            .iter()
+            .enumerate()
+            .map(|(i, v)| {
+                if i == 0 {
+                    format!("{} (Latest)", v)
+                } else {
+                    v.clone()
+                }
+            })
+            .collect();
+
+        let vkd3d_choice = match Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Select VKD3D-Proton version")
+            .items(&version_display)
+            .default(0)
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            Ok(None) | Err(_) => return,
+        };
+
+        config["wine"]["vkd3d_version"] = serde_yaml::Value::String(versions[vkd3d_choice].clone());
+    }
+
+    // Esync/Fsync
+    let use_esync = match Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt("Enable Esync?")
+        .default(true)
+        .interact_opt()
+    {
+        Ok(Some(b)) => b,
+        Ok(None) | Err(_) => return,
+    };
+    config["wine"]["esync"] = serde_yaml::Value::Bool(use_esync);
+
+    let use_fsync = match Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt("Enable Fsync?")
+        .default(true)
+        .interact_opt()
+    {
+        Ok(Some(b)) => b,
+        Ok(None) | Err(_) => return,
+    };
+    config["wine"]["fsync"] = serde_yaml::Value::Bool(use_fsync);
 
     // Save config
-    let yaml = serde_yaml::to_string(&config).unwrap();
-    fs::write(config_file, yaml).ok();
-    println!("✅ Wine/Runner settings updated");
+    if let Ok(yaml) = serde_yaml::to_string(&config) {
+        fs::write(config_file, yaml).ok();
+        println!("✅ Wine/Runner settings updated");
+    } else {
+        println!("❌ Failed to serialize configuration");
+    }
 }
 
 fn configure_system_options(config_file: &str) {
@@ -386,38 +492,48 @@ fn configure_system_options(config_file: &str) {
     }
 
     // GameMode
-    config["system"]["gamemode"] = serde_yaml::Value::Bool(
-        Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Enable GameMode?")
-            .default(true)
-            .interact()
-            .unwrap(),
-    );
+    let use_gamemode = match Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt("Enable GameMode?")
+        .default(true)
+        .interact_opt()
+    {
+        Ok(Some(b)) => b,
+        Ok(None) | Err(_) => return,
+    };
+    config["system"]["gamemode"] = serde_yaml::Value::Bool(use_gamemode);
 
     // MangoHud
-    config["system"]["mangohud"] = serde_yaml::Value::Bool(
-        Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Enable MangoHud?")
-            .default(false)
-            .interact()
-            .unwrap(),
-    );
+    let use_mangohud = match Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt("Enable MangoHud?")
+        .default(false)
+        .interact_opt()
+    {
+        Ok(Some(b)) => b,
+        Ok(None) | Err(_) => return,
+    };
+    config["system"]["mangohud"] = serde_yaml::Value::Bool(use_mangohud);
 
     // Disable compositor
-    config["system"]["disable_compositor"] = serde_yaml::Value::Bool(
-        Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Disable compositor?")
-            .default(true)
-            .interact()
-            .unwrap(),
-    );
+    let disable_compositor = match Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt("Disable compositor?")
+        .default(true)
+        .interact_opt()
+    {
+        Ok(Some(b)) => b,
+        Ok(None) | Err(_) => return,
+    };
+    config["system"]["disable_compositor"] = serde_yaml::Value::Bool(disable_compositor);
 
     // Environment variables
-    let env_vars = Input::<String>::with_theme(&ColorfulTheme::default())
+    let env_vars = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Environment variables (KEY=value KEY2=value2)")
         .allow_empty(true)
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     if !env_vars.is_empty() {
         let mut env_map = serde_yaml::Mapping::new();
@@ -433,9 +549,12 @@ fn configure_system_options(config_file: &str) {
     }
 
     // Save config
-    let yaml = serde_yaml::to_string(&config).unwrap();
-    fs::write(config_file, yaml).ok();
-    println!("✅ System options updated");
+    if let Ok(yaml) = serde_yaml::to_string(&config) {
+        fs::write(config_file, yaml).ok();
+        println!("✅ System options updated");
+    } else {
+        println!("❌ Failed to serialize configuration");
+    }
 }
 
 fn configure_game_options(config_file: &str) {
@@ -449,53 +568,72 @@ fn configure_game_options(config_file: &str) {
     }
 
     // Arguments
-    let args = Input::<String>::with_theme(&ColorfulTheme::default())
+    let args = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Game arguments")
         .allow_empty(true)
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     if !args.is_empty() {
         config["game"]["args"] = serde_yaml::Value::String(args);
     }
 
     // Working directory
-    let working_dir = Input::<String>::with_theme(&ColorfulTheme::default())
+    let working_dir = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Working directory")
         .allow_empty(true)
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     if !working_dir.is_empty() {
         config["game"]["working_dir"] = serde_yaml::Value::String(working_dir);
     }
 
     // Pre-launch script
-    let prelaunch = Input::<String>::with_theme(&ColorfulTheme::default())
+    let prelaunch = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Pre-launch script path")
         .allow_empty(true)
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     if !prelaunch.is_empty() {
         config["game"]["prelaunch_script"] = serde_yaml::Value::String(prelaunch);
     }
 
     // Post-exit script
-    let postexit = Input::<String>::with_theme(&ColorfulTheme::default())
+    let postexit = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Post-exit script path")
         .allow_empty(true)
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     if !postexit.is_empty() {
         config["game"]["postexit_script"] = serde_yaml::Value::String(postexit);
     }
 
     // Save config
-    let yaml = serde_yaml::to_string(&config).unwrap();
-    fs::write(config_file, yaml).ok();
-    println!("✅ Game options updated");
+    if let Ok(yaml) = serde_yaml::to_string(&config) {
+        fs::write(config_file, yaml).ok();
+        println!("✅ Game options updated");
+    } else {
+        println!("❌ Failed to serialize configuration");
+    }
 }
 
 fn manage_wine_runners() {
@@ -511,12 +649,15 @@ fn manage_wine_runners() {
         "Set default runner",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Wine Runner Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => list_wine_runners(),
@@ -561,12 +702,15 @@ fn install_wine_ge() {
         "GE-Proton7-43",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Wine-GE version")
         .items(&versions)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     let version = versions[choice];
     let url = format!(
@@ -606,11 +750,14 @@ fn install_wine_tkg() {
     println!("Wine-TKG requires building from source.");
     println!("Visit: https://github.com/Frogging-Family/wine-tkg-git");
 
-    let open = Confirm::with_theme(&ColorfulTheme::default())
+    let open = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Open Wine-TKG GitHub page?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(b)) => b,
+        Ok(None) | Err(_) => return,
+    };
 
     if open {
         Command::new("xdg-open")
@@ -625,12 +772,15 @@ fn install_proton_ge() {
 
     let versions = ["GE-Proton8-26", "GE-Proton8-25", "GE-Proton8-24"];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Proton-GE version")
         .items(&versions)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     let version = versions[choice];
     let url = format!(
@@ -702,20 +852,26 @@ fn remove_runner() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select runner to remove")
         .items(&runners)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     let runner = &runners[choice];
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt(format!("Remove {}?", runner))
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(b)) => b,
+        Ok(None) | Err(_) => return,
+    };
 
     if confirm {
         let runner_path = format!("{}/{}", runners_dir, runner);
@@ -747,12 +903,15 @@ fn set_default_runner() {
         }
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select default runner")
         .items(&runners)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     let runner = if choice == 0 {
         "system"
@@ -774,7 +933,7 @@ fn set_default_runner() {
 fn import_export_config() {
     println!("📋 Import/Export Game Config");
 
-    let action = Select::with_theme(&ColorfulTheme::default())
+    let action = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select action")
         .items(&[
             "Export game config",
@@ -783,8 +942,11 @@ fn import_export_config() {
             "Import configs",
         ])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match action {
         0 => export_game_config(),
@@ -796,10 +958,14 @@ fn import_export_config() {
 }
 
 fn export_game_config() {
-    let game_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let game_name = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter game name")
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     let config_file = format!(
         "{}/.config/lutris/games/{}.yml",
@@ -812,7 +978,7 @@ fn export_game_config() {
         return;
     }
 
-    let export_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    let export_path = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter export path")
         .default(format!(
             "{}/{}_config.yml",
@@ -820,7 +986,11 @@ fn export_game_config() {
             game_name
         ))
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     let cmd = format!("cp '{}' '{}'", config_file, export_path);
     Command::new("sh").arg("-c").arg(&cmd).status().ok();
@@ -829,10 +999,14 @@ fn export_game_config() {
 }
 
 fn import_game_config() {
-    let import_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    let import_path = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter config file path")
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     if !Path::new(&import_path).exists() {
         println!("❌ Config file not found");
@@ -848,9 +1022,8 @@ fn import_game_config() {
 
     let file_name = Path::new(&import_path)
         .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .to_string();
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "imported_config.yml".to_string());
 
     let dest_path = format!("{}/{}", config_dir, file_name);
 
@@ -860,11 +1033,14 @@ fn import_game_config() {
     println!("✅ Config imported");
 
     // Add to Lutris
-    let add = Confirm::with_theme(&ColorfulTheme::default())
+    let add = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Add game to Lutris?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(b)) => b,
+        Ok(None) | Err(_) => return,
+    };
 
     if add {
         let cmd = format!("lutris --reinstall '{}'", dest_path);
@@ -873,14 +1049,18 @@ fn import_game_config() {
 }
 
 fn export_all_configs() {
-    let export_dir = Input::<String>::with_theme(&ColorfulTheme::default())
+    let export_dir = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter export directory")
         .default(format!(
             "{}/lutris_backup",
             std::env::var("HOME").unwrap_or_default()
         ))
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     fs::create_dir_all(&export_dir).ok();
 
@@ -901,21 +1081,28 @@ fn export_all_configs() {
 }
 
 fn import_configs() {
-    let import_dir = Input::<String>::with_theme(&ColorfulTheme::default())
+    let import_dir = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter import directory")
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     if !Path::new(&import_dir).exists() {
         println!("❌ Import directory not found");
         return;
     }
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will overwrite existing configs. Continue?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(b)) => b,
+        Ok(None) | Err(_) => return,
+    };
 
     if confirm {
         let config_dir = format!("{}/.config", std::env::var("HOME").unwrap_or_default());
@@ -958,23 +1145,29 @@ fn runner_management() {
         "mednafen",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select runner to manage")
         .items(&runners)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     let runner = runners[choice];
 
     let options = ["Install/Update", "Configure", "Remove", "View info"];
 
-    let action = Select::with_theme(&ColorfulTheme::default())
+    let action = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt(format!("Manage {} runner", runner))
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match action {
         0 => {
@@ -988,11 +1181,14 @@ fn runner_management() {
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
         }
         2 => {
-            let confirm = Confirm::with_theme(&ColorfulTheme::default())
+            let confirm = match Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt(format!("Remove {} runner?", runner))
                 .default(false)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(b)) => b,
+                Ok(None) | Err(_) => return,
+            };
 
             if confirm {
                 println!("🗑️ Removing {} runner...", runner);
@@ -1011,14 +1207,18 @@ fn runner_management() {
 fn backup_game_configs() {
     println!("💾 Backup Game Configs");
 
-    let backup_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let backup_name = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter backup name")
         .default(format!(
             "lutris_backup_{}",
             chrono::Local::now().format("%Y%m%d_%H%M%S")
         ))
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     let backup_dir = format!(
         "{}/lutris_backups/{}",
@@ -1066,10 +1266,14 @@ fn backup_game_configs() {
 fn launch_game() {
     println!("🎯 Launch Game");
 
-    let game_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let game_name = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter game name or slug")
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
     println!("🚀 Launching {}...", game_name);
     let cmd = format!("lutris lutris:rungame/{}", game_name);
@@ -1091,22 +1295,32 @@ fn launch_game() {
 fn remove_game() {
     println!("🗑️ Remove Game");
 
-    let game_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let game_name = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter game name")
         .interact()
-        .unwrap();
+        .ok()
+    {
+        Some(s) => s,
+        None => return,
+    };
 
-    let keep_files = Confirm::with_theme(&ColorfulTheme::default())
+    let keep_files = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Keep game files?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(b)) => b,
+        Ok(None) | Err(_) => return,
+    };
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt(format!("Remove {}?", game_name))
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(b)) => b,
+        Ok(None) | Err(_) => return,
+    };
 
     if confirm {
         if keep_files {

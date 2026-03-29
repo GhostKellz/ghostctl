@@ -1,8 +1,8 @@
 use crate::terminal::terminal_menu;
 use crate::utils::{set_dry_run_mode, set_headless_mode, set_plain_mode};
 use crate::{
-    arch, backup, bluetooth, btrfs, cloud, network, nvidia, proxmox, restore, security, shell,
-    sysctl, systemd, tools, wifi,
+    arch, backup, bluetooth, btrfs, cloud, iommu, network, nvidia, proxmox, restore, security,
+    shell, sysctl, systemd, tools, vfio, wifi,
 };
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use dialoguer::{Select, theme::ColorfulTheme};
@@ -323,6 +323,102 @@ pub fn build_cli() -> Command {
                 )
                 .subcommand(Command::new("dkms-status").about("Show DKMS module status"))
                 .subcommand(Command::new("dkms-cleanup").about("Clean old DKMS entries")),
+        )
+        .subcommand(
+            Command::new("iommu")
+                .about("IOMMU group management and analysis")
+                .subcommand(Command::new("menu").about("Interactive IOMMU menu"))
+                .subcommand(Command::new("status").about("Show IOMMU status"))
+                .subcommand(
+                    Command::new("groups")
+                        .about("List IOMMU groups")
+                        .arg(
+                            Arg::new("gpu")
+                                .long("gpu")
+                                .action(ArgAction::SetTrue)
+                                .help("Show only groups containing GPUs"),
+                        )
+                        .arg(
+                            Arg::new("json")
+                                .long("json")
+                                .action(ArgAction::SetTrue)
+                                .help("Output in JSON format"),
+                        ),
+                )
+                .subcommand(
+                    Command::new("analyze")
+                        .about("Analyze device for passthrough viability")
+                        .arg(
+                            Arg::new("device")
+                                .required(true)
+                                .help("PCI address (e.g., 01:00.0 or 0000:01:00.0)"),
+                        ),
+                )
+                .subcommand(Command::new("gpus").about("List all GPU devices"))
+                .subcommand(Command::new("usb").about("List USB controllers"))
+                .subcommand(Command::new("nvme").about("List NVMe controllers"))
+                .subcommand(Command::new("sata").about("List SATA controllers"))
+                .subcommand(Command::new("tree").about("Show PCIe topology tree"))
+                .subcommand(Command::new("acs").about("Check ACS override status")),
+        )
+        .subcommand(
+            Command::new("vfio")
+                .about("VFIO passthrough management")
+                .subcommand(Command::new("menu").about("Interactive VFIO menu"))
+                .subcommand(Command::new("setup").about("VFIO setup wizard"))
+                .subcommand(Command::new("status").about("Show VFIO status and bound devices"))
+                .subcommand(
+                    Command::new("bind")
+                        .about("Bind device to vfio-pci driver")
+                        .arg(
+                            Arg::new("device")
+                                .required(true)
+                                .help("PCI address (e.g., 01:00.0 or 0000:01:00.0)"),
+                        ),
+                )
+                .subcommand(
+                    Command::new("unbind")
+                        .about("Unbind device from vfio-pci driver")
+                        .arg(
+                            Arg::new("device")
+                                .required(true)
+                                .help("PCI address (e.g., 01:00.0 or 0000:01:00.0)"),
+                        ),
+                )
+                .subcommand(Command::new("modules").about("Check and load VFIO modules"))
+                .subcommand(Command::new("config").about("Show VFIO configuration status"))
+                .subcommand(Command::new("kernel-params").about("Show recommended kernel parameters"))
+                .subcommand(
+                    Command::new("single-gpu")
+                        .about("Single GPU passthrough management")
+                        .subcommand(Command::new("status").about("Show single GPU passthrough status"))
+                        .subcommand(Command::new("list").about("List configured VMs"))
+                        .subcommand(
+                            Command::new("remove")
+                                .about("Remove hooks for a VM")
+                                .arg(
+                                    Arg::new("vm")
+                                        .required(true)
+                                        .help("VM name"),
+                                ),
+                        ),
+                )
+                .subcommand(
+                    Command::new("dump-rom")
+                        .about("Dump GPU VBIOS ROM")
+                        .arg(
+                            Arg::new("device")
+                                .required(true)
+                                .help("PCI address (e.g., 01:00.0)"),
+                        )
+                        .arg(
+                            Arg::new("output")
+                                .short('o')
+                                .long("output")
+                                .help("Output file path"),
+                        ),
+                )
+                .subcommand(Command::new("rom-list").about("List GPUs with ROM information")),
         )
         .subcommand(
             Command::new("security")
@@ -732,7 +828,9 @@ pub fn handle_cli_args(matches: &ArgMatches) {
     }
 
     if matches.get_flag("yes") {
-        // Set auto-yes mode (handled by individual prompts)
+        // SAFETY: This is called early in main() before any threads are spawned.
+        // ghostctl is a single-threaded CLI application, so no concurrent access
+        // to environment variables can occur. The env var is set once at startup.
         unsafe { std::env::set_var("GHOSTCTL_YES", "1") };
     }
 
@@ -772,6 +870,8 @@ pub fn handle_cli_args(matches: &ArgMatches) {
         Some(("tools", matches)) => handle_tools_commands(matches),
         Some(("btrfs", matches)) => handle_btrfs_commands(matches),
         Some(("nvidia", matches)) => handle_nvidia_commands(matches),
+        Some(("iommu", matches)) => handle_iommu_commands(matches),
+        Some(("vfio", matches)) => handle_vfio_commands(matches),
         Some(("backup", matches)) => handle_backup_commands(matches),
         Some(("restore", matches)) => handle_restore_commands(matches),
         Some(("scripts", matches)) => handle_scripts_commands(matches),
@@ -818,49 +918,49 @@ fn handle_dev_commands(matches: &ArgMatches) {
 
 fn handle_pve_commands(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("menu", _)) => pve_management_menu(),
-        Some(("status", _)) => show_pve_status(),
+        Some(("menu", _)) => crate::pve::pve_management_menu(),
+        Some(("status", _)) => crate::pve::show_pve_status(),
         Some(("vm", vm_matches)) => handle_vm_commands(vm_matches),
         Some(("ct", ct_matches)) => handle_ct_commands(ct_matches),
-        None => pve_management_menu(),
+        None => crate::pve::pve_management_menu(),
         _ => unreachable!(),
     }
 }
 
 fn handle_vm_commands(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("list", _)) => list_vms(),
-        Some(("create", _)) => create_vm_wizard(),
+        Some(("list", _)) => crate::pve::list_vms(),
+        Some(("create", _)) => crate::pve::create_vm_wizard(),
         Some(("start", sub_matches)) => {
             if let Some(id) = sub_matches.get_one::<String>("id") {
-                start_vm(id.to_string());
+                crate::pve::start_vm(id);
             }
         }
         Some(("stop", sub_matches)) => {
             if let Some(id) = sub_matches.get_one::<String>("id") {
-                stop_vm(id.to_string());
+                crate::pve::stop_vm(id);
             }
         }
-        None => vm_management_menu(),
+        None => crate::pve::vm_management_menu(),
         _ => unreachable!(),
     }
 }
 
 fn handle_ct_commands(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("list", _)) => crate::docker::container::list_containers(),
-        Some(("create", _)) => create_container_wizard(),
+        Some(("list", _)) => crate::pve::list_containers(),
+        Some(("create", _)) => crate::pve::create_container_wizard(),
         Some(("start", sub_matches)) => {
             if let Some(id) = sub_matches.get_one::<String>("id") {
-                start_container(id.to_string());
+                crate::pve::start_container(id);
             }
         }
         Some(("stop", sub_matches)) => {
             if let Some(id) = sub_matches.get_one::<String>("id") {
-                crate::docker::container::stop_container(id.to_string());
+                crate::pve::stop_container(id);
             }
         }
-        None => container_management_menu(),
+        None => crate::pve::container_management_menu(),
         _ => unreachable!(),
     }
 }
@@ -1333,6 +1433,285 @@ fn handle_nvidia_commands(matches: &ArgMatches) {
     }
 }
 
+fn handle_iommu_commands(matches: &ArgMatches) {
+    match matches.subcommand() {
+        Some(("menu", _)) => iommu::iommu_menu(),
+        Some(("status", _)) => match iommu::get_iommu_status() {
+            Ok(status) => {
+                println!("IOMMU Status");
+                println!("{}", "=".repeat(40));
+                println!("Enabled:     {}", if status.enabled { "Yes" } else { "No" });
+                println!("Mode:        {}", status.mode);
+                println!("Groups:      {}", status.group_count);
+                println!(
+                    "Passthrough: {}",
+                    if status.passthrough_pt { "Yes" } else { "No" }
+                );
+                println!(
+                    "IRQ Remap:   {}",
+                    if status.interrupt_remapping {
+                        "Yes"
+                    } else {
+                        "No"
+                    }
+                );
+            }
+            Err(e) => eprintln!("Error: {}", e),
+        },
+        Some(("groups", sub_matches)) => {
+            let gpu_only = sub_matches.get_flag("gpu");
+            let json_output = sub_matches.get_flag("json");
+            iommu::list_groups_cli(gpu_only, json_output);
+        }
+        Some(("analyze", sub_matches)) => {
+            if let Some(device) = sub_matches.get_one::<String>("device") {
+                iommu::analyze_device(device);
+            }
+        }
+        Some(("gpus", _)) => match iommu::list_gpus() {
+            Ok(gpus) => {
+                if gpus.is_empty() {
+                    println!("No GPUs found.");
+                } else {
+                    println!("GPU Devices:");
+                    for gpu in gpus {
+                        let driver = gpu
+                            .current_driver
+                            .as_ref()
+                            .map(|d| format!(" [{}]", d))
+                            .unwrap_or_default();
+                        println!(
+                            "  {} - {}:{} {}{} (Group {})",
+                            gpu.address,
+                            gpu.vendor_id,
+                            gpu.device_id,
+                            gpu.description,
+                            driver,
+                            gpu.iommu_group
+                        );
+                    }
+                }
+            }
+            Err(e) => eprintln!("Error: {}", e),
+        },
+        Some(("usb", _)) => match iommu::list_usb_controllers() {
+            Ok(controllers) => {
+                if controllers.is_empty() {
+                    println!("No USB controllers found.");
+                } else {
+                    println!("USB Controllers:");
+                    for ctrl in controllers {
+                        let driver = ctrl
+                            .current_driver
+                            .as_ref()
+                            .map(|d| format!(" [{}]", d))
+                            .unwrap_or_default();
+                        println!(
+                            "  {} - {}{} (Group {})",
+                            ctrl.address, ctrl.description, driver, ctrl.iommu_group
+                        );
+                    }
+                }
+            }
+            Err(e) => eprintln!("Error: {}", e),
+        },
+        Some(("nvme", _)) => match iommu::list_nvme_controllers() {
+            Ok(controllers) => {
+                if controllers.is_empty() {
+                    println!("No NVMe controllers found.");
+                } else {
+                    println!("NVMe Controllers:");
+                    for ctrl in controllers {
+                        let driver = ctrl
+                            .current_driver
+                            .as_ref()
+                            .map(|d| format!(" [{}]", d))
+                            .unwrap_or_default();
+                        println!(
+                            "  {} - {}{} (Group {})",
+                            ctrl.address, ctrl.description, driver, ctrl.iommu_group
+                        );
+                    }
+                }
+            }
+            Err(e) => eprintln!("Error: {}", e),
+        },
+        Some(("sata", _)) => match iommu::list_sata_controllers() {
+            Ok(controllers) => {
+                if controllers.is_empty() {
+                    println!("No SATA controllers found.");
+                } else {
+                    println!("SATA Controllers:");
+                    for ctrl in controllers {
+                        let driver = ctrl
+                            .current_driver
+                            .as_ref()
+                            .map(|d| format!(" [{}]", d))
+                            .unwrap_or_default();
+                        println!(
+                            "  {} - {}{} (Group {})",
+                            ctrl.address, ctrl.description, driver, ctrl.iommu_group
+                        );
+                    }
+                }
+            }
+            Err(e) => eprintln!("Error: {}", e),
+        },
+        Some(("tree", _)) => {
+            if let Err(e) = iommu::pcie::print_pcie_tree() {
+                eprintln!("Error: {}", e);
+            }
+        }
+        Some(("acs", _)) => {
+            iommu::acs::check_and_print_acs_status();
+        }
+        None => iommu::iommu_menu(),
+        _ => iommu::iommu_menu(),
+    }
+}
+
+fn handle_vfio_commands(matches: &ArgMatches) {
+    match matches.subcommand() {
+        Some(("menu", _)) => vfio::vfio_menu(),
+        Some(("setup", _)) => {
+            if let Err(e) = vfio::vfio_setup_wizard() {
+                eprintln!("Error: {}", e);
+            }
+        }
+        Some(("status", _)) => {
+            vfio::print_status(false);
+        }
+        Some(("bind", sub_matches)) => {
+            if let Some(device) = sub_matches.get_one::<String>("device") {
+                match vfio::bind_device(device) {
+                    Ok(_) => println!("Device {} bound to vfio-pci", device),
+                    Err(e) => {
+                        eprintln!("Error binding device: {}", e);
+                        eprintln!("Hint: Make sure you're running as root (sudo)");
+                    }
+                }
+            }
+        }
+        Some(("unbind", sub_matches)) => {
+            if let Some(device) = sub_matches.get_one::<String>("device") {
+                match vfio::unbind_device(device) {
+                    Ok(_) => println!("Device {} unbound from vfio-pci", device),
+                    Err(e) => {
+                        eprintln!("Error unbinding device: {}", e);
+                        eprintln!("Hint: Make sure you're running as root (sudo)");
+                    }
+                }
+            }
+        }
+        Some(("modules", _)) => {
+            println!("Checking VFIO modules...");
+            match vfio::check_vfio_modules() {
+                Ok(modules) => {
+                    println!("\nVFIO Module Status:");
+                    println!(
+                        "  vfio:             {}",
+                        if modules.vfio_loaded {
+                            "Loaded"
+                        } else {
+                            "Not loaded"
+                        }
+                    );
+                    println!(
+                        "  vfio_pci:         {}",
+                        if modules.vfio_pci_loaded {
+                            "Loaded"
+                        } else {
+                            "Not loaded"
+                        }
+                    );
+                    println!(
+                        "  vfio_iommu_type1: {}",
+                        if modules.vfio_iommu_type1_loaded {
+                            "Loaded"
+                        } else {
+                            "Not loaded"
+                        }
+                    );
+
+                    // Offer to load if not all loaded
+                    if !modules.vfio_loaded
+                        || !modules.vfio_pci_loaded
+                        || !modules.vfio_iommu_type1_loaded
+                    {
+                        println!("\nSome modules are not loaded. Loading...");
+                        match vfio::load_vfio_modules() {
+                            Ok(_) => println!("VFIO modules loaded successfully."),
+                            Err(e) => {
+                                eprintln!("Error loading modules: {}", e);
+                                eprintln!("Hint: Make sure you're running as root (sudo)");
+                            }
+                        }
+                    }
+                }
+                Err(e) => eprintln!("Error checking modules: {}", e),
+            }
+        }
+        Some(("config", _)) => {
+            vfio::print_config_status();
+        }
+        Some(("kernel-params", _)) => {
+            println!("{}", vfio::get_kernel_params_recommendation());
+        }
+        Some(("single-gpu", sub_matches)) => match sub_matches.subcommand() {
+            Some(("status", _)) => {
+                vfio::print_single_gpu_status();
+            }
+            Some(("list", _)) => {
+                let configs = vfio::list_configurations();
+                if configs.is_empty() {
+                    println!("No single GPU passthrough configurations found.");
+                } else {
+                    println!("Configured VMs:");
+                    for config in configs {
+                        println!("  - {}", config);
+                    }
+                }
+            }
+            Some(("remove", args)) => {
+                if let Some(vm) = args.get_one::<String>("vm") {
+                    match vfio::remove_hooks(vm) {
+                        Ok(_) => println!("Removed hooks for VM: {}", vm),
+                        Err(e) => eprintln!("Error: {}", e),
+                    }
+                }
+            }
+            _ => vfio::print_single_gpu_status(),
+        },
+        Some(("dump-rom", sub_matches)) => {
+            if let Some(device) = sub_matches.get_one::<String>("device") {
+                let output = sub_matches.get_one::<String>("output").map(|s| s.as_str());
+
+                println!("Dumping ROM for device {}...", device);
+                match vfio::dump_rom(device, output) {
+                    Ok(result) => {
+                        if result.success {
+                            println!("ROM dumped successfully!");
+                            println!("  Output: {}", result.output_path);
+                            println!("  Size:   {} bytes", result.size);
+                        } else {
+                            eprintln!(
+                                "ROM dump failed: {}",
+                                result.error.unwrap_or_else(|| "Unknown error".to_string())
+                            );
+                        }
+                    }
+                    Err(e) => eprintln!("Error: {}", e),
+                }
+            }
+        }
+        Some(("rom-list", _)) => {
+            vfio::print_rom_devices();
+        }
+        None => vfio::vfio_menu(),
+        _ => vfio::vfio_menu(),
+    }
+}
+
 fn handle_security_commands(matches: &ArgMatches) {
     match matches.subcommand() {
         Some(("menu", _)) => security::security_menu(),
@@ -1434,7 +1813,7 @@ fn handle_backup_commands(matches: &ArgMatches) {
 
 fn handle_restore_commands(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("restic", _)) => restore::system::restore_from_restic(),
+        Some(("system", _)) => restore::system::restore_from_restic(),
         Some(("btrfs", _)) => restore::system::rollback_btrfs_snapshot(),
         Some(("chroot", _)) => restore::system::enter_recovery_chroot(),
         _ => restore::restore_menu(),
@@ -1557,16 +1936,17 @@ fn homelab_management_menu() {
         .with_prompt("Homelab Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
 
     match choice {
-        0 => initialize_homelab(),
-        1 => homelab_management_menu(),
-        2 => docker_homelab_menu(),
-        3 => setup_homelab_monitoring(),
-        4 => setup_homelab_backup(),
-        5 => setup_homelab_network(),
+        Some(0) => initialize_homelab(),
+        Some(1) => homelab_management_menu(),
+        Some(2) => docker_homelab_menu(),
+        Some(3) => setup_homelab_monitoring(),
+        Some(4) => setup_homelab_backup(),
+        Some(5) => setup_homelab_network(),
         _ => return,
     }
 }
@@ -1632,48 +2012,6 @@ fn setup_homelab_network() {
     println!("  • Reverse proxy");
 
     println!("🌐 Network setup - Coming soon!");
-}
-
-// PVE CLI functions placeholder
-// TODO: Add PVE module back when implemented
-fn pve_management_menu() {
-    println!("PVE Management Menu - Coming Soon!");
-}
-
-fn show_pve_status() {
-    println!("PVE Status - Coming Soon!");
-}
-
-fn list_vms() {
-    println!("VM List - Coming Soon!");
-}
-
-fn create_vm_wizard() {
-    println!("VM Creation Wizard - Coming Soon!");
-}
-
-fn start_vm(_id: String) {
-    println!("Starting VM - Coming Soon!");
-}
-
-fn stop_vm(_id: String) {
-    println!("Stopping VM - Coming Soon!");
-}
-
-fn vm_management_menu() {
-    println!("VM Management Menu - Coming Soon!");
-}
-
-fn create_container_wizard() {
-    println!("Container Creation Wizard - Coming Soon!");
-}
-
-fn start_container(_id: String) {
-    println!("Starting Container - Coming Soon!");
-}
-
-fn container_management_menu() {
-    println!("Container Management Menu - Coming Soon!");
 }
 
 fn show_command_list() {
@@ -1937,9 +2275,18 @@ fn handle_dnslookup_commands(matches: &ArgMatches) {
 fn handle_netcat_commands(matches: &ArgMatches) {
     match matches.subcommand() {
         Some(("send", sub_matches)) => {
-            let file = sub_matches.get_one::<String>("file").unwrap();
-            let host = sub_matches.get_one::<String>("host").unwrap();
-            let port_str = sub_matches.get_one::<String>("port").unwrap();
+            let Some(file) = sub_matches.get_one::<String>("file") else {
+                println!("❌ Missing required argument: file");
+                return;
+            };
+            let Some(host) = sub_matches.get_one::<String>("host") else {
+                println!("❌ Missing required argument: host");
+                return;
+            };
+            let Some(port_str) = sub_matches.get_one::<String>("port") else {
+                println!("❌ Missing required argument: port");
+                return;
+            };
 
             if let Ok(port) = port_str.parse::<u16>() {
                 println!("📤 Sending file '{}' to {}:{}", file, host, port);
@@ -1949,8 +2296,14 @@ fn handle_netcat_commands(matches: &ArgMatches) {
             }
         }
         Some(("receive", sub_matches)) => {
-            let file = sub_matches.get_one::<String>("file").unwrap();
-            let port_str = sub_matches.get_one::<String>("port").unwrap();
+            let Some(file) = sub_matches.get_one::<String>("file") else {
+                println!("❌ Missing required argument: file");
+                return;
+            };
+            let Some(port_str) = sub_matches.get_one::<String>("port") else {
+                println!("❌ Missing required argument: port");
+                return;
+            };
 
             if let Ok(port) = port_str.parse::<u16>() {
                 println!("📥 Receiving file '{}' on port {}", file, port);
@@ -1960,7 +2313,10 @@ fn handle_netcat_commands(matches: &ArgMatches) {
             }
         }
         Some(("chat", sub_matches)) => {
-            let port_str = sub_matches.get_one::<String>("port").unwrap();
+            let Some(port_str) = sub_matches.get_one::<String>("port") else {
+                println!("❌ Missing required argument: port");
+                return;
+            };
             if let Ok(port) = port_str.parse::<u16>() {
                 if let Some(host) = sub_matches.get_one::<String>("host") {
                     println!("💬 Connecting to chat at {}:{}", host, port);
@@ -1974,8 +2330,14 @@ fn handle_netcat_commands(matches: &ArgMatches) {
             }
         }
         Some(("check", sub_matches)) => {
-            let host = sub_matches.get_one::<String>("host").unwrap();
-            let port_str = sub_matches.get_one::<String>("port").unwrap();
+            let Some(host) = sub_matches.get_one::<String>("host") else {
+                println!("❌ Missing required argument: host");
+                return;
+            };
+            let Some(port_str) = sub_matches.get_one::<String>("port") else {
+                println!("❌ Missing required argument: port");
+                return;
+            };
 
             if let Ok(port) = port_str.parse::<u16>() {
                 println!("🔍 Checking connectivity to {}:{}", host, port);
@@ -2009,14 +2371,17 @@ fn handle_netcat_commands(matches: &ArgMatches) {
 }
 
 fn handle_scan_command(matches: &ArgMatches) {
-    let target = matches.get_one::<String>("target").unwrap();
+    let Some(target) = matches.get_one::<String>("target") else {
+        eprintln!("❌ Missing required argument: target");
+        std::process::exit(1);
+    };
     let ports = matches.get_one::<String>("ports").map(|s| s.as_str());
     let threads = matches
         .get_one::<String>("threads")
         .and_then(|s| s.parse().ok());
     let full_scan = matches.get_flag("full");
     let service_detection = matches.get_flag("service");
-    let json_output = matches.get_flag("json");
+    let _json_output = matches.get_flag("json");
     let quiet = matches.get_flag("quiet");
 
     if !quiet {
@@ -2046,7 +2411,7 @@ fn handle_scan_command(matches: &ArgMatches) {
     // Convert target to vector for the scanner
     let targets = if target.contains('/') {
         // CIDR range - expand it (simplified for now)
-        vec![target.split('/').next().unwrap().to_string()]
+        vec![target.split('/').next().unwrap_or(target).to_string()]
     } else {
         vec![target.to_string()]
     };

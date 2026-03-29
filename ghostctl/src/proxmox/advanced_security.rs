@@ -380,12 +380,14 @@ pub fn advanced_security_menu() {
             "⬅️  Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🔐 Advanced PVE Security Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         match selection {
             0 => enterprise_security_policies(),
@@ -416,12 +418,14 @@ fn enterprise_security_policies() {
             "⬅️  Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🔐 Enterprise Security Policies")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         match selection {
             0 => create_security_policy(),
@@ -440,15 +444,19 @@ fn create_security_policy() {
     println!("🔐 Creating New Security Policy");
     println!("================================");
 
-    let name: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Policy name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let description: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(description) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Policy description")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let scope_options = vec![
         "Entire Cluster",
@@ -458,12 +466,14 @@ fn create_security_policy() {
         "Container Group",
     ];
 
-    let scope_selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(scope_selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Policy scope")
         .items(&scope_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let enforcement_options = vec![
         "Advisory (Log only)",
@@ -472,12 +482,14 @@ fn create_security_policy() {
         "Quarantine (Isolate resource)",
     ];
 
-    let enforcement_selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(enforcement_selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Enforcement level")
         .items(&enforcement_options)
         .default(2)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let rule_types = vec![
         "Network Access Control",
@@ -488,11 +500,13 @@ fn create_security_policy() {
         "Compliance Requirements",
     ];
 
-    let selected_rules = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected_rules) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select rule types to include")
         .items(&rule_types)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("\n✅ Security policy '{}' created successfully!", name);
     println!("📋 Description: {}", description);
@@ -651,12 +665,14 @@ fn advanced_firewall_management() {
             "⬅️  Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🛡️  Advanced Firewall Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         match selection {
             0 => cluster_firewall_orchestration(),
@@ -697,12 +713,14 @@ fn cluster_firewall_orchestration() {
             "⚙️  Configure Cluster Firewall Policies",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Select orchestration action")
             .items(&orchestration_options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         match selection {
             0 => deploy_rules_all_nodes(),
@@ -731,11 +749,13 @@ fn deploy_rules_all_nodes() {
         "🏢 Production Environment Template",
     ];
 
-    let selected_templates = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected_templates) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select firewall templates to deploy")
         .items(&template_options)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if selected_templates.is_empty() {
         println!("⚠️  No templates selected, aborting deployment.");
@@ -747,11 +767,13 @@ fn deploy_rules_all_nodes() {
         println!("  ✅ {}", template_options[template_index]);
     }
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Proceed with cluster-wide deployment?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("\n🔄 Deploying to cluster nodes...");
@@ -801,12 +823,14 @@ fn synchronize_firewall_configs() {
         "⚡ Force Full Resync",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select synchronization method")
         .items(&sync_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => {
@@ -821,11 +845,13 @@ fn synchronize_firewall_configs() {
             println!("    + Rule #127: DROP from 10.0.0.0/8 on port 22");
             println!("    + Rule #234: LIMIT http to 100/minute");
 
-            let confirm = Confirm::with_theme(&ColorfulTheme::default())
+            let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Apply these changes?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if confirm {
                 println!("✅ Changes applied successfully!");
@@ -841,12 +867,14 @@ fn node_specific_deployment() {
 
     let nodes = vec!["pve1 (Master)", "pve2 (Worker)", "pve3 (Storage)"];
 
-    let node_selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(node_selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select target node")
         .items(&nodes)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let rule_categories = vec![
         "🌐 Network Access Rules",
@@ -857,22 +885,26 @@ fn node_specific_deployment() {
         "📊 Monitoring & Logging",
     ];
 
-    let selected_categories = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected_categories) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select rule categories to deploy")
         .items(&rule_categories)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("\n📋 Deployment Plan for {}:", nodes[node_selection]);
     for &category in &selected_categories {
         println!("  ✅ {}", rule_categories[category]);
     }
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Deploy rules to selected node?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("\n🚀 Deploying rules...");
@@ -924,12 +956,14 @@ fn configure_cluster_policies() {
         "🚨 Incident Response Automation",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select policy to configure")
         .items(&policy_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => configure_default_security_stance(),
@@ -954,12 +988,14 @@ fn configure_default_security_stance() {
         "🛡️  Paranoid (Maximum security, minimal access)",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select security stance")
         .items(&stance_options)
         .default(1)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("\n📋 Security Stance: {}", stance_options[selection]);
 
@@ -987,11 +1023,13 @@ fn configure_default_security_stance() {
         _ => {}
     }
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Apply this security stance cluster-wide?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("✅ Security stance applied to all cluster nodes!");
@@ -1009,29 +1047,35 @@ fn configure_geographic_access() {
         "📊 Geographic Access Reporting",
     ];
 
-    let selected_options = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected_options) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select geographic access controls")
         .items(&geo_options)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &option in &selected_options {
         match option {
             0 => {
                 println!("\n🚫 High-Risk Country Blocking:");
-                let blocked_countries: String = Input::with_theme(&ColorfulTheme::default())
+                let Ok(blocked_countries) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("Enter country codes to block (e.g., CN,RU,KP)")
                     .default("CN,RU,KP,IR".to_string())
                     .interact()
-                    .unwrap();
+                else {
+                    continue;
+                };
                 println!("  ✅ Blocking traffic from: {}", blocked_countries);
             }
             1 => {
                 println!("\n✅ Country Allowlist:");
-                let allowed_countries: String = Input::with_theme(&ColorfulTheme::default())
+                let Ok(allowed_countries) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("Enter allowed country codes (e.g., US,CA,GB)")
                     .interact()
-                    .unwrap();
+                else {
+                    continue;
+                };
                 println!("  ✅ Allowing traffic only from: {}", allowed_countries);
             }
             2 => {
@@ -1062,11 +1106,13 @@ fn configure_rate_limiting() {
         "🔍 DNS Queries",
     ];
 
-    let selected_services = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected_services) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select services to configure rate limiting")
         .items(&service_options)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &service in &selected_services {
         configure_service_rate_limit(service);
@@ -1096,17 +1142,21 @@ fn configure_service_rate_limit(service_index: usize) {
         _ => "10/minute",
     };
 
-    let rate_limit: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(rate_limit) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Rate limit (e.g., 100/minute, 10/second)")
         .default(default_limits.to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let burst_limit: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(burst_limit) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Burst allowance (e.g., 20)")
         .default("10".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!(
         "  ✅ {}: {} (burst: {})",
@@ -1125,40 +1175,50 @@ fn configure_time_based_access() {
         "📅 Weekend Access Control",
     ];
 
-    let selected_rules = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected_rules) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select time-based access rules")
         .items(&time_rule_options)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &rule in &selected_rules {
         match rule {
             0 => {
                 println!("\n🏢 Business Hours Configuration:");
-                let start_time: String = Input::with_theme(&ColorfulTheme::default())
+                let Ok(start_time) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("Start time (HH:MM)")
                     .default("09:00".to_string())
                     .interact()
-                    .unwrap();
-                let end_time: String = Input::with_theme(&ColorfulTheme::default())
+                else {
+                    continue;
+                };
+                let Ok(end_time) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("End time (HH:MM)")
                     .default("17:00".to_string())
                     .interact()
-                    .unwrap();
+                else {
+                    continue;
+                };
                 println!("  ✅ Business hours: {} - {}", start_time, end_time);
             }
             1 => {
                 println!("\n🌙 Maintenance Window:");
-                let maintenance_day: String = Input::with_theme(&ColorfulTheme::default())
+                let Ok(maintenance_day) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("Maintenance day (e.g., Sunday)")
                     .default("Sunday".to_string())
                     .interact()
-                    .unwrap();
-                let maintenance_time: String = Input::with_theme(&ColorfulTheme::default())
+                else {
+                    continue;
+                };
+                let Ok(maintenance_time) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("Maintenance time (HH:MM-HH:MM)")
                     .default("02:00-04:00".to_string())
                     .interact()
-                    .unwrap();
+                else {
+                    continue;
+                };
                 println!("  ✅ Maintenance: {} {}", maintenance_day, maintenance_time);
             }
             _ => {}
@@ -1178,30 +1238,36 @@ fn configure_ddos_protection() {
         "☁️  Cloudflare Integration",
     ];
 
-    let selected_protections = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected_protections) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select DDoS protection features")
         .items(&protection_options)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &protection in &selected_protections {
         match protection {
             0 => {
                 println!("\n⚡ SYN Flood Protection:");
-                let syn_limit: String = Input::with_theme(&ColorfulTheme::default())
+                let Ok(syn_limit) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("SYN packet rate limit (packets/second)")
                     .default("1000".to_string())
                     .interact()
-                    .unwrap();
+                else {
+                    continue;
+                };
                 println!("  ✅ SYN rate limit: {}/second", syn_limit);
             }
             1 => {
                 println!("\n🔄 Connection Rate Limiting:");
-                let conn_limit: String = Input::with_theme(&ColorfulTheme::default())
+                let Ok(conn_limit) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("New connections per IP (connections/minute)")
                     .default("100".to_string())
                     .interact()
-                    .unwrap();
+                else {
+                    continue;
+                };
                 println!("  ✅ Connection limit: {}/minute per IP", conn_limit);
             }
             2 => {
@@ -1232,47 +1298,57 @@ fn configure_logging_monitoring() {
         "☁️  Remote Syslog Integration",
     ];
 
-    let selected_logging = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected_logging) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select logging and monitoring options")
         .items(&logging_options)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &option in &selected_logging {
         match option {
             0 => {
                 println!("\n📝 Detailed Connection Logging:");
                 let log_level_options = vec!["Basic", "Detailed", "Comprehensive", "Forensic"];
-                let log_level = Select::with_theme(&ColorfulTheme::default())
+                let Ok(log_level) = Select::with_theme(&ColorfulTheme::default())
                     .with_prompt("Select logging level")
                     .items(&log_level_options)
                     .default(1)
                     .interact()
-                    .unwrap();
+                else {
+                    continue;
+                };
                 println!("  ✅ Logging level: {}", log_level_options[log_level]);
             }
             1 => {
                 println!("\n🚨 Security Event Alerts:");
                 let alert_channels = vec!["Email", "Slack", "SMS", "Webhook"];
-                let selected_channels = MultiSelect::with_theme(&ColorfulTheme::default())
+                let Ok(selected_channels) = MultiSelect::with_theme(&ColorfulTheme::default())
                     .with_prompt("Select alert channels")
                     .items(&alert_channels)
                     .interact()
-                    .unwrap();
+                else {
+                    continue;
+                };
 
                 println!("  ✅ Alert channels: {} selected", selected_channels.len());
             }
             4 => {
                 println!("\n☁️  Remote Syslog Integration:");
-                let syslog_server: String = Input::with_theme(&ColorfulTheme::default())
+                let Ok(syslog_server) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("Syslog server address")
                     .interact()
-                    .unwrap();
-                let syslog_port: String = Input::with_theme(&ColorfulTheme::default())
+                else {
+                    continue;
+                };
+                let Ok(syslog_port) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("Syslog port")
                     .default("514".to_string())
                     .interact()
-                    .unwrap();
+                else {
+                    continue;
+                };
                 println!("  ✅ Syslog: {}:{}", syslog_server, syslog_port);
             }
             _ => {}
@@ -1292,26 +1368,32 @@ fn configure_incident_response() {
         "🛡️  Defensive Countermeasures",
     ];
 
-    let selected_responses = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected_responses) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select automated response actions")
         .items(&response_options)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &response in &selected_responses {
         match response {
             0 => {
                 println!("\n🚫 Automatic IP Blocking:");
-                let block_threshold: String = Input::with_theme(&ColorfulTheme::default())
+                let Ok(block_threshold) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("Failed attempts before auto-block")
                     .default("10".to_string())
                     .interact()
-                    .unwrap();
-                let block_duration: String = Input::with_theme(&ColorfulTheme::default())
+                else {
+                    continue;
+                };
+                let Ok(block_duration) = Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("Block duration (minutes)")
                     .default("60".to_string())
                     .interact()
-                    .unwrap();
+                else {
+                    continue;
+                };
                 println!(
                     "  ✅ Auto-block: {} attempts, {} min duration",
                     block_threshold, block_duration

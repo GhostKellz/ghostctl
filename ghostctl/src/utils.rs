@@ -76,6 +76,9 @@ impl SudoResult {
 
 /// Check if we're running as root
 pub fn is_root() -> bool {
+    // SAFETY: `geteuid()` is a simple libc FFI call that reads the effective user ID.
+    // It has no preconditions, no side effects, and cannot cause undefined behavior.
+    // The function always returns a valid uid_t value.
     unsafe { libc::geteuid() == 0 }
 }
 
@@ -284,19 +287,42 @@ pub fn sudo_append_file(path: &str, content: &str) -> io::Result<()> {
         return Ok(());
     }
 
-    let shell_cmd = format!(
-        "echo '{}' | tee -a {}",
-        content.replace('\'', "'\\''"),
-        path
-    );
-    let result = sudo_shell(&shell_cmd)?;
+    // Try normal append first
+    if let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(path) {
+        use std::io::Write;
+        if file.write_all(content.as_bytes()).is_ok() {
+            return Ok(());
+        }
+    }
 
-    if result.success {
+    // Fall back to sudo with tee -a (avoiding shell injection by not using shell command)
+    let mut child = if is_root() {
+        Command::new("tee")
+            .arg("-a")
+            .arg(path)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .spawn()?
+    } else {
+        Command::new("sudo")
+            .args(["tee", "-a", path])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .spawn()?
+    };
+
+    if let Some(mut stdin) = child.stdin.take() {
+        use std::io::Write;
+        stdin.write_all(content.as_bytes())?;
+    }
+
+    let status = child.wait()?;
+    if status.success() {
         Ok(())
     } else {
         Err(io::Error::new(
             io::ErrorKind::PermissionDenied,
-            result.stderr,
+            "Failed to append to file with sudo",
         ))
     }
 }
@@ -405,6 +431,49 @@ pub fn sudo_systemctl(action: &str, service: &str) -> io::Result<SudoResult> {
 /// Run pacman command with sudo
 pub fn sudo_pacman(args: &[&str]) -> io::Result<SudoResult> {
     sudo_run_interactive("pacman", args)
+}
+
+// ============================================================================
+// Environment Variable Helpers (Safe Wrappers)
+// ============================================================================
+//
+// In Rust 2024 edition, `std::env::set_var` and `std::env::remove_var` are unsafe
+// because modifying environment variables in a multi-threaded program can cause
+// data races (other threads may be reading env vars concurrently).
+//
+// ghostctl is a single-threaded CLI application. All environment variable
+// modifications happen:
+// 1. Early in main() before any threads are spawned, OR
+// 2. In user-interactive code paths where no concurrent access occurs
+//
+// These wrapper functions encapsulate the safety invariants in one place.
+
+/// Set an environment variable.
+///
+/// # Safety Invariants
+/// This function is safe to call in ghostctl because:
+/// - ghostctl is a single-threaded CLI application
+/// - No concurrent access to environment variables occurs
+/// - Env vars are set in user-interactive code paths or at startup
+#[inline]
+pub fn set_env_var(key: &str, value: &str) {
+    // SAFETY: ghostctl is single-threaded. No concurrent env var access occurs.
+    // This is called either at startup (before threads) or in interactive user flows.
+    unsafe { std::env::set_var(key, value) };
+}
+
+/// Remove an environment variable.
+///
+/// # Safety Invariants
+/// This function is safe to call in ghostctl because:
+/// - ghostctl is a single-threaded CLI application
+/// - No concurrent access to environment variables occurs
+/// - Env vars are removed in user-interactive code paths
+#[inline]
+pub fn remove_env_var(key: &str) {
+    // SAFETY: ghostctl is single-threaded. No concurrent env var access occurs.
+    // This is called in interactive user flows where no threading is involved.
+    unsafe { std::env::remove_var(key) };
 }
 
 // ============================================================================

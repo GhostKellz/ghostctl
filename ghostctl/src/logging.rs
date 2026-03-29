@@ -9,10 +9,12 @@ impl GhostLogger {
     pub fn init() {
         env_logger::init();
 
-        let log_dir = dirs::data_dir().unwrap().join("ghostctl");
-        std::fs::create_dir_all(&log_dir).unwrap_or_else(|e| {
-            eprintln!("Warning: Could not create log directory: {}", e);
-        });
+        if let Some(data_dir) = dirs::data_dir() {
+            let log_dir = data_dir.join("ghostctl");
+            std::fs::create_dir_all(&log_dir).unwrap_or_else(|e| {
+                eprintln!("Warning: Could not create log directory: {}", e);
+            });
+        }
 
         info!(
             "GhostCTL started at {}",
@@ -21,7 +23,10 @@ impl GhostLogger {
     }
 
     pub fn log_action(action: &str, success: bool, details: Option<&str>) {
-        let log_dir = dirs::data_dir().unwrap().join("ghostctl");
+        let Some(data_dir) = dirs::data_dir() else {
+            return;
+        };
+        let log_dir = data_dir.join("ghostctl");
         let log_file = log_dir.join("history.log");
 
         let timestamp = Utc::now().format("%Y-%m-%d %H:%M:%S");
@@ -42,7 +47,11 @@ impl GhostLogger {
     }
 
     pub fn show_recent_logs() {
-        let log_file = dirs::data_dir().unwrap().join("ghostctl/history.log");
+        let Some(data_dir) = dirs::data_dir() else {
+            println!("Could not determine data directory");
+            return;
+        };
+        let log_file = data_dir.join("ghostctl/history.log");
 
         if !log_file.exists() {
             println!("📝 No log file found yet");

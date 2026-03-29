@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+# Security: Use SHA-pinned actions for supply-chain security
+# Release workflows are high-value targets - always verify action SHAs
+
 env:
   CARGO: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo
   RUSTC: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc
@@ -19,7 +22,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # SHA pin: actions/checkout@v4.1.7
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
       - name: Install system dependencies
         run: |
@@ -34,7 +38,8 @@ jobs:
           $CARGO --version
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
+        # SHA pin: Swatinem/rust-cache@v2.7.3
+        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84
         with:
           workspaces: ghostctl
           key: ghostctl-release-linux
@@ -75,7 +80,8 @@ jobs:
           cat "ghostctl-${VERSION}-${TARGET}.tar.gz.sha256"
 
       - name: Upload Linux Artifacts
-        uses: actions/upload-artifact@v4
+        # SHA pin: actions/upload-artifact@v4.3.4
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
         with:
           name: linux-release
           path: |
@@ -88,10 +94,12 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # SHA pin: actions/checkout@v4.1.7
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
       - name: Download All Artifacts
-        uses: actions/download-artifact@v4
+        # SHA pin: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
           path: release-artifacts
 
@@ -101,7 +109,8 @@ jobs:
           find release-artifacts -type f -ls
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        # SHA pin: softprops/action-gh-release@v2.0.6
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191
         with:
           files: |
             release-artifacts/linux-release/*

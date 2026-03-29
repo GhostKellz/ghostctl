@@ -16,12 +16,14 @@ pub fn libvirt_advanced_menu() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🖥️ Advanced libvirt/KVM Networking")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => vm_interface_management(),
@@ -51,12 +53,14 @@ fn vm_interface_management() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🖥️ VM Network Interface Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => list_vm_interfaces(),
@@ -215,10 +219,12 @@ fn show_bridge_networks() {
 fn attach_network_interface() {
     println!("➕ Attach Network Interface");
 
-    let vm_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(vm_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter VM name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Verify VM exists
     let vm_check = Command::new("virsh").args(&["domstate", &vm_name]).output();
@@ -245,12 +251,14 @@ fn attach_network_interface() {
         "user - User mode networking",
     ];
 
-    let iface_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(iface_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select interface type")
         .items(&interface_types)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let (iface_type, source) = match iface_choice {
         0 => {
@@ -261,12 +269,14 @@ fn attach_network_interface() {
                 return;
             }
 
-            let bridge_choice = Select::with_theme(&ColorfulTheme::default())
+            let Ok(bridge_choice) = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select bridge")
                 .items(&available_bridges)
                 .default(0)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             ("bridge", available_bridges[bridge_choice].clone())
         }
@@ -278,20 +288,24 @@ fn attach_network_interface() {
                 return;
             }
 
-            let net_choice = Select::with_theme(&ColorfulTheme::default())
+            let Ok(net_choice) = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select network")
                 .items(&available_networks)
                 .default(0)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             ("network", available_networks[net_choice].clone())
         }
         2 => {
-            let device = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(device) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter physical device (e.g., eth0)")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
             ("direct", device)
         }
         3 => ("user", "".to_string()),
@@ -299,29 +313,36 @@ fn attach_network_interface() {
     };
 
     let models = ["virtio", "e1000", "rtl8139", "ne2k_pci"];
-    let model_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(model_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select network model")
         .items(&models)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let model = models[model_choice];
 
     // Generate MAC address or ask for custom
-    let use_auto_mac = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(use_auto_mac) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Generate random MAC address?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let mac_addr = if use_auto_mac {
         generate_random_mac()
     } else {
-        Input::<String>::with_theme(&ColorfulTheme::default())
+        let Ok(mac) = Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter MAC address (e.g., 52:54:00:12:34:56)")
             .interact()
-            .unwrap()
+        else {
+            return;
+        };
+        mac
     };
 
     // Build interface XML
@@ -330,11 +351,13 @@ fn attach_network_interface() {
     println!("\n📋 Interface Configuration:");
     println!("{}", interface_xml);
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Attach this interface?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         // Write XML to temp file
@@ -448,8 +471,8 @@ fn generate_random_mac() -> String {
     // Use timestamp for randomness (simple approach)
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos() as u64;
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0);
 
     // Generate MAC with libvirt prefix 52:54:00
     format!(
@@ -507,10 +530,12 @@ fn build_interface_xml(iface_type: &str, source: &str, model: &str, mac: &str) -
 fn detach_network_interface() {
     println!("🗑️ Detach Network Interface");
 
-    let vm_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(vm_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter VM name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Get current interfaces
     let output = Command::new("virsh")
@@ -541,12 +566,14 @@ fn detach_network_interface() {
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select interface to detach")
         .items(&interfaces)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let interface_name = interfaces[choice].split(' ').next().unwrap_or("");
 
@@ -558,14 +585,16 @@ fn detach_network_interface() {
         return;
     }
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt(format!(
             "Detach interface {} (MAC: {})?",
             interface_name, mac_addr
         ))
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         // Create minimal XML for detach
@@ -633,10 +662,12 @@ fn get_interface_mac(vm_name: &str, interface: &str) -> String {
 fn modify_interface_config() {
     println!("🔧 Modify Interface Configuration");
 
-    let vm_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(vm_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter VM name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let modifications = [
         "Change bandwidth limits",
@@ -646,12 +677,14 @@ fn modify_interface_config() {
         "Modify model type",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select modification")
         .items(&modifications)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => modify_bandwidth_limits(&vm_name),
@@ -673,24 +706,30 @@ fn modify_bandwidth_limits(vm_name: &str) {
         return;
     }
 
-    let iface_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(iface_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select interface")
         .items(&interfaces)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let inbound_rate = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(inbound_rate) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter inbound rate limit (KB/s, 0 for unlimited)")
         .default("0".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let outbound_rate = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(outbound_rate) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter outbound rate limit (KB/s, 0 for unlimited)")
         .default("0".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📋 Would set bandwidth limits:");
     println!("  Interface: {}", interfaces[iface_choice]);
@@ -739,12 +778,14 @@ fn change_bridge_connection(vm_name: &str) {
         return;
     }
 
-    let iface_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(iface_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select interface to modify")
         .items(&interfaces)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let available_bridges = get_available_bridges();
     if available_bridges.is_empty() {
@@ -752,12 +793,14 @@ fn change_bridge_connection(vm_name: &str) {
         return;
     }
 
-    let bridge_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(bridge_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select new bridge")
         .items(&available_bridges)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📋 Would change bridge connection:");
     println!("  Interface: {}", interfaces[iface_choice]);
@@ -774,20 +817,24 @@ fn change_model_type(vm_name: &str) {
         return;
     }
 
-    let iface_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(iface_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select interface to modify")
         .items(&interfaces)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let models = ["virtio", "e1000", "rtl8139", "ne2k_pci"];
-    let model_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(model_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select new model")
         .items(&models)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📋 Would change network model:");
     println!("  Interface: {}", interfaces[iface_choice]);
@@ -798,10 +845,12 @@ fn change_model_type(vm_name: &str) {
 fn interface_statistics() {
     println!("📊 Interface Statistics");
 
-    let vm_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(vm_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter VM name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let output = Command::new("virsh")
         .args(&["domiflist", &vm_name])
@@ -848,10 +897,12 @@ fn interface_statistics() {
 fn interface_troubleshooting() {
     println!("🔍 Interface Troubleshooting");
 
-    let vm_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(vm_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter VM name to troubleshoot")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("\n🔍 Running diagnostics for VM: {}", vm_name);
 
@@ -1007,12 +1058,14 @@ fn mac_address_management() {
         "📊 MAC address statistics",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("MAC Address Management")
         .items(&actions)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => view_mac_addresses(),
@@ -1072,22 +1125,26 @@ fn generate_new_mac() {
         "Custom prefix",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select MAC type")
         .items(&mac_types)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let mac = match choice {
         0 => generate_random_mac(),
         1 => generate_vmware_mac(),
         2 => generate_virtualbox_mac(),
         3 => {
-            let prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+            let Ok(prefix) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter MAC prefix (e.g., 02:00:00)")
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
             generate_custom_mac(&prefix)
         }
         _ => generate_random_mac(),
@@ -1095,11 +1152,13 @@ fn generate_new_mac() {
 
     println!("🎯 Generated MAC Address: {}", mac);
 
-    let copy_to_clipboard = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(copy_to_clipboard) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Copy to clipboard?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if copy_to_clipboard {
         // Try to copy to clipboard using common tools
@@ -1136,8 +1195,8 @@ fn generate_vmware_mac() -> String {
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos() as u64;
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0);
 
     format!(
         "00:50:56:{:02x}:{:02x}:{:02x}",
@@ -1152,8 +1211,8 @@ fn generate_virtualbox_mac() -> String {
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos() as u64;
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0);
 
     format!(
         "08:00:27:{:02x}:{:02x}:{:02x}",
@@ -1168,8 +1227,8 @@ fn generate_custom_mac(prefix: &str) -> String {
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos() as u64;
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0);
 
     let parts: Vec<&str> = prefix.split(':').collect();
     if parts.len() >= 3 {
@@ -1321,10 +1380,12 @@ fn live_interface_migration() {
     println!("⚡ Live Interface Migration");
     println!("ℹ️ This allows moving VM interfaces between bridges/networks without shutdown");
 
-    let vm_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(vm_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter VM name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Check if VM is running
     let state_output = Command::new("virsh").args(&["domstate", &vm_name]).output();

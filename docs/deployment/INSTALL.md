@@ -3,7 +3,7 @@
 ## Quick Install (Recommended)
 
 ```bash
-# One-line installation (will be available at ghostctl.sh)
+# One-line installation (available at ghostctl.cktech.sh)
 curl -sSL https://raw.githubusercontent.com/ghostkellz/ghostctl/main/install.sh | bash
 
 # Or with wget
@@ -230,7 +230,7 @@ sudo rm /usr/share/zsh/site-functions/_ghostctl
 
 - 📚 **Documentation**: [GitHub Repository](https://github.com/ghostkellz/ghostctl)
 - 🐛 **Issues**: [GitHub Issues](https://github.com/ghostkellz/ghostctl/issues)
-- 🌐 **Website**: [ghostctl.sh](https://ghostctl.sh)
+- 🌐 **Website**: [ghostctl.cktech.sh](https://ghostctl.cktech.sh)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/ghostkellz/ghostctl/discussions)
 
 ---

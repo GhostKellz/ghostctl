@@ -18,12 +18,15 @@ pub fn aur_helper_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("AUR Helper Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => check_aur_helpers(),
@@ -79,12 +82,15 @@ fn install_aur_helper() {
         "yay (Popular choice)",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select AUR helper to install")
         .items(&helpers)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => install_reaper(),
@@ -98,11 +104,14 @@ fn install_reaper() {
     println!("🔥 Installing Reaper AUR Helper");
     println!("===============================");
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Install Reaper via official installer?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         println!("📥 Downloading and installing Reaper...");
@@ -133,11 +142,14 @@ fn install_paru() {
             .status();
     }
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Build and install Paru from AUR?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         println!("🔨 Building Paru from source...");
@@ -149,18 +161,20 @@ fn install_paru() {
             .args(["clone", "https://aur.archlinux.org/paru.git", build_dir])
             .status();
 
-        if status.is_ok() && status.unwrap().success() {
-            let build_status = Command::new("makepkg")
-                .args(["-si", "--noconfirm"])
-                .current_dir(build_dir)
-                .status();
+        if let Ok(s) = status {
+            if s.success() {
+                let build_status = Command::new("makepkg")
+                    .args(["-si", "--noconfirm"])
+                    .current_dir(build_dir)
+                    .status();
 
-            match build_status {
-                Ok(s) if s.success() => {
-                    println!("✅ Paru installed successfully!");
-                    println!("💡 Use 'paru -S package' to install AUR packages");
+                match build_status {
+                    Ok(s) if s.success() => {
+                        println!("✅ Paru installed successfully!");
+                        println!("💡 Use 'paru -S package' to install AUR packages");
+                    }
+                    _ => println!("❌ Failed to build Paru"),
                 }
-                _ => println!("❌ Failed to build Paru"),
             }
         }
 
@@ -172,11 +186,14 @@ fn install_yay() {
     println!("🚀 Installing Yay AUR Helper");
     println!("============================");
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Build and install Yay from AUR?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         println!("🔨 Building Yay from source...");
@@ -188,18 +205,20 @@ fn install_yay() {
             .args(["clone", "https://aur.archlinux.org/yay.git", build_dir])
             .status();
 
-        if status.is_ok() && status.unwrap().success() {
-            let build_status = Command::new("makepkg")
-                .args(["-si", "--noconfirm"])
-                .current_dir(build_dir)
-                .status();
+        if let Ok(s) = status {
+            if s.success() {
+                let build_status = Command::new("makepkg")
+                    .args(["-si", "--noconfirm"])
+                    .current_dir(build_dir)
+                    .status();
 
-            match build_status {
-                Ok(s) if s.success() => {
-                    println!("✅ Yay installed successfully!");
-                    println!("💡 Use 'yay -S package' to install AUR packages");
+                match build_status {
+                    Ok(s) if s.success() => {
+                        println!("✅ Yay installed successfully!");
+                        println!("💡 Use 'yay -S package' to install AUR packages");
+                    }
+                    _ => println!("❌ Failed to build Yay"),
                 }
-                _ => println!("❌ Failed to build Yay"),
             }
         }
 
@@ -234,11 +253,14 @@ fn clean_aur_cache() {
 
     for (helper, args) in &helpers {
         if Command::new("which").arg(helper).status().is_ok() {
-            let confirm = Confirm::new()
+            let confirm = match Confirm::new()
                 .with_prompt(format!("Clean cache with {}?", helper))
                 .default(true)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => return,
+            };
 
             if confirm {
                 let _ = Command::new(helper).arg(args).status();
@@ -288,12 +310,15 @@ fn set_preferred_aur_helper() {
 
     helper_options.push("⬅️  Back".to_string());
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select preferred AUR helper")
         .items(&helper_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if choice < available_helpers.len() {
         let selected = available_helpers[choice];
@@ -359,12 +384,15 @@ fn advanced_package_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Advanced Package Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => batch_install_packages(),
@@ -391,22 +419,28 @@ fn aur_cache_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Cache Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => aur_cache::cache_stats(),
         1 => aur_cache::clear_expired(),
         2 => {
-            let confirm = Confirm::new()
+            let confirm = match Confirm::new()
                 .with_prompt("Clear entire AUR cache?")
                 .default(false)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => return,
+            };
 
             if confirm {
                 aur_cache::clear_cache();
@@ -420,10 +454,13 @@ fn batch_install_packages() {
     println!("📦 Batch Install AUR Packages");
     println!("=============================");
 
-    let package_list: String = Input::new()
+    let package_list: String = match Input::new()
         .with_prompt("Enter package names (space-separated)")
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     let packages: Vec<&str> = package_list.split_whitespace().collect();
 
@@ -434,11 +471,14 @@ fn batch_install_packages() {
 
     println!("📋 Packages to install: {}", packages.join(", "));
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Proceed with installation?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if !confirm {
         return;
@@ -469,10 +509,10 @@ fn search_aur_filtered() {
     println!("🔍 Search AUR with Filters");
     println!("==========================");
 
-    let search_term: String = Input::new()
-        .with_prompt("Search term")
-        .interact_text()
-        .unwrap();
+    let search_term: String = match Input::new().with_prompt("Search term").interact_text() {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     let filters = [
         "📊 Show package info",
@@ -481,11 +521,14 @@ fn search_aur_filtered() {
         "📅 Sort by last modified",
     ];
 
-    let selected_filters = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected_filters = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select filters (Space to select, Enter to confirm)")
         .items(&filters)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(f)) => f,
+        _ => return,
+    };
 
     // Try cached AUR search first
     println!("🔍 Searching AUR for '{}'...", search_term);
@@ -495,7 +538,11 @@ fn search_aur_filtered() {
         // Apply sorting filters
         if selected_filters.contains(&2) {
             // Sort by popularity
-            packages.sort_by(|a, b| b.popularity.partial_cmp(&a.popularity).unwrap());
+            packages.sort_by(|a, b| {
+                b.popularity
+                    .partial_cmp(&a.popularity)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
         } else if selected_filters.contains(&3) {
             // Sort by votes (proxy for last modified)
             packages.sort_by(|a, b| b.votes.cmp(&a.votes));
@@ -544,10 +591,10 @@ fn package_info_dependencies() {
     println!("📊 Package Information & Dependencies");
     println!("====================================");
 
-    let package: String = Input::new()
-        .with_prompt("Package name")
-        .interact_text()
-        .unwrap();
+    let package: String = match Input::new().with_prompt("Package name").interact_text() {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     println!("📋 Package Information for: {}", package);
     println!("-----------------------------------");
@@ -555,8 +602,13 @@ fn package_info_dependencies() {
     // Check if package is installed
     let status = Command::new("pacman").args(["-Qi", &package]).status();
 
-    if status.is_ok() && status.unwrap().success() {
-        println!("✅ Package is installed (showing local info)");
+    if let Ok(s) = status {
+        if s.success() {
+            println!("✅ Package is installed (showing local info)");
+        } else {
+            println!("📦 Package not installed (showing repository info)");
+            let _ = Command::new("pacman").args(["-Si", &package]).status();
+        }
     } else {
         println!("📦 Package not installed (showing repository info)");
         let _ = Command::new("pacman").args(["-Si", &package]).status();
@@ -591,11 +643,14 @@ fn deep_clean_cache() {
         println!("  📁 {}", location);
     }
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Clean all build caches?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         println!("🧹 Cleaning build caches...");
@@ -639,8 +694,10 @@ fn rebuild_all_aur() {
             let foreign_packages = String::from_utf8_lossy(&output.stdout);
             let packages: Vec<&str> = foreign_packages
                 .lines()
-                .map(|line| line.split_whitespace().next().unwrap_or(""))
-                .filter(|&pkg| !pkg.is_empty())
+                .filter_map(|line| {
+                    let pkg = line.split_whitespace().next();
+                    pkg.filter(|p| !p.is_empty())
+                })
                 .collect();
 
             if packages.is_empty() {
@@ -653,11 +710,14 @@ fn rebuild_all_aur() {
                 println!("  • {}", package);
             }
 
-            let confirm = Confirm::new()
+            let confirm = match Confirm::new()
                 .with_prompt("Rebuild all AUR packages?")
                 .default(false)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => return,
+            };
 
             if confirm && let Some(helper) = get_preferred_aur_helper() {
                 println!("🔨 Rebuilding packages with {}...", helper);
@@ -706,12 +766,15 @@ fn diagnose_broken_packages() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Diagnostic Options")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => check_broken_dependencies(),
@@ -748,11 +811,14 @@ fn check_broken_dependencies() {
             if !filtered_errors.trim().is_empty() {
                 println!("⚠️  Missing dependencies detected:\n{}", filtered_errors);
 
-                let fix = Confirm::new()
+                let fix = match Confirm::new()
                     .with_prompt("Attempt to fix missing dependencies?")
                     .default(true)
-                    .interact()
-                    .unwrap();
+                    .interact_opt()
+                {
+                    Ok(Some(c)) => c,
+                    _ => return,
+                };
 
                 if fix {
                     println!("🔧 Installing missing dependencies...");
@@ -783,11 +849,14 @@ fn fix_partial_upgrades() {
 
     println!("⚠️  Partial upgrades can cause system instability");
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Force complete system upgrade?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         println!("🔄 Performing complete system upgrade...");
@@ -805,10 +874,13 @@ fn reinstall_broken_packages() {
     println!("📦 Reinstall Broken Packages");
     println!("============================");
 
-    let package_input: String = Input::new()
+    let package_input: String = match Input::new()
         .with_prompt("Enter package name (or 'auto' to detect broken packages)")
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     if package_input == "auto" {
         println!("🔍 Auto-detecting broken packages...");
@@ -844,11 +916,14 @@ fn reinstall_broken_packages() {
                         println!("  • {}", pkg);
                     }
 
-                    let fix = Confirm::new()
+                    let fix = match Confirm::new()
                         .with_prompt("Reinstall these broken packages?")
                         .default(true)
-                        .interact()
-                        .unwrap();
+                        .interact_opt()
+                    {
+                        Ok(Some(c)) => c,
+                        _ => return,
+                    };
 
                     if fix {
                         println!("🔧 Reinstalling broken packages...");
@@ -899,11 +974,14 @@ fn remove_orphaned_deps() {
                 println!("  • {}", orphan);
             }
 
-            let confirm = Confirm::new()
+            let confirm = match Confirm::new()
                 .with_prompt("Remove all orphaned packages?")
                 .default(true)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => return,
+            };
 
             if confirm {
                 let status = Command::new("sudo")
@@ -927,11 +1005,14 @@ fn fix_database_corruption() {
 
     println!("⚠️  This will rebuild the package database");
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Proceed with database repair?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         println!("🔧 Removing pacman lock...");
@@ -961,11 +1042,14 @@ fn repair_package_database() {
         "🌐 Update mirror list",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select repair operations")
         .items(&repair_options)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        _ => return,
+    };
 
     if selected.is_empty() {
         return;
@@ -1017,12 +1101,15 @@ fn dependency_resolution_tools() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Dependency Tools")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => analyze_dependency_tree(),
@@ -1038,10 +1125,13 @@ fn analyze_dependency_tree() {
     println!("🔍 Analyze Dependency Tree");
     println!("==========================");
 
-    let package: String = Input::new()
+    let package: String = match Input::new()
         .with_prompt("Package name to analyze")
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     println!("🌳 Dependency tree for: {}", package);
     println!("----------------------------");
@@ -1146,11 +1236,14 @@ fn check_missing_dependencies() {
             println!("⚠️  Missing dependencies found");
 
             println!("\n🔧 Checking specific package dependencies:");
-            let package: String = Input::new()
+            let package: String = match Input::new()
                 .with_prompt("Enter package name to check (or press Enter to skip)")
                 .allow_empty(true)
                 .interact_text()
-                .unwrap();
+            {
+                Ok(s) => s,
+                Err(_) => return,
+            };
 
             if !package.is_empty() {
                 let _ = Command::new("pacman").args(["-Dk", &package]).status();
@@ -1184,12 +1277,15 @@ fn optimize_dependency_cache() {
         "📊 Show cache statistics only",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Optimization method")
         .items(&optimize_options)
         .default(1)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -1225,11 +1321,14 @@ fn clean_dependency_cache() {
         "🔄 Clean all caches",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select caches to clean")
         .items(&cache_options)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        _ => return,
+    };
 
     if selected.is_empty() {
         return;
@@ -1287,12 +1386,15 @@ fn package_conflict_resolution() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Conflict Resolution")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => detect_package_conflicts(),
@@ -1333,10 +1435,13 @@ fn resolve_file_conflicts() {
     println!("🔧 Resolve File Conflicts");
     println!("=========================");
 
-    let conflict_file: String = Input::new()
+    let conflict_file: String = match Input::new()
         .with_prompt("Enter conflicting file path (or package name)")
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     println!("🔍 Analyzing conflicts for: {}", conflict_file);
 
@@ -1355,12 +1460,15 @@ fn resolve_file_conflicts() {
         "⏭️  Skip resolution",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Resolution method")
         .items(&resolution_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -1382,11 +1490,14 @@ fn resolve_file_conflicts() {
             }
         }
         1 => {
-            let confirm = Confirm::new()
+            let confirm = match Confirm::new()
                 .with_prompt("Are you sure you want to remove this file?")
                 .default(false)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => return,
+            };
 
             if confirm {
                 let _ = Command::new("sudo")
@@ -1415,45 +1526,52 @@ fn fix_broken_packages_conflicts() {
     // Full package verification
     let status = Command::new("pacman").args(["-Qkk"]).status();
 
-    if status.is_ok() && !status.unwrap().success() {
-        println!("⚠️  Found broken packages");
+    if let Ok(s) = status {
+        if !s.success() {
+            println!("⚠️  Found broken packages");
 
-        let fix_options = [
-            "🔄 Reinstall all broken packages",
-            "🧹 Remove and reinstall",
-            "🔧 Attempt automatic fix",
-            "⏭️  Manual review only",
-        ];
+            let fix_options = [
+                "🔄 Reinstall all broken packages",
+                "🧹 Remove and reinstall",
+                "🔧 Attempt automatic fix",
+                "⏭️  Manual review only",
+            ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("Fix method")
-            .items(&fix_options)
-            .default(2)
-            .interact()
-            .unwrap();
+            let choice = match Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("Fix method")
+                .items(&fix_options)
+                .default(2)
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => return,
+            };
 
-        match choice {
-            0 | 1 => {
-                println!("🔄 This would attempt to fix broken packages...");
-                println!(
-                    "💡 Run 'sudo pacman -S $(pacman -Qkk 2>&1 | grep 'warning' | awk '{{print $2}}' | sort -u)' manually"
-                );
+            match choice {
+                0 | 1 => {
+                    println!("🔄 This would attempt to fix broken packages...");
+                    println!(
+                        "💡 Run 'sudo pacman -S $(pacman -Qkk 2>&1 | grep 'warning' | awk '{{print $2}}' | sort -u)' manually"
+                    );
+                }
+                2 => {
+                    println!("🔧 Attempting automatic fix...");
+                    let _ = Command::new("sudo")
+                        .args([
+                            "pacman",
+                            "-S",
+                            "--noconfirm",
+                            "$(pacman -Qkk 2>&1 | grep warning | awk '{print $2}' | sort -u)",
+                        ])
+                        .status();
+                }
+                _ => {}
             }
-            2 => {
-                println!("🔧 Attempting automatic fix...");
-                let _ = Command::new("sudo")
-                    .args([
-                        "pacman",
-                        "-S",
-                        "--noconfirm",
-                        "$(pacman -Qkk 2>&1 | grep warning | awk '{print $2}' | sort -u)",
-                    ])
-                    .status();
-            }
-            _ => {}
+        } else {
+            println!("✅ No broken packages found");
         }
     } else {
-        println!("✅ No broken packages found");
+        println!("❌ Failed to check packages");
     }
 }
 
@@ -1461,18 +1579,24 @@ fn force_reinstall_conflicts() {
     println!("🔄 Force Reinstall Conflicting Packages");
     println!("=======================================");
 
-    let package: String = Input::new()
+    let package: String = match Input::new()
         .with_prompt("Package name to force reinstall")
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     println!("⚠️  Force reinstalling: {}", package);
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("This will overwrite files. Continue?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         let _ = Command::new("sudo")
@@ -1487,10 +1611,13 @@ fn remove_conflicting_packages() {
     println!("🗑️  Remove Conflicting Packages");
     println!("==============================");
 
-    let packages: String = Input::new()
+    let packages: String = match Input::new()
         .with_prompt("Enter package names to remove (space-separated)")
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     let package_list: Vec<&str> = packages.split_whitespace().collect();
 
@@ -1501,11 +1628,14 @@ fn remove_conflicting_packages() {
 
     println!("🗑️  Packages to remove: {}", package_list.join(", "));
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Remove these packages and their dependencies?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         let _ = Command::new("sudo")

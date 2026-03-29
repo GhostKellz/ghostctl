@@ -17,18 +17,14 @@ impl Spinner {
         let bar = ProgressBar::new_spinner();
 
         if is_plain_mode() {
-            bar.set_style(
-                ProgressStyle::default_spinner()
-                    .template("{msg} [{elapsed}]")
-                    .unwrap(),
-            );
-        } else {
-            bar.set_style(
-                ProgressStyle::default_spinner()
-                    .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
-                    .template("{spinner:.cyan} {msg} [{elapsed_precise}]")
-                    .unwrap(),
-            );
+            if let Ok(style) = ProgressStyle::default_spinner().template("{msg} [{elapsed}]") {
+                bar.set_style(style);
+            }
+        } else if let Ok(style) = ProgressStyle::default_spinner()
+            .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
+            .template("{spinner:.cyan} {msg} [{elapsed_precise}]")
+        {
+            bar.set_style(style);
         }
 
         bar.set_message(message.to_string());
@@ -85,19 +81,15 @@ impl Progress {
         let bar = ProgressBar::new(total);
 
         if is_plain_mode() {
-            bar.set_style(
-                ProgressStyle::default_bar()
-                    .template("{msg} [{bar:40}] {pos}/{len} ({percent}%)")
-                    .unwrap()
-                    .progress_chars("=>-"),
-            );
-        } else {
-            bar.set_style(
-                ProgressStyle::default_bar()
-                    .template("{msg}\n{spinner:.green} [{bar:40.cyan/blue}] {pos}/{len} ({percent}%) [{elapsed_precise}]")
-                    .unwrap()
-                    .progress_chars("█▓▒░"),
-            );
+            if let Ok(style) = ProgressStyle::default_bar()
+                .template("{msg} [{bar:40}] {pos}/{len} ({percent}%)")
+            {
+                bar.set_style(style.progress_chars("=>-"));
+            }
+        } else if let Ok(style) = ProgressStyle::default_bar()
+            .template("{msg}\n{spinner:.green} [{bar:40.cyan/blue}] {pos}/{len} ({percent}%) [{elapsed_precise}]")
+        {
+            bar.set_style(style.progress_chars("█▓▒░"));
         }
 
         bar.set_message(message.to_string());
@@ -174,19 +166,14 @@ impl MultiProgressContainer {
         let bar = self.multi.add(ProgressBar::new(total));
 
         if is_plain_mode() {
-            bar.set_style(
-                ProgressStyle::default_bar()
-                    .template("{msg} [{bar:30}] {pos}/{len}")
-                    .unwrap()
-                    .progress_chars("=>-"),
-            );
-        } else {
-            bar.set_style(
-                ProgressStyle::default_bar()
-                    .template("{msg}\n  [{bar:30.cyan/blue}] {pos}/{len}")
-                    .unwrap()
-                    .progress_chars("█▓▒░"),
-            );
+            if let Ok(style) = ProgressStyle::default_bar().template("{msg} [{bar:30}] {pos}/{len}")
+            {
+                bar.set_style(style.progress_chars("=>-"));
+            }
+        } else if let Ok(style) =
+            ProgressStyle::default_bar().template("{msg}\n  [{bar:30.cyan/blue}] {pos}/{len}")
+        {
+            bar.set_style(style.progress_chars("█▓▒░"));
         }
 
         bar.set_message(message.to_string());
@@ -199,14 +186,14 @@ impl MultiProgressContainer {
         let bar = self.multi.add(ProgressBar::new_spinner());
 
         if is_plain_mode() {
-            bar.set_style(ProgressStyle::default_spinner().template("{msg}").unwrap());
-        } else {
-            bar.set_style(
-                ProgressStyle::default_spinner()
-                    .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
-                    .template("{spinner:.cyan} {msg}")
-                    .unwrap(),
-            );
+            if let Ok(style) = ProgressStyle::default_spinner().template("{msg}") {
+                bar.set_style(style);
+            }
+        } else if let Ok(style) = ProgressStyle::default_spinner()
+            .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
+            .template("{spinner:.cyan} {msg}")
+        {
+            bar.set_style(style);
         }
 
         bar.set_message(message.to_string());

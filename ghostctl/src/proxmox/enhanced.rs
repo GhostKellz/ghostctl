@@ -140,12 +140,14 @@ pub fn enhanced_proxmox_menu() {
             "⬅️  Back".to_string(),
         ]);
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🏥 Enhanced Proxmox VE Tools")
             .items(&menu_options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         if choice == menu_options.len() - 1 {
             break; // Back
@@ -175,12 +177,14 @@ fn show_category_scripts(category: &str, scripts: &[(&str, &str)]) {
             scripts.iter().map(|(name, _)| name.to_string()).collect();
         script_items.push("⬅️  Back".to_string());
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt(format!("📂 {} Scripts", category))
             .items(&script_items)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         if choice == script_items.len() - 1 {
             break; // Back
@@ -219,12 +223,14 @@ fn show_script_details(name: &str, url: &str) {
         "📋 Copy URL",
         "⬅️  Back",
     ];
-    let action = Select::with_theme(&ColorfulTheme::default())
+    let Ok(action) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Choose action")
         .items(&actions)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match action {
         0 => run_proxmox_script(name, url),
@@ -245,12 +251,14 @@ fn proxmox_management_tools() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("🛠️  Proxmox Management Tools")
         .items(&tools)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => bulk_vm_operations(),
@@ -274,21 +282,25 @@ fn bulk_vm_operations() {
         "🧹 Cleanup Unused Resources",
     ];
 
-    let op = Select::with_theme(&ColorfulTheme::default())
+    let Ok(op) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select bulk operation")
         .items(&operations)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt(format!(
             "⚠️  Execute '{}'? This affects ALL VMs/containers",
             operations[op]
         ))
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !confirm {
         println!("❌ Operation cancelled");
@@ -296,14 +308,18 @@ fn bulk_vm_operations() {
     }
 
     match op {
-        0 => execute_bulk_command("qm list | awk 'NR>1 {print $1}' | xargs -I {} qm start {}"),
-        1 => execute_bulk_command("qm list | awk 'NR>1 {print $1}' | xargs -I {} qm stop {}"),
-        2 => execute_bulk_command("qm list | awk 'NR>1 {print $1}' | xargs -I {} qm reboot {}"),
+        0 => execute_bulk_vm_operation("start"),
+        1 => execute_bulk_vm_operation("stop"),
+        2 => execute_bulk_vm_operation("reboot"),
         3 => {
             println!("📊 VM Status Report:");
-            let _ = Command::new("qm").arg("list").status();
+            if let Err(e) = Command::new("qm").arg("list").status() {
+                println!("Failed to list VMs: {}", e);
+            }
             println!("\n📊 Container Status Report:");
-            let _ = Command::new("pct").arg("list").status();
+            if let Err(e) = Command::new("pct").arg("list").status() {
+                println!("Failed to list containers: {}", e);
+            }
         }
         4 => cleanup_unused_resources(),
         _ => {}
@@ -316,58 +332,102 @@ fn proxmox_system_info() {
 
     // PVE Version
     println!("🔧 Proxmox VE Version:");
-    let _ = Command::new("pveversion").arg("--verbose").status();
+    if let Err(e) = Command::new("pveversion").arg("--verbose").status() {
+        println!("(pveversion not available: {})", e);
+    }
 
     // Cluster status
     println!("\n🌐 Cluster Status:");
-    let _ = Command::new("pvecm").arg("status").status();
+    if let Err(_) = Command::new("pvecm").arg("status").status() {
+        println!("(Not in a cluster or pvecm not available)");
+    }
 
     // Node resources
     println!("\n💾 Node Resources:");
-    let _ = Command::new("pvesh")
-        .args(&["get", "/nodes/localhost/status"])
-        .status();
+    if let Err(e) = Command::new("pvesh")
+        .args(["get", "/nodes/localhost/status"])
+        .status()
+    {
+        println!("(pvesh not available: {})", e);
+    }
 
     // Storage status
     println!("\n💿 Storage Status:");
-    let _ = Command::new("pvesh").args(&["get", "/storage"]).status();
+    if let Err(e) = Command::new("pvesh").args(["get", "/storage"]).status() {
+        println!("(Could not get storage status: {})", e);
+    }
 
     // Recent tasks
     println!("\n📋 Recent Tasks:");
-    let _ = Command::new("pvesh")
-        .args(&["get", "/cluster/tasks", "--limit", "10"])
-        .status();
+    if let Err(e) = Command::new("pvesh")
+        .args(["get", "/cluster/tasks", "--limit", "10"])
+        .status()
+    {
+        println!("(Could not get tasks: {})", e);
+    }
 }
 
-// Complete missing function implementations
-fn execute_bulk_command(command: &str) {
-    println!("🔧 Executing bulk command: {}", command);
+/// Execute a safe bulk operation on VMs/containers without shell injection
+fn execute_bulk_vm_operation(operation: &str) {
     let targets = get_all_vms_and_cts();
+
+    if targets.is_empty() {
+        println!("No VMs or containers found");
+        return;
+    }
+
+    println!("🔧 Executing {} on {} targets...", operation, targets.len());
+
     for target in targets {
-        println!("  📋 Target: {}", target);
-        let _ = Command::new("ssh")
-            .args(&[&target, &command.to_string()])
-            .status();
+        let (vm_type, id) = if target.starts_with("vm") {
+            ("qm", target.trim_start_matches("vm"))
+        } else {
+            ("pct", target.trim_start_matches("ct"))
+        };
+
+        // Validate the ID
+        if let Err(e) = super::validation::validate_vmid(id) {
+            println!("  Skipping invalid ID {}: {}", id, e);
+            continue;
+        }
+
+        println!("  📋 {} {} {}...", operation, vm_type, id);
+
+        let result = Command::new(vm_type).args([operation, id]).status();
+
+        match result {
+            Ok(status) if status.success() => {
+                println!("     ✅ Success");
+            }
+            Ok(_) => {
+                println!("     ⚠️  Command completed with non-zero exit");
+            }
+            Err(e) => {
+                println!("     ❌ Failed: {}", e);
+            }
+        }
     }
 }
 
 fn get_all_vms_and_cts() -> Vec<String> {
     let mut targets = Vec::new();
     // Get all VM IDs
-    let vm_output = Command::new("qm").arg("list").output().unwrap();
-    let vm_ids = String::from_utf8_lossy(&vm_output.stdout);
-    for line in vm_ids.lines().skip(1) {
-        if let Some(id) = line.split_whitespace().next() {
-            targets.push(format!("{}{}", "vm", id));
+    if let Ok(vm_output) = Command::new("qm").arg("list").output() {
+        let vm_ids = String::from_utf8_lossy(&vm_output.stdout);
+        for line in vm_ids.lines().skip(1) {
+            if let Some(id) = line.split_whitespace().next() {
+                targets.push(format!("{}{}", "vm", id));
+            }
         }
     }
 
     // Get all CT IDs
-    let ct_output = Command::new("pct").arg("list").output().unwrap();
-    let ct_ids = String::from_utf8_lossy(&ct_output.stdout);
-    for line in ct_ids.lines().skip(1) {
-        if let Some(id) = line.split_whitespace().next() {
-            targets.push(format!("{}{}", "ct", id));
+    if let Ok(ct_output) = Command::new("pct").arg("list").output() {
+        let ct_ids = String::from_utf8_lossy(&ct_output.stdout);
+        for line in ct_ids.lines().skip(1) {
+            if let Some(id) = line.split_whitespace().next() {
+                targets.push(format!("{}{}", "ct", id));
+            }
         }
     }
 
@@ -386,12 +446,14 @@ fn proxmox_backup_management() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Backup Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => list_backup_jobs(),
@@ -404,28 +466,42 @@ fn proxmox_backup_management() {
 
 fn list_backup_jobs() {
     println!("📋 Listing backup jobs...");
-    let _ = Command::new("pvesh")
-        .args(&["get", "/cluster/backup"])
-        .status();
+    if let Err(e) = Command::new("pvesh")
+        .args(["get", "/cluster/backup"])
+        .status()
+    {
+        println!("Failed to list backup jobs: {}", e);
+    }
 }
 
 fn run_backup_now() {
     println!("▶️ Running backup now...");
-    let job_id: String = Input::new()
-        .with_prompt("Backup job ID")
+    let Ok(vmid_str) = Input::<String>::new()
+        .with_prompt("VM/Container ID to backup")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let _ = Command::new("pvesh")
-        .args(&[
+    // Validate VMID
+    if let Err(e) = super::validation::validate_vmid(&vmid_str) {
+        println!("Invalid VM/Container ID: {}", e);
+        return;
+    }
+
+    if let Err(e) = Command::new("pvesh")
+        .args([
             "create",
             "/nodes/localhost/vzdump",
             "--mode",
             "snapshot",
             "--vmid",
-            &job_id,
+            &vmid_str,
         ])
-        .status();
+        .status()
+    {
+        println!("Failed to start backup: {}", e);
+    }
 }
 
 fn schedule_backup() {
@@ -435,9 +511,12 @@ fn schedule_backup() {
 
 fn verify_backups() {
     println!("🔍 Verifying backups...");
-    let _ = Command::new("pvesh")
-        .args(&["get", "/nodes/localhost/storage"])
-        .status();
+    if let Err(e) = Command::new("pvesh")
+        .args(["get", "/nodes/localhost/storage"])
+        .status()
+    {
+        println!("Failed to get storage info: {}", e);
+    }
 }
 
 fn proxmox_cluster_management() {
@@ -452,12 +531,14 @@ fn proxmox_cluster_management() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Cluster Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => show_cluster_status(),
@@ -470,15 +551,19 @@ fn proxmox_cluster_management() {
 
 fn show_cluster_status() {
     println!("📊 Cluster Status:");
-    let _ = Command::new("pvecm").arg("status").status();
+    if let Err(_) = Command::new("pvecm").arg("status").status() {
+        println!("(Not in a cluster or pvecm not available)");
+    }
 }
 
 fn join_cluster() {
     println!("🔗 Join cluster...");
-    let cluster_ip: String = Input::new()
+    let Ok(cluster_ip) = Input::<String>::new()
         .with_prompt("Cluster IP address")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("Use: pvecm add {}", cluster_ip);
 }
@@ -552,12 +637,14 @@ fn storage_management() {
             "⬅️  Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("💾 Proxmox Storage Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => super::storage_migration::storage_migration_menu(),
@@ -573,7 +660,9 @@ fn storage_management() {
 
 fn storage_status_usage() {
     println!("📊 Storage Status & Usage\n");
-    let _ = Command::new("pvesm").args(&["status"]).status();
+    if let Err(e) = Command::new("pvesm").args(["status"]).status() {
+        println!("Failed to get storage status: {}", e);
+    }
 }
 
 fn add_storage_pool() {
@@ -588,12 +677,19 @@ fn remove_storage_pool() {
 
 fn storage_configuration() {
     println!("⚙️  Storage Configuration\n");
-    let _ = Command::new("cat").args(&["/etc/pve/storage.cfg"]).status();
+    // Read file directly instead of using cat command
+    match std::fs::read_to_string("/etc/pve/storage.cfg") {
+        Ok(content) => println!("{}", content),
+        Err(e) => println!("Failed to read storage configuration: {}", e),
+    }
 }
 
 fn storage_performance_analysis() {
     println!("🔍 Storage Performance Analysis\n");
-    let _ = Command::new("iostat").args(&["-x", "1", "3"]).status();
+    if let Err(e) = Command::new("iostat").args(["-x", "1", "3"]).status() {
+        println!("Failed to run iostat: {}", e);
+        println!("(sysstat package may not be installed)");
+    }
 }
 
 fn cleanup_unused_resources() {

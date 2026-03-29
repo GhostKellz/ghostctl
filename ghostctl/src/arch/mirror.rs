@@ -14,12 +14,14 @@ pub fn update_mirror_list() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Mirror Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => auto_update_mirrors(),
@@ -63,7 +65,9 @@ fn auto_update_mirrors() {
         println!("Would you like to install it? (y/n)");
 
         let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
+        if std::io::stdin().read_line(&mut input).is_err() {
+            return;
+        }
 
         if input.trim().to_lowercase() == "y" {
             let _ = Command::new("sudo")
@@ -75,11 +79,13 @@ fn auto_update_mirrors() {
 }
 
 fn update_mirrors_by_country() {
-    let country = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(country) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter country code (e.g., US, GB, DE)")
         .default("US".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🌍 Updating mirrors for country: {}", country);
 

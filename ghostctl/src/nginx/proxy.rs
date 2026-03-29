@@ -13,12 +13,14 @@ pub fn reverse_proxy_setup() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Proxy type")
         .items(&proxy_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => setup_basic_proxy(),
@@ -33,15 +35,18 @@ fn setup_basic_proxy() {
     println!("🌐 Basic Reverse Proxy Setup");
     println!("============================");
 
-    let frontend_domain: String = Input::new()
-        .with_prompt("Frontend domain")
-        .interact_text()
-        .unwrap();
+    let Ok(frontend_domain): Result<String, _> =
+        Input::new().with_prompt("Frontend domain").interact_text()
+    else {
+        return;
+    };
 
-    let backend_url: String = Input::new()
+    let Ok(backend_url): Result<String, _> = Input::new()
         .with_prompt("Backend URL (e.g., http://localhost:3000)")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     let config = format!(
         r#"server {{
@@ -83,41 +88,49 @@ fn setup_load_balancer() {
     println!("⚖️  Load Balancer Setup");
     println!("======================");
 
-    let upstream_name: String = Input::new()
-        .with_prompt("Upstream name")
-        .interact_text()
-        .unwrap();
+    let Ok(upstream_name): Result<String, _> =
+        Input::new().with_prompt("Upstream name").interact_text()
+    else {
+        return;
+    };
 
-    let backend_count: String = Input::new()
+    let Ok(backend_count): Result<String, _> = Input::new()
         .with_prompt("Number of backend servers")
         .default("3".into())
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     let count: usize = backend_count.parse().unwrap_or(3);
     let mut backends = Vec::new();
 
     for i in 1..=count {
-        let backend: String = Input::new()
+        let Ok(backend): Result<String, _> = Input::new()
             .with_prompt(&format!("Backend {} (e.g., 192.168.1.{}:8080)", i, i))
             .interact_text()
-            .unwrap();
+        else {
+            continue;
+        };
         backends.push(backend);
     }
 
-    let frontend_domain: String = Input::new()
-        .with_prompt("Frontend domain")
-        .interact_text()
-        .unwrap();
+    let Ok(frontend_domain): Result<String, _> =
+        Input::new().with_prompt("Frontend domain").interact_text()
+    else {
+        return;
+    };
 
     // Load balancing method
     let methods = ["round_robin", "least_conn", "ip_hash", "hash"];
-    let method_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(method_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Load balancing method")
         .items(&methods)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let method_directive = match method_choice {
         1 => "least_conn;",
@@ -179,33 +192,40 @@ fn setup_ssl_termination() {
     println!("🔒 SSL Termination Proxy");
     println!("========================");
 
-    let frontend_domain: String = Input::new()
-        .with_prompt("Frontend domain")
-        .interact_text()
-        .unwrap();
+    let Ok(frontend_domain): Result<String, _> =
+        Input::new().with_prompt("Frontend domain").interact_text()
+    else {
+        return;
+    };
 
-    let backend_url: String = Input::new()
+    let Ok(backend_url): Result<String, _> = Input::new()
         .with_prompt("Backend URL (http://...)")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let cert_path: String = Input::new()
+    let Ok(cert_path): Result<String, _> = Input::new()
         .with_prompt("SSL certificate path")
         .default(format!(
             "/etc/letsencrypt/live/{}/fullchain.pem",
             frontend_domain
         ))
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let key_path: String = Input::new()
+    let Ok(key_path): Result<String, _> = Input::new()
         .with_prompt("SSL private key path")
         .default(format!(
             "/etc/letsencrypt/live/{}/privkey.pem",
             frontend_domain
         ))
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     let config = format!(
         r#"# HTTP to HTTPS redirect
@@ -264,10 +284,11 @@ fn setup_api_gateway() {
     println!("🎯 API Gateway Configuration");
     println!("============================");
 
-    let gateway_domain: String = Input::new()
-        .with_prompt("Gateway domain")
-        .interact_text()
-        .unwrap();
+    let Ok(gateway_domain): Result<String, _> =
+        Input::new().with_prompt("Gateway domain").interact_text()
+    else {
+        return;
+    };
 
     let config = format!(
         r#"# Rate limiting

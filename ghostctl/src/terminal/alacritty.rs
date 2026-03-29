@@ -20,12 +20,14 @@ pub fn alacritty_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Alacritty Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_alacritty(),
@@ -44,10 +46,12 @@ pub fn install_alacritty() {
 
     if check_alacritty_installed() {
         println!("⚠️  Alacritty is already installed");
-        let reinstall = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(reinstall) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Reinstall anyway?")
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if !reinstall {
             return;
@@ -61,12 +65,14 @@ pub fn install_alacritty() {
         "⬅️  Cancel",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select installation method")
         .items(&installation_methods)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_via_package_manager(),
@@ -81,10 +87,12 @@ pub fn configure_alacritty() {
 
     if !check_alacritty_installed() {
         println!("❌ Alacritty is not installed");
-        let install = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(install) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Install Alacritty first?")
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if install {
             install_alacritty();
@@ -119,12 +127,14 @@ pub fn theme_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select theme to apply")
         .items(&themes)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => apply_theme("tokyo-night"),
@@ -149,10 +159,12 @@ pub fn font_configuration() {
 
     if nerd_fonts.is_empty() {
         println!("⚠️  No Nerd Fonts detected");
-        let install_fonts = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(install_fonts) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Install Nerd Fonts?")
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if install_fonts {
             install_nerd_fonts();
@@ -164,12 +176,14 @@ pub fn font_configuration() {
     font_options.push("🔧 Custom Font".to_string());
     font_options.push("⬅️  Back".to_string());
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select font family")
         .items(&font_options.iter().map(|s| s.as_str()).collect::<Vec<_>>())
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if choice < nerd_fonts.len() {
         let font = &nerd_fonts[choice];
@@ -191,12 +205,14 @@ pub fn performance_tuning() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Performance tuning options")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => enable_gpu_acceleration(),
@@ -224,10 +240,12 @@ pub fn show_configuration() {
         }
     } else {
         println!("⚠️  No Alacritty configuration found");
-        let create = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(create) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Create default configuration?")
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if create {
             create_alacritty_config();
@@ -245,10 +263,12 @@ pub fn reset_configuration() {
         return;
     }
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will reset your Alacritty configuration to defaults. Continue?")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !confirm {
         return;
@@ -343,18 +363,20 @@ fn install_via_cargo() {
 }
 
 fn install_via_appimage() {
-    println!("📁 Installing Alacritty AppImage...");
+    println!("Installing Alacritty AppImage...");
 
     // Create applications directory
     let apps_dir = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string()))
         .join("Applications");
 
-    let _ = fs::create_dir_all(&apps_dir);
+    if let Err(e) = fs::create_dir_all(&apps_dir) {
+        eprintln!("Failed to create Applications directory: {}", e);
+    }
 
-    println!("💡 AppImage installation requires manual download from:");
+    println!("AppImage installation requires manual download from:");
     println!("   https://github.com/alacritty/alacritty/releases");
     println!(
-        "💡 Download the AppImage and place it in: {}",
+        "Download the AppImage and place it in: {}",
         apps_dir.display()
     );
 }
@@ -461,17 +483,21 @@ fn configure_basic_settings() {
     println!("⚙️  Configuring basic settings...");
 
     // Get user preferences
-    let opacity: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(opacity) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Window opacity (0.0-1.0)")
         .default("0.9".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let font_size: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(font_size) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Font size")
         .default("12".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Update configuration with user preferences
     update_config_setting("window.opacity", &opacity);
@@ -534,17 +560,21 @@ fn get_theme_colors(theme_name: &str) -> Vec<(String, String)> {
 fn create_custom_theme() {
     println!("🔙 Creating custom theme...");
 
-    let bg_color: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(bg_color) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Background color (hex)")
         .default("#1a1b26".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let fg_color: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(fg_color) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Foreground color (hex)")
         .default("#c0caf5".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     update_config_setting("colors.primary.background", &format!("'{}'", bg_color));
     update_config_setting("colors.primary.foreground", &format!("'{}'", fg_color));
@@ -567,16 +597,62 @@ fn check_available_nerd_fonts() -> Vec<String> {
 }
 
 fn install_nerd_fonts() {
-    println!("🔤 Installing Nerd Fonts...");
+    println!("Installing Nerd Fonts...");
 
-    // Use existing ghostctl terminal font installation
-    let _ = Command::new("sh")
-        .arg("-c")
-        .arg("curl -fLo ~/.local/share/fonts/FiraCodeNerdFont-Regular.ttf --create-dirs https://github.com/ryanoasis/nerd-fonts/raw/HEAD/patched-fonts/FiraCode/Regular/FiraCodeNerdFont-Regular.ttf")
+    // Try package manager first (safer and more reliable)
+    let pacman_status = Command::new("sudo")
+        .args(["pacman", "-S", "--noconfirm", "ttf-firacode-nerd"])
         .status();
 
-    println!("✅ FiraCode Nerd Font installed");
-    println!("💡 Run 'fc-cache -fv' to refresh font cache");
+    match pacman_status {
+        Ok(s) if s.success() => {
+            println!("FiraCode Nerd Font installed via pacman");
+            return;
+        }
+        _ => {
+            println!("pacman install failed, trying manual download...");
+        }
+    }
+
+    // Fall back to manual download using direct curl (no shell piping)
+    let Some(home) = dirs::home_dir() else {
+        eprintln!("Failed to determine home directory");
+        return;
+    };
+
+    let fonts_dir = home.join(".local/share/fonts");
+    if let Err(e) = fs::create_dir_all(&fonts_dir) {
+        eprintln!("Failed to create fonts directory: {}", e);
+        return;
+    }
+
+    let font_path = fonts_dir.join("FiraCodeNerdFont-Regular.ttf");
+    let font_url = "https://github.com/ryanoasis/nerd-fonts/raw/HEAD/patched-fonts/FiraCode/Regular/FiraCodeNerdFont-Regular.ttf";
+
+    let status = Command::new("curl")
+        .args([
+            "-fLo",
+            font_path.to_str().unwrap_or(""),
+            "--create-dirs",
+            font_url,
+        ])
+        .status();
+
+    match status {
+        Ok(s) if s.success() => {
+            println!("FiraCode Nerd Font installed");
+            // Refresh font cache
+            let cache_status = Command::new("fc-cache").args(["-fv"]).status();
+            if let Err(e) = cache_status {
+                eprintln!("Failed to refresh font cache: {}", e);
+            }
+        }
+        Ok(s) => eprintln!(
+            "Failed to download font (exit code: {})",
+            s.code().unwrap_or(-1)
+        ),
+        Err(e) => eprintln!("Failed to run curl: {}", e),
+    }
 }
 
 fn apply_font_config(font: &str) {
@@ -590,17 +666,21 @@ fn apply_font_config(font: &str) {
 }
 
 fn configure_custom_font() {
-    let font_family: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(font_family) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Font family name")
         .default("monospace".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let font_size: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(font_size) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Font size")
         .default("12".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     apply_font_config(&font_family);
     update_config_setting("font.size", &font_size);
@@ -618,11 +698,13 @@ fn enable_gpu_acceleration() {
 }
 
 fn optimize_scrollback() {
-    let scrollback: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(scrollback) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Scrollback buffer size (lines)")
         .default("10000".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     update_config_setting("scrolling.history", &scrollback);
 

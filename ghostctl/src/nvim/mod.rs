@@ -24,12 +24,14 @@ pub fn nvim_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Neovim Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install(),
@@ -46,13 +48,18 @@ pub fn install() {
     println!("ghostctl :: Neovim Setup");
     println!("Choose a Neovim distro: LazyVim or Kickstart");
     let distros = ["LazyVim", "Kickstart", "Back"];
-    let selection = dialoguer::Select::with_theme(&dialoguer::theme::ColorfulTheme::default())
+    let Ok(selection) = dialoguer::Select::with_theme(&dialoguer::theme::ColorfulTheme::default())
         .with_prompt("Select Neovim Distro")
         .items(&distros)
         .default(0)
         .interact()
-        .unwrap();
-    let home = dirs::home_dir().unwrap();
+    else {
+        return;
+    };
+    let Some(home) = dirs::home_dir() else {
+        println!("Could not determine home directory");
+        return;
+    };
     let nvim_config = home.join(".config/nvim");
     if nvim_config.exists() {
         println!("Backing up existing Neovim config...");
@@ -60,9 +67,16 @@ pub fn install() {
             ".config/nvim.backup-{}",
             chrono::Utc::now().timestamp()
         ));
-        fs::rename(&nvim_config, &backup).unwrap();
+        if let Err(e) = fs::rename(&nvim_config, &backup) {
+            println!("Failed to backup config: {}", e);
+            return;
+        }
         println!("Backed up to {:?}", backup);
     }
+    let Some(nvim_config_str) = nvim_config.to_str() else {
+        println!("Invalid config path");
+        return;
+    };
     match selection {
         0 => {
             // LazyVim
@@ -71,7 +85,7 @@ pub fn install() {
                 .args([
                     "clone",
                     "https://github.com/LazyVim/starter",
-                    nvim_config.to_str().unwrap(),
+                    nvim_config_str,
                 ])
                 .status();
         }
@@ -82,7 +96,7 @@ pub fn install() {
                 .args([
                     "clone",
                     "https://github.com/nvim-lua/kickstart.nvim",
-                    nvim_config.to_str().unwrap(),
+                    nvim_config_str,
                 ])
                 .status();
         }
@@ -119,7 +133,10 @@ pub fn diagnostics() {
 #[allow(dead_code)]
 pub fn list_plugins() {
     println!("ghostctl :: List Neovim Plugins");
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        println!("Could not determine home directory");
+        return;
+    };
     let nvim_dir = home.join(".config/nvim");
     let plugin_dir = nvim_dir.join(".local/share/nvim");
     if plugin_dir.exists() {
@@ -143,21 +160,24 @@ pub fn update_plugins() {
 }
 
 fn show_nvim_info() {
-    println!("📊 Neovim Information");
+    println!("Neovim Information");
     println!("====================");
 
     // Check Neovim version
     let _ = Command::new("nvim").args(&["--version"]).status();
 
     // Show config location
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        println!("Could not determine home directory");
+        return;
+    };
     let nvim_config = home.join(".config/nvim");
-    println!("📁 Config location: {:?}", nvim_config);
+    println!("Config location: {:?}", nvim_config);
 
     if nvim_config.exists() {
-        println!("✅ Neovim config found");
+        println!("Neovim config found");
     } else {
-        println!("❌ No Neovim config found");
+        println!("No Neovim config found");
     }
 }
 

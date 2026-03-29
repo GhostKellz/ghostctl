@@ -2,6 +2,7 @@ pub mod container;
 pub mod dkms;
 pub mod dlss;
 pub mod drivers;
+pub mod errors;
 pub mod optimize;
 pub mod passthrough;
 pub mod source_build;
@@ -9,10 +10,33 @@ pub mod wayland;
 
 pub fn clean() {
     println!("ghostctl :: NVIDIA Clean DKMS/Modules");
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("sudo dkms remove nvidia/$(pacman -Q nvidia | awk '{print $2}') --all || true")
-        .status();
+
+    // Get NVIDIA package version from pacman without using awk
+    let version = std::process::Command::new("pacman")
+        .args(["-Q", "nvidia"])
+        .output()
+        .ok()
+        .and_then(|out| {
+            let output = String::from_utf8_lossy(&out.stdout);
+            // Format: "nvidia <version>", extract version (second field)
+            output.split_whitespace().nth(1).map(|v| v.to_string())
+        });
+
+    let status = match version {
+        Some(ver) => {
+            let module = format!("nvidia/{}", ver);
+            std::process::Command::new("sudo")
+                .args(["dkms", "remove", &module, "--all"])
+                .status()
+        }
+        None => {
+            // Fallback: try to remove any nvidia module
+            std::process::Command::new("sudo")
+                .args(["dkms", "remove", "-m", "nvidia", "--all"])
+                .status()
+        }
+    };
+
     match status {
         Ok(s) if s.success() => println!("Old NVIDIA DKMS modules cleaned."),
         _ => println!("Failed to clean DKMS modules (may not be critical)."),
@@ -22,9 +46,8 @@ pub fn clean() {
 pub fn fix() {
     println!("ghostctl :: NVIDIA DKMS Rebuild + mkinitcpio");
     dkms::rebuild();
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("sudo mkinitcpio -P")
+    let status = std::process::Command::new("sudo")
+        .args(["mkinitcpio", "-P"])
         .status();
     match status {
         Ok(s) if s.success() => println!("mkinitcpio completed."),
@@ -43,9 +66,8 @@ pub fn diagnostics() {
 
 pub fn install_proprietary() {
     println!("Installing NVIDIA proprietary driver...");
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("sudo pacman -S --noconfirm nvidia nvidia-utils")
+    let status = std::process::Command::new("sudo")
+        .args(["pacman", "-S", "--noconfirm", "nvidia", "nvidia-utils"])
         .status();
     match status {
         Ok(s) if s.success() => println!("NVIDIA proprietary driver installed."),
@@ -55,9 +77,8 @@ pub fn install_proprietary() {
 
 pub fn install_open() {
     println!("Installing NVIDIA open driver...");
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("sudo pacman -S --noconfirm nvidia-open")
+    let status = std::process::Command::new("sudo")
+        .args(["pacman", "-S", "--noconfirm", "nvidia-open"])
         .status();
     match status {
         Ok(s) if s.success() => println!("NVIDIA open driver installed."),
@@ -67,27 +88,30 @@ pub fn install_open() {
 
 pub fn install_open_beta() {
     println!("Installing NVIDIA open beta driver from AUR...");
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("yay -S --noconfirm nvidia-open-beta || ghostbrew -S --noconfirm nvidia-open-beta || pacu -S --noconfirm nvidia-open-beta")
-        .status();
-    match status {
-        Ok(s) if s.success() => println!("NVIDIA open beta driver installed."),
-        _ => println!("Failed to install NVIDIA open beta driver (tried yay, ghostbrew, pacu)."),
+    // Try each AUR helper in sequence
+    let helpers = [
+        ("yay", vec!["-S", "--noconfirm", "nvidia-open-beta"]),
+        ("ghostbrew", vec!["-S", "--noconfirm", "nvidia-open-beta"]),
+        ("pacu", vec!["-S", "--noconfirm", "nvidia-open-beta"]),
+    ];
+
+    for (helper, args) in &helpers {
+        if let Ok(status) = std::process::Command::new(helper).args(args).status() {
+            if status.success() {
+                println!("NVIDIA open beta driver installed via {}.", helper);
+                return;
+            }
+        }
     }
+    println!("Failed to install NVIDIA open beta driver (tried yay, ghostbrew, pacu).");
 }
 
 #[allow(dead_code)]
 pub fn wayland_check() {
     println!("ghostctl :: NVIDIA Wayland Compatibility Check");
     // Check for nvidia-drm.modeset=1 in kernel params
-    let output = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("cat /proc/cmdline")
-        .output();
-    match output {
-        Ok(out) => {
-            let cmdline = String::from_utf8_lossy(&out.stdout);
+    match std::fs::read_to_string("/proc/cmdline") {
+        Ok(cmdline) => {
             if cmdline.contains("nvidia-drm.modeset=1") {
                 println!("[OK] nvidia-drm.modeset=1 is set in kernel params");
             } else {
@@ -96,15 +120,10 @@ pub fn wayland_check() {
         }
         Err(e) => println!("Failed to check kernel params: {}", e),
     }
-    // Check for GBM/EGL
-    let output = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("echo $GBM_BACKEND $EGL_PLATFORM")
-        .output();
-    match output {
-        Ok(out) => println!("GBM/EGL: {}", String::from_utf8_lossy(&out.stdout)),
-        Err(e) => println!("Failed to check GBM/EGL: {}", e),
-    }
+    // Check for GBM/EGL from environment variables
+    let gbm_backend = std::env::var("GBM_BACKEND").unwrap_or_default();
+    let egl_platform = std::env::var("EGL_PLATFORM").unwrap_or_default();
+    println!("GBM/EGL: {} {}", gbm_backend, egl_platform);
 }
 
 #[allow(dead_code)]
@@ -179,12 +198,15 @@ pub fn nvidia_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("NVIDIA Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => status(),
@@ -204,9 +226,8 @@ pub fn nvidia_menu() {
 pub fn status() {
     println!("ghostctl :: NVIDIA Status");
     // Check installed packages
-    let output = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("pacman -Qs nvidia")
+    let output = std::process::Command::new("pacman")
+        .args(["-Qs", "nvidia"])
         .output();
     match output {
         Ok(out) => println!(
@@ -234,14 +255,42 @@ pub fn status() {
         }
         Err(_) => println!("Could not check kernel modules."),
     }
-    // Xorg/Wayland status (basic)
-    let output = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("loginctl show-session $(loginctl | grep $(whoami) | awk '{print $1}') -p Type")
-        .output();
-    match output {
-        Ok(out) => println!("Session type: {}", String::from_utf8_lossy(&out.stdout)),
-        Err(_) => println!("Could not determine session type (Xorg/Wayland)."),
+    // Xorg/Wayland status (basic) - use XDG_SESSION_TYPE or loginctl
+    // First try the environment variable (most reliable)
+    if let Ok(session_type) = std::env::var("XDG_SESSION_TYPE") {
+        println!("Session type: {}", session_type);
+    } else {
+        // Fallback: get session ID and query loginctl
+        let session_id = std::env::var("XDG_SESSION_ID").ok().or_else(|| {
+            // Try to get session ID from loginctl output
+            std::process::Command::new("loginctl")
+                .args(["list-sessions", "--no-legend"])
+                .output()
+                .ok()
+                .and_then(|out| {
+                    let output = String::from_utf8_lossy(&out.stdout);
+                    // Format: "SESSION UID USER SEAT TTY" - first field is session ID
+                    output
+                        .lines()
+                        .next()
+                        .and_then(|line| line.split_whitespace().next().map(|s| s.to_string()))
+                })
+        });
+
+        if let Some(sid) = session_id {
+            let output = std::process::Command::new("loginctl")
+                .args(["show-session", &sid, "-p", "Type"])
+                .output();
+            match output {
+                Ok(out) => {
+                    let type_output = String::from_utf8_lossy(&out.stdout);
+                    println!("Session type: {}", type_output.trim());
+                }
+                Err(_) => println!("Could not determine session type (Xorg/Wayland)."),
+            }
+        } else {
+            println!("Could not determine session type (Xorg/Wayland).");
+        }
     }
 }
 
@@ -257,12 +306,14 @@ pub fn write_nvidia_conf() {
     println!("About to write to {}:\n{}", conf_path, content);
     println!("Prompting for confirmation...");
     use dialoguer::Confirm;
-    if Confirm::new()
+    let confirmed = Confirm::new()
         .with_prompt("Overwrite /etc/modprobe.d/nvidia.conf?")
         .default(false)
-        .interact()
-        .unwrap()
-    {
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
+    if confirmed {
         match std::fs::File::create(conf_path) {
             Ok(mut file) => {
                 if file.write_all(content.as_bytes()).is_ok() {

@@ -3,7 +3,10 @@
 //! Supports multiple backends:
 //! - `pass` (password-store): GPG-based, git-syncable
 //! - `age`: Modern encryption, simpler key management
-//! - `builtin`: XOR-based fallback (not recommended for sensitive data)
+//! - `keyring`: System keyring (GNOME Keyring/KDE Wallet) when feature enabled
+//!
+//! Note: Legacy XOR-based storage has been removed. Migration from old
+//! credentials.json files happens automatically via `SecureCredentialManager`.
 
 use anyhow::{Context, Result};
 use std::path::PathBuf;
@@ -76,14 +79,30 @@ impl CredentialBackend for PassBackend {
     }
 
     fn store(&self, key: &str, value: &str) -> Result<()> {
+        use std::io::Write;
+        use std::process::Stdio;
+
         let pass_path = self.pass_path(key);
 
-        // Use pass insert with echo to avoid interactive prompt
-        let output = Command::new("bash")
-            .arg("-c")
-            .arg(format!("echo '{}' | pass insert -f '{}'", value, pass_path))
-            .output()
-            .context("Failed to execute pass insert")?;
+        // Use stdin piping instead of shell interpolation to avoid injection
+        let mut child = Command::new("pass")
+            .args(["insert", "-f", "-m", &pass_path])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .context("Failed to spawn pass insert")?;
+
+        // Write value to stdin
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin
+                .write_all(value.as_bytes())
+                .context("Failed to write to pass stdin")?;
+        }
+
+        let output = child
+            .wait_with_output()
+            .context("Failed to wait for pass")?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -257,23 +276,33 @@ impl CredentialBackend for AgeBackend {
     }
 
     fn store(&self, key: &str, value: &str) -> Result<()> {
+        use std::io::Write;
+        use std::process::Stdio;
+
         // Ensure store directory exists
         std::fs::create_dir_all(&self.store_dir)?;
 
         let recipient = self.get_recipient()?;
         let cred_path = self.credential_path(key);
 
-        // Encrypt using age
-        let output = Command::new("bash")
-            .arg("-c")
-            .arg(format!(
-                "echo '{}' | age -r '{}' -o '{}'",
-                value,
-                recipient,
-                cred_path.display()
-            ))
-            .output()
-            .context("Failed to execute age encrypt")?;
+        // Encrypt using age with stdin piping to avoid shell injection
+        let mut child = Command::new("age")
+            .args(["-r", &recipient, "-o"])
+            .arg(&cred_path)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .context("Failed to spawn age encrypt")?;
+
+        // Write value to stdin
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin
+                .write_all(value.as_bytes())
+                .context("Failed to write to age stdin")?;
+        }
+
+        let output = child.wait_with_output().context("Failed to wait for age")?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);

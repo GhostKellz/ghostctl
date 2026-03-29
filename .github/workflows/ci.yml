@@ -6,20 +6,61 @@ on:
   pull_request:
     branches: [main]
 
+# Security: Use SHA-pinned actions for supply-chain security
+# To update, verify new releases and pin to commit SHA:
+#   actions/checkout: https://github.com/actions/checkout/releases
+#   Swatinem/rust-cache: https://github.com/Swatinem/rust-cache/releases
+
 env:
   CARGO_TERM_COLOR: always
-  CARGO: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo
-  RUSTC: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc
-  RUSTFMT: /home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt
 
 jobs:
+  # PR builds from external contributors use GitHub-hosted runners for security
+  # Self-hosted runners are only used for trusted push events to main
   build-and-test:
     name: Build & Test
-    runs-on: self-hosted
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'self-hosted' }}
     timeout-minutes: 20
+    env:
+      # Set cargo/rustc paths based on runner type
+      CARGO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'cargo' || '/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo' }}
+      RUSTC: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'rustc' || '/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc' }}
+      RUSTFMT: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'rustfmt' || '/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # SHA pin: actions/checkout@v4.1.7 (2024-07-16)
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+
+      - name: Security regression guards
+        run: |
+          set -euo pipefail
+
+          echo "Checking for forbidden docker login -p usage..."
+          if git grep -nE 'docker"\)\s*\.args\(\[[^]]*"-p"' -- 'ghostctl/src/**/*.rs'; then
+            echo "ERROR: Found forbidden docker login -p usage"
+            exit 1
+          fi
+
+          echo "Checking for forbidden docker socket chmod 666..."
+          if git grep -n 'chmod", "666", "/var/run/docker.sock"' -- 'ghostctl/src/**/*.rs'; then
+            echo "ERROR: Found forbidden chmod 666 on docker socket"
+            exit 1
+          fi
+
+          echo "Checking for shell interpolation in hardened networking modules..."
+          if git grep -nE 'Command::new\("(sh|bash)"\)\s*\.arg\("-c"' -- \
+            ghostctl/src/networking/firewall.rs \
+            ghostctl/src/networking/advanced_firewall.rs \
+            ghostctl/src/networking/troubleshoot.rs; then
+            echo "ERROR: Found forbidden shell interpolation in networking modules"
+            exit 1
+          fi
+
+          echo "Security regression checks passed"
+
+      - name: Setup Rust (GitHub-hosted only)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork
+        uses: dtolnay/rust-action@stable
 
       - name: Install system dependencies
         run: |
@@ -33,7 +74,8 @@ jobs:
           $CARGO --version
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
+        # SHA pin: Swatinem/rust-cache@v2.7.3 (2024-05-08)
+        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84
         with:
           workspaces: ghostctl
           key: ghostctl-ci

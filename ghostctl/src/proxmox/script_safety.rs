@@ -27,7 +27,7 @@ impl Default for ScriptSafetyConfig {
     fn default() -> Self {
         Self {
             show_preview: true,
-            require_checksum: false,
+            require_checksum: true, // Require checksum verification by default for security
             cache_scripts: true,
             dry_run: false,
             preview_lines: 15,
@@ -86,12 +86,27 @@ pub struct SafeScriptExecutor {
 
 impl SafeScriptExecutor {
     pub fn new(config: ScriptSafetyConfig) -> Result<Self> {
-        let cache_dir = dirs::cache_dir()
-            .unwrap_or_else(|| PathBuf::from("/tmp"))
-            .join("ghostctl")
-            .join("scripts");
+        // Use user's cache directory, or fail if not available
+        // Avoid /tmp fallback as it's world-writable and susceptible to symlink attacks
+        let base_cache = dirs::cache_dir()
+            .or_else(|| {
+                // Fallback to ~/.cache if XDG_CACHE_HOME is not set
+                dirs::home_dir().map(|h| h.join(".cache"))
+            })
+            .context("Cannot determine cache directory - HOME not set")?;
 
+        let cache_dir = base_cache.join("ghostctl").join("scripts");
+
+        // Create with restrictive permissions (owner-only)
         fs::create_dir_all(&cache_dir).context("Failed to create script cache directory")?;
+
+        // Set directory permissions to owner-only (0700)
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let perms = fs::Permissions::from_mode(0o700);
+            fs::set_permissions(&cache_dir, perms).ok(); // Best-effort
+        }
 
         let client = RobustHttpClient::new().context("Failed to create HTTP client")?;
 
@@ -287,22 +302,26 @@ impl SafeScriptExecutor {
             ]
         };
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Choose action")
             .items(&options)
             .default(if has_warnings { 3 } else { 0 })
             .interact()
-            .unwrap_or(3);
+        else {
+            return Ok(false);
+        };
 
         match choice {
             0 => {
                 // Execute
                 if has_warnings {
-                    let confirm = Confirm::new()
+                    let Ok(confirm) = Confirm::new()
                         .with_prompt("Script has warnings. Are you sure you want to execute?")
                         .default(false)
                         .interact()
-                        .unwrap_or(false);
+                    else {
+                        return Ok(false);
+                    };
 
                     if !confirm {
                         println!("  Execution cancelled");
@@ -340,11 +359,13 @@ impl SafeScriptExecutor {
                 }
 
                 // Ask again after viewing
-                let execute = Confirm::new()
+                let Ok(execute) = Confirm::new()
                     .with_prompt("Execute this script?")
                     .default(false)
                     .interact()
-                    .unwrap_or(false);
+                else {
+                    return Ok(false);
+                };
 
                 if execute {
                     if self.config.dry_run {
@@ -405,7 +426,8 @@ impl SafeScriptExecutor {
         }
     }
 
-    /// Execute a script
+    /// Execute a script by writing to a temp file and executing it directly
+    /// This avoids shell injection issues that can occur with `bash -c` for complex scripts
     fn execute_script(&self, content: &str, name: &str) -> Result<bool> {
         let sha256 = Self::compute_sha256(content);
         println!("\n  Executing script: {}...", name);
@@ -416,11 +438,27 @@ impl SafeScriptExecutor {
             Some(&format!("name:{} sha256:{}", name, sha256)),
         );
 
+        // Write script to a temporary file to avoid shell injection issues with bash -c
+        let temp_script = self.cache_dir.join(format!(".exec_{}.sh", sha256));
+        fs::write(&temp_script, content).context("Failed to write temporary script")?;
+
+        // Make script executable
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(&temp_script)?.permissions();
+            perms.set_mode(0o700);
+            fs::set_permissions(&temp_script, perms)?;
+        }
+
+        // Execute the script file directly
         let status = Command::new("bash")
-            .arg("-c")
-            .arg(content)
+            .arg(&temp_script)
             .status()
             .context("Failed to execute script")?;
+
+        // Clean up temp script
+        let _ = fs::remove_file(&temp_script);
 
         if status.success() {
             println!("  Script executed successfully");

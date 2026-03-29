@@ -16,12 +16,14 @@ pub fn configuration_builder() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Configuration type")
         .items(&config_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => create_basic_server(),
@@ -38,22 +40,28 @@ fn create_basic_server() {
     println!("🌐 Basic Web Server Configuration");
     println!("=================================");
 
-    let server_name: String = Input::new()
+    let Ok(server_name): Result<String, _> = Input::new()
         .with_prompt("Server name (domain)")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let root_path: String = Input::new()
+    let Ok(root_path): Result<String, _> = Input::new()
         .with_prompt("Document root path")
         .default("/var/www/html".into())
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let port: String = Input::new()
+    let Ok(port): Result<String, _> = Input::new()
         .with_prompt("Port")
         .default("80".into())
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     let config = format!(
         r#"server {{
@@ -87,15 +95,19 @@ fn create_reverse_proxy() {
     println!("🔄 Reverse Proxy Configuration");
     println!("==============================");
 
-    let server_name: String = Input::new()
+    let Ok(server_name): Result<String, _> = Input::new()
         .with_prompt("Server name (domain)")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let backend_url: String = Input::new()
+    let Ok(backend_url): Result<String, _> = Input::new()
         .with_prompt("Backend URL (e.g., http://localhost:3000)")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     let config = format!(
         r#"server {{
@@ -129,12 +141,14 @@ fn configure_ssl() {
     println!("🔒 SSL/TLS Configuration");
     println!("========================");
 
-    let server_name: String = Input::new()
+    let Ok(server_name): Result<String, _> = Input::new()
         .with_prompt("Server name (domain)")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let ssl_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(ssl_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("SSL certificate type")
         .items(&[
             "🌐 Custom nginx structure",
@@ -144,7 +158,9 @@ fn configure_ssl() {
         ])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let (cert_path, key_path) = match ssl_type {
         0 => (
@@ -160,14 +176,16 @@ fn configure_ssl() {
             "/etc/nginx/ssl/selfsigned.key".to_string(),
         ),
         3 => {
-            let cert: String = Input::new()
-                .with_prompt("Certificate path")
-                .interact_text()
-                .unwrap();
-            let key: String = Input::new()
-                .with_prompt("Private key path")
-                .interact_text()
-                .unwrap();
+            let Ok(cert): Result<String, _> =
+                Input::new().with_prompt("Certificate path").interact_text()
+            else {
+                return;
+            };
+            let Ok(key): Result<String, _> =
+                Input::new().with_prompt("Private key path").interact_text()
+            else {
+                return;
+            };
             (cert, key)
         }
         _ => return,
@@ -228,15 +246,18 @@ fn create_static_server() {
     println!("📁 Static File Server Configuration");
     println!("===================================");
 
-    let server_name: String = Input::new()
-        .with_prompt("Server name")
-        .interact_text()
-        .unwrap();
+    let Ok(server_name): Result<String, _> =
+        Input::new().with_prompt("Server name").interact_text()
+    else {
+        return;
+    };
 
-    let root_path: String = Input::new()
+    let Ok(root_path): Result<String, _> = Input::new()
         .with_prompt("Static files directory")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     let config = format!(
         r#"server {{
@@ -276,32 +297,38 @@ fn create_load_balancer() {
     println!("🎯 Load Balancer Configuration");
     println!("==============================");
 
-    let upstream_name: String = Input::new()
-        .with_prompt("Upstream name")
-        .interact_text()
-        .unwrap();
+    let Ok(upstream_name): Result<String, _> =
+        Input::new().with_prompt("Upstream name").interact_text()
+    else {
+        return;
+    };
 
-    let backend_count: String = Input::new()
+    let Ok(backend_count): Result<String, _> = Input::new()
         .with_prompt("Number of backend servers")
         .default("2".into())
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     let count: usize = backend_count.parse().unwrap_or(2);
     let mut backends = Vec::new();
 
     for i in 1..=count {
-        let backend: String = Input::new()
+        let Ok(backend): Result<String, _> = Input::new()
             .with_prompt(&format!("Backend {} (e.g., 192.168.1.{}:80)", i, i))
             .interact_text()
-            .unwrap();
+        else {
+            continue;
+        };
         backends.push(backend);
     }
 
-    let server_name: String = Input::new()
-        .with_prompt("Server name")
-        .interact_text()
-        .unwrap();
+    let Ok(server_name): Result<String, _> =
+        Input::new().with_prompt("Server name").interact_text()
+    else {
+        return;
+    };
 
     let mut config = format!("upstream {} {{\n", upstream_name);
     for backend in backends {
@@ -345,10 +372,12 @@ fn custom_configuration() {
     println!("📝 Custom Configuration Editor");
     println!("=============================");
 
-    let config_name: String = Input::new()
+    let Ok(config_name): Result<String, _> = Input::new()
         .with_prompt("Configuration name")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("Opening editor for custom configuration...");
     println!("Please write your nginx server block configuration.");
@@ -393,11 +422,13 @@ fn save_nginx_config(name: &str, config: &str) {
         });
 
     // Ask to enable the site
-    let enable = Confirm::new()
+    let Ok(enable) = Confirm::new()
         .with_prompt("Enable this site?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if enable {
         let _ = Command::new("sudo")
@@ -414,11 +445,13 @@ fn save_nginx_config(name: &str, config: &str) {
             Ok(status) if status.success() => {
                 println!("✅ Configuration test passed");
 
-                let reload = Confirm::new()
+                let Ok(reload) = Confirm::new()
                     .with_prompt("Reload nginx?")
                     .default(true)
                     .interact()
-                    .unwrap();
+                else {
+                    return;
+                };
 
                 if reload {
                     let _ = Command::new("sudo")

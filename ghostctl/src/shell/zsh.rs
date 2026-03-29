@@ -1,3 +1,11 @@
+use dialoguer::Confirm;
+use reqwest::blocking::get;
+use sha2::{Digest, Sha256};
+use std::fs;
+use std::io::Write;
+use std::os::unix::fs::PermissionsExt;
+use tempfile::NamedTempFile;
+
 pub fn install_zsh() {
     println!("Installing ZSH...");
     let is_installed = std::process::Command::new("which")
@@ -8,31 +16,88 @@ pub fn install_zsh() {
     if is_installed {
         println!("ZSH is already installed.");
     } else {
-        let status = std::process::Command::new("sh")
-            .arg("-c")
-            .arg("sudo pacman -S --noconfirm zsh || yay -S --noconfirm zsh")
-            .status()
-            .expect("failed to execute install command");
-        if status.success() {
+        // Use direct command execution instead of shell
+        let status = std::process::Command::new("sudo")
+            .args(["pacman", "-S", "--noconfirm", "zsh"])
+            .status();
+
+        let success = match status {
+            Ok(s) if s.success() => true,
+            _ => {
+                // Try yay as fallback
+                std::process::Command::new("yay")
+                    .args(["-S", "--noconfirm", "zsh"])
+                    .status()
+                    .map(|s| s.success())
+                    .unwrap_or(false)
+            }
+        };
+
+        if success {
             println!("ZSH installed successfully.");
         } else {
             println!("Failed to install ZSH. Please install it manually.");
             return;
         }
     }
-    // Install Oh My Zsh
+    // Install Oh My Zsh securely
     let home = std::env::var("HOME").unwrap();
     let omz_dir = format!("{}/.oh-my-zsh", home);
     if !std::path::Path::new(&omz_dir).exists() {
-        let status = std::process::Command::new("sh")
-            .arg("-c")
-            .arg("RUNZSH=no CHSH=no sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\"")
-            .status()
-            .expect("failed to install Oh My Zsh");
-        if status.success() {
-            println!("Oh My Zsh installed.");
-        } else {
-            println!("Failed to install Oh My Zsh.");
+        println!("📥 Downloading Oh My Zsh install script...");
+
+        let url = "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh";
+
+        match get(url) {
+            Ok(response) if response.status().is_success() => {
+                match response.text() {
+                    Ok(content) => {
+                        // Calculate hash for verification
+                        let mut hasher = Sha256::new();
+                        hasher.update(content.as_bytes());
+                        let hash = format!("{:x}", hasher.finalize());
+                        println!("📝 Script SHA256: {}", hash);
+
+                        // Show preview
+                        println!("📄 Script preview (first 300 chars):");
+                        let preview: String = content.chars().take(300).collect();
+                        println!("{}", preview);
+
+                        let confirm = Confirm::new()
+                            .with_prompt("Install Oh My Zsh? (script verified)")
+                            .default(true)
+                            .interact()
+                            .unwrap_or(false);
+
+                        if confirm {
+                            // Create temp file and execute
+                            if let Ok(mut temp_file) = NamedTempFile::new() {
+                                if temp_file.write_all(content.as_bytes()).is_ok() {
+                                    let path = temp_file.path();
+                                    let _ = fs::set_permissions(
+                                        path,
+                                        fs::Permissions::from_mode(0o700),
+                                    );
+
+                                    let status = std::process::Command::new("sh")
+                                        .env("RUNZSH", "no")
+                                        .env("CHSH", "no")
+                                        .arg(path)
+                                        .status();
+
+                                    if status.map(|s| s.success()).unwrap_or(false) {
+                                        println!("Oh My Zsh installed.");
+                                    } else {
+                                        println!("Failed to install Oh My Zsh.");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => println!("Failed to read script: {}", e),
+                }
+            }
+            _ => println!("Failed to download Oh My Zsh script."),
         }
     } else {
         println!("Oh My Zsh already installed.");

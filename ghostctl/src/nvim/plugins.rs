@@ -16,12 +16,14 @@ pub fn plugin_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Plugin Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => list_installed_plugins(),
@@ -38,14 +40,17 @@ fn list_installed_plugins() {
     println!("📋 Installed Plugins");
     println!("===================");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        println!("❌ Could not determine home directory");
+        return;
+    };
     let lazy_dir = home.join(".local/share/nvim/lazy");
 
     if lazy_dir.exists() {
         println!("📂 Lazy.nvim plugins:");
         if let Ok(entries) = fs::read_dir(&lazy_dir) {
             for entry in entries.flatten() {
-                if entry.file_type().unwrap().is_dir() {
+                if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
                     println!("  📦 {}", entry.file_name().to_string_lossy());
                 }
             }
@@ -65,11 +70,13 @@ fn update_all_plugins() {
     println!("🔄 Updating All Plugins");
     println!("=======================");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Update all Neovim plugins?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("🔄 Running plugin update...");
@@ -84,11 +91,13 @@ fn clean_unused_plugins() {
     println!("🧹 Cleaning Unused Plugins");
     println!("==========================");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Clean unused plugins?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("🧹 Cleaning unused plugins...");
@@ -103,7 +112,10 @@ fn plugin_manager_status() {
     println!("📦 Plugin Manager Status");
     println!("========================");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        println!("Could not determine home directory");
+        return;
+    };
 
     // Check Lazy.nvim
     let lazy_dir = home.join(".local/share/nvim/lazy");
@@ -179,7 +191,10 @@ fn plugin_configuration() {
     println!("⚙️  Plugin Configuration");
     println!("=======================");
 
-    let home = dirs::home_dir().unwrap();
+    let Some(home) = dirs::home_dir() else {
+        println!("Could not determine home directory");
+        return;
+    };
     let config_dir = home.join(".config/nvim");
 
     if config_dir.exists() {

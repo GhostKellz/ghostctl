@@ -17,12 +17,15 @@ pub fn passthrough_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("GPU Passthrough")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => check_passthrough_compatibility(),
@@ -190,19 +193,54 @@ fn check_iommu_groups() {
         return;
     }
 
-    // Find NVIDIA devices in IOMMU groups
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg("for g in $(find /sys/kernel/iommu_groups/* -maxdepth 0 -type d | sort -V); do echo \"IOMMU Group ${g##*/}:\"; for d in $g/devices/*; do echo -e \"\\t$(lspci -nns ${d##*/})\"; done; done | grep -A 10 -B 1 -i nvidia")
-        .output();
+    // Find NVIDIA devices in IOMMU groups using pure Rust
+    let mut nvidia_groups = Vec::new();
 
-    if let Ok(output) = output {
-        let iommu_info = String::from_utf8_lossy(&output.stdout);
-        if iommu_info.trim().is_empty() {
-            println!("⚠️  No NVIDIA devices found in IOMMU groups");
-        } else {
-            println!("🔍 NVIDIA devices in IOMMU groups:");
-            println!("{}", iommu_info);
+    if let Ok(groups) = fs::read_dir(iommu_path) {
+        let mut group_dirs: Vec<_> = groups.filter_map(|e| e.ok()).collect();
+        group_dirs.sort_by(|a, b| {
+            let a_num: u32 = a.file_name().to_string_lossy().parse().unwrap_or(u32::MAX);
+            let b_num: u32 = b.file_name().to_string_lossy().parse().unwrap_or(u32::MAX);
+            a_num.cmp(&b_num)
+        });
+
+        for group in group_dirs {
+            let group_num = group.file_name().to_string_lossy().to_string();
+            let devices_path = group.path().join("devices");
+
+            if let Ok(devices) = fs::read_dir(&devices_path) {
+                let mut group_devices = Vec::new();
+                let mut has_nvidia = false;
+
+                for device in devices.filter_map(|e| e.ok()) {
+                    let device_id = device.file_name().to_string_lossy().to_string();
+
+                    // Get device info using lspci
+                    if let Ok(output) = Command::new("lspci").args(["-nns", &device_id]).output() {
+                        let info = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                        if info.to_lowercase().contains("nvidia") {
+                            has_nvidia = true;
+                        }
+                        group_devices.push(format!("\t{}", info));
+                    }
+                }
+
+                if has_nvidia {
+                    nvidia_groups.push((group_num, group_devices));
+                }
+            }
+        }
+    }
+
+    if nvidia_groups.is_empty() {
+        println!("⚠️  No NVIDIA devices found in IOMMU groups");
+    } else {
+        println!("🔍 NVIDIA devices in IOMMU groups:");
+        for (group_num, devices) in nvidia_groups {
+            println!("IOMMU Group {}:", group_num);
+            for device in devices {
+                println!("{}", device);
+            }
         }
     }
 }
@@ -298,12 +336,15 @@ pub fn configure_vfio() {
         "Cancel",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("VFIO Configuration")
         .items(&options)
         .default(4)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => enable_vfio_modules(),
@@ -355,7 +396,7 @@ fn bind_gpu_to_vfio() {
         println!("  {}: {} ({})", i + 1, name, id);
     }
 
-    let indices = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let indices = match dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select GPUs to bind to VFIO")
         .items(
             &gpu_ids
@@ -363,8 +404,11 @@ fn bind_gpu_to_vfio() {
                 .map(|(_, name)| name.as_str())
                 .collect::<Vec<_>>(),
         )
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(i)) => i,
+        _ => return,
+    };
 
     if indices.is_empty() {
         println!("❌ No GPUs selected");
@@ -458,8 +502,10 @@ fn configure_kernel_parameters() {
 
     let auto_configure = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Automatically configure GRUB?")
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if auto_configure {
         configure_grub_automatically(iommu_param);
@@ -651,23 +697,32 @@ esac
 pub fn generate_vm_xml() {
     println!("📋 Generating VM XML configuration for GPU passthrough...");
 
-    let vm_name: String = Input::with_theme(&ColorfulTheme::default())
+    let vm_name: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("VM name")
         .default("gpu-passthrough-vm".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(v) => v,
+        Err(_) => return,
+    };
 
-    let memory: String = Input::with_theme(&ColorfulTheme::default())
+    let memory: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Memory (GB)")
         .default("8".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(v) => v,
+        Err(_) => return,
+    };
 
-    let vcpus: String = Input::with_theme(&ColorfulTheme::default())
+    let vcpus: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("vCPUs")
         .default("4".to_string())
         .interact()
-        .unwrap();
+    {
+        Ok(v) => v,
+        Err(_) => return,
+    };
 
     // Get GPU PCI addresses
     let gpu_ids = get_nvidia_pci_ids();
@@ -681,7 +736,7 @@ pub fn generate_vm_xml() {
         println!("  {}: {} ({})", i + 1, name, id);
     }
 
-    let gpu_choice = Select::with_theme(&ColorfulTheme::default())
+    let gpu_choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select GPU for passthrough")
         .items(
             &gpu_ids
@@ -689,8 +744,11 @@ pub fn generate_vm_xml() {
                 .map(|(_, name)| name.as_str())
                 .collect::<Vec<_>>(),
         )
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     let (gpu_pci, _) = &gpu_ids[gpu_choice];
 
@@ -853,12 +911,15 @@ pub fn fix_passthrough_issues() {
         "Cancel",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select fix option")
         .items(&options)
         .default(5)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => reset_gpu_binding(),
@@ -931,10 +992,40 @@ fn fix_kernel_modules() {
 pub fn show_iommu_groups() {
     println!("📊 IOMMU Groups...\n");
 
-    let _ = Command::new("sh")
-        .arg("-c")
-        .arg("for g in $(find /sys/kernel/iommu_groups/* -maxdepth 0 -type d | sort -V); do echo \"IOMMU Group ${g##*/}:\"; for d in $g/devices/*; do echo -e \"\\t$(lspci -nns ${d##*/})\"; done; done")
-        .status();
+    let iommu_path = "/sys/kernel/iommu_groups";
+    if !std::path::Path::new(iommu_path).exists() {
+        println!("❌ IOMMU groups not available");
+        return;
+    }
+
+    // Enumerate IOMMU groups using pure Rust
+    if let Ok(groups) = fs::read_dir(iommu_path) {
+        let mut group_dirs: Vec<_> = groups.filter_map(|e| e.ok()).collect();
+        group_dirs.sort_by(|a, b| {
+            let a_num: u32 = a.file_name().to_string_lossy().parse().unwrap_or(u32::MAX);
+            let b_num: u32 = b.file_name().to_string_lossy().parse().unwrap_or(u32::MAX);
+            a_num.cmp(&b_num)
+        });
+
+        for group in group_dirs {
+            let group_num = group.file_name().to_string_lossy().to_string();
+            let devices_path = group.path().join("devices");
+
+            println!("IOMMU Group {}:", group_num);
+
+            if let Ok(devices) = fs::read_dir(&devices_path) {
+                for device in devices.filter_map(|e| e.ok()) {
+                    let device_id = device.file_name().to_string_lossy().to_string();
+
+                    // Get device info using lspci
+                    if let Ok(output) = Command::new("lspci").args(["-nns", &device_id]).output() {
+                        let info = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                        println!("\t{}", info);
+                    }
+                }
+            }
+        }
+    }
 }
 
 pub fn setup_looking_glass() {
@@ -973,7 +1064,11 @@ fn setup_looking_glass_shm() {
     {
         let _ = fs::write("/tmp/fstab_append", fstab_entry);
         let _ = Command::new("sudo")
-            .args(&["sh", "-c", "cat /tmp/fstab_append >> /etc/fstab"])
+            .args(["tee", "-a", "/etc/fstab"])
+            .stdin(std::process::Stdio::from(
+                std::fs::File::open("/tmp/fstab_append").unwrap(),
+            ))
+            .stdout(std::process::Stdio::null())
             .status();
     }
 

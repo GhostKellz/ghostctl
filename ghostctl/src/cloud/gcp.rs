@@ -35,8 +35,13 @@ pub fn gcloud_tools() {
         .with_prompt("Google Cloud Actions")
         .items(&gcloud_actions)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(action) = action else {
+        return;
+    };
 
     match action {
         0 => gcloud_authenticate(),
@@ -65,14 +70,20 @@ fn gcloud_authenticate() {
     let set_project = dialoguer::Confirm::new()
         .with_prompt("Set a default project?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if set_project {
         let project_id: String = Input::new()
             .with_prompt("Project ID")
             .interact_text()
-            .unwrap();
+            .unwrap_or_default();
+
+        if project_id.is_empty() {
+            return;
+        }
 
         let _ = Command::new("gcloud")
             .args(["config", "set", "project", &project_id])
@@ -97,8 +108,13 @@ fn list_projects() {
         .with_prompt("Project Actions")
         .items(&options)
         .default(3)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => switch_project(),
@@ -126,8 +142,13 @@ fn list_compute_instances() {
         .with_prompt("Compute Actions")
         .items(&options)
         .default(4)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => start_stop_instances(),
@@ -154,8 +175,13 @@ fn list_storage_buckets() {
         .with_prompt("Storage Actions")
         .items(&options)
         .default(4)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => list_bucket_contents(),
@@ -183,8 +209,13 @@ fn list_vpcs() {
         .with_prompt("VPC Actions")
         .items(&options)
         .default(3)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => network_details(),
@@ -212,8 +243,13 @@ fn list_gke_clusters() {
         .with_prompt("GKE Actions")
         .items(&options)
         .default(4)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => cluster_details(),
@@ -274,8 +310,13 @@ fn billing_information() {
         .with_prompt("Billing Actions")
         .items(&options)
         .default(4)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => current_usage(),
@@ -301,8 +342,13 @@ fn monitoring_and_logging() {
         .with_prompt("Monitoring Actions")
         .items(&options)
         .default(4)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => cloud_monitoring_metrics(),
@@ -328,8 +374,13 @@ fn configuration_management() {
         .with_prompt("Configuration Actions")
         .items(&options)
         .default(4)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => show_current_config(),
@@ -345,7 +396,11 @@ fn switch_project() {
     let project_id: String = Input::new()
         .with_prompt("Project ID to switch to")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if project_id.is_empty() {
+        return;
+    }
 
     let _ = Command::new("gcloud")
         .args(["config", "set", "project", &project_id])
@@ -358,7 +413,11 @@ fn project_details() {
     let project_id: String = Input::new()
         .with_prompt("Project ID")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if project_id.is_empty() {
+        return;
+    }
 
     let _ = Command::new("gcloud")
         .args(["projects", "describe", &project_id])
@@ -369,7 +428,11 @@ fn project_billing() {
     let project_id: String = Input::new()
         .with_prompt("Project ID")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if project_id.is_empty() {
+        return;
+    }
 
     let _ = Command::new("gcloud")
         .args(["billing", "projects", "describe", &project_id])
@@ -380,16 +443,32 @@ fn start_stop_instances() {
     let instance_name: String = Input::new()
         .with_prompt("Instance name")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
 
-    let zone: String = Input::new().with_prompt("Zone").interact_text().unwrap();
+    if instance_name.is_empty() {
+        return;
+    }
+
+    let zone: String = Input::new()
+        .with_prompt("Zone")
+        .interact_text()
+        .unwrap_or_default();
+
+    if zone.is_empty() {
+        return;
+    }
 
     let action = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Instance Action")
         .items(&["Start", "Stop", "Restart"])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(action) = action else {
+        return;
+    };
 
     let command = match action {
         0 => "start",
@@ -415,9 +494,20 @@ fn instance_details() {
     let instance_name: String = Input::new()
         .with_prompt("Instance name")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
 
-    let zone: String = Input::new().with_prompt("Zone").interact_text().unwrap();
+    if instance_name.is_empty() {
+        return;
+    }
+
+    let zone: String = Input::new()
+        .with_prompt("Zone")
+        .interact_text()
+        .unwrap_or_default();
+
+    if zone.is_empty() {
+        return;
+    }
 
     let _ = Command::new("gcloud")
         .args([
@@ -440,9 +530,20 @@ fn ssh_to_instance() {
     let instance_name: String = Input::new()
         .with_prompt("Instance name")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
 
-    let zone: String = Input::new().with_prompt("Zone").interact_text().unwrap();
+    if instance_name.is_empty() {
+        return;
+    }
+
+    let zone: String = Input::new()
+        .with_prompt("Zone")
+        .interact_text()
+        .unwrap_or_default();
+
+    if zone.is_empty() {
+        return;
+    }
 
     println!("🔧 Connecting to instance: {}", instance_name);
     let _ = Command::new("gcloud")
@@ -454,7 +555,11 @@ fn list_bucket_contents() {
     let bucket_name: String = Input::new()
         .with_prompt("Bucket name (without gs://)")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if bucket_name.is_empty() {
+        return;
+    }
 
     let _ = Command::new("gsutil")
         .args(["ls", &format!("gs://{}", bucket_name)])
@@ -465,7 +570,11 @@ fn bucket_usage() {
     let bucket_name: String = Input::new()
         .with_prompt("Bucket name (without gs://)")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if bucket_name.is_empty() {
+        return;
+    }
 
     let _ = Command::new("gsutil")
         .args(["du", "-sh", &format!("gs://{}", bucket_name)])
@@ -476,7 +585,11 @@ fn bucket_permissions() {
     let bucket_name: String = Input::new()
         .with_prompt("Bucket name (without gs://)")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if bucket_name.is_empty() {
+        return;
+    }
 
     let _ = Command::new("gsutil")
         .args(["iam", "get", &format!("gs://{}", bucket_name)])
@@ -492,7 +605,11 @@ fn network_details() {
     let network_name: String = Input::new()
         .with_prompt("Network name")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if network_name.is_empty() {
+        return;
+    }
 
     let _ = Command::new("gcloud")
         .args(["compute", "networks", "describe", &network_name])
@@ -515,12 +632,20 @@ fn cluster_details() {
     let cluster_name: String = Input::new()
         .with_prompt("Cluster name")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if cluster_name.is_empty() {
+        return;
+    }
 
     let zone_or_region: String = Input::new()
         .with_prompt("Zone or region")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if zone_or_region.is_empty() {
+        return;
+    }
 
     let _ = Command::new("gcloud")
         .args([
@@ -538,12 +663,20 @@ fn get_cluster_credentials() {
     let cluster_name: String = Input::new()
         .with_prompt("Cluster name")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if cluster_name.is_empty() {
+        return;
+    }
 
     let zone_or_region: String = Input::new()
         .with_prompt("Zone or region")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if zone_or_region.is_empty() {
+        return;
+    }
 
     let _ = Command::new("gcloud")
         .args([
@@ -563,12 +696,20 @@ fn node_pool_info() {
     let cluster_name: String = Input::new()
         .with_prompt("Cluster name")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if cluster_name.is_empty() {
+        return;
+    }
 
     let zone_or_region: String = Input::new()
         .with_prompt("Zone or region")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if zone_or_region.is_empty() {
+        return;
+    }
 
     let _ = Command::new("gcloud")
         .args([
@@ -646,7 +787,11 @@ fn set_default_region() {
     let region: String = Input::new()
         .with_prompt("Default region (e.g., us-central1)")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if region.is_empty() {
+        return;
+    }
 
     let _ = Command::new("gcloud")
         .args(["config", "set", "compute/region", &region])
@@ -659,7 +804,11 @@ fn set_default_zone() {
     let zone: String = Input::new()
         .with_prompt("Default zone (e.g., us-central1-a)")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if zone.is_empty() {
+        return;
+    }
 
     let _ = Command::new("gcloud")
         .args(["config", "set", "compute/zone", &zone])

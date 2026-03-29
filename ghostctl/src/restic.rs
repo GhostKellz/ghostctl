@@ -18,12 +18,14 @@ pub fn setup() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Restic CLI Tools")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => restic_init_interactive(),
@@ -37,10 +39,12 @@ pub fn setup() {
 }
 
 fn restic_init_interactive() {
-    let repo: String = Input::new()
+    let Ok(repo) = Input::<String>::new()
         .with_prompt("Repository path/URL")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🏗️  Initializing repository: {}", repo);
     match init_repository(&repo) {
@@ -50,15 +54,19 @@ fn restic_init_interactive() {
 }
 
 fn restic_backup_interactive() {
-    let repo: String = Input::new()
+    let Ok(repo) = Input::<String>::new()
         .with_prompt("Repository path/URL")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let paths: String = Input::new()
+    let Ok(paths) = Input::<String>::new()
         .with_prompt("Paths to backup (space-separated)")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     let path_list: Vec<&str> = paths.split_whitespace().collect();
 
@@ -70,10 +78,12 @@ fn restic_backup_interactive() {
 }
 
 fn restic_list_interactive() {
-    let repo: String = Input::new()
+    let Ok(repo) = Input::<String>::new()
         .with_prompt("Repository path/URL")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📋 Listing snapshots...");
     match list_snapshots(&repo) {
@@ -83,20 +93,26 @@ fn restic_list_interactive() {
 }
 
 fn restic_restore_interactive() {
-    let repo: String = Input::new()
+    let Ok(repo) = Input::<String>::new()
         .with_prompt("Repository path/URL")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let snapshot_id: String = Input::new()
+    let Ok(snapshot_id) = Input::<String>::new()
         .with_prompt("Snapshot ID")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let target: String = Input::new()
+    let Ok(target) = Input::<String>::new()
         .with_prompt("Restore target directory")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔄 Restoring snapshot {} to {}...", snapshot_id, target);
     match restore(&snapshot_id, &target, &repo) {
@@ -106,28 +122,36 @@ fn restic_restore_interactive() {
 }
 
 fn restic_forget_interactive() {
-    let repo: String = Input::new()
+    let Ok(repo) = Input::<String>::new()
         .with_prompt("Repository path/URL")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let keep_daily: u32 = Input::new()
+    let Ok(keep_daily) = Input::<u32>::new()
         .with_prompt("Keep daily snapshots for N days")
         .default(7)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let keep_weekly: u32 = Input::new()
+    let Ok(keep_weekly) = Input::<u32>::new()
         .with_prompt("Keep weekly snapshots for N weeks")
         .default(4)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let keep_monthly: u32 = Input::new()
+    let Ok(keep_monthly) = Input::<u32>::new()
         .with_prompt("Keep monthly snapshots for N months")
         .default(6)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🧹 Forgetting old snapshots...");
     match forget_snapshots(&repo, keep_daily, keep_weekly, keep_monthly) {
@@ -137,10 +161,12 @@ fn restic_forget_interactive() {
 }
 
 fn restic_check_interactive() {
-    let repo: String = Input::new()
+    let Ok(repo) = Input::<String>::new()
         .with_prompt("Repository path/URL")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔍 Checking repository integrity...");
     match check_repository(&repo) {

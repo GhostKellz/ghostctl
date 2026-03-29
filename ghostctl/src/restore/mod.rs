@@ -15,12 +15,15 @@ pub fn restore_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Recovery Options")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     match choice {
         0 => system::restore_from_restic(),

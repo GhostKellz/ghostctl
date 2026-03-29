@@ -17,12 +17,15 @@ pub fn container_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Container & GPU Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => check_container_status(),
@@ -174,8 +177,10 @@ pub fn setup_docker_gpu() {
     if !check_docker_installed() {
         let install = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Docker not found. Install Docker?")
-            .interact()
-            .unwrap();
+            .interact_opt()
+            .ok()
+            .flatten()
+            .unwrap_or(false);
 
         if install {
             install_docker();
@@ -204,8 +209,10 @@ pub fn setup_podman_gpu() {
     if !check_podman_installed() {
         let install = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Podman not found. Install Podman?")
-            .interact()
-            .unwrap();
+            .interact_opt()
+            .ok()
+            .flatten()
+            .unwrap_or(false);
 
         if install {
             install_podman();
@@ -240,8 +247,10 @@ pub fn install_nvidia_container_runtime() {
         println!("⚠️  NVIDIA Container Runtime already installed");
         let reinstall = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Reinstall anyway?")
-            .interact()
-            .unwrap();
+            .interact_opt()
+            .ok()
+            .flatten()
+            .unwrap_or(false);
 
         if !reinstall {
             return;
@@ -464,12 +473,15 @@ pub fn test_gpu_containers() {
         return;
     };
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select container engine to test")
         .items(&container_engines)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match container_engines[choice] {
         "Docker" => test_docker_gpu(),
@@ -558,12 +570,15 @@ pub fn fix_container_issues() {
         "Cancel",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select fix option")
         .items(&options)
         .default(5)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => fix_docker_permissions(),
@@ -579,38 +594,78 @@ fn fix_docker_permissions() {
     println!("🔧 Fixing Docker permissions...");
 
     if let Ok(username) = std::env::var("USER") {
-        let _ = Command::new("sudo")
-            .args(&["usermod", "-aG", "docker", &username])
+        let status = Command::new("sudo")
+            .args(["usermod", "-aG", "docker", &username])
             .status();
 
-        println!("✅ Added {} to docker group", username);
-        println!("💡 Log out and back in for changes to take effect");
+        match status {
+            Ok(s) if s.success() => {
+                println!("✅ Added {} to docker group", username);
+                println!("💡 Log out and back in for changes to take effect");
+                println!("   (or run: newgrp docker)");
+            }
+            Ok(_) => {
+                println!("❌ Failed to add {} to docker group", username);
+            }
+            Err(e) => {
+                println!("❌ Failed to run usermod: {}", e);
+            }
+        }
+    } else {
+        println!("⚠️  Could not determine current user");
     }
 
-    // Fix socket permissions
-    let _ = Command::new("sudo")
-        .args(&["chmod", "666", "/var/run/docker.sock"])
+    // Ensure docker socket has correct group ownership (docker group, not world-writable)
+    let status = Command::new("sudo")
+        .args(["chgrp", "docker", "/var/run/docker.sock"])
         .status();
 
-    println!("✅ Docker permissions fixed");
+    if let Ok(s) = status {
+        if s.success() {
+            println!("✅ Docker socket group ownership set to 'docker'");
+        }
+    }
+
+    println!("✅ Docker permissions configured (group-based access)");
 }
 
 fn restart_container_services() {
     println!("🔄 Restarting container services...");
 
     if check_docker_installed() {
-        let _ = Command::new("sudo")
-            .args(&["systemctl", "restart", "docker"])
-            .status();
-        println!("  Docker service restarted");
+        match Command::new("sudo")
+            .args(["systemctl", "restart", "docker"])
+            .status()
+        {
+            Ok(status) if status.success() => {
+                println!("  ✅ Docker service restarted");
+            }
+            Ok(_) => {
+                println!("  ⚠️  Docker restart returned non-zero status");
+            }
+            Err(e) => {
+                println!("  ❌ Failed to restart Docker: {}", e);
+            }
+        }
     }
 
-    // Restart containerd if present
-    let _ = Command::new("sudo")
-        .args(&["systemctl", "restart", "containerd"])
-        .status();
+    // Restart containerd if present (non-critical, may not be installed)
+    match Command::new("sudo")
+        .args(["systemctl", "restart", "containerd"])
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("  ✅ Containerd service restarted");
+        }
+        Ok(_) => {
+            // Containerd may not be installed, don't warn
+        }
+        Err(_) => {
+            // Containerd may not be installed
+        }
+    }
 
-    println!("✅ Container services restarted");
+    println!("✅ Container services restart complete");
 }
 
 fn reset_container_configs() {
@@ -618,8 +673,10 @@ fn reset_container_configs() {
 
     let confirm = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will reset Docker and Podman configurations. Continue?")
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if !confirm {
         return;

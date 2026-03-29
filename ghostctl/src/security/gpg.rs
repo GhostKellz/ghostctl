@@ -4,6 +4,71 @@ use std::fs;
 use std::process::Command;
 use thiserror::Error;
 
+/// Validate GPG key ID input to prevent shell injection
+/// Valid formats: 8 or 16 hex chars, or email address
+fn validate_key_id(input: &str) -> Result<(), &'static str> {
+    let trimmed = input.trim();
+
+    if trimmed.is_empty() {
+        return Err("Key ID cannot be empty");
+    }
+
+    // Check for shell metacharacters
+    let dangerous_chars = [
+        ';', '|', '&', '$', '`', '(', ')', '{', '}', '[', ']', '<', '>', '!', '\\', '"', '\'',
+        '\n', '\r', '\t', '*', '?', '#', '~', '%', '^',
+    ];
+    if trimmed.chars().any(|c| dangerous_chars.contains(&c)) {
+        return Err("Key ID contains invalid characters");
+    }
+
+    // Allow hex key IDs (8 or 16 chars for short/long format)
+    let is_hex = trimmed.chars().all(|c| c.is_ascii_hexdigit() || c == ' ');
+    if is_hex && (trimmed.len() == 8 || trimmed.len() == 16 || trimmed.len() == 40) {
+        return Ok(());
+    }
+
+    // Allow email addresses
+    if trimmed.contains('@') && trimmed.len() < 256 {
+        // Basic email validation
+        let parts: Vec<&str> = trimmed.split('@').collect();
+        if parts.len() == 2
+            && !parts[0].is_empty()
+            && !parts[1].is_empty()
+            && parts[1].contains('.')
+        {
+            return Ok(());
+        }
+    }
+
+    // Allow name patterns (alphanumeric with spaces)
+    let is_name = trimmed
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == ' ' || c == '-' || c == '_' || c == '.');
+    if is_name && trimmed.len() < 256 {
+        return Ok(());
+    }
+
+    Err("Invalid key ID format. Use hex ID, email, or name")
+}
+
+/// Validate GPG name/comment input
+fn validate_gpg_text(input: &str) -> Result<(), &'static str> {
+    let trimmed = input.trim();
+
+    // Check for characters that could cause issues in batch file
+    let dangerous_chars = ['`', '$', '\\', '\n', '\r'];
+    if trimmed.chars().any(|c| dangerous_chars.contains(&c)) {
+        return Err("Input contains invalid characters");
+    }
+
+    if trimmed.len() > 256 {
+        return Err("Input too long (max 256 characters)");
+    }
+
+    Ok(())
+}
+
 #[derive(Error, Debug)]
 pub enum GpgError {
     #[error("GPG command failed: {0}")]
@@ -97,15 +162,14 @@ pub fn generate_gpg_key() -> Result<()> {
 }
 
 pub fn custom_gpg_generation() -> Result<()> {
-    println!("⚙️  Custom GPG Key Configuration");
+    println!("Custom GPG Key Configuration");
     let real_name: String = Input::new()
         .with_prompt("Real name")
         .validate_with(|input: &String| -> Result<(), &str> {
             if input.trim().is_empty() {
-                Err("Name cannot be empty")
-            } else {
-                Ok(())
+                return Err("Name cannot be empty");
             }
+            validate_gpg_text(input)
         })
         .interact_text()
         .context("Failed to get real name")?;
@@ -114,18 +178,20 @@ pub fn custom_gpg_generation() -> Result<()> {
         .with_prompt("Email")
         .validate_with(|input: &String| -> Result<(), &str> {
             if input.trim().is_empty() {
-                Err("Email cannot be empty")
-            } else if !input.contains('@') {
-                Err("Please enter a valid email address")
-            } else {
-                Ok(())
+                return Err("Email cannot be empty");
             }
+            if !input.contains('@') {
+                return Err("Please enter a valid email address");
+            }
+            validate_gpg_text(input)
         })
         .interact_text()
         .context("Failed to get email")?;
 
     let comment: String = Input::new()
-        .with_prompt("Comment")
+        .with_prompt("Comment (optional)")
+        .allow_empty(true)
+        .validate_with(|input: &String| -> Result<(), &str> { validate_gpg_text(input) })
         .interact_text()
         .context("Failed to get comment")?;
     let key_length = Select::with_theme(&ColorfulTheme::default())
@@ -156,23 +222,39 @@ Name-Real: {}
 Name-Email: {}
 Name-Comment: {}
 Expire-Date: {}
-Passphrase: 
+Passphrase:
 %commit
 "#,
         length, length, real_name, email, comment, expire_time
     );
-    let batch_file = "/tmp/gpg-batch";
-    fs::write(batch_file, batch_content).context("Failed to write GPG batch file")?;
 
-    println!("🔧 Generating GPG key with custom parameters...");
+    // Use a unique temp file with secure permissions
+    let batch_file = format!("/tmp/gpg-batch-{}", std::process::id());
+    let batch_path = std::path::Path::new(&batch_file);
+
+    fs::write(batch_path, &batch_content).context("Failed to write GPG batch file")?;
+
+    // Set restrictive permissions (0600) on batch file
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(batch_path)?.permissions();
+        perms.set_mode(0o600);
+        fs::set_permissions(batch_path, perms)?;
+    }
+
+    println!("Generating GPG key with custom parameters...");
     let status = Command::new("gpg")
         .arg("--batch")
         .arg("--gen-key")
-        .arg(batch_file)
+        .arg(&batch_file)
         .status()
         .context("Failed to execute GPG command")?;
 
-    let _ = fs::remove_file(batch_file);
+    // Always clean up the batch file, log any errors
+    if let Err(e) = fs::remove_file(batch_path) {
+        log::warn!("Failed to remove GPG batch file {}: {}", batch_file, e);
+    }
 
     if status.success() {
         println!("Custom GPG key generated!");
@@ -194,14 +276,8 @@ pub fn export_public_key() -> Result<()> {
     }
 
     let key_id: String = Input::new()
-        .with_prompt("Key ID")
-        .validate_with(|input: &String| -> Result<(), &str> {
-            if input.trim().is_empty() {
-                Err("Key ID cannot be empty")
-            } else {
-                Ok(())
-            }
-        })
+        .with_prompt("Key ID (hex ID, email, or name)")
+        .validate_with(|input: &String| -> Result<(), &str> { validate_key_id(input) })
         .interact_text()
         .context("Failed to get key ID")?;
     let format = Select::with_theme(&ColorfulTheme::default())

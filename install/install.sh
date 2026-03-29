@@ -19,6 +19,70 @@ PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Verify file checksum for supply-chain security
+verify_checksum() {
+    local file="$1"
+    local expected_checksum="$2"
+
+    if [[ -z "$expected_checksum" ]]; then
+        echo -e "${RED}❌ No checksum provided for verification${NC}"
+        return 1
+    fi
+
+    local actual_checksum
+    if command -v sha256sum &> /dev/null; then
+        actual_checksum=$(sha256sum "$file" | awk '{print $1}')
+    elif command -v shasum &> /dev/null; then
+        actual_checksum=$(shasum -a 256 "$file" | awk '{print $1}')
+    else
+        echo -e "${RED}❌ No sha256 tool available${NC}"
+        return 1
+    fi
+
+    if [[ "$actual_checksum" == "$expected_checksum" ]]; then
+        echo -e "${GREEN}✅ Checksum verified${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ Checksum mismatch!${NC}"
+        echo -e "${RED}   Expected: $expected_checksum${NC}"
+        echo -e "${RED}   Actual:   $actual_checksum${NC}"
+        return 1
+    fi
+}
+
+# Download with integrity verification
+download_verified() {
+    local url="$1"
+    local output="$2"
+    local checksum_url="${url}.sha256"
+
+    # Download the file
+    if ! curl -fsSL -o "$output" "$url"; then
+        return 1
+    fi
+
+    # Download checksum and verify
+    local checksum_file
+    checksum_file=$(mktemp)
+
+    if curl -fsSL -o "$checksum_file" "$checksum_url" 2>/dev/null; then
+        local expected_checksum
+        expected_checksum=$(awk '{print $1}' "$checksum_file" | head -n1)
+        rm -f "$checksum_file"
+
+        if ! verify_checksum "$output" "$expected_checksum"; then
+            echo -e "${RED}❌ SECURITY: File failed integrity check!${NC}"
+            rm -f "$output"
+            return 1
+        fi
+    else
+        echo -e "${YELLOW}⚠️  Checksum file not available, proceeding without verification${NC}"
+        rm -f "$checksum_file"
+    fi
+
+    return 0
+}
+
 print_header() {
     echo -e "${CYAN}"
     echo "████████  ██     ██  ████████  ████████  ██████████  ████████  ██████████  ██"
@@ -105,18 +169,19 @@ download_binary() {
     mkdir -p "$TEMP_DIR"
     cd "$TEMP_DIR"
 
-    # Download the archive
+    # Download the archive with integrity verification
     DOWNLOAD_URL="https://github.com/$REPO/releases/download/$VERSION/ghostctl-$VERSION-$TARGET.tar.gz"
     echo -e "${BLUE}🔗 Download URL: $DOWNLOAD_URL${NC}"
-    
-    if ! curl -L -o "ghostctl.tar.gz" "$DOWNLOAD_URL"; then
-        echo -e "${RED}❌ Failed to download binary${NC}"
+
+    if ! download_verified "$DOWNLOAD_URL" "ghostctl.tar.gz"; then
+        echo -e "${RED}❌ Failed to download/verify binary${NC}"
         echo -e "${YELLOW}💡 Falling back to building from source...${NC}"
         build_from_source
         return
     fi
 
-    # Extract the archive
+    # Extract the verified archive
+    echo -e "${BLUE}📦 Extracting archive...${NC}"
     tar -xzf "ghostctl.tar.gz"
     
     if [[ ! -f "$BINARY_NAME" ]]; then

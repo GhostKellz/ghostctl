@@ -1,9 +1,8 @@
 pub fn rebuild() {
     println!("ghostctl :: NVIDIA DKMS Rebuild");
     // Check if nvidia-dkms is installed
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("pacman -Qs nvidia-dkms")
+    let status = std::process::Command::new("pacman")
+        .args(["-Qs", "nvidia-dkms"])
         .output();
     match status {
         Ok(out) => {
@@ -17,10 +16,17 @@ pub fn rebuild() {
         }
         Err(_) => println!("Could not check for nvidia-dkms."),
     }
+    // Get kernel version using uname
+    let kernel_version = match std::process::Command::new("uname").arg("-r").output() {
+        Ok(out) => String::from_utf8_lossy(&out.stdout).trim().to_string(),
+        Err(_) => {
+            println!("Failed to get kernel version.");
+            return;
+        }
+    };
     // Rebuild DKMS modules
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("sudo dkms install -m nvidia -k $(uname -r)")
+    let status = std::process::Command::new("sudo")
+        .args(["dkms", "install", "-m", "nvidia", "-k", &kernel_version])
         .status();
     match status {
         Ok(s) if s.success() => println!("DKMS modules rebuilt for current kernel."),

@@ -7,12 +7,15 @@ pub fn emergency_cleanup_all_snapshots() {
     println!("🚨 EMERGENCY: Removing ALL BTRFS snapshots to free disk space");
     println!("⚠️  This is irreversible and will delete all system snapshots!");
 
-    if !Confirm::new()
+    let confirmed = match Confirm::new()
         .with_prompt("Are you absolutely sure? This cannot be undone!")
         .default(false)
-        .interact()
-        .unwrap()
+        .interact_opt()
     {
+        Ok(Some(c)) => c,
+        _ => false,
+    };
+    if !confirmed {
         println!("❌ Emergency cleanup aborted");
         return;
     }
@@ -83,12 +86,15 @@ pub fn bulk_cleanup_snapshots() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Cleanup Method")
         .items(&cleanup_options)
         .default(4) // Default to show disk usage
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => cleanup_by_age_interactive(),
@@ -98,7 +104,7 @@ pub fn bulk_cleanup_snapshots() {
         4 => {
             check_disk_space();
             bulk_cleanup_snapshots(); // Return to menu
-        },
+        }
         _ => return,
     }
 }
@@ -120,12 +126,15 @@ pub fn cleanup_snapshots_by_age(days: &str) {
 pub fn cleanup_snapshots_by_range(range: &str) {
     println!("🔢 Deleting snapshot range {}...", range);
 
-    if !Confirm::new()
+    let confirmed = match Confirm::new()
         .with_prompt(format!("Delete snapshots {}?", range))
         .default(false)
-        .interact()
-        .unwrap()
+        .interact_opt()
     {
+        Ok(Some(c)) => c,
+        _ => false,
+    };
+    if !confirmed {
         println!("❌ Range cleanup aborted");
         return;
     }
@@ -141,20 +150,26 @@ pub fn cleanup_snapshots_by_range(range: &str) {
 }
 
 fn cleanup_by_age_interactive() {
-    let days: String = Input::new()
+    let days: String = match Input::new()
         .with_prompt("Delete snapshots older than how many days?")
         .default("30".to_string())
         .interact_text()
-        .unwrap();
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
     cleanup_snapshots_by_age(&days);
 }
 
 fn cleanup_by_range_interactive() {
-    let range: String = Input::new()
+    let range: String = match Input::new()
         .with_prompt("Enter snapshot range (e.g., 1-100)")
         .interact_text()
-        .unwrap();
+    {
+        Ok(r) => r,
+        Err(_) => return,
+    };
 
     cleanup_snapshots_by_range(&range);
 }
@@ -170,18 +185,24 @@ fn cleanup_specific_snapshots() {
         println!("{}", snapshot_list);
     }
 
-    let snapshots: String = Input::new()
+    let snapshots: String = match Input::new()
         .with_prompt("Enter snapshot numbers to delete (space-separated, e.g., '184 187 188')")
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     if !snapshots.trim().is_empty() {
-        if Confirm::new()
+        let confirmed = match Confirm::new()
             .with_prompt(format!("Delete snapshots: {}?", snapshots))
             .default(false)
-            .interact()
-            .unwrap()
+            .interact_opt()
         {
+            Ok(Some(c)) => c,
+            _ => false,
+        };
+        if confirmed {
             println!("🎯 Deleting specific snapshots...");
 
             let status = Command::new("sudo")
@@ -253,27 +274,36 @@ pub fn comprehensive_snapshot_management() {
     ];
 
     loop {
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let choice = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("BTRFS Snapshot Management")
             .items(&main_options)
             .default(4) // Default to disk space check
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => break,
+        };
 
         match choice {
             0 => {
-                let name: String = Input::new()
+                let name: String = match Input::new()
                     .with_prompt("Snapshot name")
                     .interact_text()
-                    .unwrap();
+                {
+                    Ok(n) => n,
+                    Err(_) => continue,
+                };
                 create_snapshot("/@", &name);
             }
             1 => list_snapshots(),
             2 => {
-                let name: String = Input::new()
+                let name: String = match Input::new()
                     .with_prompt("Snapshot name to delete")
                     .interact_text()
-                    .unwrap();
+                {
+                    Ok(n) => n,
+                    Err(_) => continue,
+                };
                 delete_snapshot(&name);
             }
             3 => bulk_cleanup_snapshots(),
@@ -310,12 +340,15 @@ pub fn list_snapshots() {
 
 pub fn delete_snapshot(name: &str) {
     let target = format!("/@snapshots/{}", name);
-    if Confirm::new()
+    let confirmed = match Confirm::new()
         .with_prompt(format!("Delete snapshot '{}'?", name))
         .default(false)
-        .interact()
-        .unwrap()
+        .interact_opt()
     {
+        Ok(Some(c)) => c,
+        _ => false,
+    };
+    if confirmed {
         let status = std::process::Command::new("sudo")
             .args(["btrfs", "subvolume", "delete", &target])
             .status();
@@ -330,12 +363,15 @@ pub fn delete_snapshot(name: &str) {
 
 pub fn restore_snapshot(name: &str, target: &str) {
     println!("Restoring snapshot '{}' to '{}'...", name, target);
-    if Confirm::new()
+    let confirmed = match Confirm::new()
         .with_prompt(format!("This will overwrite '{}'. Continue?", target))
         .default(false)
-        .interact()
-        .unwrap()
+        .interact_opt()
     {
+        Ok(Some(c)) => c,
+        _ => false,
+    };
+    if confirmed {
         let source = format!("/@snapshots/{}", name);
         let status = std::process::Command::new("sudo")
             .args(["btrfs", "subvolume", "snapshot", &source, target])

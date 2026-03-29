@@ -1,14 +1,251 @@
 use dialoguer::{Confirm, Input, MultiSelect, Select, theme::ColorfulTheme};
+use serde::Deserialize;
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, Instant};
 
 // Cache for commonly accessed paths
 static HOME_DIR: OnceLock<String> = OnceLock::new();
 
+// Version cache with TTL
+static VERSION_CACHE: OnceLock<Mutex<VersionCache>> = OnceLock::new();
+
+/// GitHub release information
+#[derive(Debug, Clone, Deserialize)]
+struct GitHubRelease {
+    tag_name: String,
+    name: String,
+    prerelease: bool,
+}
+
+/// Cached version information
+#[derive(Debug, Clone)]
+struct CachedVersions {
+    versions: Vec<String>,
+    fetched_at: Instant,
+}
+
+/// Version cache manager
+struct VersionCache {
+    cache: HashMap<String, CachedVersions>,
+    cache_ttl: Duration,
+}
+
+impl VersionCache {
+    fn new() -> Self {
+        Self {
+            cache: HashMap::new(),
+            cache_ttl: Duration::from_secs(3600), // 1 hour cache
+        }
+    }
+
+    fn get(&self, repo: &str) -> Option<Vec<String>> {
+        if let Some(cached) = self.cache.get(repo) {
+            if cached.fetched_at.elapsed() < self.cache_ttl {
+                return Some(cached.versions.clone());
+            }
+        }
+        None
+    }
+
+    fn set(&mut self, repo: &str, versions: Vec<String>) {
+        self.cache.insert(
+            repo.to_string(),
+            CachedVersions {
+                versions,
+                fetched_at: Instant::now(),
+            },
+        );
+    }
+}
+
+/// Get the version cache
+fn get_version_cache() -> &'static Mutex<VersionCache> {
+    VERSION_CACHE.get_or_init(|| Mutex::new(VersionCache::new()))
+}
+
+/// Fetch releases from GitHub API with caching
+fn fetch_github_releases(owner: &str, repo: &str, limit: usize) -> Vec<String> {
+    let cache_key = format!("{}/{}", owner, repo);
+
+    // Check cache first
+    if let Ok(cache) = get_version_cache().lock() {
+        if let Some(versions) = cache.get(&cache_key) {
+            return versions;
+        }
+    }
+
+    // Fetch from GitHub API
+    let url = format!(
+        "https://api.github.com/repos/{}/{}/releases?per_page={}",
+        owner, repo, limit
+    );
+
+    let versions = match reqwest::blocking::Client::new()
+        .get(&url)
+        .header("User-Agent", "ghostctl")
+        .timeout(Duration::from_secs(10))
+        .send()
+    {
+        Ok(response) => {
+            if let Ok(releases) = response.json::<Vec<GitHubRelease>>() {
+                releases
+                    .into_iter()
+                    .filter(|r| !r.prerelease)
+                    .map(|r| r.tag_name.trim_start_matches('v').to_string())
+                    .collect()
+            } else {
+                Vec::new()
+            }
+        }
+        Err(_) => Vec::new(),
+    };
+
+    // Update cache if we got results
+    if !versions.is_empty() {
+        if let Ok(mut cache) = get_version_cache().lock() {
+            cache.set(&cache_key, versions.clone());
+        }
+    }
+
+    versions
+}
+
+/// Get available DXVK versions from GitHub
+pub fn get_dxvk_versions() -> Vec<String> {
+    let mut versions = fetch_github_releases("doitsujin", "dxvk", 10);
+    if versions.is_empty() {
+        // Fallback to known versions
+        versions = vec![
+            "2.5.3".to_string(),
+            "2.5.2".to_string(),
+            "2.5.1".to_string(),
+            "2.5".to_string(),
+            "2.4".to_string(),
+            "2.3".to_string(),
+            "2.2".to_string(),
+            "2.1".to_string(),
+            "2.0".to_string(),
+            "1.10.3".to_string(),
+        ];
+    }
+    versions
+}
+
+/// Get available VKD3D-Proton versions from GitHub
+pub fn get_vkd3d_versions() -> Vec<String> {
+    let mut versions = fetch_github_releases("HansKristian-Work", "vkd3d-proton", 10);
+    if versions.is_empty() {
+        // Fallback to known versions
+        versions = vec![
+            "2.13".to_string(),
+            "2.12".to_string(),
+            "2.11".to_string(),
+            "2.10".to_string(),
+            "2.9".to_string(),
+        ];
+    }
+    versions
+}
+
+/// Get available D9VK versions from GitHub (archived project)
+pub fn get_d9vk_versions() -> Vec<String> {
+    let mut versions = fetch_github_releases("Joshua-Ashton", "d9vk", 10);
+    if versions.is_empty() {
+        // Fallback - D9VK is archived, last release was 0.40.1
+        versions = vec!["0.40.1".to_string(), "0.40".to_string(), "0.30".to_string()];
+    }
+    versions
+}
+
+/// Save version cache to disk for persistence across sessions
+fn save_version_cache_to_disk() {
+    let cache_path = format!("{}/.cache/ghostctl/version_cache.json", get_home_dir());
+    if let Some(parent) = Path::new(&cache_path).parent() {
+        fs::create_dir_all(parent).ok();
+    }
+
+    if let Ok(cache) = get_version_cache().lock() {
+        let mut data: HashMap<String, Vec<String>> = HashMap::new();
+        for (repo, cached) in &cache.cache {
+            data.insert(repo.clone(), cached.versions.clone());
+        }
+        if let Ok(json) = serde_json::to_string(&data) {
+            fs::write(&cache_path, json).ok();
+        }
+    }
+}
+
+/// Load version cache from disk
+pub fn load_version_cache_from_disk() {
+    let cache_path = format!("{}/.cache/ghostctl/version_cache.json", get_home_dir());
+    if let Ok(json) = fs::read_to_string(&cache_path) {
+        if let Ok(data) = serde_json::from_str::<HashMap<String, Vec<String>>>(&json) {
+            if let Ok(mut cache) = get_version_cache().lock() {
+                for (repo, versions) in data {
+                    cache.set(&repo, versions);
+                }
+            }
+        }
+    }
+}
+
 fn get_home_dir() -> &'static str {
     HOME_DIR.get_or_init(|| std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string()))
+}
+
+fn get_wine_env_path() -> std::path::PathBuf {
+    let home = get_home_dir();
+    std::path::PathBuf::from(format!("{}/.config/ghostctl/wine_env.conf", home))
+}
+
+fn set_wine_env(key: &str, value: &str) {
+    let env_path = get_wine_env_path();
+    if let Some(parent) = env_path.parent() {
+        fs::create_dir_all(parent).ok();
+    }
+
+    // Read existing content
+    let content = fs::read_to_string(&env_path).unwrap_or_default();
+    let mut lines: Vec<String> = content
+        .lines()
+        .filter(|line| !line.starts_with(&format!("export {}=", key)))
+        .map(|s| s.to_string())
+        .collect();
+
+    // Add new export
+    lines.push(format!("export {}=\"{}\"", key, value));
+
+    fs::write(&env_path, lines.join("\n") + "\n").ok();
+    println!("  -> Set {}={}", key, value);
+}
+
+fn remove_wine_env(key: &str) {
+    let env_path = get_wine_env_path();
+    if let Ok(content) = fs::read_to_string(&env_path) {
+        let lines: Vec<&str> = content
+            .lines()
+            .filter(|line| !line.starts_with(&format!("export {}=", key)))
+            .collect();
+        fs::write(&env_path, lines.join("\n") + "\n").ok();
+    }
+    println!("  -> Removed {}", key);
+}
+
+/// Print instructions for sourcing the wine environment file
+pub fn print_wine_env_source_instructions() {
+    let env_path = get_wine_env_path();
+    println!("\nTo apply Wine environment variables, run:");
+    println!("  source {}", env_path.display());
+    println!("\nOr add this line to your ~/.bashrc or ~/.zshrc:");
+    println!(
+        "  [ -f \"{}\" ] && source \"{}\"",
+        env_path.display(),
+        env_path.display()
+    );
 }
 
 pub fn proton_menu() {
@@ -25,12 +262,15 @@ pub fn proton_menu() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let choice = match Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🚀 Proton & Wine Advanced Management")
             .items(&options)
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => break,
+        };
 
         match choice {
             0 => dxvk_vkd3d_management(),
@@ -57,12 +297,15 @@ fn dxvk_vkd3d_management() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("DXVK/VKD3D Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => install_dxvk(),
@@ -78,27 +321,56 @@ fn dxvk_vkd3d_management() {
 fn install_dxvk() {
     println!("📦 Installing DXVK...");
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Load cached versions from disk
+    load_version_cache_from_disk();
+
+    let wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path (or press Enter for default)")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
-
-    let version = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Select DXVK version")
-        .items(&["Latest (2.3)", "2.2", "2.1", "2.0", "1.10.3 (older GPUs)"])
-        .default(0)
-        .interact()
-        .unwrap();
-
-    let version_str = match version {
-        0 => "2.3",
-        1 => "2.2",
-        2 => "2.1",
-        3 => "2.0",
-        4 => "1.10.3",
-        _ => "2.3",
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
     };
+
+    // Fetch available versions from GitHub API
+    println!("🔍 Fetching available DXVK versions...");
+    let versions = get_dxvk_versions();
+
+    if versions.is_empty() {
+        println!("❌ Failed to fetch DXVK versions");
+        return;
+    }
+
+    // Build version display list
+    let version_display: Vec<String> = versions
+        .iter()
+        .enumerate()
+        .map(|(i, v)| {
+            if i == 0 {
+                format!("{} (Latest)", v)
+            } else if v == "1.10.3" {
+                format!("{} (for older GPUs)", v)
+            } else {
+                v.clone()
+            }
+        })
+        .collect();
+
+    let version_idx = match Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Select DXVK version")
+        .items(&version_display)
+        .default(0)
+        .interact_opt()
+    {
+        Ok(Some(v)) => v,
+        _ => return,
+    };
+
+    let version_str = &versions[version_idx];
+
+    // Save cache for future use
+    save_version_cache_to_disk();
 
     println!("⬇️ Downloading DXVK {}...", version_str);
     let download_cmd = format!(
@@ -141,36 +413,81 @@ fn install_dxvk() {
 fn install_vkd3d() {
     println!("📦 Installing VKD3D-Proton...");
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Load cached versions from disk
+    load_version_cache_from_disk();
+
+    let wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path (or press Enter for default)")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
-    println!("⬇️ Downloading VKD3D-Proton...");
-    let download_cmd = "cd /tmp && wget -q https://github.com/HansKristian-Work/vkd3d-proton/releases/download/v2.11/vkd3d-proton-2.11.tar.zst";
+    // Fetch available versions from GitHub API
+    println!("🔍 Fetching available VKD3D-Proton versions...");
+    let versions = get_vkd3d_versions();
 
-    let status = Command::new("sh").arg("-c").arg(download_cmd).status();
+    if versions.is_empty() {
+        println!("❌ Failed to fetch VKD3D-Proton versions");
+        return;
+    }
+
+    // Build version display list
+    let version_display: Vec<String> = versions
+        .iter()
+        .enumerate()
+        .map(|(i, v)| {
+            if i == 0 {
+                format!("{} (Latest)", v)
+            } else {
+                v.clone()
+            }
+        })
+        .collect();
+
+    let version_idx = match Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Select VKD3D-Proton version")
+        .items(&version_display)
+        .default(0)
+        .interact_opt()
+    {
+        Ok(Some(v)) => v,
+        _ => return,
+    };
+
+    let version_str = &versions[version_idx];
+
+    // Save cache for future use
+    save_version_cache_to_disk();
+
+    println!("⬇️ Downloading VKD3D-Proton {}...", version_str);
+    let download_cmd = format!(
+        "cd /tmp && wget -q https://github.com/HansKristian-Work/vkd3d-proton/releases/download/v{}/vkd3d-proton-{}.tar.zst",
+        version_str, version_str
+    );
+
+    let status = Command::new("sh").arg("-c").arg(&download_cmd).status();
 
     match status {
         Ok(s) if s.success() => {
             println!("📂 Extracting VKD3D-Proton...");
-            Command::new("sh")
-                .arg("-c")
-                .arg("cd /tmp && tar -xf vkd3d-proton-2.11.tar.zst")
-                .status()
-                .ok();
+            let extract_cmd = format!("cd /tmp && tar -xf vkd3d-proton-{}.tar.zst", version_str);
+            Command::new("sh").arg("-c").arg(&extract_cmd).status().ok();
 
             println!("🔧 Installing VKD3D-Proton to Wine prefix...");
             let install_cmd = format!(
-                "cd /tmp/vkd3d-proton-2.11 && WINEPREFIX={} ./setup_vkd3d_proton.sh install",
-                wine_prefix
+                "cd /tmp/vkd3d-proton-{} && WINEPREFIX={} ./setup_vkd3d_proton.sh install",
+                version_str, wine_prefix
             );
 
             let install_status = Command::new("sh").arg("-c").arg(&install_cmd).status();
 
             match install_status {
-                Ok(s) if s.success() => println!("✅ VKD3D-Proton installed successfully!"),
+                Ok(s) if s.success() => {
+                    println!("✅ VKD3D-Proton {} installed successfully!", version_str)
+                }
                 _ => println!("❌ Failed to install VKD3D-Proton"),
             }
 
@@ -188,12 +505,15 @@ fn install_vkd3d() {
 fn update_dxvk_vkd3d() {
     println!("🔄 Updating DXVK/VKD3D...");
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("What to update?")
         .items(&["DXVK", "VKD3D-Proton", "Both"])
         .default(2)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => install_dxvk(),
@@ -209,11 +529,14 @@ fn update_dxvk_vkd3d() {
 fn configure_dxvk() {
     println!("🔧 Configuring DXVK...");
 
-    let _wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let _wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
     let options = [
         "Enable DXVK HUD",
@@ -225,72 +548,87 @@ fn configure_dxvk() {
         "Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("DXVK Configuration")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
             println!("📊 Enabling DXVK HUD...");
-            unsafe { std::env::set_var("DXVK_HUD", "fps,memory,gpuload,version") };
+            set_wine_env("DXVK_HUD", "fps,memory,gpuload,version");
             println!("✅ DXVK HUD enabled with: fps, memory, gpuload, version");
         }
         1 => {
             println!("📊 Disabling DXVK HUD...");
-            unsafe { std::env::remove_var("DXVK_HUD") };
+            remove_wine_env("DXVK_HUD");
             println!("✅ DXVK HUD disabled");
         }
         2 => {
-            let level = Select::with_theme(&ColorfulTheme::default())
+            let level = match Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select log level")
                 .items(&["none", "error", "warn", "info", "debug"])
                 .default(0)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(l)) => l,
+                _ => return,
+            };
 
             let level_str = ["none", "error", "warn", "info", "debug"][level];
-            unsafe { std::env::set_var("DXVK_LOG_LEVEL", level_str) };
+            set_wine_env("DXVK_LOG_LEVEL", level_str);
             println!("✅ DXVK log level set to: {}", level_str);
         }
         3 => {
-            let async_compile = Confirm::with_theme(&ColorfulTheme::default())
+            let async_compile = match Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enable async compilation?")
                 .default(true)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => return,
+            };
 
             if async_compile {
-                unsafe { std::env::set_var("DXVK_ASYNC", "1") };
+                set_wine_env("DXVK_ASYNC", "1");
                 println!("✅ Async compilation enabled");
             } else {
-                unsafe { std::env::remove_var("DXVK_ASYNC") };
+                remove_wine_env("DXVK_ASYNC");
                 println!("✅ Async compilation disabled");
             }
         }
         4 => {
-            let memory = Input::<String>::with_theme(&ColorfulTheme::default())
+            let memory = match Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter GPU memory limit in MB (e.g., 4096)")
-                .interact()
-                .unwrap();
+                .interact_text()
+            {
+                Ok(m) => m,
+                Err(_) => return,
+            };
 
-            unsafe { std::env::set_var("DXVK_MEMORY_LIMIT", &memory) };
+            set_wine_env("DXVK_MEMORY_LIMIT", &memory);
             println!("✅ GPU memory limit set to: {} MB", memory);
         }
         5 => {
-            let nvapi = Confirm::with_theme(&ColorfulTheme::default())
+            let nvapi = match Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enable NVAPI?")
                 .default(false)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(n)) => n,
+                _ => return,
+            };
 
             if nvapi {
-                unsafe { std::env::set_var("DXVK_ENABLE_NVAPI", "1") };
+                set_wine_env("DXVK_ENABLE_NVAPI", "1");
                 println!("✅ NVAPI enabled");
             } else {
-                unsafe { std::env::remove_var("DXVK_ENABLE_NVAPI") };
+                remove_wine_env("DXVK_ENABLE_NVAPI");
                 println!("✅ NVAPI disabled");
             }
         }
@@ -301,17 +639,23 @@ fn configure_dxvk() {
 fn remove_dxvk_vkd3d() {
     println!("🗑️ Removing DXVK/VKD3D...");
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Are you sure you want to remove DXVK/VKD3D?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         println!("🔧 Removing DXVK...");
@@ -339,11 +683,14 @@ fn remove_dxvk_vkd3d() {
 fn check_dxvk_status() {
     println!("📊 Checking DXVK/VKD3D Status...");
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
     println!("\n🔍 Checking DXVK installation...");
     let dxvk_dlls = ["d3d9.dll", "d3d10core.dll", "d3d11.dll", "dxgi.dll"];
@@ -393,12 +740,15 @@ fn compatibility_layers_setup() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Compatibility Layers Setup")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => install_gallium_nine(),
@@ -413,12 +763,15 @@ fn compatibility_layers_setup() {
 fn install_gallium_nine() {
     println!("🎮 Installing Gallium Nine...");
 
-    let distro = Select::with_theme(&ColorfulTheme::default())
+    let distro = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select your distribution")
         .items(&["Arch/Manjaro", "Ubuntu/Debian", "Fedora", "Other"])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(d)) => d,
+        _ => return,
+    };
 
     let cmd = match distro {
         0 => "sudo pacman -S wine-nine lib32-mesa-gallium",
@@ -443,37 +796,81 @@ fn install_gallium_nine() {
 
 fn install_d9vk() {
     println!("🎮 Installing D9VK (DirectX 9 over Vulkan)...");
+    println!("ℹ️  Note: D9VK is archived and merged into DXVK. Consider using DXVK for DirectX 9.");
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    // Load cached versions from disk
+    load_version_cache_from_disk();
+
+    let wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
-    println!("⬇️ Downloading D9VK...");
-    let download_cmd = "cd /tmp && wget -q https://github.com/Joshua-Ashton/d9vk/releases/download/0.40.1/d9vk-0.40.1.tar.gz";
+    // Fetch available versions from GitHub API
+    println!("🔍 Fetching available D9VK versions...");
+    let versions = get_d9vk_versions();
 
-    let status = Command::new("sh").arg("-c").arg(download_cmd).status();
+    if versions.is_empty() {
+        println!("❌ Failed to fetch D9VK versions");
+        return;
+    }
+
+    // Build version display list
+    let version_display: Vec<String> = versions
+        .iter()
+        .enumerate()
+        .map(|(i, v)| {
+            if i == 0 {
+                format!("{} (Latest - Archived)", v)
+            } else {
+                v.clone()
+            }
+        })
+        .collect();
+
+    let version_idx = match Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Select D9VK version")
+        .items(&version_display)
+        .default(0)
+        .interact_opt()
+    {
+        Ok(Some(v)) => v,
+        _ => return,
+    };
+
+    let version_str = &versions[version_idx];
+
+    // Save cache for future use
+    save_version_cache_to_disk();
+
+    println!("⬇️ Downloading D9VK {}...", version_str);
+    let download_cmd = format!(
+        "cd /tmp && wget -q https://github.com/Joshua-Ashton/d9vk/releases/download/{}/d9vk-{}.tar.gz",
+        version_str, version_str
+    );
+
+    let status = Command::new("sh").arg("-c").arg(&download_cmd).status();
 
     match status {
         Ok(s) if s.success() => {
             println!("📂 Extracting D9VK...");
-            Command::new("sh")
-                .arg("-c")
-                .arg("cd /tmp && tar -xzf d9vk-0.40.1.tar.gz")
-                .status()
-                .ok();
+            let extract_cmd = format!("cd /tmp && tar -xzf d9vk-{}.tar.gz", version_str);
+            Command::new("sh").arg("-c").arg(&extract_cmd).status().ok();
 
             println!("🔧 Installing D9VK to Wine prefix...");
             let install_cmd = format!(
-                "cd /tmp/d9vk-0.40.1 && WINEPREFIX={} ./setup_d9vk.sh install",
-                wine_prefix
+                "cd /tmp/d9vk-{} && WINEPREFIX={} ./setup_d9vk.sh install",
+                version_str, wine_prefix
             );
 
             let install_status = Command::new("sh").arg("-c").arg(&install_cmd).status();
 
             match install_status {
-                Ok(s) if s.success() => println!("✅ D9VK installed successfully!"),
+                Ok(s) if s.success() => println!("✅ D9VK {} installed successfully!", version_str),
                 _ => println!("❌ Failed to install D9VK"),
             }
 
@@ -491,11 +888,14 @@ fn install_d9vk() {
 fn configure_gallium_nine() {
     println!("🔧 Configuring Gallium Nine...");
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
     println!("🔧 Opening Nine configuration...");
     let cmd = format!("WINEPREFIX={} wine ninewinecfg", wine_prefix);
@@ -511,12 +911,15 @@ fn configure_gallium_nine() {
 fn install_wine_ge() {
     println!("📦 Installing Wine-GE/TKG...");
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Wine version to install")
         .items(&["Wine-GE (Recommended)", "Wine-TKG", "Both"])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 | 2 => {
@@ -546,12 +949,15 @@ fn install_wine_ge() {
 fn install_wine_dependencies() {
     println!("🍷 Installing Wine dependencies...");
 
-    let distro = Select::with_theme(&ColorfulTheme::default())
+    let distro = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select your distribution")
         .items(&["Arch/Manjaro", "Ubuntu/Debian", "Fedora", "Other"])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(d)) => d,
+        _ => return,
+    };
 
     let cmd = match distro {
         0 => {
@@ -583,12 +989,15 @@ fn wine_tweaks_config() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Wine Tweaks & Configuration")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => winetricks_automation(),
@@ -603,11 +1012,14 @@ fn wine_tweaks_config() {
 fn winetricks_automation() {
     println!("🔧 Winetricks Automation");
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
     let common_packages = vec![
         "d3dx9",
@@ -622,11 +1034,14 @@ fn winetricks_automation() {
         "openal",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select packages to install")
         .items(&common_packages)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        _ => return,
+    };
 
     for idx in selected {
         let package = &common_packages[idx];
@@ -645,13 +1060,16 @@ fn winetricks_automation() {
 fn dll_overrides_management() {
     println!("📦 DLL Overrides Management");
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select action")
         .items(&[
             "Add DLL override",
@@ -660,17 +1078,23 @@ fn dll_overrides_management() {
             "Common gaming overrides",
         ])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
-            let dll = Input::<String>::with_theme(&ColorfulTheme::default())
+            let dll = match Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter DLL name (without .dll)")
-                .interact()
-                .unwrap();
+                .interact_text()
+            {
+                Ok(d) => d,
+                Err(_) => return,
+            };
 
-            let mode = Select::with_theme(&ColorfulTheme::default())
+            let mode = match Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select override mode")
                 .items(&[
                     "native",
@@ -680,8 +1104,11 @@ fn dll_overrides_management() {
                     "disabled",
                 ])
                 .default(2)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(m)) => m,
+                _ => return,
+            };
 
             let mode_str = ["native", "builtin", "native,builtin", "builtin,native", ""][mode];
 
@@ -694,10 +1121,13 @@ fn dll_overrides_management() {
             println!("✅ DLL override added: {} = {}", dll, mode_str);
         }
         1 => {
-            let dll = Input::<String>::with_theme(&ColorfulTheme::default())
+            let dll = match Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter DLL name to remove")
-                .interact()
-                .unwrap();
+                .interact_text()
+            {
+                Ok(d) => d,
+                Err(_) => return,
+            };
 
             let cmd = format!(
                 "WINEPREFIX={} wine reg delete 'HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides' /v {} /f",
@@ -744,11 +1174,14 @@ fn dll_overrides_management() {
 fn configure_wine_gaming() {
     println!("🎮 Configuring Wine for Gaming");
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
     println!("🔧 Applying gaming optimizations...");
 
@@ -767,15 +1200,15 @@ fn configure_wine_gaming() {
 
     // Large address aware
     println!("  Enabling Large Address Aware...");
-    unsafe { std::env::set_var("WINE_LARGE_ADDRESS_AWARE", "1") };
+    set_wine_env("WINE_LARGE_ADDRESS_AWARE", "1");
 
     // Esync
     println!("  Enabling Esync...");
-    unsafe { std::env::set_var("WINEESYNC", "1") };
+    set_wine_env("WINEESYNC", "1");
 
     // Fsync
     println!("  Enabling Fsync (if supported)...");
-    unsafe { std::env::set_var("WINEFSYNC", "1") };
+    set_wine_env("WINEFSYNC", "1");
 
     println!("✅ Gaming optimizations applied!");
 }
@@ -783,18 +1216,24 @@ fn configure_wine_gaming() {
 fn audio_configuration() {
     println!("🔊 Audio Configuration");
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
-    let audio_system = Select::with_theme(&ColorfulTheme::default())
+    let audio_system = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select audio system")
         .items(&["PulseAudio", "ALSA", "OSS", "Disabled"])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(a)) => a,
+        _ => return,
+    };
 
     let driver = match audio_system {
         0 => "pulse",
@@ -813,11 +1252,14 @@ fn audio_configuration() {
     }
 
     // Sample rate
-    let sample_rate = Input::<String>::with_theme(&ColorfulTheme::default())
+    let sample_rate = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter sample rate (default: 48000)")
         .default("48000".to_string())
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(s) => s,
+        Err(_) => return,
+    };
 
     let cmd = format!(
         "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\DirectSound' /v DefaultSampleRate /t REG_DWORD /d {} /f",
@@ -831,13 +1273,16 @@ fn audio_configuration() {
 fn display_settings() {
     println!("🖥️ Display Settings");
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select setting to configure")
         .items(&[
             "Virtual Desktop",
@@ -847,23 +1292,32 @@ fn display_settings() {
             "Back",
         ])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
-            let enable = Confirm::with_theme(&ColorfulTheme::default())
+            let enable = match Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enable virtual desktop?")
                 .default(false)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(e)) => e,
+                _ => return,
+            };
 
             if enable {
-                let _resolution = Input::<String>::with_theme(&ColorfulTheme::default())
+                let _resolution = match Input::<String>::with_theme(&ColorfulTheme::default())
                     .with_prompt("Enter resolution (e.g., 1920x1080)")
                     .default("1920x1080".to_string())
-                    .interact()
-                    .unwrap();
+                    .interact_text()
+                {
+                    Ok(r) => r,
+                    Err(_) => return,
+                };
 
                 let cmd = format!("WINEPREFIX={} winecfg", wine_prefix);
                 Command::new("sh").arg("-c").arg(&cmd).status().ok();
@@ -876,11 +1330,14 @@ fn display_settings() {
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
         }
         2 => {
-            let dpi = Input::<String>::with_theme(&ColorfulTheme::default())
+            let dpi = match Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter DPI value (default: 96)")
                 .default("96".to_string())
-                .interact()
-                .unwrap();
+                .interact_text()
+            {
+                Ok(d) => d,
+                Err(_) => return,
+            };
 
             let cmd = format!(
                 "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Control Panel\\Desktop' /v LogPixels /t REG_DWORD /d {} /f",
@@ -890,11 +1347,14 @@ fn display_settings() {
             println!("✅ DPI set to: {}", dpi);
         }
         3 => {
-            let disable = Confirm::with_theme(&ColorfulTheme::default())
+            let disable = match Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Disable window manager decorations?")
                 .default(false)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(d)) => d,
+                _ => return,
+            };
 
             if disable {
                 let cmd = format!(
@@ -920,12 +1380,15 @@ fn game_specific_fixes() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Game-Specific Fixes")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => apply_protonfixes(),
@@ -948,15 +1411,18 @@ fn apply_protonfixes() {
         Ok(s) if s.success() => {
             println!("✅ Protonfixes installed");
 
-            let game_id = Input::<String>::with_theme(&ColorfulTheme::default())
+            let game_id = match Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter Steam App ID (or game name)")
-                .interact()
-                .unwrap();
+                .interact_text()
+            {
+                Ok(g) => g,
+                Err(_) => return,
+            };
 
             println!("🔍 Checking for fixes for: {}", game_id);
 
             // Enable protonfixes
-            unsafe { std::env::set_var("PROTONFIXES_DISABLE", "0") };
+            set_wine_env("PROTONFIXES_DISABLE", "0");
             println!("✅ Protonfixes enabled for the game");
         }
         _ => println!("❌ Failed to install protonfixes"),
@@ -966,7 +1432,7 @@ fn apply_protonfixes() {
 fn custom_game_scripts() {
     println!("📝 Custom Game Scripts");
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select action")
         .items(&[
             "Create launch script",
@@ -975,14 +1441,20 @@ fn custom_game_scripts() {
             "Back",
         ])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if choice == 0 {
-        let game_name = Input::<String>::with_theme(&ColorfulTheme::default())
+        let game_name = match Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter game name")
-            .interact()
-            .unwrap();
+            .interact_text()
+        {
+            Ok(g) => g,
+            Err(_) => return,
+        };
 
         let script_path = format!("{}/Games/scripts/{}.sh", get_home_dir(), game_name);
 
@@ -1043,24 +1515,30 @@ fn common_game_fixes() {
         "Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select fix to apply")
         .items(&fixes)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
     match choice {
         0 => {
             println!("🖤 Fixing black screen issues...");
             println!("  Disabling NVAPI...");
-            unsafe { std::env::set_var("DXVK_NVAPI_DRIVER_VERSION", "0") };
+            set_wine_env("DXVK_NVAPI_DRIVER_VERSION", "0");
             println!("  Setting windowed mode...");
             println!("  Disabling fullscreen optimizations...");
             let cmd = format!(
@@ -1076,13 +1554,13 @@ fn common_game_fixes() {
             let cmd = format!("WINEPREFIX={} winetricks -q xinput", wine_prefix);
             Command::new("sh").arg("-c").arg(&cmd).status().ok();
             println!("  Enabling SDL controller support...");
-            unsafe { std::env::set_var("SDL_GAMECONTROLLERCONFIG", "1") };
+            set_wine_env("SDL_GAMECONTROLLERCONFIG", "1");
             println!("✅ Controller fixes applied");
         }
         2 => {
             println!("🔊 Fixing audio crackling...");
             println!("  Setting pulse latency...");
-            unsafe { std::env::set_var("PULSE_LATENCY_MSEC", "60") };
+            set_wine_env("PULSE_LATENCY_MSEC", "60");
             println!("  Configuring sample rate...");
             let cmd = format!(
                 "WINEPREFIX={} wine reg add 'HKEY_CURRENT_USER\\Software\\Wine\\DirectSound' /v HelBuflen /t REG_DWORD /d 512 /f",
@@ -1141,18 +1619,24 @@ fn game_specific_configs() {
         "Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select game")
         .items(&games)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let wine_prefix = match Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
     match choice {
         0 => {
@@ -1167,7 +1651,7 @@ fn game_specific_configs() {
                 .status()
                 .ok();
             println!("  Disabling Esync for stability...");
-            unsafe { std::env::remove_var("WINEESYNC") };
+            remove_wine_env("WINEESYNC");
             println!("✅ GTA V configuration applied");
         }
         1 => {
@@ -1186,7 +1670,7 @@ fn game_specific_configs() {
         2 => {
             println!("🤖 Configuring Cyberpunk 2077...");
             println!("  Enabling AVX support...");
-            unsafe { std::env::set_var("WINE_CPU_TOPOLOGY", "4:2") };
+            set_wine_env("WINE_CPU_TOPOLOGY", "4:2");
             println!("  Installing Visual C++ 2019...");
             Command::new("sh")
                 .arg("-c")
@@ -1201,7 +1685,7 @@ fn game_specific_configs() {
         3 => {
             println!("🤠 Configuring Red Dead Redemption 2...");
             println!("  Setting CPU topology...");
-            unsafe { std::env::set_var("WINE_CPU_TOPOLOGY", "8:4") };
+            set_wine_env("WINE_CPU_TOPOLOGY", "8:4");
             println!("  Installing dependencies...");
             Command::new("sh")
                 .arg("-c")
@@ -1241,12 +1725,15 @@ fn performance_enhancements() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Performance Enhancements")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => gamemode_setup(),
@@ -1267,7 +1754,7 @@ fn gamemode_setup() {
         Ok(s) if s.success() => {
             println!("✅ GameMode is installed");
 
-            let choice = Select::with_theme(&ColorfulTheme::default())
+            let choice = match Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Select action")
                 .items(&[
                     "Configure GameMode",
@@ -1276,8 +1763,11 @@ fn gamemode_setup() {
                     "Back",
                 ])
                 .default(0)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => return,
+            };
 
             match choice {
                 0 => {
@@ -1319,11 +1809,14 @@ governor=performance"#;
         _ => {
             println!("❌ GameMode not installed");
 
-            let install = Confirm::with_theme(&ColorfulTheme::default())
+            let install = match Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Install GameMode?")
                 .default(true)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(i)) => i,
+                _ => return,
+            };
 
             if install {
                 Command::new("sh")
@@ -1341,12 +1834,15 @@ fn mangohud_config() {
 
     let config_path = format!("{}/.config/MangoHud/MangoHud.conf", get_home_dir());
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select configuration preset")
         .items(&["Minimal", "Default", "Full", "Custom", "Back"])
         .default(1)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     let config = match choice {
         0 => {
@@ -1389,10 +1885,13 @@ engine_version"#
         3 => {
             // Custom
             println!("📝 Enter custom configuration:");
-            let custom = Input::<String>::with_theme(&ColorfulTheme::default())
+            let custom: String = match Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Config options (comma separated)")
-                .interact()
-                .unwrap();
+                .interact_text()
+            {
+                Ok(c) => c,
+                Err(_) => return,
+            };
 
             fs::create_dir_all(format!("{}/.config/MangoHud", get_home_dir())).ok();
             fs::write(&config_path, &custom).ok();
@@ -1410,26 +1909,32 @@ engine_version"#
 fn fsr_dlss_setup() {
     println!("🚀 FSR/DLSS Setup");
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select technology")
         .items(&["AMD FSR", "NVIDIA DLSS", "Intel XeSS", "Back"])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => {
             println!("🔴 AMD FSR Setup");
             println!("  Enabling Wine FSR...");
-            unsafe { std::env::set_var("WINE_FSR", "1") };
+            set_wine_env("WINE_FSR", "1");
 
-            let strength = Input::<String>::with_theme(&ColorfulTheme::default())
+            let strength: String = match Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("FSR strength (0-5, default 2)")
                 .default("2".to_string())
-                .interact()
-                .unwrap();
+                .interact_text()
+            {
+                Ok(s) => s,
+                Err(_) => return,
+            };
 
-            unsafe { std::env::set_var("WINE_FSR_STRENGTH", &strength) };
+            set_wine_env("WINE_FSR_STRENGTH", &strength);
             println!("✅ FSR enabled with strength: {}", strength);
         }
         1 => {
@@ -1437,11 +1942,14 @@ fn fsr_dlss_setup() {
             println!("  DLSS requires game support");
             println!("  Installing DLSS files...");
 
-            let _wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+            let _wine_prefix: String = match Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter Wine prefix path")
                 .default(format!("{}/.wine", get_home_dir()))
-                .interact()
-                .unwrap();
+                .interact_text()
+            {
+                Ok(p) => p,
+                Err(_) => return,
+            };
 
             // Note: DLSS files need to be obtained from NVIDIA
             println!("⚠️ DLSS files must be obtained from games that include them");
@@ -1459,12 +1967,15 @@ fn cpu_governor_settings() {
 
     let governors = ["performance", "ondemand", "powersave", "schedutil"];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select CPU governor")
         .items(&governors)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     let governor = governors[choice];
 
@@ -1482,12 +1993,15 @@ fn cpu_governor_settings() {
 fn process_priority() {
     println!("🧵 Process Priority Settings");
 
-    let game_exe = Input::<String>::with_theme(&ColorfulTheme::default())
+    let game_exe: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter game executable name")
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(e) => e,
+        Err(_) => return,
+    };
 
-    let priority = Select::with_theme(&ColorfulTheme::default())
+    let priority = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select priority")
         .items(&[
             "High (-10)",
@@ -1497,8 +2011,11 @@ fn process_priority() {
             "Low (10)",
         ])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(p)) => p,
+        Ok(None) | Err(_) => return,
+    };
 
     let nice_value = match priority {
         0 => "-10",
@@ -1529,12 +2046,15 @@ fn anticheat_setup() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Anti-Cheat Runtime Setup")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => eac_setup(),
@@ -1546,73 +2066,182 @@ fn anticheat_setup() {
 }
 
 fn eac_setup() {
-    println!("🛡️ EasyAntiCheat Setup");
+    println!("🛡️ EasyAntiCheat Runtime Setup");
+    println!("================================\n");
 
     let steam_path = format!("{}/.steam", get_home_dir());
-    let eac_runtime_path = format!("{}/steam/steamapps/common/EasyAntiCheat", steam_path);
+    let steam_root = format!("{}/steam", steam_path);
 
-    if Path::new(&eac_runtime_path).exists() {
-        println!("✅ EAC runtime found at: {}", eac_runtime_path);
-    } else {
-        println!("❌ EAC runtime not found");
-        println!("📦 Installing EAC runtime...");
+    // Check for Proton EAC Runtime (Steam app ID 1826330)
+    let eac_runtime_paths = [
+        format!(
+            "{}/steamapps/common/Proton EasyAntiCheat Runtime",
+            steam_root
+        ),
+        format!(
+            "{}/steam/steamapps/common/Proton EasyAntiCheat Runtime",
+            steam_path
+        ),
+        "/usr/share/steam/compatibilitytools.d/proton-easyanticheat-runtime".to_string(),
+    ];
 
-        let install = Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Download and install EAC runtime?")
-            .default(true)
-            .interact()
-            .unwrap();
-
-        if install {
-            fs::create_dir_all(&eac_runtime_path).ok();
-            println!("📂 Created directory: {}", eac_runtime_path);
-            println!("⚠️ EAC runtime will be downloaded by Steam when needed");
+    let mut eac_found = false;
+    for path in &eac_runtime_paths {
+        if Path::new(path).exists() {
+            println!("✅ EAC runtime found at: {}", path);
+            eac_found = true;
+            break;
         }
     }
 
-    println!("\n💡 To enable EAC for a game:");
-    println!("1. Right-click game in Steam → Properties");
-    println!("2. Compatibility → Force Proton Experimental or Proton 7.0+");
-    println!("3. Launch options: PROTON_EAC_RUNTIME=1 %command%");
+    if !eac_found {
+        println!("❌ Proton EasyAntiCheat Runtime not installed");
+        println!("\n📦 The EAC runtime is distributed through Steam as app ID 1826330.");
+
+        let install = match Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Open Steam to install EAC runtime?")
+            .default(true)
+            .interact_opt()
+        {
+            Ok(Some(b)) => b,
+            Ok(None) | Err(_) => return,
+        };
+
+        if install {
+            println!("🚀 Opening Steam to install EAC runtime...");
+            // Steam app ID 1826330 is "Proton EasyAntiCheat Runtime"
+            let _ = Command::new("steam")
+                .args(["steam://install/1826330"])
+                .spawn();
+            println!("\n⏳ Please complete the installation in Steam");
+        }
+    }
+
+    // Check EAC configuration directory
+    let eac_config_dir = format!("{}/.steam/steam/config/eac", get_home_dir());
+    if !Path::new(&eac_config_dir).exists() {
+        fs::create_dir_all(&eac_config_dir).ok();
+        println!("📂 Created EAC config directory: {}", eac_config_dir);
+    }
+
+    // Show supported games
+    println!("\n📋 EAC-Enabled Games on Linux:");
+    println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    let eac_games = [
+        ("Apex Legends", "1172470"),
+        ("Fall Guys", "1097150"),
+        ("Fortnite", "N/A (Epic only)"),
+        ("Rust", "252490"),
+        ("DayZ", "221100"),
+        ("Dead by Daylight", "381210"),
+        ("Warhammer 40K: Darktide", "1361210"),
+        ("The Finals", "2073850"),
+    ];
+
+    for (game, app_id) in &eac_games {
+        println!("  • {} (App ID: {})", game, app_id);
+    }
+
+    println!("\n💡 To enable EAC for a supported game:");
+    println!("1. Ensure 'Proton EasyAntiCheat Runtime' is installed in Steam");
+    println!("2. Right-click game → Properties → Compatibility");
+    println!("3. Force use: Proton Experimental or Proton 8.0+");
+    println!("4. Add launch option: PROTON_EAC_RUNTIME=1 %command%");
+    println!("\n⚠️  Note: The game developer must explicitly enable Linux EAC support!");
 }
 
 fn battleye_setup() {
-    println!("🛡️ BattlEye Setup");
+    println!("🛡️ BattlEye Runtime Setup");
+    println!("===========================\n");
 
     let steam_path = format!("{}/.steam", get_home_dir());
-    let be_runtime_path = format!("{}/steam/steamapps/common/BattlEye", steam_path);
+    let steam_root = format!("{}/steam", steam_path);
 
-    if Path::new(&be_runtime_path).exists() {
-        println!("✅ BattlEye runtime found at: {}", be_runtime_path);
-    } else {
-        println!("❌ BattlEye runtime not found");
-        println!("📦 Installing BattlEye runtime...");
+    // Check for Proton BattlEye Runtime (Steam app ID 1161040)
+    let be_runtime_paths = [
+        format!("{}/steamapps/common/Proton BattlEye Runtime", steam_root),
+        format!(
+            "{}/steam/steamapps/common/Proton BattlEye Runtime",
+            steam_path
+        ),
+        "/usr/share/steam/compatibilitytools.d/proton-battleye-runtime".to_string(),
+    ];
 
-        let install = Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Create BattlEye runtime directory?")
-            .default(true)
-            .interact()
-            .unwrap();
-
-        if install {
-            fs::create_dir_all(&be_runtime_path).ok();
-            println!("📂 Created directory: {}", be_runtime_path);
-            println!("⚠️ BattlEye runtime will be downloaded by Steam when needed");
+    let mut be_found = false;
+    for path in &be_runtime_paths {
+        if Path::new(path).exists() {
+            println!("✅ BattlEye runtime found at: {}", path);
+            be_found = true;
+            break;
         }
     }
 
-    println!("\n💡 To enable BattlEye for a game:");
-    println!("1. Use Proton Experimental or Proton 7.0+");
-    println!("2. The game must have Linux BattlEye support enabled by developers");
+    if !be_found {
+        println!("❌ Proton BattlEye Runtime not installed");
+        println!("\n📦 The BattlEye runtime is distributed through Steam as app ID 1161040.");
+
+        let install = match Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Open Steam to install BattlEye runtime?")
+            .default(true)
+            .interact_opt()
+        {
+            Ok(Some(b)) => b,
+            Ok(None) | Err(_) => return,
+        };
+
+        if install {
+            println!("🚀 Opening Steam to install BattlEye runtime...");
+            // Steam app ID 1161040 is "Proton BattlEye Runtime"
+            let _ = Command::new("steam")
+                .args(["steam://install/1161040"])
+                .spawn();
+            println!("\n⏳ Please complete the installation in Steam");
+        }
+    }
+
+    // Check BattlEye configuration directory
+    let be_config_dir = format!("{}/.steam/steam/config/battleye", get_home_dir());
+    if !Path::new(&be_config_dir).exists() {
+        fs::create_dir_all(&be_config_dir).ok();
+        println!("📂 Created BattlEye config directory: {}", be_config_dir);
+    }
+
+    // Show supported games
+    println!("\n📋 BattlEye-Enabled Games on Linux:");
+    println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    let be_games = [
+        ("ARMA 3", "107410"),
+        ("ARMA Reforger", "1874880"),
+        ("DayZ", "221100"),
+        ("Destiny 2", "1085660"),
+        ("PUBG: BATTLEGROUNDS", "578080"),
+        ("Escape from Tarkov", "N/A (not on Steam)"),
+        ("Mount & Blade II: Bannerlord", "261550"),
+        ("Rainbow Six Siege", "359550"),
+    ];
+
+    for (game, app_id) in &be_games {
+        println!("  • {} (App ID: {})", game, app_id);
+    }
+
+    println!("\n💡 To enable BattlEye for a supported game:");
+    println!("1. Ensure 'Proton BattlEye Runtime' is installed in Steam");
+    println!("2. Right-click game → Properties → Compatibility");
+    println!("3. Force use: Proton Experimental or Proton 8.0+");
+    println!("4. Add launch option: PROTON_BATTLEYE_RUNTIME=1 %command%");
+    println!("\n⚠️  Note: The game developer must explicitly enable Linux BattlEye support!");
 }
 
 fn proton_eac_runtime() {
     println!("🔧 Proton EAC Runtime Configuration");
 
-    let game_id = Input::<String>::with_theme(&ColorfulTheme::default())
+    let game_id: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Steam App ID")
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(id) => id,
+        Err(_) => return,
+    };
 
     let steam_path = format!("{}/.steam/steam", get_home_dir());
     let compat_path = format!("{}/steamapps/compatdata/{}", steam_path, game_id);
@@ -1695,12 +2324,15 @@ fn shader_cache_management() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Shader Cache Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => view_shader_cache(),
@@ -1753,17 +2385,23 @@ fn clear_shader_cache() {
 
     let caches = vec!["Mesa", "NVIDIA", "RADV", "Steam", "All"];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select caches to clear")
         .items(&caches)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        Ok(None) | Err(_) => return,
+    };
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Are you sure you want to clear selected caches?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     if confirm {
         for idx in selected {
@@ -1810,11 +2448,14 @@ fn clear_shader_cache() {
 fn backup_shader_cache() {
     println!("📦 Backup Shader Cache");
 
-    let backup_dir = Input::<String>::with_theme(&ColorfulTheme::default())
+    let backup_dir: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter backup directory")
         .default(format!("{}/shader_cache_backup", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
     fs::create_dir_all(&backup_dir).ok();
 
@@ -1846,22 +2487,28 @@ fn backup_shader_cache() {
 fn restore_shader_cache() {
     println!("📥 Restore Shader Cache");
 
-    let backup_dir = Input::<String>::with_theme(&ColorfulTheme::default())
+    let backup_dir: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter backup directory")
         .default(format!("{}/shader_cache_backup", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
     if !Path::new(&backup_dir).exists() {
         println!("❌ Backup directory not found");
         return;
     }
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will replace current shader caches. Continue?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     if confirm {
         let caches = [
@@ -1903,66 +2550,81 @@ fn configure_cache_settings() {
         "Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Cache Configuration")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => {
-            let size = Input::<String>::with_theme(&ColorfulTheme::default())
+            let size: String = match Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter cache size limit in MB")
                 .default("1024".to_string())
-                .interact()
-                .unwrap();
+                .interact_text()
+            {
+                Ok(s) => s,
+                Err(_) => return,
+            };
 
-            unsafe { std::env::set_var("MESA_GLSL_CACHE_MAX_SIZE", &format!("{}M", size)) };
+            set_wine_env("MESA_GLSL_CACHE_MAX_SIZE", &format!("{}M", size));
             println!("✅ Cache size limit set to: {} MB", size);
         }
         1 => {
-            let enable = Confirm::with_theme(&ColorfulTheme::default())
+            let enable = match Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enable shader cache?")
                 .default(true)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(e)) => e,
+                Ok(None) | Err(_) => return,
+            };
 
             if enable {
-                unsafe { std::env::set_var("__GL_SHADER_DISK_CACHE", "1") };
-                unsafe { std::env::set_var("MESA_GLSL_CACHE_DISABLE", "0") };
+                set_wine_env("__GL_SHADER_DISK_CACHE", "1");
+                set_wine_env("MESA_GLSL_CACHE_DISABLE", "0");
                 println!("✅ Shader cache enabled");
             } else {
-                unsafe { std::env::set_var("__GL_SHADER_DISK_CACHE", "0") };
-                unsafe { std::env::set_var("MESA_GLSL_CACHE_DISABLE", "1") };
+                set_wine_env("__GL_SHADER_DISK_CACHE", "0");
+                set_wine_env("MESA_GLSL_CACHE_DISABLE", "1");
                 println!("✅ Shader cache disabled");
             }
         }
         2 => {
             println!("🔧 DXVK Cache Configuration");
-            let state_cache = Confirm::with_theme(&ColorfulTheme::default())
+            let state_cache = match Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enable DXVK state cache?")
                 .default(true)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(s)) => s,
+                Ok(None) | Err(_) => return,
+            };
 
             if state_cache {
-                unsafe { std::env::set_var("DXVK_STATE_CACHE", "1") };
+                set_wine_env("DXVK_STATE_CACHE", "1");
                 println!("✅ DXVK state cache enabled");
             } else {
-                unsafe { std::env::set_var("DXVK_STATE_CACHE", "0") };
+                set_wine_env("DXVK_STATE_CACHE", "0");
                 println!("✅ DXVK state cache disabled");
             }
         }
         3 => {
             println!("🔧 Mesa Cache Configuration");
-            let path = Input::<String>::with_theme(&ColorfulTheme::default())
+            let path: String = match Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Mesa cache directory")
                 .default(format!("{}/.cache/mesa_shader_cache", get_home_dir()))
-                .interact()
-                .unwrap();
+                .interact_text()
+            {
+                Ok(p) => p,
+                Err(_) => return,
+            };
 
-            unsafe { std::env::set_var("MESA_GLSL_CACHE_DIR", &path) };
+            set_wine_env("MESA_GLSL_CACHE_DIR", &path);
             println!("✅ Mesa cache directory set to: {}", path);
         }
         _ => {}
@@ -1980,18 +2642,24 @@ fn wine_registry_editor() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Wine Registry Editor")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
-    let wine_prefix = Input::<String>::with_theme(&ColorfulTheme::default())
+    let wine_prefix: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Wine prefix path")
         .default(format!("{}/.wine", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
     match choice {
         0 => edit_registry_key(&wine_prefix),
@@ -2015,28 +2683,37 @@ fn edit_registry_key(wine_prefix: &str) {
         "Custom",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select registry key")
         .items(&common_keys)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     let key = if choice == 4 {
-        Input::<String>::with_theme(&ColorfulTheme::default())
+        match Input::<String>::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter registry key path")
-            .interact()
-            .unwrap()
+            .interact_text()
+        {
+            Ok(k) => k,
+            Err(_) => return,
+        }
     } else {
         common_keys[choice].to_string()
     };
 
-    let value_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let value_name: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter value name")
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(n) => n,
+        Err(_) => return,
+    };
 
-    let value_type = Select::with_theme(&ColorfulTheme::default())
+    let value_type = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select value type")
         .items(&[
             "REG_SZ (String)",
@@ -2044,13 +2721,19 @@ fn edit_registry_key(wine_prefix: &str) {
             "REG_BINARY (Binary)",
         ])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(t)) => t,
+        Ok(None) | Err(_) => return,
+    };
 
-    let value_data = Input::<String>::with_theme(&ColorfulTheme::default())
+    let value_data: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter value data")
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
     let type_flag = match value_type {
         0 => "/t REG_SZ",
@@ -2080,22 +2763,31 @@ fn add_registry_entry(wine_prefix: &str) {
 fn delete_registry_entry(wine_prefix: &str) {
     println!("🗑️ Delete Registry Entry");
 
-    let key = Input::<String>::with_theme(&ColorfulTheme::default())
+    let key: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter registry key path")
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(k) => k,
+        Err(_) => return,
+    };
 
-    let value_name = Input::<String>::with_theme(&ColorfulTheme::default())
+    let value_name: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter value name (or leave empty to delete entire key)")
         .allow_empty(true)
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(v) => v,
+        Err(_) => return,
+    };
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Are you sure you want to delete this entry?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     if confirm {
         let cmd = if value_name.is_empty() {
@@ -2119,17 +2811,23 @@ fn delete_registry_entry(wine_prefix: &str) {
 fn export_registry(wine_prefix: &str) {
     println!("📋 Export Registry");
 
-    let export_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    let export_path: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter export file path")
         .default(format!("{}/wine_registry_export.reg", get_home_dir()))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
-    let key = Input::<String>::with_theme(&ColorfulTheme::default())
+    let key: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter registry key to export (or leave empty for full export)")
         .allow_empty(true)
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(k) => k,
+        Err(_) => return,
+    };
 
     let cmd = if key.is_empty() {
         format!(
@@ -2154,21 +2852,27 @@ fn export_registry(wine_prefix: &str) {
 fn import_registry(wine_prefix: &str) {
     println!("📥 Import Registry File");
 
-    let import_path = Input::<String>::with_theme(&ColorfulTheme::default())
+    let import_path: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter registry file path to import")
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
     if !Path::new(&import_path).exists() {
         println!("❌ File not found: {}", import_path);
         return;
     }
 
-    let confirm = Confirm::with_theme(&ColorfulTheme::default())
+    let confirm = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Are you sure you want to import this registry file?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     if confirm {
         let cmd = format!("WINEPREFIX={} wine regedit '{}'", wine_prefix, import_path);
@@ -2185,10 +2889,13 @@ fn import_registry(wine_prefix: &str) {
 fn search_registry(wine_prefix: &str) {
     println!("🔍 Search Registry");
 
-    let search_term = Input::<String>::with_theme(&ColorfulTheme::default())
+    let search_term: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter search term")
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
     println!("🔍 Searching for: {}", search_term);
 

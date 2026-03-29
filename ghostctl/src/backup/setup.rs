@@ -68,8 +68,17 @@ fn init_repository() {
     };
 
     // Create config directory
-    let config_dir = dirs::config_dir().unwrap().join("ghostctl");
-    fs::create_dir_all(&config_dir).unwrap();
+    let config_dir = match dirs::config_dir() {
+        Some(dir) => dir.join("ghostctl"),
+        None => {
+            tui::error("Could not determine config directory");
+            return;
+        }
+    };
+    if let Err(e) = fs::create_dir_all(&config_dir) {
+        tui::error(&format!("Failed to create config directory: {}", e));
+        return;
+    }
 
     // Store credentials securely - NO PLAINTEXT FALLBACK
     match store_backup_credentials(&repo_url, &password) {
@@ -222,11 +231,26 @@ WantedBy=timers.target
         timer_spec
     );
 
-    let systemd_dir = dirs::config_dir().unwrap().join("systemd/user");
-    fs::create_dir_all(&systemd_dir).unwrap();
+    let systemd_dir = match dirs::config_dir() {
+        Some(dir) => dir.join("systemd/user"),
+        None => {
+            tui::error("Could not determine config directory");
+            return;
+        }
+    };
+    if let Err(e) = fs::create_dir_all(&systemd_dir) {
+        tui::error(&format!("Failed to create systemd directory: {}", e));
+        return;
+    }
 
-    fs::write(systemd_dir.join("restic-backup.service"), service_content).unwrap();
-    fs::write(systemd_dir.join("restic-backup.timer"), timer_content).unwrap();
+    if let Err(e) = fs::write(systemd_dir.join("restic-backup.service"), service_content) {
+        tui::error(&format!("Failed to write service file: {}", e));
+        return;
+    }
+    if let Err(e) = fs::write(systemd_dir.join("restic-backup.timer"), timer_content) {
+        tui::error(&format!("Failed to write timer file: {}", e));
+        return;
+    }
 
     println!("📝 Systemd files created");
     println!("🔧 Run: systemctl --user enable --now restic-backup.timer");

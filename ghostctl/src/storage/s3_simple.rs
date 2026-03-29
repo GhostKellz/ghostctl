@@ -1,7 +1,8 @@
 use dialoguer::{Confirm, Input, Password, Select, theme::ColorfulTheme};
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::Path;
+use std::fs::{self, Permissions};
+use std::os::unix::fs::PermissionsExt;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,12 +29,14 @@ pub fn s3_menu() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("☁️  S3/MinIO Storage Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => configure_s3(),
@@ -54,26 +57,31 @@ pub fn s3_menu() {
 fn configure_s3() {
     println!("🔧 Configure S3/MinIO Connection\n");
 
-    let endpoint: String = Input::new()
+    let Ok(endpoint) = Input::<String>::new()
         .with_prompt("Endpoint URL (e.g., https://minio.example.com:9000)")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let access_key: String = Input::new()
+    let Ok(access_key) = Input::<String>::new()
         .with_prompt("Access Key")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let secret_key = Password::new()
-        .with_prompt("Secret Key")
-        .interact()
-        .unwrap();
+    let Ok(secret_key) = Password::new().with_prompt("Secret Key").interact() else {
+        return;
+    };
 
-    let region: String = Input::new()
+    let Ok(region) = Input::<String>::new()
         .with_prompt("Region")
         .default("us-east-1".to_string())
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     let config = MinioConfig {
         endpoint,
@@ -82,26 +90,53 @@ fn configure_s3() {
         region,
     };
 
-    // Save config
-    let config_dir = "/tmp/ghostctl";
-    let _ = fs::create_dir_all(config_dir);
+    // Save config to user config directory with secure permissions
+    let config_dir = get_config_dir();
+    if let Err(e) = fs::create_dir_all(&config_dir) {
+        println!("❌ Failed to create config directory: {}", e);
+        return;
+    }
+    // Set directory permissions to 0700 (owner only)
+    if let Err(e) = fs::set_permissions(&config_dir, Permissions::from_mode(0o700)) {
+        println!("❌ Failed to set directory permissions: {}", e);
+        return;
+    }
 
-    let config_file = format!("{}/s3-config.json", config_dir);
-    let json = serde_json::to_string_pretty(&config).unwrap();
-    fs::write(config_file, json).expect("Failed to save config");
+    let config_file = config_dir.join("s3-config.json");
+    let Ok(json) = serde_json::to_string_pretty(&config) else {
+        println!("❌ Failed to serialize config");
+        return;
+    };
 
-    println!("✅ S3/MinIO configuration saved!");
+    // Write config with 0600 permissions (owner read/write only)
+    if let Err(e) = fs::write(&config_file, &json) {
+        println!("❌ Failed to save config: {}", e);
+        return;
+    }
+    if let Err(e) = fs::set_permissions(&config_file, Permissions::from_mode(0o600)) {
+        println!("❌ Failed to set file permissions: {}", e);
+        return;
+    }
+
+    println!("✅ S3/MinIO configuration saved to {:?}", config_file);
+}
+
+/// Get the ghostctl config directory (uses XDG config dir or ~/.config/ghostctl)
+fn get_config_dir() -> PathBuf {
+    dirs::config_dir()
+        .unwrap_or_else(|| PathBuf::from("~/.config"))
+        .join("ghostctl")
 }
 
 fn load_config() -> Option<MinioConfig> {
-    let config_file = "/tmp/ghostctl/s3-config.json";
+    let config_file = get_config_dir().join("s3-config.json");
 
-    if !Path::new(config_file).exists() {
+    if !config_file.exists() {
         println!("❌ No configuration found. Please configure S3/MinIO first.");
         return None;
     }
 
-    let content = fs::read_to_string(config_file).ok()?;
+    let content = fs::read_to_string(&config_file).ok()?;
     serde_json::from_str(&content).ok()
 }
 
@@ -238,10 +273,12 @@ fn create_bucket() {
         None => return,
     };
 
-    let bucket_name: String = Input::new()
+    let Ok(bucket_name) = Input::<String>::new()
         .with_prompt("Bucket name")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📦 Creating bucket: {}", bucket_name);
 
@@ -280,32 +317,37 @@ fn upload_file() {
         None => return,
     };
 
-    let file_path: String = Input::new()
+    let Ok(file_path) = Input::<String>::new()
         .with_prompt("Local file path")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !Path::new(&file_path).exists() {
         println!("❌ File not found: {}", file_path);
         return;
     }
 
-    let bucket: String = Input::new()
+    let Ok(bucket) = Input::<String>::new()
         .with_prompt("Destination bucket")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let key: String = Input::new()
+    let default_key = Path::new(&file_path)
+        .file_name()
+        .map(|f| f.to_string_lossy().to_string())
+        .unwrap_or_else(|| "upload".to_string());
+
+    let Ok(key) = Input::<String>::new()
         .with_prompt("S3 key (object name)")
-        .default(
-            Path::new(&file_path)
-                .file_name()
-                .unwrap()
-                .to_string_lossy()
-                .to_string(),
-        )
+        .default(default_key)
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📤 Uploading {} to {}/{}", file_path, bucket, key);
 
@@ -344,21 +386,27 @@ fn download_file() {
         None => return,
     };
 
-    let bucket: String = Input::new()
+    let Ok(bucket) = Input::<String>::new()
         .with_prompt("Source bucket")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let key: String = Input::new()
+    let Ok(key) = Input::<String>::new()
         .with_prompt("S3 key (object name)")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let local_path: String = Input::new()
+    let Ok(local_path) = Input::<String>::new()
         .with_prompt("Local file path")
         .default(key.clone())
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📥 Downloading {}/{} to {}", bucket, key, local_path);
 
@@ -404,12 +452,14 @@ fn minio_cluster_management() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🏗️  MinIO Cluster Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => cluster_status_health(),
@@ -456,20 +506,26 @@ fn cluster_status_health() {
 fn add_cluster_node() {
     println!("➕ Add Cluster Node\n");
 
-    let node_url: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(node_url) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter new node URL (e.g., https://minio4.example.com:9000/data)")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let node_access_key: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(node_access_key) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter node access key")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let node_secret_key: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(node_secret_key) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter node secret key")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔗 Adding node to cluster...");
 
@@ -495,24 +551,28 @@ fn add_cluster_node() {
         .with_prompt("Generate cluster startup script?")
         .default(true)
         .interact()
-        .unwrap()
+        .unwrap_or(false)
     {
         generate_cluster_startup_script();
     }
 }
 
 fn generate_cluster_startup_script() {
-    let nodes_count: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(nodes_count) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Number of nodes in cluster")
         .default("4".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let data_dir: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(data_dir) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Data directory path")
         .default("/data".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📝 Generating cluster startup script...");
 
@@ -572,7 +632,7 @@ fn remove_cluster_node() {
         .with_prompt("Show current cluster topology?")
         .default(true)
         .interact()
-        .unwrap()
+        .unwrap_or(false)
     {
         let _ = Command::new("mc")
             .args(&["admin", "info", "ghostctl"])
@@ -591,12 +651,14 @@ fn cluster_configuration() {
         "Back",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select configuration option")
         .items(&config_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => {
@@ -613,15 +675,19 @@ fn cluster_configuration() {
 }
 
 fn set_cluster_config() {
-    let config_key: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(config_key) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Configuration key (e.g., region, browser)")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let config_value: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(config_value) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Configuration value")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!(
         "⚙️  Setting configuration: {} = {}",
@@ -642,7 +708,7 @@ fn set_cluster_config() {
         .with_prompt("Restart MinIO service to apply changes?")
         .default(true)
         .interact()
-        .unwrap()
+        .unwrap_or(false)
     {
         let _ = Command::new("mc")
             .args(&["admin", "service", "restart", "ghostctl"])
@@ -665,17 +731,21 @@ fn show_environment_variables() {
 fn configure_tls_ssl() {
     println!("🔐 TLS/SSL Configuration\n");
 
-    let cert_path: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(cert_path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Certificate file path")
         .default("/etc/ssl/certs/minio.crt".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let key_path: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(key_path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Private key file path")
         .default("/etc/ssl/private/minio.key".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📋 TLS Configuration:");
     println!("   Certificate: {}", cert_path);
@@ -695,12 +765,14 @@ fn node_maintenance_mode() {
         "Back",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select maintenance action")
         .items(&maintenance_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => {
@@ -734,12 +806,14 @@ fn cluster_balancing() {
         "Back",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select balancing action")
         .items(&balancing_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => {
@@ -781,12 +855,14 @@ fn distributed_erasure_setup() {
         "Back",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select erasure code option")
         .items(&erasure_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => show_ec_configuration_guide(),
@@ -813,10 +889,12 @@ fn show_ec_configuration_guide() {
 }
 
 fn calculate_erasure_parity() {
-    let total_drives: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(total_drives) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Total number of drives in cluster")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if let Ok(drives) = total_drives.parse::<u32>() {
         let recommended_parity = drives / 2;

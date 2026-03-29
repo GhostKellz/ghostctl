@@ -1,5 +1,59 @@
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
-use std::process::Command;
+use std::io::Write;
+use std::process::{Command, Stdio};
+
+/// Helper to write a value to a sysfs path using sudo tee
+fn write_sysfs(path: &str, value: &str) -> bool {
+    Command::new("sudo")
+        .args(["tee", path])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .spawn()
+        .and_then(|mut child| {
+            if let Some(ref mut stdin) = child.stdin {
+                let _ = stdin.write_all(value.as_bytes());
+            }
+            child.wait()
+        })
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
+/// Helper to set a value for all CPU scaling governors
+fn set_all_cpu_governors(governor: &str) -> bool {
+    let mut success = true;
+    if let Ok(entries) = std::fs::read_dir("/sys/devices/system/cpu") {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if name.starts_with("cpu") && name[3..].chars().all(|c| c.is_ascii_digit()) {
+                let governor_path = path.join("cpufreq/scaling_governor");
+                if governor_path.exists() {
+                    if !write_sysfs(governor_path.to_str().unwrap_or(""), governor) {
+                        success = false;
+                    }
+                }
+            }
+        }
+    }
+    success
+}
+
+/// Helper to set I/O scheduler for all block devices
+fn set_all_io_schedulers(scheduler: &str) -> bool {
+    let mut success = true;
+    if let Ok(entries) = std::fs::read_dir("/sys/block") {
+        for entry in entries.flatten() {
+            let scheduler_path = entry.path().join("queue/scheduler");
+            if scheduler_path.exists() {
+                if !write_sysfs(scheduler_path.to_str().unwrap_or(""), scheduler) {
+                    success = false;
+                }
+            }
+        }
+    }
+    success
+}
 
 pub fn tune() {
     let options = [
@@ -15,12 +69,15 @@ pub fn tune() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("🚀 Arch Performance Tuning")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => quick_optimization(),
@@ -40,11 +97,14 @@ fn quick_optimization() {
     println!("⚡ Quick System Performance Optimization");
     println!("========================================");
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Apply basic performance optimizations?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if !confirm {
         return;
@@ -142,19 +202,23 @@ fn enable_zram() {
     // Check if zram module is available
     let zram_check = Command::new("modinfo").arg("zram").status();
 
-    if zram_check.is_ok() && zram_check.unwrap().success() {
-        let status = Command::new("sudo")
-            .args(&[
-                "systemctl",
-                "enable",
-                "--now",
-                "systemd-zram-setup@zram0.service",
-            ])
-            .status();
+    if let Ok(status) = zram_check {
+        if status.success() {
+            let enable_status = Command::new("sudo")
+                .args(&[
+                    "systemctl",
+                    "enable",
+                    "--now",
+                    "systemd-zram-setup@zram0.service",
+                ])
+                .status();
 
-        match status {
-            Ok(s) if s.success() => println!("  ✅ zram enabled"),
-            _ => println!("  ⚠️  Failed to enable zram"),
+            match enable_status {
+                Ok(s) if s.success() => println!("  ✅ zram enabled"),
+                _ => println!("  ⚠️  Failed to enable zram"),
+            }
+        } else {
+            println!("  ℹ️  zram module not available");
         }
     } else {
         println!("  ℹ️  zram module not available");
@@ -166,22 +230,29 @@ fn optimize_mirrors() {
 
     let reflector_check = Command::new("which").arg("reflector").status();
 
-    if reflector_check.is_ok() && reflector_check.unwrap().success() {
-        let status = Command::new("sudo")
-            .args(&[
-                "reflector",
-                "--latest",
-                "20",
-                "--sort",
-                "rate",
-                "--save",
-                "/etc/pacman.d/mirrorlist",
-            ])
-            .status();
+    if let Ok(status) = reflector_check {
+        if status.success() {
+            let reflector_status = Command::new("sudo")
+                .args(&[
+                    "reflector",
+                    "--latest",
+                    "20",
+                    "--sort",
+                    "rate",
+                    "--save",
+                    "/etc/pacman.d/mirrorlist",
+                ])
+                .status();
 
-        match status {
-            Ok(s) if s.success() => println!("  ✅ Mirrors optimized"),
-            _ => println!("  ❌ Failed to optimize mirrors"),
+            match reflector_status {
+                Ok(s) if s.success() => println!("  ✅ Mirrors optimized"),
+                _ => println!("  ❌ Failed to optimize mirrors"),
+            }
+        } else {
+            println!("  ℹ️  Installing reflector for mirror optimization...");
+            let _ = Command::new("sudo")
+                .args(&["pacman", "-S", "--noconfirm", "reflector"])
+                .status();
         }
     } else {
         println!("  ℹ️  Installing reflector for mirror optimization...");
@@ -205,12 +276,15 @@ fn advanced_tuning() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Advanced Tuning Options")
         .items(&tuning_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => cpu_governor_tuning(),
@@ -256,28 +330,52 @@ fn cpu_governor_tuning() {
         "conservative",
         "schedutil",
     ];
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select CPU governor")
         .items(&governors)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     let selected_governor = governors[choice];
 
-    // Apply governor to all CPUs
-    let status = Command::new("sudo")
-        .arg("sh")
-        .arg("-c")
-        .arg(&format!(
-            "echo {} | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor",
-            selected_governor
-        ))
-        .status();
+    // Apply governor to all CPUs by iterating over cpu directories
+    let mut success = true;
+    if let Ok(entries) = std::fs::read_dir("/sys/devices/system/cpu") {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if name.starts_with("cpu") && name[3..].chars().all(|c| c.is_ascii_digit()) {
+                let governor_path = path.join("cpufreq/scaling_governor");
+                if governor_path.exists() {
+                    // Write to temp file and use sudo tee
+                    let status = Command::new("sudo")
+                        .args(["tee", governor_path.to_str().unwrap_or("")])
+                        .stdin(std::process::Stdio::piped())
+                        .stdout(std::process::Stdio::null())
+                        .spawn()
+                        .and_then(|mut child| {
+                            use std::io::Write;
+                            if let Some(ref mut stdin) = child.stdin {
+                                let _ = stdin.write_all(selected_governor.as_bytes());
+                            }
+                            child.wait()
+                        });
+                    if status.is_err() {
+                        success = false;
+                    }
+                }
+            }
+        }
+    }
 
-    match status {
-        Ok(s) if s.success() => println!("✅ CPU governor set to {}", selected_governor),
-        _ => println!("❌ Failed to set CPU governor"),
+    if success {
+        println!("✅ CPU governor set to {}", selected_governor);
+    } else {
+        println!("❌ Failed to set CPU governor");
     }
 }
 
@@ -285,34 +383,62 @@ fn io_scheduler_optimization() {
     println!("💾 I/O Scheduler Optimization");
     println!("=============================");
 
+    // Show current I/O schedulers by reading sysfs directly
     println!("📊 Current I/O schedulers:");
-    let _ = Command::new("sh")
-        .arg("-c")
-        .arg("for dev in /sys/block/*/queue/scheduler; do echo \"$(basename $(dirname $(dirname $dev))): $(cat $dev)\"; done")
-        .status();
+    if let Ok(entries) = std::fs::read_dir("/sys/block") {
+        for entry in entries.flatten() {
+            let scheduler_path = entry.path().join("queue/scheduler");
+            if scheduler_path.exists() {
+                if let Ok(scheduler) = std::fs::read_to_string(&scheduler_path) {
+                    let dev_name = entry.file_name();
+                    println!("  {}: {}", dev_name.to_string_lossy(), scheduler.trim());
+                }
+            }
+        }
+    }
 
     let schedulers = ["mq-deadline", "kyber", "bfq", "none"];
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select I/O scheduler for all drives")
         .items(&schedulers)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     let selected_scheduler = schedulers[choice];
 
-    let status = Command::new("sudo")
-        .arg("sh")
-        .arg("-c")
-        .arg(&format!(
-            "for dev in /sys/block/*/queue/scheduler; do echo {} > $dev; done",
-            selected_scheduler
-        ))
-        .status();
+    // Apply scheduler to all block devices using sudo tee
+    let mut success = true;
+    if let Ok(entries) = std::fs::read_dir("/sys/block") {
+        for entry in entries.flatten() {
+            let scheduler_path = entry.path().join("queue/scheduler");
+            if scheduler_path.exists() {
+                let status = Command::new("sudo")
+                    .args(["tee", scheduler_path.to_str().unwrap_or("")])
+                    .stdin(std::process::Stdio::piped())
+                    .stdout(std::process::Stdio::null())
+                    .spawn()
+                    .and_then(|mut child| {
+                        use std::io::Write;
+                        if let Some(ref mut stdin) = child.stdin {
+                            let _ = stdin.write_all(selected_scheduler.as_bytes());
+                        }
+                        child.wait()
+                    });
+                if status.is_err() {
+                    success = false;
+                }
+            }
+        }
+    }
 
-    match status {
-        Ok(s) if s.success() => println!("✅ I/O scheduler set to {}", selected_scheduler),
-        _ => println!("❌ Failed to set I/O scheduler"),
+    if success {
+        println!("✅ I/O scheduler set to {}", selected_scheduler);
+    } else {
+        println!("❌ Failed to set I/O scheduler");
     }
 }
 
@@ -327,11 +453,14 @@ fn thermal_management() {
         .status();
 
     // Install thermal management tools
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Install thermal management tools (thermald, auto-cpufreq)?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         let tools = ["thermald", "auto-cpufreq"];
@@ -363,7 +492,11 @@ fn cpu_frequency_scaling() {
 
     // Install cpupower if not available
     let cpupower_check = Command::new("which").arg("cpupower").status();
-    if cpupower_check.is_err() || !cpupower_check.unwrap().success() {
+    let needs_install = match cpupower_check {
+        Ok(status) => !status.success(),
+        Err(_) => true,
+    };
+    if needs_install {
         println!("📦 Installing cpupower...");
         let _ = Command::new("sudo")
             .args(&["pacman", "-S", "--needed", "--noconfirm", "cpupower"])
@@ -378,16 +511,37 @@ fn numa_optimization() {
     // Check if NUMA is available
     let numa_check = Command::new("numactl").arg("--hardware").status();
 
-    if numa_check.is_ok() && numa_check.unwrap().success() {
-        println!("📊 NUMA topology detected");
-        let _ = Command::new("numactl").arg("--hardware").status();
+    if let Ok(status) = numa_check {
+        if status.success() {
+            println!("📊 NUMA topology detected");
+            let _ = Command::new("numactl").arg("--hardware").status();
+        } else {
+            println!("ℹ️  NUMA not available or numactl not installed");
+            let confirm = match Confirm::new()
+                .with_prompt("Install numactl for NUMA management?")
+                .default(false)
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => return,
+            };
+
+            if confirm {
+                let _ = Command::new("sudo")
+                    .args(&["pacman", "-S", "--needed", "--noconfirm", "numactl"])
+                    .status();
+            }
+        }
     } else {
         println!("ℹ️  NUMA not available or numactl not installed");
-        let confirm = Confirm::new()
+        let confirm = match Confirm::new()
             .with_prompt("Install numactl for NUMA management?")
             .default(false)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => return,
+        };
 
         if confirm {
             let _ = Command::new("sudo")
@@ -407,11 +561,14 @@ kernel.sched_autogroup_enabled = 1
 kernel.sched_tunable_scaling = 0
 "#;
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Apply kernel scheduler optimizations?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         let sysctl_file = "/etc/sysctl.d/99-ghostctl-scheduler.conf";
@@ -439,12 +596,15 @@ fn performance_analysis() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Performance Analysis")
         .items(&analysis_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => boot_time_analysis(),
@@ -510,8 +670,12 @@ fn disk_io_analysis() {
 
     println!("\n⚡ I/O statistics:");
     let iostat_check = Command::new("which").arg("iostat").status();
-    if iostat_check.is_ok() && iostat_check.unwrap().success() {
-        let _ = Command::new("iostat").args(&["-x", "1", "3"]).status();
+    if let Ok(status) = iostat_check {
+        if status.success() {
+            let _ = Command::new("iostat").args(&["-x", "1", "3"]).status();
+        } else {
+            println!("💡 Install sysstat for detailed I/O analysis");
+        }
     } else {
         println!("💡 Install sysstat for detailed I/O analysis");
     }
@@ -549,12 +713,15 @@ fn kernel_parameters() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Kernel Parameters")
         .items(&param_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => view_current_parameters(),
@@ -588,11 +755,14 @@ kernel.sched_wakeup_granularity_ns = 15000000
 net.core.netdev_max_backlog = 5000
 "#;
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Apply gaming kernel optimizations?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         apply_kernel_parameters(gaming_params, "gaming");
@@ -615,11 +785,14 @@ net.ipv6.conf.all.accept_redirects = 0
 net.ipv6.conf.default.accept_redirects = 0
 "#;
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Apply security hardening parameters?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         apply_kernel_parameters(security_params, "security");
@@ -639,11 +812,14 @@ vm.overcommit_memory=1
 vm.overcommit_ratio=50
 "#;
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Apply memory management optimizations?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         apply_kernel_parameters(memory_params, "memory");
@@ -664,11 +840,14 @@ net.core.netdev_max_backlog = 5000
 net.ipv4.tcp_window_scaling = 1
 "#;
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Apply network optimizations?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         apply_kernel_parameters(network_params, "network");
@@ -704,12 +883,15 @@ fn memory_swap_optimization() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Memory & Swap Options")
         .items(&memory_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => configure_swappiness(),
@@ -739,25 +921,41 @@ fn configure_swappiness() {
         "60 (Default)",
         "100 (Aggressive swapping)",
     ];
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select swappiness value")
         .items(&swappiness_options)
         .default(1)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     let swappiness_values = [1, 10, 60, 100];
     let selected_value = swappiness_values[choice];
 
-    let status = Command::new("sudo")
-        .arg("sh")
-        .arg("-c")
-        .arg(&format!("echo 'vm.swappiness={}' > /etc/sysctl.d/99-ghostctl-swappiness.conf && sysctl vm.swappiness={}", selected_value, selected_value))
-        .status();
+    // Write swappiness config to temp file and move with sudo
+    let config_content = format!("vm.swappiness={}\n", selected_value);
+    let temp_file = "/tmp/99-ghostctl-swappiness.conf";
+    let dest_file = "/etc/sysctl.d/99-ghostctl-swappiness.conf";
 
-    match status {
-        Ok(s) if s.success() => println!("✅ Swappiness set to {}", selected_value),
-        _ => println!("❌ Failed to set swappiness"),
+    if std::fs::write(temp_file, &config_content).is_ok() {
+        let move_status = Command::new("sudo")
+            .args(["mv", temp_file, dest_file])
+            .status();
+
+        let sysctl_status = Command::new("sudo")
+            .args(["sysctl", &format!("vm.swappiness={}", selected_value)])
+            .status();
+
+        match (move_status, sysctl_status) {
+            (Ok(m), Ok(s)) if m.success() && s.success() => {
+                println!("✅ Swappiness set to {}", selected_value)
+            }
+            _ => println!("❌ Failed to set swappiness"),
+        }
+    } else {
+        println!("❌ Failed to set swappiness");
     }
 }
 
@@ -768,53 +966,60 @@ fn configure_zram() {
     // Check if zram is available
     let zram_check = Command::new("modinfo").arg("zram").status();
 
-    if zram_check.is_ok() && zram_check.unwrap().success() {
-        let zram_options = [
-            "🔧 Enable zram",
-            "📊 Zram Status",
-            "⚙️  Configure zram size",
-            "🛑 Disable zram",
-        ];
+    if let Ok(status) = zram_check {
+        if status.success() {
+            let zram_options = [
+                "🔧 Enable zram",
+                "📊 Zram Status",
+                "⚙️  Configure zram size",
+                "🛑 Disable zram",
+            ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("Zram Options")
-            .items(&zram_options)
-            .default(0)
-            .interact()
-            .unwrap();
+            let choice = match Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("Zram Options")
+                .items(&zram_options)
+                .default(0)
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => return,
+            };
 
-        match choice {
-            0 => {
-                let _ = Command::new("sudo")
-                    .args(&[
-                        "systemctl",
-                        "enable",
-                        "--now",
-                        "systemd-zram-setup@zram0.service",
-                    ])
-                    .status();
-                println!("✅ Zram enabled");
+            match choice {
+                0 => {
+                    let _ = Command::new("sudo")
+                        .args(&[
+                            "systemctl",
+                            "enable",
+                            "--now",
+                            "systemd-zram-setup@zram0.service",
+                        ])
+                        .status();
+                    println!("✅ Zram enabled");
+                }
+                1 => {
+                    let _ = Command::new("cat").arg("/proc/swaps").status();
+                }
+                2 => {
+                    println!(
+                        "💡 Zram size is typically configured via /etc/systemd/zram-generator.conf"
+                    );
+                }
+                3 => {
+                    let _ = Command::new("sudo")
+                        .args(&[
+                            "systemctl",
+                            "disable",
+                            "--now",
+                            "systemd-zram-setup@zram0.service",
+                        ])
+                        .status();
+                    println!("🛑 Zram disabled");
+                }
+                _ => {}
             }
-            1 => {
-                let _ = Command::new("cat").arg("/proc/swaps").status();
-            }
-            2 => {
-                println!(
-                    "💡 Zram size is typically configured via /etc/systemd/zram-generator.conf"
-                );
-            }
-            3 => {
-                let _ = Command::new("sudo")
-                    .args(&[
-                        "systemctl",
-                        "disable",
-                        "--now",
-                        "systemd-zram-setup@zram0.service",
-                    ])
-                    .status();
-                println!("🛑 Zram disabled");
-            }
-            _ => {}
+        } else {
+            println!("❌ Zram module not available in this kernel");
         }
     } else {
         println!("❌ Zram module not available in this kernel");
@@ -834,19 +1039,34 @@ fn configure_zswap() {
             .arg("/sys/module/zswap/parameters/enabled")
             .status();
 
-        let enable = Confirm::new()
+        let enable = match Confirm::new()
             .with_prompt("Enable zswap?")
             .default(true)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => return,
+        };
 
         if enable {
-            let _ = Command::new("sudo")
-                .arg("sh")
-                .arg("-c")
-                .arg("echo 1 > /sys/module/zswap/parameters/enabled")
-                .status();
-            println!("✅ Zswap enabled");
+            // Use sudo tee to write to sysfs
+            let status = Command::new("sudo")
+                .args(["tee", "/sys/module/zswap/parameters/enabled"])
+                .stdin(std::process::Stdio::piped())
+                .stdout(std::process::Stdio::null())
+                .spawn()
+                .and_then(|mut child| {
+                    use std::io::Write;
+                    if let Some(ref mut stdin) = child.stdin {
+                        let _ = stdin.write_all(b"1");
+                    }
+                    child.wait()
+                });
+            if status.is_ok() {
+                println!("✅ Zswap enabled");
+            } else {
+                println!("❌ Failed to enable zswap");
+            }
         }
     } else {
         println!("❌ Zswap not available in this kernel");
@@ -865,29 +1085,52 @@ fn memory_cleanup() {
     ];
 
     for (i, option) in cleanup_options.iter().enumerate() {
-        let confirm = Confirm::new()
+        let confirm = match Confirm::new()
             .with_prompt(format!("Execute: {}", option))
             .default(false)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => continue,
+        };
 
         if confirm {
             match i {
                 0 => {
-                    let _ = Command::new("sudo")
-                        .arg("sh")
-                        .arg("-c")
-                        .arg("echo 3 > /proc/sys/vm/drop_caches")
-                        .status();
-                    println!("  ✅ Caches dropped");
+                    // Use sudo tee to drop caches
+                    let status = Command::new("sudo")
+                        .args(["tee", "/proc/sys/vm/drop_caches"])
+                        .stdin(std::process::Stdio::piped())
+                        .stdout(std::process::Stdio::null())
+                        .spawn()
+                        .and_then(|mut child| {
+                            use std::io::Write;
+                            if let Some(ref mut stdin) = child.stdin {
+                                let _ = stdin.write_all(b"3");
+                            }
+                            child.wait()
+                        });
+                    if status.is_ok() {
+                        println!("  ✅ Caches dropped");
+                    }
                 }
                 1 => {
-                    let _ = Command::new("sudo")
-                        .arg("sh")
-                        .arg("-c")
-                        .arg("echo 1 > /proc/sys/vm/compact_memory")
-                        .status();
-                    println!("  ✅ Memory compacted");
+                    // Use sudo tee to compact memory
+                    let status = Command::new("sudo")
+                        .args(["tee", "/proc/sys/vm/compact_memory"])
+                        .stdin(std::process::Stdio::piped())
+                        .stdout(std::process::Stdio::null())
+                        .spawn()
+                        .and_then(|mut child| {
+                            use std::io::Write;
+                            if let Some(ref mut stdin) = child.stdin {
+                                let _ = stdin.write_all(b"1");
+                            }
+                            child.wait()
+                        });
+                    if status.is_ok() {
+                        println!("  ✅ Memory compacted");
+                    }
                 }
                 2 => {
                     let _ = Command::new("sudo").args(&["paccache", "-r"]).status();
@@ -918,12 +1161,15 @@ fn boot_optimization() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Boot Optimization")
         .items(&boot_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => boot_time_analysis(),
@@ -954,11 +1200,14 @@ fn disable_slow_services() {
             let status_text = String::from_utf8_lossy(&output.stdout);
             let status = status_text.trim();
             if status == "enabled" {
-                let confirm = Confirm::new()
+                let confirm = match Confirm::new()
                     .with_prompt(format!("Disable {}?", service))
                     .default(false)
-                    .interact()
-                    .unwrap();
+                    .interact_opt()
+                {
+                    Ok(Some(c)) => c,
+                    _ => continue,
+                };
 
                 if confirm {
                     let _ = Command::new("sudo")
@@ -975,11 +1224,14 @@ fn enable_parallel_boot() {
     println!("⚡ Enable Parallel Boot");
     println!("=======================");
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Enable systemd parallel boot optimization?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         // This is mostly enabled by default in modern systemd
@@ -995,11 +1247,14 @@ fn optimize_initramfs() {
     println!("💡 Current mkinitcpio configuration:");
     let _ = Command::new("cat").arg("/etc/mkinitcpio.conf").status();
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Regenerate initramfs with optimizations?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         let _ = Command::new("sudo")
@@ -1040,12 +1295,15 @@ fn power_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Power Management")
         .items(&power_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => cpu_power_management(),
@@ -1066,12 +1324,19 @@ fn cpu_power_management() {
 
     for tool in &tools {
         let check = Command::new("which").arg(tool).status();
-        if check.is_err() || !check.unwrap().success() {
-            let confirm = Confirm::new()
+        let needs_install = match check {
+            Ok(status) => !status.success(),
+            Err(_) => true,
+        };
+        if needs_install {
+            let confirm = match Confirm::new()
                 .with_prompt(format!("Install {}?", tool))
                 .default(false)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => continue,
+            };
 
             if confirm {
                 let _ = Command::new("sudo")
@@ -1107,18 +1372,36 @@ fn storage_power_management() {
         .arg("/sys/class/scsi_host/host*/link_power_management_policy")
         .status();
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Enable aggressive storage power management?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
-        let _ = Command::new("sudo")
-            .arg("sh")
-            .arg("-c")
-            .arg("echo 'min_power' | tee /sys/class/scsi_host/host*/link_power_management_policy")
-            .status();
+        // Apply min_power to all scsi hosts
+        if let Ok(entries) = std::fs::read_dir("/sys/class/scsi_host") {
+            for entry in entries.flatten() {
+                let policy_path = entry.path().join("link_power_management_policy");
+                if policy_path.exists() {
+                    let _ = Command::new("sudo")
+                        .args(["tee", policy_path.to_str().unwrap_or("")])
+                        .stdin(std::process::Stdio::piped())
+                        .stdout(std::process::Stdio::null())
+                        .spawn()
+                        .and_then(|mut child| {
+                            use std::io::Write;
+                            if let Some(ref mut stdin) = child.stdin {
+                                let _ = stdin.write_all(b"min_power");
+                            }
+                            child.wait()
+                        });
+                }
+            }
+        }
         println!("✅ Aggressive storage power management enabled");
     }
 }
@@ -1144,10 +1427,12 @@ fn power_status() {
 
     println!("\n⚡ Power consumption:");
     let powertop_check = Command::new("which").arg("powertop").status();
-    if powertop_check.is_ok() && powertop_check.unwrap().success() {
-        let _ = Command::new("sudo")
-            .args(&["powertop", "--time=10"])
-            .status();
+    if let Ok(status) = powertop_check {
+        if status.success() {
+            let _ = Command::new("sudo")
+                .args(&["powertop", "--time=10"])
+                .status();
+        }
     }
 }
 
@@ -1165,12 +1450,19 @@ fn monitoring_setup() {
 
     for (tool, description) in &monitoring_tools {
         let check = Command::new("which").arg(tool).status();
-        if check.is_err() || !check.unwrap().success() {
-            let confirm = Confirm::new()
+        let needs_install = match &check {
+            Ok(status) => !status.success(),
+            Err(_) => true,
+        };
+        if needs_install {
+            let confirm = match Confirm::new()
                 .with_prompt(format!("Install {} - {}?", tool, description))
                 .default(false)
-                .interact()
-                .unwrap();
+                .interact_opt()
+            {
+                Ok(Some(c)) => c,
+                _ => continue,
+            };
 
             if confirm {
                 let _ = Command::new("sudo")
@@ -1197,12 +1489,15 @@ fn custom_profiles() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Performance Profiles")
         .items(&profile_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => apply_gaming_profile(),
@@ -1218,33 +1513,24 @@ fn apply_gaming_profile() {
     println!("🎮 Applying Gaming Performance Profile");
     println!("======================================");
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Apply gaming optimizations? (CPU governor, swappiness, I/O scheduler)")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         // Set performance governor
-        let _ = Command::new("sudo")
-            .arg("sh")
-            .arg("-c")
-            .arg("echo performance | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor")
-            .status();
+        set_all_cpu_governors("performance");
 
         // Set low swappiness
-        let _ = Command::new("sudo")
-            .arg("sh")
-            .arg("-c")
-            .arg("echo 1 > /proc/sys/vm/swappiness")
-            .status();
+        write_sysfs("/proc/sys/vm/swappiness", "1");
 
         // Set deadline scheduler for SSDs
-        let _ = Command::new("sudo")
-            .arg("sh")
-            .arg("-c")
-            .arg("echo mq-deadline | tee /sys/block/*/queue/scheduler")
-            .status();
+        set_all_io_schedulers("mq-deadline");
 
         println!("✅ Gaming profile applied");
     }
@@ -1265,11 +1551,7 @@ net.core.netdev_max_backlog = 5000
     apply_kernel_parameters(performance_params, "performance");
 
     // Set performance governor
-    let _ = Command::new("sudo")
-        .arg("sh")
-        .arg("-c")
-        .arg("echo performance | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor")
-        .status();
+    set_all_cpu_governors("performance");
 
     println!("✅ High performance profile applied");
 }
@@ -1279,18 +1561,17 @@ fn apply_power_saving_profile() {
     println!("=================================");
 
     // Set powersave governor
-    let _ = Command::new("sudo")
-        .arg("sh")
-        .arg("-c")
-        .arg("echo powersave | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor")
-        .status();
+    set_all_cpu_governors("powersave");
 
-    // Enable power saving features
-    let _ = Command::new("sudo")
-        .arg("sh")
-        .arg("-c")
-        .arg("echo 'min_power' | tee /sys/class/scsi_host/host*/link_power_management_policy")
-        .status();
+    // Enable power saving features for all scsi hosts
+    if let Ok(entries) = std::fs::read_dir("/sys/class/scsi_host") {
+        for entry in entries.flatten() {
+            let policy_path = entry.path().join("link_power_management_policy");
+            if policy_path.exists() {
+                write_sysfs(policy_path.to_str().unwrap_or(""), "min_power");
+            }
+        }
+    }
 
     println!("✅ Power saving profile applied");
 }
@@ -1309,11 +1590,7 @@ kernel.sched_autogroup_enabled = 1
     apply_kernel_parameters(workstation_params, "workstation");
 
     // Set ondemand governor
-    let _ = Command::new("sudo")
-        .arg("sh")
-        .arg("-c")
-        .arg("echo ondemand | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor")
-        .status();
+    set_all_cpu_governors("ondemand");
 
     println!("✅ Workstation profile applied");
 }
@@ -1334,14 +1611,10 @@ fn apply_default_profile() {
     }
 
     // Reset to default governor
-    let _ = Command::new("sudo")
-        .arg("sh")
-        .arg("-c")
-        .arg("echo schedutil | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor")
-        .status();
+    set_all_cpu_governors("schedutil");
 
     // Reload sysctl
-    let _ = Command::new("sudo").args(&["sysctl", "--system"]).status();
+    let _ = Command::new("sudo").args(["sysctl", "--system"]).status();
 
     println!("✅ Default profile restored");
 }

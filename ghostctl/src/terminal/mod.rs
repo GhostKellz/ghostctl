@@ -17,12 +17,14 @@ pub fn terminal_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Terminal Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => setup_ghostty(),
@@ -57,7 +59,7 @@ pub fn setup_ghostty() {
             ("AppImage", ""),
         ];
 
-        let method = Select::with_theme(&ColorfulTheme::default())
+        let Ok(method) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Installation method")
             .items(
                 &install_methods
@@ -67,7 +69,9 @@ pub fn setup_ghostty() {
             )
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         match method {
             0 => install_ghostty_aur(),
@@ -82,93 +86,190 @@ pub fn setup_ghostty() {
 }
 
 fn install_ghostty_aur() {
-    println!("📦 Installing Ghostty from AUR...");
+    println!("Installing Ghostty from AUR...");
 
     // Check if yay is available
-    if Command::new("which").arg("yay").status().is_ok() {
+    let yay_available = Command::new("which")
+        .arg("yay")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if yay_available {
         let status = Command::new("yay")
-            .args(&["-S", "--noconfirm", "ghostty"])
+            .args(["-S", "--noconfirm", "ghostty"])
             .status();
 
         match status {
-            Ok(s) if s.success() => println!("✅ Ghostty installed successfully via AUR"),
+            Ok(s) if s.success() => {
+                println!("Ghostty installed successfully via AUR");
+                return;
+            }
             _ => {
-                println!("❌ Failed to install via yay, trying paru...");
-                let _ = Command::new("paru")
-                    .args(&["-S", "--noconfirm", "ghostty"])
-                    .status();
+                println!("Failed to install via yay, trying paru...");
             }
         }
-    } else {
-        println!("❌ AUR helper not found. Please install yay or paru first");
+    }
+
+    // Try paru as fallback
+    let paru_available = Command::new("which")
+        .arg("paru")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if paru_available {
+        let status = Command::new("paru")
+            .args(["-S", "--noconfirm", "ghostty"])
+            .status();
+
+        match status {
+            Ok(s) if s.success() => println!("Ghostty installed successfully via paru"),
+            Ok(s) => eprintln!(
+                "Failed to install Ghostty via paru (exit code: {})",
+                s.code().unwrap_or(-1)
+            ),
+            Err(e) => eprintln!("Failed to run paru: {}", e),
+        }
+    } else if !yay_available {
+        eprintln!("AUR helper not found. Please install yay or paru first");
     }
 }
 
 fn install_ghostty_source() {
-    println!("🔨 Building Ghostty from source...");
-    println!("📋 Prerequisites: Zig compiler");
+    println!("Building Ghostty from source...");
+    println!("Prerequisites: Zig compiler");
 
     // Check if zig is installed
-    if Command::new("which").arg("zig").status().is_err() {
-        println!("❌ Zig compiler not found");
-        let install_zig = Confirm::new()
+    let zig_available = Command::new("which")
+        .arg("zig")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if !zig_available {
+        eprintln!("Zig compiler not found");
+        let Ok(install_zig) = Confirm::new()
             .with_prompt("Install Zig compiler?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if install_zig {
-            println!("📦 Installing Zig...");
-            let _ = Command::new("sudo")
-                .args(&["pacman", "-S", "--noconfirm", "zig"])
+            println!("Installing Zig...");
+            let status = Command::new("sudo")
+                .args(["pacman", "-S", "--noconfirm", "zig"])
                 .status();
+
+            match status {
+                Ok(s) if s.success() => println!("Zig installed successfully"),
+                Ok(s) => {
+                    eprintln!(
+                        "Failed to install Zig (exit code: {})",
+                        s.code().unwrap_or(-1)
+                    );
+                    return;
+                }
+                Err(e) => {
+                    eprintln!("Failed to run pacman: {}", e);
+                    return;
+                }
+            }
         } else {
             return;
         }
     }
 
-    let build_dir = dirs::home_dir().unwrap().join("src/ghostty");
+    let Some(home_dir) = dirs::home_dir() else {
+        eprintln!("Could not determine home directory");
+        return;
+    };
+    let build_dir = home_dir.join("src/ghostty");
 
-    println!("📥 Cloning Ghostty repository...");
-    let _ = Command::new("git")
-        .args(&[
+    println!("Cloning Ghostty repository...");
+    let Some(build_dir_str) = build_dir.to_str() else {
+        eprintln!("Invalid build directory path");
+        return;
+    };
+
+    let clone_status = Command::new("git")
+        .args([
             "clone",
             "https://github.com/mitchellh/ghostty",
-            build_dir.to_str().unwrap(),
+            build_dir_str,
         ])
         .status();
 
-    println!("🔨 Building Ghostty (this may take a while)...");
+    match clone_status {
+        Ok(s) if s.success() => println!("Repository cloned successfully"),
+        Ok(s) if s.code() == Some(128) => {
+            // Directory may already exist
+            println!("Repository may already exist, continuing...");
+        }
+        Ok(s) => {
+            eprintln!(
+                "Failed to clone repository (exit code: {})",
+                s.code().unwrap_or(-1)
+            );
+            return;
+        }
+        Err(e) => {
+            eprintln!("Failed to run git: {}", e);
+            return;
+        }
+    }
+
+    println!("Building Ghostty (this may take a while)...");
     let status = Command::new("zig")
-        .args(&["build", "-Doptimize=ReleaseFast"])
+        .args(["build", "-Doptimize=ReleaseFast"])
         .current_dir(&build_dir)
         .status();
 
     match status {
         Ok(s) if s.success() => {
-            println!("✅ Ghostty built successfully");
+            println!("Ghostty built successfully");
 
             // Install binary
-            let install = Confirm::new()
+            let Ok(install) = Confirm::new()
                 .with_prompt("Install to /usr/local/bin?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if install {
                 let binary_path = build_dir.join("zig-out/bin/ghostty");
-                let _ = Command::new("sudo")
-                    .args(&[
+                let Some(binary_path_str) = binary_path.to_str() else {
+                    eprintln!("Invalid binary path");
+                    return;
+                };
+
+                let install_status = Command::new("sudo")
+                    .args([
                         "install",
                         "-Dm755",
-                        binary_path.to_str().unwrap(),
+                        binary_path_str,
                         "/usr/local/bin/ghostty",
                     ])
                     .status();
-                println!("✅ Ghostty installed to /usr/local/bin/ghostty");
+
+                match install_status {
+                    Ok(s) if s.success() => {
+                        println!("Ghostty installed to /usr/local/bin/ghostty")
+                    }
+                    Ok(s) => eprintln!(
+                        "Failed to install binary (exit code: {})",
+                        s.code().unwrap_or(-1)
+                    ),
+                    Err(e) => eprintln!("Failed to run install: {}", e),
+                }
             }
         }
-        _ => println!("❌ Build failed"),
+        Ok(s) => eprintln!("Build failed (exit code: {})", s.code().unwrap_or(-1)),
+        Err(e) => eprintln!("Failed to run zig build: {}", e),
     }
 }
 
@@ -181,8 +282,15 @@ fn install_ghostty_appimage() {
 fn configure_ghostty() {
     println!("⚙️  Configuring Ghostty...");
 
-    let config_dir = dirs::home_dir().unwrap().join(".config/ghostty");
-    fs::create_dir_all(&config_dir).unwrap();
+    let Some(home_dir) = dirs::home_dir() else {
+        println!("❌ Could not determine home directory");
+        return;
+    };
+    let config_dir = home_dir.join(".config/ghostty");
+    if let Err(e) = fs::create_dir_all(&config_dir) {
+        println!("❌ Failed to create config directory: {}", e);
+        return;
+    }
 
     // Define config constants
     const BACKGROUND: &str = "#1e1e2e";
@@ -224,13 +332,16 @@ mouse-hide-while-typing = true
     );
 
     let config_file = config_dir.join("config");
-    fs::write(&config_file, config_content).unwrap();
+    if let Err(e) = fs::write(&config_file, config_content) {
+        println!("❌ Failed to write config file: {}", e);
+        return;
+    }
 
     println!("✅ Ghostty configuration saved to: {:?}", config_file);
 }
 
 pub fn setup_wezterm() {
-    println!("🔷 Setting up WezTerm ");
+    println!("Setting up WezTerm");
     println!("=======================================");
 
     let is_installed = Command::new("which")
@@ -240,21 +351,33 @@ pub fn setup_wezterm() {
         .unwrap_or(false);
 
     if is_installed {
-        println!("✅ WezTerm is available ");
+        println!("WezTerm is available");
     } else {
-        println!("📦 Installing WezTerm...");
-        let status = Command::new("sh")
-            .arg("-c")
-            .arg("sudo pacman -S --noconfirm wezterm || yay -S wezterm-git ")
+        println!("Installing WezTerm...");
+
+        // Try pacman first (direct command, no shell)
+        let pacman_status = Command::new("sudo")
+            .args(["pacman", "-S", "--noconfirm", "wezterm"])
             .status();
 
-        match status {
-            Ok(s) if s.success() => println!("✅ WezTerm setup complete "),
+        let success = match pacman_status {
+            Ok(s) if s.success() => true,
             _ => {
-                println!("❌ Failed to install WezTerm via package manager ");
-                println!("💡 Try: https://wezfurlong.org/wezterm/installation.html");
-                return;
+                // Try yay as fallback
+                Command::new("yay")
+                    .args(["-S", "--noconfirm", "wezterm-git"])
+                    .status()
+                    .map(|s| s.success())
+                    .unwrap_or(false)
             }
+        };
+
+        if success {
+            println!("WezTerm setup complete");
+        } else {
+            eprintln!("Failed to install WezTerm via package manager");
+            println!("Try: https://wezfurlong.org/wezterm/installation.html");
+            return;
         }
     }
 
@@ -265,8 +388,15 @@ pub fn setup_wezterm() {
 fn configure_wezterm() {
     println!("⚙️  Configuring WezTerm...");
 
-    let config_dir = dirs::home_dir().unwrap().join(".config/wezterm");
-    fs::create_dir_all(&config_dir).unwrap();
+    let Some(home_dir) = dirs::home_dir() else {
+        println!("❌ Could not determine home directory");
+        return;
+    };
+    let config_dir = home_dir.join(".config/wezterm");
+    if let Err(e) = fs::create_dir_all(&config_dir) {
+        println!("❌ Failed to create config directory: {}", e);
+        return;
+    }
 
     let config_file = config_dir.join("wezterm.lua");
 
@@ -327,7 +457,10 @@ config.webgpu_power_preference = "HighPerformance"
 return config
 "#;
 
-        fs::write(&config_file, config_content).unwrap();
+        if let Err(e) = fs::write(&config_file, config_content) {
+            println!("❌ Failed to write config file: {}", e);
+            return;
+        }
         println!("✅ Created WezTerm config at {:?}", config_file);
     } else {
         println!("⚠️  WezTerm config already exists at {:?}", config_file);
@@ -352,12 +485,14 @@ fn configure_preferences() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Preferences")
         .items(&preferences)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_nerd_fonts(),
@@ -369,7 +504,7 @@ fn configure_preferences() {
 }
 
 fn install_nerd_fonts() {
-    println!("🎨 Installing Nerd Fonts...");
+    println!("Installing Nerd Fonts...");
 
     let fonts = [
         "FiraCode Nerd Font",
@@ -379,12 +514,14 @@ fn install_nerd_fonts() {
         "Ubuntu Mono Nerd Font",
     ];
 
-    let selected = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selected) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select font to install")
         .items(&fonts)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let font_package = match selected {
         0 => "ttf-firacode-nerd",
@@ -395,10 +532,20 @@ fn install_nerd_fonts() {
         _ => return,
     };
 
-    println!("📦 Installing {}...", fonts[selected]);
-    let _ = Command::new("sudo")
-        .args(&["pacman", "-S", "--noconfirm", font_package])
+    println!("Installing {}...", fonts[selected]);
+    let status = Command::new("sudo")
+        .args(["pacman", "-S", "--noconfirm", font_package])
         .status();
+
+    match status {
+        Ok(s) if s.success() => println!("{} installed successfully", fonts[selected]),
+        Ok(s) => eprintln!(
+            "Failed to install {} (exit code: {})",
+            fonts[selected],
+            s.code().unwrap_or(-1)
+        ),
+        Err(e) => eprintln!("Failed to run pacman: {}", e),
+    }
 }
 
 fn setup_terminal_themes() {
@@ -430,48 +577,93 @@ fn configure_shell_integration() {
 }
 
 fn set_default_terminal() {
-    println!("🔧 Set Default Terminal");
+    println!("Set Default Terminal");
     println!("======================");
 
     let terminals = ["ghostty", "wezterm", "alacritty", "kitty", "gnome-terminal"];
     let mut available_terminals = Vec::new();
 
     for terminal in &terminals {
-        if Command::new("which").arg(terminal).status().is_ok() {
+        let available = Command::new("which")
+            .arg(terminal)
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+        if available {
             available_terminals.push(*terminal);
         }
     }
 
     if available_terminals.is_empty() {
-        println!("❌ No supported terminals found");
+        eprintln!("No supported terminals found");
         return;
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select default terminal")
         .items(&available_terminals)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let selected_terminal = available_terminals[choice];
+    let terminal_path = format!("/usr/bin/{}", selected_terminal);
+
+    // Verify the terminal binary exists at the expected path
+    if !std::path::Path::new(&terminal_path).exists() {
+        // Try to find the actual path
+        let which_output = Command::new("which").arg(selected_terminal).output();
+        match which_output {
+            Ok(output) if output.status.success() => {
+                let actual_path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                println!(
+                    "Note: {} is at {}, not {}",
+                    selected_terminal, actual_path, terminal_path
+                );
+            }
+            _ => {
+                eprintln!(
+                    "Warning: {} not found at expected path {}",
+                    selected_terminal, terminal_path
+                );
+            }
+        }
+    }
 
     // Set default terminal (this varies by desktop environment)
-    println!("🔧 Setting {} as default terminal...", selected_terminal);
+    println!("Setting {} as default terminal...", selected_terminal);
 
-    // For most environments
-    let _ = Command::new("sudo")
-        .args(&[
+    // For Debian-based systems
+    let status = Command::new("sudo")
+        .args([
             "update-alternatives",
             "--install",
             "/usr/bin/x-terminal-emulator",
             "x-terminal-emulator",
-            &format!("/usr/bin/{}", selected_terminal),
+            &terminal_path,
             "50",
         ])
         .status();
 
-    println!("✅ Default terminal set to {}", selected_terminal);
+    match status {
+        Ok(s) if s.success() => println!("Default terminal set to {}", selected_terminal),
+        Ok(_) => {
+            // update-alternatives may not exist on Arch
+            println!("update-alternatives not available (common on Arch Linux)");
+            println!("To set default terminal on Arch:");
+            println!(
+                "  - For GNOME: gsettings set org.gnome.desktop.default-applications.terminal exec '{}'",
+                selected_terminal
+            );
+            println!(
+                "  - For KDE: Configure in System Settings > Applications > Default Applications"
+            );
+            println!("  - For i3/sway: Set $term variable in config");
+        }
+        Err(e) => eprintln!("Failed to run update-alternatives: {}", e),
+    }
 }
 
 fn show_terminal_info() {

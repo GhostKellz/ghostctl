@@ -1,4 +1,5 @@
 pub mod environment;
+pub mod errors;
 pub mod graphics;
 pub mod lutris;
 pub mod management;
@@ -30,12 +31,14 @@ pub fn gaming_menu() {
             "⬅️  Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🎮 Gaming & Performance Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => {
@@ -46,12 +49,14 @@ pub fn gaming_menu() {
                     "⬅️ Back",
                 ];
 
-                let steam_choice = Select::with_theme(&ColorfulTheme::default())
+                let Ok(steam_choice) = Select::with_theme(&ColorfulTheme::default())
                     .with_prompt("Steam & Proton Options")
                     .items(&steam_options)
                     .default(0)
                     .interact()
-                    .unwrap();
+                else {
+                    continue;
+                };
 
                 match steam_choice {
                     0 => steam::steam_menu(),

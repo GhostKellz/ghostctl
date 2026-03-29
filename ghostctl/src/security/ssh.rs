@@ -210,12 +210,12 @@ fn list_ssh_keys() -> Result<()> {
                 println!("  📄 {}", filename.to_string_lossy());
 
                 // Show key fingerprint
-                if let Ok(output) = Command::new("ssh-keygen")
-                    .args(&["-lf", path.to_str().unwrap()])
-                    .output()
-                {
-                    let fingerprint = String::from_utf8_lossy(&output.stdout);
-                    println!("    🔍 {}", fingerprint.trim());
+                if let Some(path_str) = path.to_str() {
+                    if let Ok(output) = Command::new("ssh-keygen").args(&["-lf", path_str]).output()
+                    {
+                        let fingerprint = String::from_utf8_lossy(&output.stdout);
+                        println!("    🔍 {}", fingerprint.trim());
+                    }
                 }
             }
         }
@@ -255,12 +255,19 @@ fn copy_public_key() -> Result<()> {
 
     let key_names: Vec<String> = pub_keys.iter().map(|(name, _)| name.clone()).collect();
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select public key to copy")
         .items(&key_names)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(choice)) => choice,
+        Ok(None) => return Ok(()), // User cancelled
+        Err(e) => {
+            println!("Selection failed: {}", e);
+            return Ok(());
+        }
+    };
 
     let (_, key_path) = &pub_keys[choice];
 
@@ -283,13 +290,16 @@ fn copy_public_key() -> Result<()> {
                 }
 
                 if let Ok(mut child) = cmd.stdin(std::process::Stdio::piped()).spawn()
-                    && let Some(stdin) = child.stdin.take()
+                    && let Some(mut stdin) = child.stdin.take()
                 {
                     use std::io::Write;
-                    if writeln!(&stdin, "{}", content.trim()).is_ok() && child.wait().is_ok() {
-                        println!("✅ Public key copied to clipboard using {}", tool);
-                        copied = true;
-                        break;
+                    if stdin.write_all(content.trim().as_bytes()).is_ok() {
+                        drop(stdin); // Close stdin to signal EOF
+                        if child.wait().is_ok_and(|s| s.success()) {
+                            println!("Public key copied to clipboard using {}", tool);
+                            copied = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -311,11 +321,31 @@ fn add_to_agent() {
 
     // Start SSH agent if not running
     if Command::new("ssh-add").arg("-l").status().is_err() {
-        println!("🚀 Starting SSH agent...");
-        let _ = Command::new("ssh-agent").arg("bash").status();
+        println!("Starting SSH agent...");
+        match Command::new("ssh-agent").arg("-s").output() {
+            Ok(output) if output.status.success() => {
+                // Parse and display the agent environment variables
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                println!("SSH agent started. Run the following to use it:");
+                println!("{}", stdout);
+            }
+            Ok(_) => {
+                println!("Warning: SSH agent started but may not be configured correctly");
+            }
+            Err(e) => {
+                log::warn!("Failed to start SSH agent: {}", e);
+                println!("Warning: Could not start SSH agent: {}", e);
+            }
+        }
     }
 
-    let ssh_dir = dirs::home_dir().unwrap().join(".ssh");
+    let ssh_dir = match dirs::home_dir() {
+        Some(home) => home.join(".ssh"),
+        None => {
+            println!("Could not determine home directory");
+            return;
+        }
+    };
     let mut private_keys = Vec::new();
 
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
@@ -340,18 +370,31 @@ fn add_to_agent() {
 
     let key_names: Vec<String> = private_keys.iter().map(|(name, _)| name.clone()).collect();
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select private key to add")
         .items(&key_names)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(choice)) => choice,
+        Ok(None) => return, // User cancelled
+        Err(e) => {
+            println!("Selection failed: {}", e);
+            return;
+        }
+    };
 
     let (_, key_path) = &private_keys[choice];
 
-    let status = Command::new("ssh-add")
-        .arg(key_path.to_str().unwrap())
-        .status();
+    let key_path_str = match key_path.to_str() {
+        Some(s) => s,
+        None => {
+            println!("Invalid key path");
+            return;
+        }
+    };
+
+    let status = Command::new("ssh-add").arg(key_path_str).status();
 
     match status {
         Ok(s) if s.success() => println!("✅ Key added to SSH agent"),
@@ -371,12 +414,19 @@ fn ssh_configuration() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("SSH Configuration")
         .items(&config_options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(choice)) => choice,
+        Ok(None) => return, // User cancelled
+        Err(e) => {
+            println!("Selection failed: {}", e);
+            return;
+        }
+    };
 
     match choice {
         0 => edit_ssh_config(),
@@ -388,39 +438,90 @@ fn ssh_configuration() {
 }
 
 fn edit_ssh_config() {
-    let ssh_dir = dirs::home_dir().unwrap().join(".ssh");
+    let ssh_dir = match dirs::home_dir() {
+        Some(home) => home.join(".ssh"),
+        None => {
+            println!("Could not determine home directory");
+            return;
+        }
+    };
     let config_path = ssh_dir.join("config");
 
-    // Create .ssh directory if it doesn't exist
-    fs::create_dir_all(&ssh_dir).unwrap();
+    // Create .ssh directory if it doesn't exist with secure permissions
+    if let Err(e) = fs::create_dir_all(&ssh_dir) {
+        println!("Failed to create SSH directory: {}", e);
+        return;
+    }
+
+    // Set secure permissions on .ssh directory (0700)
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = fs::metadata(&ssh_dir) {
+            let mut perms = metadata.permissions();
+            perms.set_mode(0o700);
+            if let Err(e) = fs::set_permissions(&ssh_dir, perms) {
+                log::warn!("Failed to set .ssh directory permissions: {}", e);
+            }
+        }
+    }
 
     // Create empty config if it doesn't exist
     if !config_path.exists() {
-        fs::write(&config_path, "# SSH Client Configuration\n").unwrap();
-        println!("✅ Created new SSH config file");
+        if let Err(e) = fs::write(&config_path, "# SSH Client Configuration\n") {
+            println!("Failed to create SSH config: {}", e);
+            return;
+        }
+
+        // Set secure permissions on config file (0600)
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if let Ok(metadata) = fs::metadata(&config_path) {
+                let mut perms = metadata.permissions();
+                perms.set_mode(0o600);
+                if let Err(e) = fs::set_permissions(&config_path, perms) {
+                    log::warn!("Failed to set SSH config permissions: {}", e);
+                }
+            }
+        }
+
+        println!("Created new SSH config file with secure permissions");
     }
 
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
 
-    let status = Command::new(&editor)
-        .arg(config_path.to_str().unwrap())
-        .status();
+    let config_path_str = match config_path.to_str() {
+        Some(s) => s,
+        None => {
+            println!("Invalid config path");
+            return;
+        }
+    };
+
+    let status = Command::new(&editor).arg(config_path_str).status();
 
     match status {
-        Ok(s) if s.success() => println!("✅ SSH config edited"),
-        _ => println!("❌ Failed to edit SSH config"),
+        Ok(s) if s.success() => println!("SSH config edited"),
+        _ => println!("Failed to edit SSH config"),
     }
 }
 
 fn show_ssh_config() {
-    let config_path = dirs::home_dir().unwrap().join(".ssh/config");
+    let config_path = match dirs::home_dir() {
+        Some(home) => home.join(".ssh/config"),
+        None => {
+            println!("Could not determine home directory");
+            return;
+        }
+    };
 
     if let Ok(content) = fs::read_to_string(&config_path) {
-        println!("📋 SSH Client Configuration:");
+        println!("SSH Client Configuration:");
         println!("============================");
         println!("{}", content);
     } else {
-        println!("❌ No SSH config found at ~/.ssh/config");
+        println!("No SSH config found at ~/.ssh/config");
     }
 }
 
@@ -458,33 +559,72 @@ Host *
     ServerAliveCountMax 3
 "#;
 
-    let config_path = dirs::home_dir().unwrap().join(".ssh/config.template");
+    let config_path = match dirs::home_dir() {
+        Some(home) => home.join(".ssh/config.template"),
+        None => {
+            println!("Could not determine home directory");
+            return;
+        }
+    };
 
     if let Err(e) = fs::write(&config_path, template) {
-        println!("❌ Failed to create template: {}", e);
+        println!("Failed to create template: {}", e);
         return;
     }
 
-    println!("✅ SSH config template created at ~/.ssh/config.template");
-    println!("💡 Copy sections to ~/.ssh/config as needed");
+    // Set secure permissions (0600)
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = fs::metadata(&config_path) {
+            let mut perms = metadata.permissions();
+            perms.set_mode(0o600);
+            if let Err(e) = fs::set_permissions(&config_path, perms) {
+                log::warn!("Failed to set template permissions: {}", e);
+            }
+        }
+    }
+
+    println!("SSH config template created at ~/.ssh/config.template");
+    println!("Copy sections to ~/.ssh/config as needed");
 }
 
 fn configure_key_auth() {
     println!("🔑 Configure Key-Based Authentication");
     println!("====================================");
 
-    let server: String = Input::new()
+    let server: String = match Input::new()
         .with_prompt("Server hostname or IP")
+        .validate_with(|input: &String| -> Result<(), &str> { validate_hostname(input) })
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(e) => {
+            println!("Input failed: {}", e);
+            return;
+        }
+    };
 
-    let username: String = Input::new()
+    let username: String = match Input::new()
         .with_prompt("Username")
+        .validate_with(|input: &String| -> Result<(), &str> { validate_username(input) })
         .interact_text()
-        .unwrap();
+    {
+        Ok(s) => s,
+        Err(e) => {
+            println!("Input failed: {}", e);
+            return;
+        }
+    };
 
     // List available public keys
-    let ssh_dir = dirs::home_dir().unwrap().join(".ssh");
+    let ssh_dir = match dirs::home_dir() {
+        Some(home) => home.join(".ssh"),
+        None => {
+            println!("Could not determine home directory");
+            return;
+        }
+    };
     let mut pub_keys = Vec::new();
 
     if let Ok(entries) = fs::read_dir(&ssh_dir) {
@@ -505,23 +645,34 @@ fn configure_key_auth() {
 
     let key_names: Vec<String> = pub_keys.iter().map(|(name, _)| name.clone()).collect();
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select public key to install")
         .items(&key_names)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(choice)) => choice,
+        Ok(None) => return, // User cancelled
+        Err(e) => {
+            println!("Selection failed: {}", e);
+            return;
+        }
+    };
 
     let (_, key_path) = &pub_keys[choice];
 
-    println!("🚀 Installing public key on {}@{}", username, server);
+    let key_path_str = match key_path.to_str() {
+        Some(s) => s,
+        None => {
+            println!("Invalid key path");
+            return;
+        }
+    };
+
+    println!("Installing public key on {}@{}", username, server);
 
     let status = Command::new("ssh-copy-id")
-        .args(&[
-            "-i",
-            key_path.to_str().unwrap(),
-            &format!("{}@{}", username, server),
-        ])
+        .args(&["-i", key_path_str, &format!("{}@{}", username, server)])
         .status();
 
     match status {
@@ -547,34 +698,60 @@ fn secure_ssh_daemon() {
     println!("   • Change default port");
     println!("   • Enable key-based auth only");
 
-    let proceed = Confirm::new()
+    let proceed = match Confirm::new()
         .with_prompt("Apply security hardening to SSH daemon?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(true)) => true,
+        Ok(Some(false)) | Ok(None) => return, // User said no or cancelled
+        Err(e) => {
+            println!("Input failed: {}", e);
+            return;
+        }
+    };
 
     if !proceed {
         return;
     }
 
     // Backup original config
-    let _ = Command::new("sudo")
-        .args(&["cp", "/etc/ssh/sshd_config", "/etc/ssh/sshd_config.backup"])
-        .status();
+    match Command::new("sudo")
+        .args(["cp", "/etc/ssh/sshd_config", "/etc/ssh/sshd_config.backup"])
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("Backed up sshd_config to /etc/ssh/sshd_config.backup");
+        }
+        Ok(_) => {
+            println!("Warning: Could not backup sshd_config (permission denied?)");
+        }
+        Err(e) => {
+            log::warn!("Failed to backup sshd_config: {}", e);
+            println!("Warning: Could not backup sshd_config: {}", e);
+        }
+    }
 
-    let hardening_options = MultiSelect::with_theme(&ColorfulTheme::default())
+    let hardening_options = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select hardening options")
         .items(&[
-            "🚫 Disable root login",
-            "🔑 Disable password authentication",
-            "🔢 Change default port (22 -> 2222)",
-            "⏱️  Set login timeout",
-            "📊 Enable detailed logging",
+            "Disable root login",
+            "Disable password authentication",
+            "Change default port (22 -> 2222)",
+            "Set login timeout",
+            "Enable detailed logging",
         ])
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(options)) => options,
+        Ok(None) => return, // User cancelled
+        Err(e) => {
+            println!("Selection failed: {}", e);
+            return;
+        }
+    };
 
-    println!("⚠️  SSH daemon hardening not fully implemented yet");
+    println!("SSH daemon hardening not fully implemented yet");
     println!("💡 Manual steps:");
 
     if hardening_options.contains(&0) {

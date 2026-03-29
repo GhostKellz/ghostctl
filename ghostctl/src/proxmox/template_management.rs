@@ -18,12 +18,14 @@ pub fn template_management_menu() {
             "⬅️  Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("📦 PVE Template Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => list_available_templates(),
@@ -52,12 +54,14 @@ fn list_available_templates() {
         "⬅️  Back",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select template category")
         .items(&template_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => list_container_templates(),
@@ -73,21 +77,29 @@ fn list_container_templates() {
     println!("🐧 Linux Container Templates\n");
 
     println!("📋 Available LXC templates on this node:");
-    let _ = Command::new("pveam")
-        .args(&["available", "--section", "system"])
-        .status();
+    if let Err(e) = Command::new("pveam")
+        .args(["available", "--section", "system"])
+        .status()
+    {
+        println!("Failed to list available templates: {}", e);
+    }
 
     println!("\n🔍 Installed templates:");
-    let _ = Command::new("pveam").args(&["list", "local"]).status();
+    if let Err(e) = Command::new("pveam").args(["list", "local"]).status() {
+        println!("Failed to list installed templates: {}", e);
+    }
 }
 
 fn list_vm_iso_templates() {
     println!("🖼️  VM ISO Templates\n");
 
     println!("📋 Available ISO images:");
-    let _ = Command::new("pvesm")
-        .args(&["list", "local", "--content", "iso"])
-        .status();
+    if let Err(e) = Command::new("pvesm")
+        .args(["list", "local", "--content", "iso"])
+        .status()
+    {
+        println!("Failed to list ISO images: {}", e);
+    }
 
     println!("\n💿 Popular Linux distributions:");
     println!("   • Ubuntu Server (latest LTS)");
@@ -97,12 +109,14 @@ fn list_vm_iso_templates() {
     println!("   • Alpine Linux");
     println!("   • openSUSE");
 
-    if Confirm::new()
+    let Ok(download) = Confirm::new()
         .with_prompt("Download a specific ISO?")
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if download {
         download_iso_template();
     }
 }
@@ -134,22 +148,26 @@ fn download_iso_template() {
 
     let distro_names: Vec<&str> = distros.iter().map(|(name, _)| *name).collect();
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select distribution to download")
         .items(&distro_names)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let (distro_name, url) = if selection == distros.len() - 1 {
-        let custom_name: String = Input::new()
-            .with_prompt("Enter ISO name")
-            .interact_text()
-            .unwrap();
-        let custom_url: String = Input::new()
-            .with_prompt("Enter ISO URL")
-            .interact_text()
-            .unwrap();
+        let Ok(custom_name): Result<String, _> =
+            Input::new().with_prompt("Enter ISO name").interact_text()
+        else {
+            return;
+        };
+        let Ok(custom_url): Result<String, _> =
+            Input::new().with_prompt("Enter ISO URL").interact_text()
+        else {
+            return;
+        };
         (custom_name, custom_url)
     } else {
         let (name, url) = distros[selection];
@@ -183,9 +201,12 @@ fn list_appliance_templates() {
     println!("📱 Appliance Templates\n");
 
     println!("🔍 Turnkey Linux appliances:");
-    let _ = Command::new("pveam")
-        .args(&["available", "--section", "turnkeylinux"])
-        .status();
+    if let Err(e) = Command::new("pveam")
+        .args(["available", "--section", "turnkeylinux"])
+        .status()
+    {
+        println!("Failed to list appliance templates: {}", e);
+    }
 
     println!("\n📋 Popular appliances:");
     println!("   • Nextcloud (file sharing)");
@@ -215,7 +236,9 @@ fn list_all_templates() {
     println!("📋 All Available Templates\n");
 
     println!("🔍 Complete template listing:");
-    let _ = Command::new("pveam").args(&["available"]).status();
+    if let Err(e) = Command::new("pveam").args(["available"]).status() {
+        println!("Failed to list templates: {}", e);
+    }
 }
 
 fn download_template() {
@@ -229,12 +252,14 @@ fn download_template() {
         "⬅️  Back",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select download type")
         .items(&download_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => download_appliance_template(),
@@ -248,10 +273,12 @@ fn download_template() {
 fn download_appliance_template() {
     println!("📱 Download Appliance Template\n");
 
-    let template_id: String = Input::new()
+    let Ok(template_id): Result<String, _> = Input::new()
         .with_prompt("Enter template ID (e.g., turnkey-nextcloud-17.1-bullseye-amd64.tar.gz)")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📥 Downloading appliance template: {}", template_id);
 
@@ -277,18 +304,23 @@ fn download_container_template() {
         "Custom template ID",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select container template")
         .items(&popular_containers)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let template_id = if selection == popular_containers.len() - 1 {
-        Input::new()
+        let Ok(id): Result<String, _> = Input::new()
             .with_prompt("Enter custom template ID")
             .interact_text()
-            .unwrap()
+        else {
+            return;
+        };
+        id
     } else {
         popular_containers[selection].to_string()
     };
@@ -309,10 +341,12 @@ fn download_container_template() {
 fn search_and_download_template() {
     println!("🔍 Search and Download Template\n");
 
-    let search_term: String = Input::new()
+    let Ok(search_term): Result<String, _> = Input::new()
         .with_prompt("Enter search term (e.g., 'nextcloud', 'ubuntu', 'alpine')")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔍 Searching for templates matching: {}", search_term);
 
@@ -335,10 +369,12 @@ fn search_and_download_template() {
             println!("  {}. {}", i + 1, line);
         }
 
-        let index: String = Input::new()
+        let Ok(index): Result<String, _> = Input::new()
             .with_prompt("Enter template number to download (or 0 to cancel)")
             .interact_text()
-            .unwrap();
+        else {
+            return;
+        };
 
         if let Ok(idx) = index.parse::<usize>()
             && idx > 0
@@ -367,19 +403,23 @@ fn remove_template() {
         let content = String::from_utf8_lossy(&output.stdout);
         println!("{}", content);
 
-        let template_id: String = Input::new()
+        let Ok(template_id): Result<String, _> = Input::new()
             .with_prompt("Enter template filename to remove")
             .interact_text()
-            .unwrap();
+        else {
+            return;
+        };
 
-        let confirm = Confirm::new()
+        let Ok(confirm) = Confirm::new()
             .with_prompt(format!(
                 "⚠️  Remove template '{}'? This cannot be undone",
                 template_id
             ))
             .default(false)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if confirm {
             let status = Command::new("pveam")
@@ -400,10 +440,12 @@ fn remove_template() {
 fn template_information() {
     println!("📋 Template Information\n");
 
-    let template_id: String = Input::new()
+    let Ok(template_id): Result<String, _> = Input::new()
         .with_prompt("Enter template ID or filename")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔍 Template information for: {}\n", template_id);
 
@@ -421,7 +463,9 @@ fn template_information() {
             {
                 println!("📁 Path: {}", template_path);
                 println!("📏 Size: {} bytes", metadata.len());
-                println!("📅 Modified: {:?}", metadata.modified().unwrap());
+                if let Ok(modified) = metadata.modified() {
+                    println!("📅 Modified: {:?}", modified);
+                }
             }
         } else {
             println!("📍 Status: Not installed locally");
@@ -450,12 +494,14 @@ fn update_template_cache() {
     if status.map(|s| s.success()).unwrap_or(false) {
         println!("✅ Template cache updated successfully!");
 
-        if Confirm::new()
+        let Ok(show) = Confirm::new()
             .with_prompt("Show available templates?")
             .default(true)
             .interact()
-            .unwrap()
-        {
+        else {
+            return;
+        };
+        if show {
             let _ = Command::new("pveam")
                 .args(&["available", "--section", "system"])
                 .status();
@@ -475,12 +521,14 @@ fn upload_custom_template() {
         "⬅️  Back",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select template type")
         .items(&template_types)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => upload_container_template(),
@@ -493,10 +541,18 @@ fn upload_custom_template() {
 fn upload_container_template() {
     println!("📦 Upload Container Template\n");
 
-    let file_path: String = Input::new()
+    let Ok(file_path): Result<String, _> = Input::new()
         .with_prompt("Enter full path to template file")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
+
+    // Validate the path to prevent injection
+    if let Err(e) = super::validation::validate_path(&file_path) {
+        println!("Invalid path: {}", e);
+        return;
+    }
 
     if !Path::new(&file_path).exists() {
         println!("❌ File not found: {}", file_path);
@@ -504,32 +560,46 @@ fn upload_container_template() {
     }
 
     let dest_path = "/var/lib/vz/template/cache/";
-    let filename = Path::new(&file_path).file_name().unwrap().to_string_lossy();
+    let Some(filename) = Path::new(&file_path).file_name() else {
+        println!("❌ Invalid file path: {}", file_path);
+        return;
+    };
+    let filename = filename.to_string_lossy();
     let full_dest = format!("{}{}", dest_path, filename);
 
     println!("📤 Copying template to: {}", full_dest);
 
-    let status = Command::new("cp").args(&[&file_path, &full_dest]).status();
+    match Command::new("cp").args([&file_path, &full_dest]).status() {
+        Ok(status) if status.success() => {
+            println!("✅ Container template uploaded successfully!");
 
-    if status.map(|s| s.success()).unwrap_or(false) {
-        println!("✅ Container template uploaded successfully!");
+            // Set appropriate permissions
+            if let Err(e) = Command::new("chmod").args(["644", &full_dest]).status() {
+                println!("Warning: Could not set permissions: {}", e);
+            }
 
-        // Set appropriate permissions
-        let _ = Command::new("chmod").args(&["644", &full_dest]).status();
-
-        println!("📋 Template is now available for container creation");
-    } else {
-        println!("❌ Upload failed");
+            println!("📋 Template is now available for container creation");
+        }
+        Ok(_) => println!("❌ Upload failed (copy returned non-zero)"),
+        Err(e) => println!("❌ Upload failed: {}", e),
     }
 }
 
 fn upload_iso_image() {
     println!("💿 Upload ISO Image\n");
 
-    let file_path: String = Input::new()
+    let Ok(file_path): Result<String, _> = Input::new()
         .with_prompt("Enter full path to ISO file")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
+
+    // Validate the path to prevent injection
+    if let Err(e) = super::validation::validate_path(&file_path) {
+        println!("Invalid path: {}", e);
+        return;
+    }
 
     if !Path::new(&file_path).exists() {
         println!("❌ File not found: {}", file_path);
@@ -537,28 +607,40 @@ fn upload_iso_image() {
     }
 
     let dest_path = "/var/lib/vz/template/iso/";
-    let filename = Path::new(&file_path).file_name().unwrap().to_string_lossy();
+    let Some(filename) = Path::new(&file_path).file_name() else {
+        println!("❌ Invalid file path: {}", file_path);
+        return;
+    };
+    let filename = filename.to_string_lossy();
     let full_dest = format!("{}{}", dest_path, filename);
 
     println!("📤 Copying ISO to: {}", full_dest);
 
-    let status = Command::new("cp").args(&[&file_path, &full_dest]).status();
-
-    if status.map(|s| s.success()).unwrap_or(false) {
-        println!("✅ ISO image uploaded successfully!");
-        println!("💿 Image is now available for VM creation");
-    } else {
-        println!("❌ Upload failed");
+    match Command::new("cp").args([&file_path, &full_dest]).status() {
+        Ok(status) if status.success() => {
+            println!("✅ ISO image uploaded successfully!");
+            println!("💿 Image is now available for VM creation");
+        }
+        Ok(_) => println!("❌ Upload failed (copy returned non-zero)"),
+        Err(e) => println!("❌ Upload failed: {}", e),
     }
 }
 
 fn upload_vm_disk_image() {
     println!("🖼️  Upload VM Disk Image\n");
 
-    let file_path: String = Input::new()
+    let Ok(file_path): Result<String, _> = Input::new()
         .with_prompt("Enter full path to disk image file")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
+
+    // Validate the path to prevent injection
+    if let Err(e) = super::validation::validate_path(&file_path) {
+        println!("Invalid path: {}", e);
+        return;
+    }
 
     if !Path::new(&file_path).exists() {
         println!("❌ File not found: {}", file_path);
@@ -566,18 +648,22 @@ fn upload_vm_disk_image() {
     }
 
     let dest_path = "/var/lib/vz/images/";
-    let filename = Path::new(&file_path).file_name().unwrap().to_string_lossy();
+    let Some(filename) = Path::new(&file_path).file_name() else {
+        println!("❌ Invalid file path: {}", file_path);
+        return;
+    };
+    let filename = filename.to_string_lossy();
     let full_dest = format!("{}{}", dest_path, filename);
 
     println!("📤 Copying disk image to: {}", full_dest);
 
-    let status = Command::new("cp").args(&[&file_path, &full_dest]).status();
-
-    if status.map(|s| s.success()).unwrap_or(false) {
-        println!("✅ VM disk image uploaded successfully!");
-        println!("🖼️  Image can now be imported into VMs");
-    } else {
-        println!("❌ Upload failed");
+    match Command::new("cp").args([&file_path, &full_dest]).status() {
+        Ok(status) if status.success() => {
+            println!("✅ VM disk image uploaded successfully!");
+            println!("🖼️  Image can now be imported into VMs");
+        }
+        Ok(_) => println!("❌ Upload failed (copy returned non-zero)"),
+        Err(e) => println!("❌ Upload failed: {}", e),
     }
 }
 
@@ -592,12 +678,14 @@ fn template_customization() {
         "⬅️  Back",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select customization option")
         .items(&customization_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => create_custom_container_template(),
@@ -617,24 +705,47 @@ fn create_custom_container_template() {
     println!("   3. Clean up logs and temporary files");
     println!("   4. Export container as template");
 
-    let ct_id: String = Input::new()
+    let Ok(ct_id): Result<String, _> = Input::new()
         .with_prompt("Enter container ID to convert to template")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let template_name: String = Input::new()
+    // Validate container ID
+    if let Err(e) = super::validation::validate_ctid(&ct_id) {
+        println!("Invalid container ID: {}", e);
+        return;
+    }
+
+    let Ok(template_name): Result<String, _> = Input::new()
         .with_prompt("Enter template name")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
+
+    // Validate template name (use storage name validation as similar rules)
+    if let Err(e) = super::validation::validate_storage_name(&template_name) {
+        println!("Invalid template name: {}", e);
+        return;
+    }
 
     println!("🔄 Creating template from container {}...", ct_id);
 
     // Stop the container first
-    let _ = Command::new("pct").args(&["stop", &ct_id]).status();
+    match Command::new("pct").args(["stop", &ct_id]).status() {
+        Ok(status) if status.success() => println!("   Container stopped"),
+        Ok(_) => println!("   Warning: Container may not have been running"),
+        Err(e) => {
+            println!("   Warning: Could not stop container: {}", e);
+            // Continue anyway - container might already be stopped
+        }
+    }
 
     // Create template
-    let status = Command::new("vzdump")
-        .args(&[
+    match Command::new("vzdump")
+        .args([
             &ct_id,
             "--compress",
             "lzo",
@@ -643,13 +754,17 @@ fn create_custom_container_template() {
             "--dumpdir",
             "/var/lib/vz/dump",
         ])
-        .status();
-
-    if status.map(|s| s.success()).unwrap_or(false) {
-        println!("✅ Custom template created successfully!");
-        println!("📁 Template saved in /var/lib/vz/dump/");
-    } else {
-        println!("❌ Template creation failed");
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!(
+                "✅ Custom template '{}' created successfully!",
+                template_name
+            );
+            println!("📁 Template saved in /var/lib/vz/dump/");
+        }
+        Ok(_) => println!("❌ Template creation failed (vzdump returned non-zero)"),
+        Err(e) => println!("❌ Template creation failed: {}", e),
     }
 }
 
@@ -663,7 +778,9 @@ fn modify_existing_template() {
     println!("   4. Remove temporary container");
 
     println!("\n🔍 Available templates:");
-    let _ = Command::new("pveam").args(&["list", "local"]).status();
+    if let Err(e) = Command::new("pveam").args(["list", "local"]).status() {
+        println!("Failed to list templates: {}", e);
+    }
 }
 
 fn template_hooks_scripts() {
@@ -679,12 +796,14 @@ fn template_hooks_scripts() {
     println!("   • /usr/share/lxc/hooks/");
     println!("   • /var/lib/vz/snippets/");
 
-    if Confirm::new()
+    let Ok(create) = Confirm::new()
         .with_prompt("Create a sample hook script?")
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if create {
         create_sample_hook_script();
     }
 }
@@ -710,27 +829,37 @@ exit 0
 
     let hook_path = "/var/lib/vz/snippets/sample-hook.sh";
 
-    if fs::write(hook_path, hook_content).is_ok() {
-        let _ = Command::new("chmod").args(&["+x", hook_path]).status();
-
-        println!("✅ Sample hook script created: {}", hook_path);
-    } else {
-        println!("❌ Failed to create hook script");
+    match fs::write(hook_path, hook_content) {
+        Ok(()) => {
+            if let Err(e) = Command::new("chmod").args(["+x", hook_path]).status() {
+                println!(
+                    "✅ Script created but chmod failed: {}. Run: chmod +x {}",
+                    e, hook_path
+                );
+            } else {
+                println!("✅ Sample hook script created: {}", hook_path);
+            }
+        }
+        Err(e) => println!("❌ Failed to create hook script: {}", e),
     }
 }
 
 fn package_custom_template() {
     println!("📦 Package Custom Template\n");
 
-    let source_dir: String = Input::new()
+    let Ok(source_dir): Result<String, _> = Input::new()
         .with_prompt("Enter source directory or container ID")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let template_name: String = Input::new()
+    let Ok(template_name): Result<String, _> = Input::new()
         .with_prompt("Enter template package name")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     let output_path = format!("/var/lib/vz/template/cache/{}.tar.zst", template_name);
 
@@ -768,12 +897,14 @@ fn template_maintenance() {
         "⬅️  Back",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select maintenance operation")
         .items(&maintenance_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => cleanup_old_templates(),
@@ -790,11 +921,13 @@ fn cleanup_old_templates() {
     println!("🔍 Scanning for old templates...");
 
     // Find templates older than X days
-    let days: String = Input::new()
+    let Ok(days): Result<String, _> = Input::new()
         .with_prompt("Remove templates older than X days")
         .default("90".to_string())
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📋 Templates older than {} days:", days);
     let output = Command::new("find")
@@ -817,12 +950,14 @@ fn cleanup_old_templates() {
 
         println!("{}", content);
 
-        if Confirm::new()
+        let Ok(remove) = Confirm::new()
             .with_prompt("⚠️  Remove these templates?")
             .default(false)
             .interact()
-            .unwrap()
-        {
+        else {
+            return;
+        };
+        if remove {
             let _ = Command::new("find")
                 .args(&[
                     "/var/lib/vz/template/cache",
@@ -859,7 +994,10 @@ fn verify_template_integrity() {
         }
 
         for template in templates {
-            let filename = Path::new(template).file_name().unwrap().to_string_lossy();
+            let Some(filename) = Path::new(template).file_name() else {
+                continue;
+            };
+            let filename = filename.to_string_lossy();
             print!("🔍 Verifying {}... ", filename);
 
             let status = if template.ends_with(".tar.zst") {
@@ -883,18 +1021,28 @@ fn verify_template_integrity() {
 fn template_storage_usage() {
     println!("📊 Template Storage Usage\n");
 
-    let _ = Command::new("du")
-        .args(&["-h", "/var/lib/vz/template/"])
-        .status();
+    if let Err(e) = Command::new("du")
+        .args(["-h", "/var/lib/vz/template/"])
+        .status()
+    {
+        println!("Failed to get template usage: {}", e);
+    }
 
     println!("\n📋 Template breakdown:");
-    let _ = Command::new("du")
-        .args(&["-sh", "/var/lib/vz/template/cache/*"])
-        .status();
+    // Use safe path arguments - no shell expansion
+    if let Err(e) = Command::new("du")
+        .args(["-sh", "/var/lib/vz/template/cache/"])
+        .status()
+    {
+        println!("Cache usage not available: {}", e);
+    }
 
-    let _ = Command::new("du")
-        .args(&["-sh", "/var/lib/vz/template/iso/*"])
-        .status();
+    if let Err(e) = Command::new("du")
+        .args(["-sh", "/var/lib/vz/template/iso/"])
+        .status()
+    {
+        println!("ISO usage not available: {}", e);
+    }
 }
 
 fn optimize_template_storage() {
@@ -908,12 +1056,14 @@ fn optimize_template_storage() {
         "⬅️  Back",
     ];
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+    let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select optimization method")
         .items(&optimization_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match selection {
         0 => recompress_templates(),
@@ -932,12 +1082,14 @@ fn recompress_templates() {
     println!("   • xz (slow, best compression)");
     println!("   • lz4 (fastest, moderate compression)");
 
-    let method = Select::with_theme(&ColorfulTheme::default())
+    let Ok(method) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select compression method")
         .items(&["zstd", "xz", "lz4"])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let compression_method = ["zstd", "xz", "lz4"][method];
     println!("🔄 Recompressing templates with {}...", compression_method);
@@ -953,10 +1105,12 @@ fn deduplicate_templates() {
 fn move_templates_storage() {
     println!("💾 Move Templates to Different Storage\n");
 
-    let storage_id: String = Input::new()
+    let Ok(storage_id): Result<String, _> = Input::new()
         .with_prompt("Enter target storage ID")
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📦 Moving templates to storage: {}", storage_id);
     println!("💡 This would migrate templates to different PVE storage");
@@ -966,30 +1120,56 @@ fn template_usage_statistics() {
     println!("📊 Template Usage Statistics\n");
 
     println!("📈 Template usage analysis:");
-    println!("   • Total templates: ");
-    let _ = Command::new("find")
-        .args(&["/var/lib/vz/template/cache", "-name", "*.tar.*"])
-        .output()
-        .map(|output| {
-            let count = String::from_utf8_lossy(&output.stdout).lines().count();
-            println!("     Container templates: {}", count);
-        });
 
-    let _ = Command::new("find")
-        .args(&["/var/lib/vz/template/iso", "-name", "*.iso"])
+    // Count container templates
+    match Command::new("find")
+        .args([
+            "/var/lib/vz/template/cache",
+            "-name",
+            "*.tar.*",
+            "-type",
+            "f",
+        ])
         .output()
-        .map(|output| {
-            let count = String::from_utf8_lossy(&output.stdout).lines().count();
-            println!("     ISO images: {}", count);
-        });
+    {
+        Ok(output) => {
+            let count = String::from_utf8_lossy(&output.stdout)
+                .lines()
+                .filter(|l| !l.is_empty())
+                .count();
+            println!("   Container templates: {}", count);
+        }
+        Err(e) => println!("   Container templates: (error: {})", e),
+    }
+
+    // Count ISO images
+    match Command::new("find")
+        .args(["/var/lib/vz/template/iso", "-name", "*.iso", "-type", "f"])
+        .output()
+    {
+        Ok(output) => {
+            let count = String::from_utf8_lossy(&output.stdout)
+                .lines()
+                .filter(|l| !l.is_empty())
+                .count();
+            println!("   ISO images: {}", count);
+        }
+        Err(e) => println!("   ISO images: (error: {})", e),
+    }
 
     println!("\n💾 Storage usage:");
-    let _ = Command::new("du")
-        .args(&["-sh", "/var/lib/vz/template/"])
-        .status();
+    if let Err(e) = Command::new("du")
+        .args(["-sh", "/var/lib/vz/template/"])
+        .status()
+    {
+        println!("   (error: {})", e);
+    }
 
     println!("\n📋 Most recently used templates:");
-    let _ = Command::new("ls")
-        .args(&["-lt", "/var/lib/vz/template/cache/"])
-        .status();
+    if let Err(e) = Command::new("ls")
+        .args(["-lt", "/var/lib/vz/template/cache/"])
+        .status()
+    {
+        println!("   (error: {})", e);
+    }
 }

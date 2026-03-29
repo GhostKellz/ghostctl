@@ -1,13 +1,8 @@
 pub fn configure() {
     println!("ghostctl :: NVIDIA Wayland Configuration Helper");
     // Check for nvidia-drm.modeset=1 in kernel params
-    let output = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("cat /proc/cmdline")
-        .output();
-    match output {
-        Ok(out) => {
-            let cmdline = String::from_utf8_lossy(&out.stdout);
+    match std::fs::read_to_string("/proc/cmdline") {
+        Ok(cmdline) => {
             if cmdline.contains("nvidia-drm.modeset=1") {
                 println!("[OK] nvidia-drm.modeset=1 is set in kernel params");
             } else {
@@ -24,9 +19,8 @@ pub fn configure() {
         "- To enable Wayland, add 'options nvidia-drm modeset=1' to /etc/modprobe.d/nvidia.conf"
     );
     // Detect driver type
-    let output = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("pacman -Qs nvidia-open")
+    let output = std::process::Command::new("pacman")
+        .args(["-Qs", "nvidia-open"])
         .output();
     match output {
         Ok(out) => {

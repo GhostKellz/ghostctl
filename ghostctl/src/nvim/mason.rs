@@ -19,12 +19,14 @@ pub fn mason_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Mason Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => check_mason_status(),
@@ -46,10 +48,12 @@ pub fn check_mason_status() {
         println!("✅ Mason.nvim is installed");
     } else {
         println!("❌ Mason.nvim is not installed");
-        let install = Confirm::with_theme(&ColorfulTheme::default())
+        let Ok(install) = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Would you like to install Mason.nvim?")
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if install {
             install_mason();
@@ -142,12 +146,14 @@ pub fn language_environment_setup() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select language environment to setup")
         .items(&languages)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => setup_rust_environment(),
@@ -180,11 +186,13 @@ pub fn install_specific_tools() {
         return;
     }
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selected) = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select tools to install")
         .items(&not_installed)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selected {
         let tool = not_installed[index];

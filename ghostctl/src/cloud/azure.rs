@@ -16,8 +16,13 @@ pub fn azure_cli_tools() {
                 "Manual install",
             ])
             .default(0)
-            .interact()
-            .unwrap();
+            .interact_opt()
+            .ok()
+            .flatten();
+
+        let Some(install_method) = install_method else {
+            return;
+        };
 
         match install_method {
             0 => {
@@ -71,8 +76,13 @@ pub fn azure_cli_tools() {
         .with_prompt("Azure CLI Actions")
         .items(&azure_actions)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(action) = action else {
+        return;
+    };
 
     match action {
         0 => azure_login(),
@@ -130,8 +140,13 @@ fn list_resource_groups() {
         .with_prompt("Resource Group Actions")
         .items(&options)
         .default(3)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => resource_group_details(),
@@ -150,8 +165,10 @@ fn list_virtual_machines() {
     let show_details = Confirm::new()
         .with_prompt("Show VM details with sizes and status?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if show_details {
         let _ = Command::new("az")
@@ -171,8 +188,13 @@ fn list_virtual_machines() {
         .with_prompt("VM Actions")
         .items(&options)
         .default(4)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => vm_start_stop(),
@@ -201,8 +223,13 @@ fn list_storage_accounts() {
         .with_prompt("Storage Actions")
         .items(&options)
         .default(4)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(choice) = choice else {
+        return;
+    };
 
     match choice {
         0 => storage_usage(),
@@ -250,8 +277,10 @@ fn list_sql_databases() {
     let show_databases = Confirm::new()
         .with_prompt("Show databases for each server?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if show_databases {
         println!("📋 Listing all databases...");
@@ -307,7 +336,11 @@ fn azure_resource_search() {
     let search_term: String = Input::new()
         .with_prompt("Search for resources (name/type)")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if search_term.is_empty() {
+        return;
+    }
 
     println!("🔍 Searching for: {}", search_term);
     let _ = Command::new("az")
@@ -351,8 +384,13 @@ fn azure_configuration() {
             "Back",
         ])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(config_action) = config_action else {
+        return;
+    };
 
     match config_action {
         0 => set_default_location(),
@@ -367,7 +405,11 @@ fn resource_group_details() {
     let rg_name: String = Input::new()
         .with_prompt("Resource group name")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if rg_name.is_empty() {
+        return;
+    }
 
     println!("📊 Resource group details for: {}", rg_name);
     let _ = Command::new("az")
@@ -396,13 +438,19 @@ fn delete_resource_group() {
     let rg_name: String = Input::new()
         .with_prompt("Resource group name to delete")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if rg_name.is_empty() {
+        return;
+    }
 
     let confirm = Confirm::new()
         .with_prompt(format!("⚠️  Are you sure you want to delete '{}'? This will delete ALL resources in the group!", rg_name))
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten()
+        .unwrap_or(false);
 
     if confirm {
         println!("🗑️  Deleting resource group: {}", rg_name);
@@ -413,19 +461,35 @@ fn delete_resource_group() {
 }
 
 fn vm_start_stop() {
-    let vm_name: String = Input::new().with_prompt("VM name").interact_text().unwrap();
+    let vm_name: String = Input::new()
+        .with_prompt("VM name")
+        .interact_text()
+        .unwrap_or_default();
+
+    if vm_name.is_empty() {
+        return;
+    }
 
     let rg_name: String = Input::new()
         .with_prompt("Resource group name")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if rg_name.is_empty() {
+        return;
+    }
 
     let action = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("VM Action")
         .items(&["Start", "Stop", "Restart", "Deallocate"])
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+        .ok()
+        .flatten();
+
+    let Some(action) = action else {
+        return;
+    };
 
     let command = match action {
         0 => "start",
@@ -472,12 +536,20 @@ fn storage_access_keys() {
     let storage_name: String = Input::new()
         .with_prompt("Storage account name")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if storage_name.is_empty() {
+        return;
+    }
 
     let rg_name: String = Input::new()
         .with_prompt("Resource group name")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if rg_name.is_empty() {
+        return;
+    }
 
     println!("🔒 Storage account access keys:");
     let _ = Command::new("az")
@@ -500,7 +572,11 @@ fn list_storage_containers() {
     let storage_name: String = Input::new()
         .with_prompt("Storage account name")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if storage_name.is_empty() {
+        return;
+    }
 
     println!("📁 Storage containers:");
     let _ = Command::new("az")
@@ -526,7 +602,11 @@ fn set_default_location() {
         .with_prompt("Default location (e.g., eastus, westus2)")
         .default("eastus".into())
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if location.is_empty() {
+        return;
+    }
 
     let _ = Command::new("az")
         .args(["configure", "--defaults", &format!("location={}", location)])
@@ -539,7 +619,11 @@ fn set_default_resource_group() {
     let rg: String = Input::new()
         .with_prompt("Default resource group")
         .interact_text()
-        .unwrap();
+        .unwrap_or_default();
+
+    if rg.is_empty() {
+        return;
+    }
 
     let _ = Command::new("az")
         .args(["configure", "--defaults", &format!("group={}", rg)])

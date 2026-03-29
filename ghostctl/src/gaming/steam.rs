@@ -14,12 +14,14 @@ pub fn steam_menu() {
             "⬅️  Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🚀 Steam & Proton Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => install_steam(),
@@ -46,11 +48,13 @@ pub fn install_steam() {
     match multilib_check {
         Ok(out) if out.stdout.is_empty() => {
             println!("❌ Multilib repository is not enabled!");
-            let enable_multilib = Confirm::new()
+            let Ok(enable_multilib) = Confirm::new()
                 .with_prompt("Enable multilib repository? (Required for Steam)")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if enable_multilib {
                 enable_multilib_repo();
@@ -100,11 +104,13 @@ pub fn install_steam() {
                 "💡 You can now launch Steam from your application menu or by running 'steam' in the terminal"
             );
 
-            let launch_steam = Confirm::new()
+            let Ok(launch_steam) = Confirm::new()
                 .with_prompt("Launch Steam now?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if launch_steam {
                 let _ = Command::new("steam").spawn();
@@ -160,12 +166,14 @@ pub fn proton_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Proton Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => list_proton_versions(),
@@ -210,11 +218,13 @@ fn install_proton_ge() {
     println!("===================================");
 
     println!("💡 This will download and install the latest Proton-GE");
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Continue with Proton-GE installation?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !confirm {
         return;
@@ -350,12 +360,14 @@ pub fn steam_library_optimization() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Steam Library Optimization")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => enable_steam_play_all(),
@@ -424,11 +436,13 @@ fn clear_download_cache() {
     println!("🧹 Clear Steam Download Cache");
     println!("=============================");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Clear Steam download cache? (Steam must be closed)")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let cache_dir = std::env::home_dir()
@@ -460,11 +474,13 @@ fn repair_steam_library() {
     println!("  3. Regenerate Steam shortcuts");
     println!("  4. Reset Steam configuration");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Reset Steam configuration? (Will log you out)")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let config_file = std::env::home_dir()
@@ -473,8 +489,12 @@ fn repair_steam_library() {
 
         if config_file.exists() {
             let backup_name = format!("{}.backup", config_file.to_string_lossy());
+            let Some(config_path) = config_file.to_str() else {
+                println!("❌ Invalid config file path");
+                return;
+            };
             let backup_status = Command::new("cp")
-                .args(&[config_file.to_str().unwrap(), &backup_name])
+                .args(&[config_path, &backup_name])
                 .status();
 
             let _ = Command::new("rm").arg(&config_file).status();
@@ -502,12 +522,14 @@ pub fn steam_prefix_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Prefix Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => list_game_prefixes(),
@@ -571,12 +593,14 @@ pub fn steam_troubleshooting() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Steam Troubleshooting")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => fix_steam_runtime(),
@@ -608,11 +632,13 @@ fn fix_steam_runtime() {
     ];
 
     for (desc, cmd) in &fixes {
-        let confirm = Confirm::new()
+        let Ok(confirm) = Confirm::new()
             .with_prompt(&format!("Apply: {}?", desc))
             .default(false)
             .interact()
-            .unwrap();
+        else {
+            continue;
+        };
 
         if confirm {
             let status = Command::new("sh").arg("-c").arg(cmd).status();
@@ -628,11 +654,13 @@ fn reinstall_steam_runtime() {
     println!("📦 Reinstall Steam Linux Runtime");
     println!("================================");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Reinstall Steam runtime? (Steam will be closed)")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         // Kill Steam
@@ -700,11 +728,13 @@ fn reset_steam_native() {
     println!("  export STEAM_RUNTIME=0");
     println!("  steam");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Launch Steam with native runtime now?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let _ = Command::new("env")
@@ -722,11 +752,13 @@ fn fix_display_issues() {
     println!("  steam -cef-disable-gpu         - Disable GPU acceleration");
     println!("  steam -no-dwrite               - Disable DirectWrite");
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt("Launch Steam with scaling fix?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         let _ = Command::new("env").args(&["GDK_SCALE=1", "steam"]).spawn();

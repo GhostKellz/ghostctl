@@ -14,12 +14,14 @@ pub fn troubleshoot_menu() {
             "⬅️ Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🔧 Network Troubleshooting")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => general_network_troubleshooting(),
@@ -47,12 +49,14 @@ fn general_network_troubleshooting() {
     ];
 
     loop {
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🌐 General Network Troubleshooting")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => complete_network_diagnosis(),
@@ -132,7 +136,25 @@ fn complete_network_diagnosis() {
 
     // 8. Network Performance
     println!("\n8️⃣ Network Interface Performance:");
-    Command::new("sh").arg("-c").arg("for iface in $(ls /sys/class/net/); do echo \"=== $iface ===\"; ethtool $iface 2>/dev/null | grep -E 'Speed|Duplex|Link' || echo 'ethtool not available'; done").status().ok();
+    if let Ok(entries) = std::fs::read_dir("/sys/class/net") {
+        for entry in entries.flatten() {
+            if let Some(iface) = entry.file_name().to_str() {
+                println!("=== {} ===", iface);
+                let output = Command::new("ethtool").arg(iface).output();
+                match output {
+                    Ok(out) if out.status.success() => {
+                        let text = String::from_utf8_lossy(&out.stdout);
+                        for line in text.lines() {
+                            if line.contains("Speed") || line.contains("Duplex") || line.contains("Link") {
+                                println!("{}", line);
+                            }
+                        }
+                    }
+                    _ => println!("ethtool not available"),
+                }
+            }
+        }
+    }
 
     println!("\n✅ Diagnosis complete. Check above for any issues.");
 }
@@ -262,62 +284,53 @@ fn network_interface_analysis() {
 
             println!("\n=== {} ===", interface);
 
-            // Interface status
-            let status_cmd = format!("cat /sys/class/net/{}/operstate", interface);
-            let status = Command::new("sh").arg("-c").arg(&status_cmd).output();
-            if let Ok(s) = status {
-                println!("  Status: {}", String::from_utf8_lossy(&s.stdout).trim());
+            // Interface status (read sysfs directly)
+            let status_path = format!("/sys/class/net/{}/operstate", interface);
+            if let Ok(status) = std::fs::read_to_string(&status_path) {
+                println!("  Status: {}", status.trim());
             }
 
             // MAC address
-            let mac_cmd = format!("cat /sys/class/net/{}/address", interface);
-            let mac = Command::new("sh").arg("-c").arg(&mac_cmd).output();
-            if let Ok(m) = mac {
-                println!("  MAC: {}", String::from_utf8_lossy(&m.stdout).trim());
+            let mac_path = format!("/sys/class/net/{}/address", interface);
+            if let Ok(mac) = std::fs::read_to_string(&mac_path) {
+                println!("  MAC: {}", mac.trim());
             }
 
             // MTU
-            let mtu_cmd = format!("cat /sys/class/net/{}/mtu", interface);
-            let mtu = Command::new("sh").arg("-c").arg(&mtu_cmd).output();
-            if let Ok(m) = mtu {
-                println!("  MTU: {}", String::from_utf8_lossy(&m.stdout).trim());
+            let mtu_path = format!("/sys/class/net/{}/mtu", interface);
+            if let Ok(mtu) = std::fs::read_to_string(&mtu_path) {
+                println!("  MTU: {}", mtu.trim());
             }
 
             // Speed (if available)
-            let speed_cmd = format!("cat /sys/class/net/{}/speed 2>/dev/null", interface);
-            let speed = Command::new("sh").arg("-c").arg(&speed_cmd).output();
-            if let Ok(s) = speed {
-                let speed_str = String::from_utf8_lossy(&s.stdout).trim().to_string();
-                if !speed_str.is_empty() && speed_str != "cat: /sys/class/net" {
+            let speed_path = format!("/sys/class/net/{}/speed", interface);
+            if let Ok(speed) = std::fs::read_to_string(&speed_path) {
+                let speed_str = speed.trim();
+                if !speed_str.is_empty() {
                     println!("  Speed: {} Mbps", speed_str);
                 }
             }
 
             // Statistics
-            let stats_cmd = format!(
-                "cat /sys/class/net/{}/statistics/rx_bytes /sys/class/net/{}/statistics/tx_bytes",
-                interface, interface
-            );
-            let stats = Command::new("sh").arg("-c").arg(&stats_cmd).output();
-            if let Ok(s) = stats {
-                let lines: Vec<String> = String::from_utf8_lossy(&s.stdout)
-                    .lines()
-                    .map(|s| s.to_string())
-                    .collect();
-                if lines.len() >= 2 {
-                    let rx_bytes: u64 = lines[0].trim().parse().unwrap_or(0);
-                    let tx_bytes: u64 = lines[1].trim().parse().unwrap_or(0);
-                    println!(
-                        "  RX: {} MB, TX: {} MB",
-                        rx_bytes / 1024 / 1024,
-                        tx_bytes / 1024 / 1024
-                    );
-                }
+            let rx_path = format!("/sys/class/net/{}/statistics/rx_bytes", interface);
+            let tx_path = format!("/sys/class/net/{}/statistics/tx_bytes", interface);
+            if let (Ok(rx), Ok(tx)) = (
+                std::fs::read_to_string(&rx_path),
+                std::fs::read_to_string(&tx_path),
+            ) {
+                let rx_bytes: u64 = rx.trim().parse().unwrap_or(0);
+                let tx_bytes: u64 = tx.trim().parse().unwrap_or(0);
+                println!(
+                    "  RX: {} MB, TX: {} MB",
+                    rx_bytes / 1024 / 1024,
+                    tx_bytes / 1024 / 1024
+                );
             }
 
-            // IP addresses
-            let ip_cmd = format!("ip addr show {}", interface);
-            let ip_info = Command::new("sh").arg("-c").arg(&ip_cmd).output();
+            // IP addresses (use direct args instead of shell)
+            let ip_info = Command::new("ip")
+                .args(["addr", "show", interface])
+                .output();
             if let Ok(i) = ip_info {
                 let ip_str = String::from_utf8_lossy(&i.stdout);
                 for line in ip_str.lines() {
@@ -329,20 +342,26 @@ fn network_interface_analysis() {
         }
     }
 
-    // Interface errors
+    // Interface errors (read sysfs directly instead of shell grep)
     println!("\n❌ Interface Errors:");
-    Command::new("sh")
-        .arg("-c")
-        .arg("grep -H . /sys/class/net/*/statistics/*errors 2>/dev/null | grep -v ':0$'")
-        .status()
-        .ok();
-
-    println!("\n📉 Interface Drops:");
-    Command::new("sh")
-        .arg("-c")
-        .arg("grep -H . /sys/class/net/*/statistics/*drop* 2>/dev/null | grep -v ':0$'")
-        .status()
-        .ok();
+    if let Ok(entries) = std::fs::read_dir("/sys/class/net") {
+        for entry in entries.flatten() {
+            let iface = entry.file_name();
+            let iface_str = iface.to_string_lossy();
+            let stats_dir = entry.path().join("statistics");
+            if stats_dir.exists() {
+                for error_type in ["rx_errors", "tx_errors", "rx_dropped", "tx_dropped"] {
+                    let path = stats_dir.join(error_type);
+                    if let Ok(val) = std::fs::read_to_string(&path) {
+                        let count: u64 = val.trim().parse().unwrap_or(0);
+                        if count > 0 {
+                            println!("  {}/{}: {}", iface_str, error_type, count);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn route_table_analysis() {
@@ -645,7 +664,7 @@ fn bandwidth_testing() {
     println!("📈 Bandwidth Testing");
     println!("====================\n");
 
-    let test_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(test_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select bandwidth test type")
         .items(&[
             "🌐 Internet Speed Test",
@@ -656,7 +675,9 @@ fn bandwidth_testing() {
         ])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match test_type {
         0 => internet_speed_test(),
@@ -688,11 +709,13 @@ fn internet_speed_test() {
         } else {
             println!("⚠️ speedtest-cli not found. Installing...");
 
-            let install = Confirm::with_theme(&ColorfulTheme::default())
+            let Ok(install) = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Install speedtest-cli?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if install {
                 Command::new("pip")
@@ -738,10 +761,12 @@ fn local_network_test() {
     println!("🏠 Local Network Test");
     println!("=====================\n");
 
-    let target = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(target) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter target IP address for local network test")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Check if iperf3 is available
     let iperf_check = Command::new("which").arg("iperf3").status();
@@ -754,11 +779,13 @@ fn local_network_test() {
                 target
             );
 
-            let proceed = Confirm::with_theme(&ColorfulTheme::default())
+            let Ok(proceed) = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Is iperf3 server running on target?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if proceed {
                 println!("\n📊 TCP Bandwidth Test:");
@@ -827,12 +854,14 @@ fn interface_throughput_test() {
             .map(|s| s.to_string())
             .collect();
 
-        let selected_interface = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selected_interface) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Select interface to monitor")
             .items(&interfaces)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         let interface = &interfaces[selected_interface];
 
@@ -914,11 +943,13 @@ fn latency_jitter_test() {
     println!("🔄 Latency & Jitter Test");
     println!("========================\n");
 
-    let target = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(target) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter target host/IP for latency test")
         .default("8.8.8.8".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📊 Running comprehensive latency test...");
 
@@ -1001,7 +1032,7 @@ fn continuous_monitoring() {
     println!("📡 Continuous Network Monitoring");
     println!("=================================\n");
 
-    let monitor_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(monitor_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select monitoring type")
         .items(&[
             "📊 Interface Statistics",
@@ -1012,13 +1043,17 @@ fn continuous_monitoring() {
         ])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let duration = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(duration) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Monitoring duration in seconds")
         .default("60".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let duration_secs: u64 = duration.parse().unwrap_or(60);
 
@@ -1109,11 +1144,13 @@ fn monitor_bandwidth(duration: u64) {
 fn monitor_ping(duration: u64) {
     println!("🔄 Continuous Ping Monitoring for {} seconds", duration);
 
-    let target = Input::<String>::with_theme(&ColorfulTheme::default())
+    let Ok(target) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter target to ping")
         .default("8.8.8.8".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     Command::new("ping")
         .args(&["-c", &duration.to_string(), &target])
@@ -1165,12 +1202,14 @@ fn quick_network_fixes() {
         "⬅️ Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select fix to apply")
         .items(&fixes)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
@@ -1220,11 +1259,13 @@ fn quick_network_fixes() {
         }
         3 => {
             println!("📡 Resetting routing table...");
-            let confirm = Confirm::with_theme(&ColorfulTheme::default())
+            let Ok(confirm) = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("⚠️ This will remove all routes. Continue?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if confirm {
                 Command::new("sudo")

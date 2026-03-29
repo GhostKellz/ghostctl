@@ -17,12 +17,15 @@ pub fn dotfiles_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Dotfiles Management")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => find_dotfiles(),
@@ -90,12 +93,15 @@ pub fn find_dotfiles() {
 
     // Ask if user wants to do something with them
     let options = ["Backup selected", "Track with Git", "View details", "Exit"];
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("What would you like to do?")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        Ok(None) | Err(_) => return,
+    };
 
     match choice {
         0 => backup_selected_dotfiles(dotfiles),
@@ -106,32 +112,41 @@ pub fn find_dotfiles() {
 }
 
 fn backup_selected_dotfiles(dotfiles: Vec<String>) {
-    let indices = MultiSelect::with_theme(&ColorfulTheme::default())
+    let indices = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select dotfiles to backup")
         .items(&dotfiles)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(i)) => i,
+        Ok(None) | Err(_) => return,
+    };
 
     if indices.is_empty() {
         println!("❌ No dotfiles selected");
         return;
     }
 
-    let backup_dir: String = Input::with_theme(&ColorfulTheme::default())
+    let backup_dir: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Backup directory")
         .default(format!(
             "{}/dotfiles-backup-{}",
             std::env::var("HOME").unwrap_or_else(|_| ".".to_string()),
             chrono::Local::now().format("%Y%m%d-%H%M%S")
         ))
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
     let _ = fs::create_dir_all(&backup_dir);
 
     for idx in indices {
         let dotfile = &dotfiles[idx];
-        let dest = PathBuf::from(&backup_dir).join(PathBuf::from(dotfile).file_name().unwrap());
+        let Some(filename) = PathBuf::from(dotfile).file_name().map(|f| f.to_owned()) else {
+            continue;
+        };
+        let dest = PathBuf::from(&backup_dir).join(filename);
 
         println!("  Backing up {} -> {}", dotfile, dest.display());
 
@@ -164,16 +179,21 @@ fn track_selected_dotfiles(dotfiles: Vec<String>) {
             .status();
     }
 
-    let indices = MultiSelect::with_theme(&ColorfulTheme::default())
+    let indices = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select dotfiles to track")
         .items(&dotfiles)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(i)) => i,
+        Ok(None) | Err(_) => return,
+    };
 
     for idx in indices {
         let dotfile = &dotfiles[idx];
         let dotfile_path = PathBuf::from(dotfile);
-        let filename = dotfile_path.file_name().unwrap();
+        let Some(filename) = dotfile_path.file_name() else {
+            continue;
+        };
         let dest = PathBuf::from(&dotfiles_dir).join(filename);
 
         // Move file and create symlink
@@ -297,16 +317,22 @@ pub fn sync_dotfiles() {
         && output.stdout.is_empty()
     {
         println!("⚠️  No remote repository configured.");
-        let add_remote = dialoguer::Confirm::with_theme(&ColorfulTheme::default())
+        let add_remote = match dialoguer::Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Would you like to add a remote?")
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            Ok(None) | Err(_) => return,
+        };
 
         if add_remote {
-            let remote_url: String = Input::with_theme(&ColorfulTheme::default())
+            let remote_url: String = match Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Remote URL (e.g., git@github.com:username/dotfiles.git)")
-                .interact()
-                .unwrap();
+                .interact_text()
+            {
+                Ok(u) => u,
+                Err(_) => return,
+            };
 
             let _ = Command::new("git")
                 .current_dir(&dotfiles_dir)
@@ -335,10 +361,13 @@ pub fn sync_dotfiles() {
 pub fn restore_dotfiles() {
     println!("♻️  Restoring dotfiles from backup...");
 
-    let backup_dir: String = Input::with_theme(&ColorfulTheme::default())
+    let backup_dir: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Backup directory path")
-        .interact()
-        .unwrap();
+        .interact_text()
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
     if !PathBuf::from(&backup_dir).exists() {
         println!("❌ Backup directory does not exist");
@@ -358,11 +387,14 @@ pub fn restore_dotfiles() {
         return;
     }
 
-    let indices = MultiSelect::with_theme(&ColorfulTheme::default())
+    let indices = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select files to restore")
         .items(&files)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(i)) => i,
+        Ok(None) | Err(_) => return,
+    };
 
     let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
 

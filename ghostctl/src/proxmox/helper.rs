@@ -13,12 +13,14 @@ pub fn cktech_helper_scripts() {
 
     let script_types = ["📦 LXC Containers", "🖥️  Virtual Machines", "⬅️  Back"];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select CKTech script type")
         .items(&script_types)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => load_cktech_lxc_scripts(),
@@ -40,12 +42,14 @@ pub fn community_scripts_enhanced() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Community script type")
         .items(&script_types)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => load_community_lxc_scripts(),
@@ -80,12 +84,14 @@ fn load_cktech_lxc_scripts() {
                     if !script_names.is_empty() {
                         script_names.push("⬅️  Back".to_string());
 
-                        let choice = Select::with_theme(&ColorfulTheme::default())
+                        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
                             .with_prompt("Select CKTech LXC script")
                             .items(&script_names)
                             .default(0)
                             .interact()
-                            .unwrap();
+                        else {
+                            return;
+                        };
 
                         if choice < script_names.len() - 1 {
                             let script_name = &script_names[choice];
@@ -136,12 +142,14 @@ fn load_cktech_vm_scripts() {
                     if !script_names.is_empty() {
                         script_names.push("⬅️  Back".to_string());
 
-                        let choice = Select::with_theme(&ColorfulTheme::default())
+                        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
                             .with_prompt("Select CKTech VM script")
                             .items(&script_names)
                             .default(0)
                             .interact()
-                            .unwrap();
+                        else {
+                            return;
+                        };
 
                         if choice < script_names.len() - 1 {
                             let script_name = &script_names[choice];
@@ -198,12 +206,14 @@ fn load_community_lxc_scripts() {
                             .collect();
                         display_names.push("⬅️  Back".to_string());
 
-                        let choice = Select::with_theme(&ColorfulTheme::default())
+                        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
                             .with_prompt("Select Community LXC script")
                             .items(&display_names)
                             .default(0)
                             .interact()
-                            .unwrap();
+                        else {
+                            return;
+                        };
 
                         if choice < script_names.len() {
                             let (display_name, file_name) = &script_names[choice];
@@ -259,12 +269,14 @@ fn load_community_vm_scripts() {
                             .collect();
                         display_names.push("⬅️  Back".to_string());
 
-                        let choice = Select::with_theme(&ColorfulTheme::default())
+                        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
                             .with_prompt("Select Community VM script")
                             .items(&display_names)
                             .default(0)
                             .interact()
-                            .unwrap();
+                        else {
+                            return;
+                        };
 
                         if choice < script_names.len() {
                             let (display_name, file_name) = &script_names[choice];
@@ -320,12 +332,14 @@ fn load_community_misc_scripts() {
                             .collect();
                         display_names.push("⬅️  Back".to_string());
 
-                        let choice = Select::with_theme(&ColorfulTheme::default())
+                        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
                             .with_prompt("Select Community Misc script")
                             .items(&display_names)
                             .default(0)
                             .interact()
-                            .unwrap();
+                        else {
+                            return;
+                        };
 
                         if choice < script_names.len() {
                             let (display_name, file_name) = &script_names[choice];
@@ -381,12 +395,14 @@ fn load_pve_tools() {
                             .collect();
                         display_names.push("⬅️  Back".to_string());
 
-                        let choice = Select::with_theme(&ColorfulTheme::default())
+                        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
                             .with_prompt("Select PVE Tool")
                             .items(&display_names)
                             .default(0)
                             .interact()
-                            .unwrap();
+                        else {
+                            return;
+                        };
 
                         if choice < script_names.len() {
                             let (display_name, file_name) = &script_names[choice];
@@ -443,12 +459,14 @@ fn load_turnkey_scripts() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("TurnKey Linux Options")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => {
@@ -469,9 +487,13 @@ fn load_turnkey_scripts() {
         }
         2 => {
             println!("🌐 Opening TurnKey Linux website...");
-            let _ = std::process::Command::new("xdg-open")
+            if let Err(e) = std::process::Command::new("xdg-open")
                 .arg("https://www.turnkeylinux.org/")
-                .status();
+                .status()
+            {
+                println!("Could not open browser: {}", e);
+                println!("Visit: https://www.turnkeylinux.org/");
+            }
         }
         _ => return,
     }

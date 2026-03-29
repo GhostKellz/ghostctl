@@ -13,12 +13,14 @@ pub fn network_storage_menu() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🌐 Network Storage Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => nfs_menu(),
@@ -42,12 +44,14 @@ fn nfs_menu() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("📁 NFS Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => setup_nfs_server(),
@@ -78,9 +82,8 @@ fn setup_nfs_server() {
         if Command::new("which")
             .args(&["apt"])
             .output()
-            .unwrap()
-            .status
-            .success()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
         {
             let _ = Command::new("apt").args(&["update"]).status();
             let _ = Command::new("apt")
@@ -89,9 +92,8 @@ fn setup_nfs_server() {
         } else if Command::new("which")
             .args(&["pacman"])
             .output()
-            .unwrap()
-            .status
-            .success()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
         {
             let _ = Command::new("pacman")
                 .args(&["-S", "--noconfirm", "nfs-utils"])
@@ -99,9 +101,8 @@ fn setup_nfs_server() {
         } else if Command::new("which")
             .args(&["yum"])
             .output()
-            .unwrap()
-            .status
-            .success()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
         {
             let _ = Command::new("yum")
                 .args(&["install", "-y", "nfs-utils", "nfs-utils-lib"])
@@ -110,11 +111,13 @@ fn setup_nfs_server() {
     }
 
     // Create export directory
-    let export_path: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(export_path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter export directory path")
         .default("/srv/nfs/share".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("📁 Creating export directory: {}", export_path);
     let _ = Command::new("mkdir").args(&["-p", &export_path]).status();
@@ -127,17 +130,21 @@ fn setup_nfs_server() {
     let _ = Command::new("chmod").args(&["755", &export_path]).status();
 
     // Configure exports
-    let client_subnet: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(client_subnet) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter client subnet (e.g., 192.168.1.0/24)")
         .default("192.168.1.0/24".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let export_options: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(export_options) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter export options")
         .default("rw,sync,no_subtree_check,no_root_squash".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let export_line = format!("{} {}({})\n", export_path, client_subnet, export_options);
 
@@ -179,9 +186,8 @@ fn setup_nfs_client() {
     if Command::new("which")
         .args(&["apt"])
         .output()
-        .unwrap()
-        .status
-        .success()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
     {
         let _ = Command::new("apt")
             .args(&["install", "-y", "nfs-common"])
@@ -189,9 +195,8 @@ fn setup_nfs_client() {
     } else if Command::new("which")
         .args(&["pacman"])
         .output()
-        .unwrap()
-        .status
-        .success()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
     {
         let _ = Command::new("pacman")
             .args(&["-S", "--noconfirm", "nfs-utils"])
@@ -199,22 +204,28 @@ fn setup_nfs_client() {
     }
 
     // Get mount details
-    let nfs_server: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(nfs_server) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter NFS server IP/hostname")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let remote_path: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(remote_path) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter remote export path")
         .default("/srv/nfs/share".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let local_mount: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(local_mount) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter local mount point")
         .default("/mnt/nfs".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Create mount point
     println!("📁 Creating mount point: {}", local_mount);
@@ -228,20 +239,24 @@ fn setup_nfs_client() {
         .args(&["-t", "nfs", &nfs_share, &local_mount])
         .status();
 
-    if mount_result.unwrap().success() {
+    if mount_result.map(|s| s.success()).unwrap_or(false) {
         println!("✅ NFS mount successful!");
 
-        if Confirm::new()
+        let Ok(add_to_fstab) = Confirm::new()
             .with_prompt("Add to /etc/fstab for permanent mount?")
             .default(true)
             .interact()
-            .unwrap()
-        {
-            let mount_options: String = Input::with_theme(&ColorfulTheme::default())
+        else {
+            return;
+        };
+        if add_to_fstab {
+            let Ok(mount_options) = Input::<String>::with_theme(&ColorfulTheme::default())
                 .with_prompt("Enter mount options")
                 .default("defaults,_netdev".to_string())
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             let fstab_line = format!("{} {} nfs {} 0 0\n", nfs_share, local_mount, mount_options);
 
@@ -269,12 +284,14 @@ fn cifs_menu() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🖥️  CIFS/SMB Management")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => setup_cifs_client(),
@@ -296,9 +313,8 @@ fn setup_cifs_client() {
     if Command::new("which")
         .args(&["apt"])
         .output()
-        .unwrap()
-        .status
-        .success()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
     {
         let _ = Command::new("apt")
             .args(&["install", "-y", "cifs-utils"])
@@ -306,9 +322,8 @@ fn setup_cifs_client() {
     } else if Command::new("which")
         .args(&["pacman"])
         .output()
-        .unwrap()
-        .status
-        .success()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
     {
         let _ = Command::new("pacman")
             .args(&["-S", "--noconfirm", "cifs-utils"])
@@ -316,9 +331,8 @@ fn setup_cifs_client() {
     } else if Command::new("which")
         .args(&["yum"])
         .output()
-        .unwrap()
-        .status
-        .success()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
     {
         let _ = Command::new("yum")
             .args(&["install", "-y", "cifs-utils"])
@@ -338,32 +352,42 @@ fn setup_cifs_client() {
 fn mount_windows_share() {
     println!("🪟 Mounting Windows Share\n");
 
-    let server: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(server) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter Windows server IP/hostname")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let share_name: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(share_name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter share name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let username: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(username) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter username")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let password: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(password) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter password")
         .with_initial_text("")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let local_mount: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(local_mount) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter local mount point")
         .default(format!("/mnt/{}", share_name))
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Create mount point
     let _ = Command::new("mkdir").args(&["-p", &local_mount]).status();
@@ -387,16 +411,18 @@ fn mount_windows_share() {
         ])
         .status();
 
-    if mount_result.unwrap().success() {
+    if mount_result.map(|s| s.success()).unwrap_or(false) {
         println!("✅ Windows share mounted successfully!");
         println!("📁 Available at: {}", local_mount);
 
-        if Confirm::new()
+        let Ok(add_to_fstab) = Confirm::new()
             .with_prompt("Add to /etc/fstab for permanent mount?")
             .default(true)
             .interact()
-            .unwrap()
-        {
+        else {
+            return;
+        };
+        if add_to_fstab {
             let fstab_line = format!(
                 "{} {} cifs credentials={},uid=1000,gid=1000,iocharset=utf8,_netdev 0 0\n",
                 share_path, local_mount, cred_file
@@ -433,12 +459,14 @@ fn mount_tools_menu() {
             "Back",
         ];
 
-        let selection = Select::with_theme(&ColorfulTheme::default())
+        let Ok(selection) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("🔧 Network Mount Tools")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match selection {
             0 => list_all_mounts(),
@@ -475,22 +503,24 @@ fn show_network_mounts() {
 fn unmount_network_share() {
     println!("🔌 Unmount Network Share\n");
 
-    let mount_point: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(mount_point) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter mount point to unmount")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     println!("🔄 Attempting to unmount: {}", mount_point);
 
     let result = Command::new("umount").args(&[&mount_point]).status();
 
-    if result.unwrap().success() {
+    if result.map(|s| s.success()).unwrap_or(false) {
         println!("✅ Successfully unmounted: {}", mount_point);
     } else {
         println!("⚠️  Normal unmount failed, trying lazy unmount...");
         let lazy_result = Command::new("umount").args(&["-l", &mount_point]).status();
 
-        if lazy_result.unwrap().success() {
+        if lazy_result.map(|s| s.success()).unwrap_or(false) {
             println!("✅ Lazy unmount successful");
         } else {
             println!("❌ Failed to unmount. Check if files are in use.");
@@ -501,16 +531,18 @@ fn unmount_network_share() {
 fn test_mount_connectivity() {
     println!("🧪 Testing Mount Connectivity\n");
 
-    let server: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(server) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter server IP/hostname")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     // Ping test
     println!("🏓 Testing ping connectivity...");
     let ping_result = Command::new("ping").args(&["-c", "3", &server]).status();
 
-    if ping_result.unwrap().success() {
+    if ping_result.map(|s| s.success()).unwrap_or(false) {
         println!("✅ Ping successful");
     } else {
         println!("❌ Ping failed");
@@ -550,12 +582,9 @@ fn storage_diagnostics() {
     let _ = Command::new("iostat").args(&["-x", "1", "3"]).status();
 
     println!("\n🔧 Network Storage Kernel Modules:");
-    let _ = Command::new("lsmod")
-        .args(&["grep", "nfs\\|cifs"])
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap();
+    if let Ok(mut child) = Command::new("lsmod").args(&["grep", "nfs\\|cifs"]).spawn() {
+        let _ = child.wait();
+    }
 }
 
 fn automated_mount_setup() {
@@ -563,12 +592,14 @@ fn automated_mount_setup() {
 
     println!("This will create an automated mount configuration...");
 
-    let mount_type = Select::with_theme(&ColorfulTheme::default())
+    let Ok(mount_type) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select mount type")
         .items(&["NFS", "CIFS/SMB"])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match mount_type {
         0 => automated_nfs_setup(),
@@ -604,12 +635,14 @@ fn nfs_performance_tuning() {
     println!("  • nfsvers=4.1 - Use NFSv4.1 for better performance");
     println!("  • fsc - Enable local caching");
 
-    if Confirm::new()
+    let Ok(apply_optimizations) = Confirm::new()
         .with_prompt("Apply performance optimizations to existing mounts?")
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if apply_optimizations {
         println!("⚠️  You'll need to remount with optimized options manually");
         println!("Example: mount -o remount,rsize=65536,wsize=65536,proto=tcp /mount/point");
     }
@@ -631,7 +664,7 @@ fn manage_cifs_credentials() {
     println!("📁 Existing credential files:");
     let _ = Command::new("ls").args(&["-la", "/etc/cifs/"]).status();
 
-    let action = Select::with_theme(&ColorfulTheme::default())
+    let Ok(action) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select action")
         .items(&[
             "Create new credential file",
@@ -641,7 +674,9 @@ fn manage_cifs_credentials() {
         ])
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match action {
         0 => create_cifs_credential(),
@@ -652,26 +687,34 @@ fn manage_cifs_credentials() {
 }
 
 fn create_cifs_credential() {
-    let name: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(name) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter credential file name")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let username: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(username) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter username")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let password: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(password) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter password")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    let domain: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(domain) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter domain (optional)")
         .default("".to_string())
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let cred_file = format!("/etc/cifs/{}.cred", name);
     let mut content = format!("username={}\npassword={}\n", username, password);
@@ -689,26 +732,32 @@ fn create_cifs_credential() {
 }
 
 fn edit_cifs_credential() {
-    let file: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(file) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter credential file path")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let _ = Command::new("nano").args(&[&file]).status();
 }
 
 fn delete_cifs_credential() {
-    let file: String = Input::with_theme(&ColorfulTheme::default())
+    let Ok(file) = Input::<String>::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter credential file path to delete")
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
-    if Confirm::new()
+    let Ok(confirm_delete) = Confirm::new()
         .with_prompt(&format!("Really delete {}?", file))
         .default(false)
         .interact()
-        .unwrap()
-    {
+    else {
+        return;
+    };
+    if confirm_delete {
         if fs::remove_file(&file).is_ok() {
             println!("✅ Credential file deleted");
         } else {

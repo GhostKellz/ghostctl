@@ -13,12 +13,15 @@ pub fn setup_schedule() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Schedule Management")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     match choice {
         0 => create_systemd_timer(),
@@ -33,7 +36,7 @@ fn create_systemd_timer() {
     println!("⏰ Create Backup Schedule");
     println!("========================");
 
-    let frequency = Select::with_theme(&ColorfulTheme::default())
+    let frequency = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Backup frequency")
         .items(&[
             "🌅 Daily at 2 AM",
@@ -43,7 +46,10 @@ fn create_systemd_timer() {
         ])
         .default(0)
         .interact()
-        .unwrap();
+    {
+        Ok(f) => f,
+        Err(_) => return,
+    };
 
     let timer_spec = match frequency {
         0 => "*-*-* 02:00:00".to_string(),
@@ -56,21 +62,33 @@ fn create_systemd_timer() {
             println!("  Every 6 hours: *-*-* 00/6:00:00");
             println!("  Weekdays 9 AM: Mon..Fri *-*-* 09:00:00");
 
-            Input::new()
+            match Input::new()
                 .with_prompt("Timer specification")
                 .interact_text()
-                .unwrap()
+            {
+                Ok(spec) => spec,
+                Err(_) => return,
+            }
         }
         _ => "daily".to_string(),
     };
 
-    let backup_paths: String = Input::new()
+    let backup_paths: String = match Input::new()
         .with_prompt("Paths to backup (space-separated)")
         .default("/home /etc /var/log".into())
         .interact_text()
-        .unwrap();
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
-    let config_path = dirs::config_dir().unwrap().join("ghostctl/restic.env");
+    let config_path = match dirs::config_dir() {
+        Some(dir) => dir.join("ghostctl/restic.env"),
+        None => {
+            println!("❌ Could not determine config directory");
+            return;
+        }
+    };
     if !config_path.exists() {
         println!("❌ No restic configuration found. Run backup setup first.");
         return;
@@ -111,11 +129,26 @@ WantedBy=timers.target
         timer_spec
     );
 
-    let systemd_dir = dirs::config_dir().unwrap().join("systemd/user");
-    fs::create_dir_all(&systemd_dir).unwrap();
+    let systemd_dir = match dirs::config_dir() {
+        Some(dir) => dir.join("systemd/user"),
+        None => {
+            println!("❌ Could not determine config directory");
+            return;
+        }
+    };
+    if let Err(e) = fs::create_dir_all(&systemd_dir) {
+        println!("❌ Failed to create systemd directory: {}", e);
+        return;
+    }
 
-    fs::write(systemd_dir.join("ghostctl-backup.service"), service_content).unwrap();
-    fs::write(systemd_dir.join("ghostctl-backup.timer"), timer_content).unwrap();
+    if let Err(e) = fs::write(systemd_dir.join("ghostctl-backup.service"), service_content) {
+        println!("❌ Failed to write service file: {}", e);
+        return;
+    }
+    if let Err(e) = fs::write(systemd_dir.join("ghostctl-backup.timer"), timer_content) {
+        println!("❌ Failed to write timer file: {}", e);
+        return;
+    }
 
     println!("✅ Systemd timer created!");
     println!("🔧 To enable: systemctl --user enable --now ghostctl-backup.timer");
@@ -160,14 +193,20 @@ fn toggle_timer() {
         .args(&["--user", "is-enabled", "ghostctl-backup.timer"])
         .output();
 
-    let is_enabled = timer_status.is_ok() && timer_status.unwrap().status.success();
+    let is_enabled = match timer_status {
+        Ok(output) => output.status.success(),
+        Err(_) => false,
+    };
 
     if is_enabled {
-        let disable = Confirm::new()
+        let disable = match Confirm::new()
             .with_prompt("Timer is currently enabled. Disable it?")
             .default(false)
             .interact()
-            .unwrap();
+        {
+            Ok(d) => d,
+            Err(_) => return,
+        };
 
         if disable {
             let _ = std::process::Command::new("systemctl")
@@ -176,11 +215,14 @@ fn toggle_timer() {
             println!("⏹️  Backup timer disabled");
         }
     } else {
-        let enable = Confirm::new()
+        let enable = match Confirm::new()
             .with_prompt("Timer is currently disabled. Enable it?")
             .default(true)
             .interact()
-            .unwrap();
+        {
+            Ok(e) => e,
+            Err(_) => return,
+        };
 
         if enable {
             let _ = std::process::Command::new("systemctl")
@@ -195,11 +237,14 @@ fn remove_schedule() {
     println!("🗑️  Remove Backup Schedule");
     println!("=========================");
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Are you sure you want to remove the backup schedule?")
         .default(false)
         .interact()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(_) => return,
+    };
 
     if confirm {
         // Stop and disable timer
@@ -208,9 +253,11 @@ fn remove_schedule() {
             .status();
 
         // Remove systemd files
-        let systemd_dir = dirs::config_dir().unwrap().join("systemd/user");
-        let _ = fs::remove_file(systemd_dir.join("ghostctl-backup.service"));
-        let _ = fs::remove_file(systemd_dir.join("ghostctl-backup.timer"));
+        if let Some(config_dir) = dirs::config_dir() {
+            let systemd_dir = config_dir.join("systemd/user");
+            let _ = fs::remove_file(systemd_dir.join("ghostctl-backup.service"));
+            let _ = fs::remove_file(systemd_dir.join("ghostctl-backup.timer"));
+        }
 
         println!("✅ Backup schedule removed");
     }

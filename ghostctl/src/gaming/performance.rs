@@ -16,12 +16,14 @@ pub fn performance_menu() {
             "⬅️  Back",
         ];
 
-        let choice = Select::with_theme(&ColorfulTheme::default())
+        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("⚡ Performance Optimization")
             .items(&options)
             .default(0)
             .interact()
-            .unwrap();
+        else {
+            break;
+        };
 
         match choice {
             0 => system_performance_optimization(),
@@ -52,12 +54,14 @@ fn system_performance_optimization() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("System Optimizations")
         .items(&optimizations)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => enable_gamemode(),
@@ -85,31 +89,38 @@ fn enable_gamemode() {
                 Ok(s) if s.success() => println!("🟢 GameMode daemon is running"),
                 _ => {
                     println!("⚠️  GameMode daemon not running");
-                    let start_daemon = Confirm::new()
+                    let Ok(start_daemon) = Confirm::new()
                         .with_prompt("Start GameMode daemon?")
                         .default(true)
                         .interact()
-                        .unwrap();
+                    else {
+                        return;
+                    };
 
                     if start_daemon {
-                        let _ = Command::new("systemctl")
-                            .args(&["--user", "start", "gamemode"])
-                            .status();
+                        if let Err(e) = Command::new("systemctl")
+                            .args(["--user", "start", "gamemode"])
+                            .status()
+                        {
+                            eprintln!("Failed to start gamemode daemon: {}", e);
+                        }
                     }
                 }
             }
         }
         _ => {
             println!("❌ GameMode not installed");
-            let install = Confirm::new()
+            let Ok(install) = Confirm::new()
                 .with_prompt("Install GameMode?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if install {
                 let status = Command::new("sudo")
-                    .args(&["pacman", "-S", "--needed", "--noconfirm", "gamemode"])
+                    .args(["pacman", "-S", "--needed", "--noconfirm", "gamemode"])
                     .status();
 
                 match status {
@@ -118,9 +129,12 @@ fn enable_gamemode() {
 
                         // Add user to gamemode group
                         let username = std::env::var("USER").unwrap_or_else(|_| "user".to_string());
-                        let _ = Command::new("sudo")
-                            .args(&["usermod", "-a", "-G", "gamemode", &username])
-                            .status();
+                        if let Err(e) = Command::new("sudo")
+                            .args(["usermod", "-a", "-G", "gamemode", &username])
+                            .status()
+                        {
+                            eprintln!("Failed to add user to gamemode group: {}", e);
+                        }
 
                         println!(
                             "💡 You may need to log out and back in for group membership to take effect"
@@ -145,14 +159,20 @@ fn configure_cpu_governor() {
     println!("=========================");
 
     println!("📊 Current CPU governor:");
-    let _ = Command::new("cat")
+    if let Err(e) = Command::new("cat")
         .arg("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
-        .status();
+        .status()
+    {
+        eprintln!("Failed to read CPU governor: {}", e);
+    }
 
     println!("\n📋 Available governors:");
-    let _ = Command::new("cat")
+    if let Err(e) = Command::new("cat")
         .arg("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors")
-        .status();
+        .status()
+    {
+        eprintln!("Failed to read available governors: {}", e);
+    }
 
     let governors = [
         ("performance", "Maximum performance (highest frequency)"),
@@ -167,7 +187,7 @@ fn configure_cpu_governor() {
         println!("  {} - {}", gov, desc);
     }
 
-    let governor_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(governor_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select CPU governor")
         .items(
             &governors
@@ -177,15 +197,19 @@ fn configure_cpu_governor() {
         )
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let selected_governor = governors[governor_choice].0;
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt(&format!("Set CPU governor to '{}'?", selected_governor))
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         // Temporary change
@@ -202,11 +226,13 @@ fn configure_cpu_governor() {
             Ok(s) if s.success() => {
                 println!("✅ CPU governor set to '{}'", selected_governor);
 
-                let permanent = Confirm::new()
+                let Ok(permanent) = Confirm::new()
                     .with_prompt("Make this change permanent? (adds to /etc/default/cpupower)")
                     .default(false)
                     .interact()
-                    .unwrap();
+                else {
+                    return;
+                };
 
                 if permanent {
                     make_cpu_governor_permanent(selected_governor);
@@ -222,9 +248,12 @@ fn make_cpu_governor_permanent(governor: &str) {
     let cpupower_check = Command::new("which").arg("cpupower").status();
     if cpupower_check.is_err() {
         println!("📦 Installing cpupower...");
-        let _ = Command::new("sudo")
-            .args(&["pacman", "-S", "--needed", "--noconfirm", "cpupower"])
-            .status();
+        if let Err(e) = Command::new("sudo")
+            .args(["pacman", "-S", "--needed", "--noconfirm", "cpupower"])
+            .status()
+        {
+            eprintln!("Failed to install cpupower: {}", e);
+        }
     }
 
     // Create/update cpupower configuration
@@ -243,9 +272,12 @@ fn make_cpu_governor_permanent(governor: &str) {
             println!("✅ CPU governor configuration saved");
 
             // Enable cpupower service
-            let _ = Command::new("sudo")
-                .args(&["systemctl", "enable", "cpupower"])
-                .status();
+            if let Err(e) = Command::new("sudo")
+                .args(["systemctl", "enable", "cpupower"])
+                .status()
+            {
+                eprintln!("Failed to enable cpupower service: {}", e);
+            }
         }
         _ => println!("❌ Failed to save CPU governor configuration"),
     }
@@ -263,12 +295,14 @@ fn optimize_memory_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Memory Optimizations")
         .items(&memory_optimizations)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => configure_swappiness(),
@@ -284,7 +318,9 @@ fn configure_swappiness() {
     println!("=======================");
 
     println!("📊 Current swappiness value:");
-    let _ = Command::new("cat").arg("/proc/sys/vm/swappiness").status();
+    if let Err(e) = Command::new("cat").arg("/proc/sys/vm/swappiness").status() {
+        eprintln!("Failed to read swappiness: {}", e);
+    }
 
     println!("\n💡 Swappiness values:");
     println!("  0   - Disable swap (not recommended)");
@@ -293,19 +329,23 @@ fn configure_swappiness() {
     println!("  60  - Default value");
     println!("  100 - Aggressive swapping");
 
-    let swappiness: String = Input::new()
+    let Ok(swappiness): Result<String, _> = Input::new()
         .with_prompt("Enter desired swappiness value (1-100)")
         .default("10".to_string())
         .interact_text()
-        .unwrap();
+    else {
+        return;
+    };
 
     if let Ok(value) = swappiness.parse::<u32>() {
         if value <= 100 {
-            let confirm = Confirm::new()
+            let Ok(confirm) = Confirm::new()
                 .with_prompt(&format!("Set swappiness to {}?", value))
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if confirm {
                 // Temporary change
@@ -318,23 +358,29 @@ fn configure_swappiness() {
                     Ok(s) if s.success() => {
                         println!("✅ Swappiness set to {}", value);
 
-                        let permanent = Confirm::new()
+                        let Ok(permanent) = Confirm::new()
                             .with_prompt("Make this change permanent?")
                             .default(true)
                             .interact()
-                            .unwrap();
+                        else {
+                            return;
+                        };
 
                         if permanent {
                             let config_line = format!("vm.swappiness={}\n", value);
-                            let _ = Command::new("sudo")
+                            if let Err(e) = Command::new("sudo")
                                 .arg("sh")
                                 .arg("-c")
                                 .arg(&format!(
                                     "echo '{}' >> /etc/sysctl.d/99-swappiness.conf",
                                     config_line
                                 ))
-                                .status();
-                            println!("✅ Swappiness configuration saved");
+                                .status()
+                            {
+                                eprintln!("Failed to save swappiness config: {}", e);
+                            } else {
+                                println!("✅ Swappiness configuration saved");
+                            }
                         }
                     }
                     _ => println!("❌ Failed to set swappiness"),
@@ -357,14 +403,18 @@ fn enable_zram() {
 
     if zram_check {
         println!("✅ Zram is already enabled");
-        let _ = Command::new("zramctl").status();
+        if let Err(e) = Command::new("zramctl").status() {
+            eprintln!("Failed to show zram status: {}", e);
+        }
     } else {
         println!("❌ Zram not enabled");
-        let enable = Confirm::new()
+        let Ok(enable) = Confirm::new()
             .with_prompt("Enable zram compression? (reduces memory usage)")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if enable {
             // Install zram-generator if available
@@ -417,7 +467,9 @@ fn clear_memory_caches() {
     println!("======================");
 
     println!("📊 Current memory usage:");
-    let _ = Command::new("free").arg("-h").status();
+    if let Err(e) = Command::new("free").arg("-h").status() {
+        eprintln!("Failed to get memory usage: {}", e);
+    }
 
     let cache_options = [
         "🧹 Clear page cache",
@@ -426,41 +478,54 @@ fn clear_memory_caches() {
         "📊 Show cache usage",
     ];
 
-    let selections = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
+    let Ok(selections) = dialoguer::MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select cache clearing options")
         .items(&cache_options)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     for &index in &selections {
         match index {
             0 => {
                 println!("🧹 Clearing page cache...");
-                let _ = Command::new("sudo")
+                if let Err(e) = Command::new("sudo")
                     .arg("sh")
                     .arg("-c")
                     .arg("echo 1 > /proc/sys/vm/drop_caches")
-                    .status();
+                    .status()
+                {
+                    eprintln!("Failed to clear page cache: {}", e);
+                }
             }
             1 => {
                 println!("🗑️  Clearing dentries and inodes...");
-                let _ = Command::new("sudo")
+                if let Err(e) = Command::new("sudo")
                     .arg("sh")
                     .arg("-c")
                     .arg("echo 2 > /proc/sys/vm/drop_caches")
-                    .status();
+                    .status()
+                {
+                    eprintln!("Failed to clear dentries/inodes: {}", e);
+                }
             }
             2 => {
                 println!("💾 Clearing all caches...");
-                let _ = Command::new("sudo")
+                if let Err(e) = Command::new("sudo")
                     .arg("sh")
                     .arg("-c")
                     .arg("echo 3 > /proc/sys/vm/drop_caches")
-                    .status();
+                    .status()
+                {
+                    eprintln!("Failed to clear all caches: {}", e);
+                }
             }
             3 => {
                 println!("📊 Cache usage:");
-                let _ = Command::new("cat").arg("/proc/meminfo").status();
+                if let Err(e) = Command::new("cat").arg("/proc/meminfo").status() {
+                    eprintln!("Failed to read meminfo: {}", e);
+                }
             }
             _ => {}
         }
@@ -468,7 +533,9 @@ fn clear_memory_caches() {
 
     if !selections.is_empty() {
         println!("\n📊 Memory usage after clearing:");
-        let _ = Command::new("free").arg("-h").status();
+        if let Err(e) = Command::new("free").arg("-h").status() {
+            eprintln!("Failed to get memory usage: {}", e);
+        }
     }
 }
 
@@ -477,23 +544,27 @@ fn memory_usage_analysis() {
     println!("=======================");
 
     println!("💾 Overall memory usage:");
-    let _ = Command::new("free").arg("-h").status();
+    if let Err(e) = Command::new("free").arg("-h").status() {
+        eprintln!("Failed to get memory usage: {}", e);
+    }
 
     println!("\n📈 Memory usage by process (top 10):");
-    let _ = Command::new("ps")
-        .args(&["aux", "--sort=-%mem"])
-        .output()
-        .map(|output| {
+    match Command::new("ps").args(["aux", "--sort=-%mem"]).output() {
+        Ok(output) => {
             let stdout_str = String::from_utf8_lossy(&output.stdout);
             let lines: Vec<&str> = stdout_str.lines().collect();
             for line in lines.iter().take(11) {
                 // header + 10 lines
                 println!("{}", line);
             }
-        });
+        }
+        Err(e) => eprintln!("Failed to get process list: {}", e),
+    }
 
     println!("\n🔍 Detailed memory info:");
-    let _ = Command::new("cat").arg("/proc/meminfo").status();
+    if let Err(e) = Command::new("cat").arg("/proc/meminfo").status() {
+        eprintln!("Failed to read meminfo: {}", e);
+    }
 }
 
 fn kernel_parameter_tuning() {
@@ -526,11 +597,13 @@ fn kernel_parameter_tuning() {
         println!("  {} = {} # {}", param, value, desc);
     }
 
-    let apply_tweaks = Confirm::new()
+    let Ok(apply_tweaks) = Confirm::new()
         .with_prompt("Apply recommended kernel parameters?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if apply_tweaks {
         let mut config_content = String::new();
@@ -540,10 +613,13 @@ fn kernel_parameter_tuning() {
             config_content.push_str(&format!("{} = {} # {}\n", param, value, desc));
 
             // Apply temporarily
-            let _ = Command::new("sudo")
+            if let Err(e) = Command::new("sudo")
                 .arg("sysctl")
                 .arg(&format!("{}={}", param, value))
-                .status();
+                .status()
+            {
+                eprintln!("Failed to set {}: {}", param, e);
+            }
         }
 
         // Save permanently
@@ -578,12 +654,14 @@ fn desktop_environment_optimizations() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Desktop Environment Optimizations")
         .items(&optimizations)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => disable_composition(),
@@ -718,12 +796,14 @@ fn filesystem_optimizations() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("File System Optimizations")
         .items(&fs_optimizations)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => configure_io_scheduler(),
@@ -739,8 +819,8 @@ fn configure_io_scheduler() {
     println!("==========================");
 
     println!("📊 Current I/O schedulers:");
-    let _ = Command::new("find")
-        .args(&[
+    if let Err(e) = Command::new("find")
+        .args([
             "/sys/block/",
             "-name",
             "scheduler",
@@ -751,7 +831,10 @@ fn configure_io_scheduler() {
             "{}",
             ";",
         ])
-        .status();
+        .status()
+    {
+        eprintln!("Failed to find schedulers: {}", e);
+    }
 
     println!("\n🔧 Available schedulers:");
     println!("  • mq-deadline - Good general purpose");
@@ -760,20 +843,24 @@ fn configure_io_scheduler() {
     println!("  • none - No scheduling (for NVMe SSDs)");
 
     let schedulers = ["mq-deadline", "kyber", "bfq", "none"];
-    let scheduler_choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(scheduler_choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select I/O scheduler for gaming")
         .items(&schedulers)
         .default(1) // kyber
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let selected_scheduler = schedulers[scheduler_choice];
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt(&format!("Set I/O scheduler to '{}'?", selected_scheduler))
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("🔧 Setting I/O scheduler to '{}'...", selected_scheduler);
@@ -811,14 +898,18 @@ fn enable_filesystem_optimizations() {
     println!("  3. Example: UUID=... / ext4 defaults,noatime 0 1");
     println!("  4. Remount or reboot to apply");
 
-    let show_fstab = Confirm::new()
+    let Ok(show_fstab) = Confirm::new()
         .with_prompt("Show current /etc/fstab?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if show_fstab {
-        let _ = Command::new("cat").arg("/etc/fstab").status();
+        if let Err(e) = Command::new("cat").arg("/etc/fstab").status() {
+            eprintln!("Failed to read fstab: {}", e);
+        }
     }
 }
 
@@ -850,9 +941,12 @@ fn optimize_game_directories() {
         };
 
         if expanded_path.exists() {
-            let _ = Command::new("du")
-                .args(&["-sh", &expanded_path.to_string_lossy()])
-                .status();
+            if let Err(e) = Command::new("du")
+                .args(["-sh", &expanded_path.to_string_lossy()])
+                .status()
+            {
+                eprintln!("Failed to get size for {}: {}", expanded_path.display(), e);
+            }
         } else {
             println!("  {} (not found)", expanded_path.display());
         }
@@ -864,19 +958,27 @@ fn analyze_disk_performance() {
     println!("===========================");
 
     println!("💾 Disk usage:");
-    let _ = Command::new("df").arg("-h").status();
+    if let Err(e) = Command::new("df").arg("-h").status() {
+        eprintln!("Failed to get disk usage: {}", e);
+    }
 
     println!("\n⚡ I/O statistics:");
-    let _ = Command::new("iostat").args(&["-x", "1", "1"]).status();
+    if let Err(e) = Command::new("iostat").args(["-x", "1", "1"]).status() {
+        eprintln!("Failed to get I/O stats: {}", e);
+    }
 
     println!("\n🔍 Block device info:");
-    let _ = Command::new("lsblk").args(&["-f"]).status();
+    if let Err(e) = Command::new("lsblk").args(["-f"]).status() {
+        eprintln!("Failed to list block devices: {}", e);
+    }
 
-    let benchmark = Confirm::new()
+    let Ok(benchmark) = Confirm::new()
         .with_prompt("Run disk benchmark? (requires fio)")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if benchmark {
         run_disk_benchmark();
@@ -888,8 +990,8 @@ fn run_disk_benchmark() {
     match fio_check {
         Ok(s) if s.success() => {
             println!("🚀 Running disk benchmark...");
-            let _ = Command::new("fio")
-                .args(&[
+            if let Err(e) = Command::new("fio")
+                .args([
                     "--name=gaming-test",
                     "--ioengine=libaio",
                     "--rw=randread",
@@ -899,7 +1001,10 @@ fn run_disk_benchmark() {
                     "--runtime=30",
                     "--direct=1",
                 ])
-                .status();
+                .status()
+            {
+                eprintln!("Failed to run fio benchmark: {}", e);
+            }
         }
         _ => {
             println!("❌ fio not found. Install with: sudo pacman -S fio");
@@ -920,12 +1025,14 @@ fn gaming_performance_tuning() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Gaming Performance Tuning")
         .items(&gaming_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => game_specific_optimizations(),
@@ -1010,11 +1117,13 @@ fn wine_proton_performance() {
     println!("  export DXVK_HUD=fps");
     println!("  export __GL_THREADED_OPTIMIZATIONS=1");
 
-    let setup_env = Confirm::new()
+    let Ok(setup_env) = Confirm::new()
         .with_prompt("Add Wine/Proton performance environment to ~/.profile?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if setup_env {
         let wine_env = r#"
@@ -1103,11 +1212,13 @@ fn gpu_gaming_tweaks() {
             println!("  • Enable Threaded Optimization");
             println!("  • Configure shader cache location");
 
-            let nvidia_tweaks = Confirm::new()
+            let Ok(nvidia_tweaks) = Confirm::new()
                 .with_prompt("Apply NVIDIA gaming environment variables?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if nvidia_tweaks {
                 apply_nvidia_gaming_env();
@@ -1120,11 +1231,13 @@ fn gpu_gaming_tweaks() {
             println!("  • Set GPU power profile to 'performance'");
             println!("  • Configure RADV driver settings");
 
-            let amd_tweaks = Confirm::new()
+            let Ok(amd_tweaks) = Confirm::new()
                 .with_prompt("Apply AMD gaming environment variables?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if amd_tweaks {
                 apply_amd_gaming_env();
@@ -1227,12 +1340,14 @@ fn controller_optimization() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Controller Optimization")
         .items(&controller_tools)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => install_controller_utilities(),
@@ -1249,11 +1364,13 @@ fn install_controller_utilities() {
 
     let controller_packages = ["jstest-gtk", "linuxconsole", "antimicrox", "lib32-libusb"];
 
-    let install = Confirm::new()
+    let Ok(install) = Confirm::new()
         .with_prompt("Install controller utilities?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install {
         let status = Command::new("sudo")
@@ -1279,23 +1396,32 @@ fn check_controller_latency() {
     println!("=================================");
 
     println!("🕹️  Connected controllers:");
-    let _ = Command::new("ls").arg("/dev/input/js*").status();
+    if let Err(e) = Command::new("ls").arg("/dev/input/js*").status() {
+        eprintln!("Failed to list controllers: {}", e);
+    }
 
     println!("\n🔍 Controller device info:");
-    let _ = Command::new("lsusb")
-        .args(&["|", "grep", "-i", "gamepad\\|controller\\|joystick"])
-        .status();
+    if let Err(e) = Command::new("lsusb")
+        .args(["|", "grep", "-i", "gamepad\\|controller\\|joystick"])
+        .status()
+    {
+        eprintln!("Failed to get controller info: {}", e);
+    }
 
-    let test_controller = Confirm::new()
+    let Ok(test_controller) = Confirm::new()
         .with_prompt("Test controller input? (requires jstest)")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if test_controller {
         println!("🧪 Testing controller input...");
         println!("💡 Press Ctrl+C to exit test");
-        let _ = Command::new("jstest").arg("/dev/input/js0").status();
+        if let Err(e) = Command::new("jstest").arg("/dev/input/js0").status() {
+            eprintln!("Failed to run jstest: {}", e);
+        }
     }
 }
 
@@ -1336,9 +1462,12 @@ fn optimize_wireless_performance() {
     println!("  • Adjust controller sleep timers");
 
     println!("\n📊 Check wireless interference:");
-    let _ = Command::new("iwlist")
-        .args(&["scan", "|", "grep", "Frequency"])
-        .status();
+    if let Err(e) = Command::new("iwlist")
+        .args(["scan", "|", "grep", "Frequency"])
+        .status()
+    {
+        eprintln!("Failed to scan wireless: {}", e);
+    }
 }
 
 fn gpu_performance_overclocking() {
@@ -1348,11 +1477,13 @@ fn gpu_performance_overclocking() {
     println!("⚠️  WARNING: Overclocking can damage hardware!");
     println!("Only proceed if you understand the risks.");
 
-    let proceed = Confirm::new()
+    let Ok(proceed) = Confirm::new()
         .with_prompt("Continue with GPU performance tuning?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !proceed {
         return;
@@ -1367,12 +1498,14 @@ fn gpu_performance_overclocking() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("GPU Performance Options")
         .items(&gpu_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => gpu_monitoring_info(),
@@ -1389,9 +1522,12 @@ fn gpu_monitoring_info() {
     println!("================================");
 
     println!("🖥️  GPU Hardware Information:");
-    let _ = Command::new("lspci")
-        .args(&["-v", "|", "grep", "-A", "10", "-i", "vga"])
-        .status();
+    if let Err(e) = Command::new("lspci")
+        .args(["-v", "|", "grep", "-A", "10", "-i", "vga"])
+        .status()
+    {
+        eprintln!("Failed to get GPU info: {}", e);
+    }
 
     println!("\n🔍 GPU Monitoring Tools:");
     let monitoring_tools = [
@@ -1409,11 +1545,13 @@ fn gpu_monitoring_info() {
         }
     }
 
-    let install_tools = Confirm::new()
+    let Ok(install_tools) = Confirm::new()
         .with_prompt("Install missing GPU monitoring tools?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_tools {
         let tools_to_install = ["nvtop", "radeontop"];
@@ -1444,11 +1582,13 @@ fn temperature_monitoring_setup() {
         }
         _ => {
             println!("❌ lm_sensors not installed");
-            let install = Confirm::new()
+            let Ok(install) = Confirm::new()
                 .with_prompt("Install lm_sensors for temperature monitoring?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if install {
                 let status = Command::new("sudo")
@@ -1504,11 +1644,13 @@ fn basic_performance_tweaks() {
             println!("  • Increase memory and core clock by +50MHz");
             println!("  • Test stability with games");
 
-            let apply_nvidia_tweaks = Confirm::new()
+            let Ok(apply_nvidia_tweaks) = Confirm::new()
                 .with_prompt("Apply basic NVIDIA performance tweaks?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if apply_nvidia_tweaks {
                 apply_nvidia_basic_tweaks();
@@ -1521,11 +1663,13 @@ fn basic_performance_tweaks() {
             println!("  • Adjust power limit to +20%");
             println!("  • Increase fan curve for better cooling");
 
-            let apply_amd_tweaks = Confirm::new()
+            let Ok(apply_amd_tweaks) = Confirm::new()
                 .with_prompt("Install CoreCtrl for AMD GPU management?")
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if apply_amd_tweaks {
                 install_corectrl();
@@ -1549,11 +1693,13 @@ fn apply_nvidia_basic_tweaks() {
             println!("✅ nvidia-settings found");
 
             // Launch nvidia-settings for manual configuration
-            let launch = Confirm::new()
+            let Ok(launch) = Confirm::new()
                 .with_prompt("Launch nvidia-settings for manual configuration?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if launch {
                 let _ = Command::new("nvidia-settings").spawn();
@@ -1609,11 +1755,13 @@ fn advanced_overclocking() {
     println!("  • Cause system instability");
     println!("  • Increase power consumption and heat");
 
-    let acknowledge = Confirm::new()
+    let Ok(acknowledge) = Confirm::new()
         .with_prompt("I understand the risks and want to proceed")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if !acknowledge {
         println!("✅ Smart choice! Stick to basic tweaks for safer performance gains.");
@@ -1663,11 +1811,13 @@ fn gpu_stress_testing() {
         }
     }
 
-    let install_tools = Confirm::new()
+    let Ok(install_tools) = Confirm::new()
         .with_prompt("Install available stress testing tools?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_tools {
         let packages = ["glmark2", "vulkan-tools"];
@@ -1682,11 +1832,13 @@ fn gpu_stress_testing() {
         }
     }
 
-    let run_test = Confirm::new()
+    let Ok(run_test) = Confirm::new()
         .with_prompt("Run a quick GPU test with glmark2?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if run_test {
         println!("🧪 Running glmark2 GPU test...");
@@ -1706,12 +1858,14 @@ fn memory_storage_optimization_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Memory & Storage Options")
         .items(&options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => memory_optimization(),
@@ -1792,12 +1946,14 @@ fn thermal_management() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Thermal Management")
         .items(&thermal_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => monitor_temperatures(),
@@ -1827,11 +1983,13 @@ fn monitor_temperatures() {
         }
         _ => {
             println!("❌ lm_sensors not installed");
-            let install = Confirm::new()
+            let Ok(install) = Confirm::new()
                 .with_prompt("Install temperature monitoring tools?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if install {
                 let status = Command::new("sudo")
@@ -1866,11 +2024,13 @@ fn configure_fan_curves() {
     println!("  • GPU-specific tools (MSI Afterburner, CoreCtrl)");
     println!("  • Motherboard vendor utilities");
 
-    let setup_fancontrol = Confirm::new()
+    let Ok(setup_fancontrol) = Confirm::new()
         .with_prompt("Set up fancontrol for custom fan curves?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if setup_fancontrol {
         setup_linux_fancontrol();
@@ -1893,11 +2053,13 @@ fn setup_linux_fancontrol() {
             println!("✅ fancontrol already installed");
         }
         _ => {
-            let install = Confirm::new()
+            let Ok(install) = Confirm::new()
                 .with_prompt("Install fancontrol?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if install {
                 let status = Command::new("sudo")
@@ -1923,11 +2085,13 @@ fn setup_linux_fancontrol() {
     println!("  3. Test with 'sudo fancontrol'");
     println!("  4. Enable with 'sudo systemctl enable fancontrol'");
 
-    let run_pwmconfig = Confirm::new()
+    let Ok(run_pwmconfig) = Confirm::new()
         .with_prompt("Run pwmconfig now? (requires interactive input)")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if run_pwmconfig {
         println!("🔧 Starting pwmconfig...");
@@ -2030,18 +2194,22 @@ fn emergency_thermal_shutdown() {
     println!("🚨 WARNING: This will immediately shut down the system!");
     println!("Only use if system is overheating and cannot be cooled normally.");
 
-    let confirm_emergency = Confirm::new()
+    let Ok(confirm_emergency) = Confirm::new()
         .with_prompt("⚠️  Really perform emergency shutdown?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm_emergency {
-        let final_confirm = Confirm::new()
+        let Ok(final_confirm) = Confirm::new()
             .with_prompt("🚨 FINAL WARNING: System will shutdown immediately!")
             .default(false)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if final_confirm {
             println!("🚨 Performing emergency thermal shutdown...");
@@ -2072,12 +2240,14 @@ fn performance_monitoring_benchmarking() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Performance Monitoring & Benchmarking")
         .items(&benchmark_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => cpu_benchmarks(),
@@ -2110,11 +2280,13 @@ fn cpu_benchmarks() {
         println!("  {} {} - {} ({})", marker, tool, description, weight);
     }
 
-    let install_tools = Confirm::new()
+    let Ok(install_tools) = Confirm::new()
         .with_prompt("Install missing lightweight CPU benchmark tools?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_tools {
         let packages = ["stress", "sysbench"];
@@ -2129,11 +2301,13 @@ fn cpu_benchmarks() {
         }
     }
 
-    let run_quick_test = Confirm::new()
+    let Ok(run_quick_test) = Confirm::new()
         .with_prompt("Run a quick CPU stress test? (30 seconds)")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if run_quick_test {
         println!("🏃 Running 30-second CPU stress test...");
@@ -2170,11 +2344,13 @@ fn gpu_benchmarks() {
         println!("  {} {} - {} ({})", marker, tool, description, availability);
     }
 
-    let install_tools = Confirm::new()
+    let Ok(install_tools) = Confirm::new()
         .with_prompt("Install available GPU benchmark tools?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_tools {
         let packages = ["glmark2", "vulkan-tools"];
@@ -2189,11 +2365,13 @@ fn gpu_benchmarks() {
         }
     }
 
-    let run_gpu_test = Confirm::new()
+    let Ok(run_gpu_test) = Confirm::new()
         .with_prompt("Run OpenGL benchmark with glmark2?")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if run_gpu_test {
         println!("🎮 Running GPU benchmark...");
@@ -2221,11 +2399,13 @@ fn storage_benchmarks() {
         println!("  {} {} - {} ({})", marker, tool, description, availability);
     }
 
-    let install_tools = Confirm::new()
+    let Ok(install_tools) = Confirm::new()
         .with_prompt("Install storage benchmark tools?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_tools {
         let packages = ["hdparm", "fio"];
@@ -2240,11 +2420,13 @@ fn storage_benchmarks() {
         }
     }
 
-    let run_storage_test = Confirm::new()
+    let Ok(run_storage_test) = Confirm::new()
         .with_prompt("Run simple storage benchmark? (creates 1GB test file)")
         .default(false)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if run_storage_test {
         run_simple_storage_benchmark();
@@ -2322,12 +2504,14 @@ fn network_performance() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Network Performance Tests")
         .items(&network_tests)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => internet_speed_test(),
@@ -2349,11 +2533,13 @@ fn internet_speed_test() {
         }
         _ => {
             println!("❌ speedtest-cli not found");
-            let install = Confirm::new()
+            let Ok(install) = Confirm::new()
                 .with_prompt("Install speedtest-cli?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if install {
                 // Try pip install as speedtest-cli might not be in repos
@@ -2394,7 +2580,7 @@ fn gaming_latency_test() {
         }
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select server")
         .items(
             &gaming_servers
@@ -2410,14 +2596,19 @@ fn gaming_latency_test() {
         )
         .default(2) // Steam
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let target_ip = if choice == gaming_servers.len() - 1 {
         // Custom server
-        Input::<String>::new()
+        let Ok(ip) = Input::<String>::new()
             .with_prompt("Enter server IP or hostname")
             .interact_text()
-            .unwrap()
+        else {
+            return;
+        };
+        ip
     } else {
         gaming_servers[choice].1.to_string()
     };
@@ -2481,11 +2672,13 @@ fn system_monitoring_setup() {
         println!("  {} {} - {}", marker, tool, description);
     }
 
-    let install_missing = Confirm::new()
+    let Ok(install_missing) = Confirm::new()
         .with_prompt("Install missing monitoring tools?")
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if install_missing {
         let packages: Vec<&str> = monitoring_tools.iter().map(|(tool, _, _)| *tool).collect();
@@ -2526,12 +2719,14 @@ fn performance_logging() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Performance Logging")
         .items(&logging_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => setup_mangohud_logging(),
@@ -2576,11 +2771,13 @@ toggle_logging=F10
             println!("📝 MangoHud logging configuration:");
             println!("{}", config_addition);
 
-            let update_config = Confirm::new()
+            let Ok(update_config) = Confirm::new()
                 .with_prompt("Add logging configuration to MangoHud.conf?")
                 .default(true)
                 .interact()
-                .unwrap();
+            else {
+                return;
+            };
 
             if update_config {
                 let config_file = std::env::home_dir()
@@ -2749,14 +2946,16 @@ fn clean_log_files() {
         if expanded_path.exists() {
             println!("\n📁 Checking: {}", expanded_path.display());
 
-            let clean = Confirm::new()
+            let Ok(clean) = Confirm::new()
                 .with_prompt(&format!(
                     "Clean log files older than 30 days in {}?",
                     expanded_path.display()
                 ))
                 .default(false)
                 .interact()
-                .unwrap();
+            else {
+                continue;
+            };
 
             if clean {
                 let status = Command::new("find")
@@ -2802,12 +3001,14 @@ fn custom_performance_profiles() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Performance Profiles")
         .items(&profile_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => create_gaming_profile(),
@@ -3083,24 +3284,28 @@ fn apply_performance_profile() {
         println!("{}. {}", i + 1, profile);
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select profile to apply")
         .items(&profiles)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     let selected_profile = &profiles[choice];
     let profile_path = profiles_dir.join(format!("{}.sh", selected_profile));
 
-    let confirm = Confirm::new()
+    let Ok(confirm) = Confirm::new()
         .with_prompt(&format!(
             "Apply '{}' performance profile?",
             selected_profile
         ))
         .default(true)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     if confirm {
         println!("🔧 Applying profile '{}'...", selected_profile);
@@ -3133,12 +3338,14 @@ fn automatic_game_optimization() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Automatic Game Optimization")
         .items(&auto_options)
         .default(0)
         .interact()
-        .unwrap();
+    else {
+        return;
+    };
 
     match choice {
         0 => detect_running_games(),
@@ -3192,11 +3399,13 @@ fn detect_running_games() {
     } else {
         println!("\n✅ Detected {} running game(s)", found_games.len());
 
-        let optimize_now = Confirm::new()
+        let Ok(optimize_now) = Confirm::new()
             .with_prompt("Apply gaming optimizations for detected games?")
             .default(true)
             .interact()
-            .unwrap();
+        else {
+            return;
+        };
 
         if optimize_now {
             apply_gaming_optimizations();

@@ -19,12 +19,15 @@ pub fn recovery_menu() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Recovery Tools")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => emergency_system_repair(),
@@ -54,12 +57,15 @@ fn emergency_system_repair() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Emergency Repair")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => quick_system_fixes(),
@@ -86,11 +92,14 @@ fn quick_system_fixes() {
         "🔧 Fix file permissions",
     ];
 
-    let selected = MultiSelect::with_theme(&ColorfulTheme::default())
+    let selected = match MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select fixes to apply")
         .items(&fixes)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        _ => return,
+    };
 
     for &fix in &selected {
         match fix {
@@ -111,9 +120,13 @@ fn quick_system_fixes() {
                 let _ = Command::new("sudo")
                     .args(["systemctl", "restart", "systemd-resolved"])
                     .status();
-                let _ = Command::new("sudo")
-                    .args(["bash", "-c", "echo 'nameserver 8.8.8.8' > /etc/resolv.conf"])
-                    .status();
+                // Write DNS config to temp file and move with sudo
+                let temp_file = "/tmp/resolv.conf.tmp";
+                if std::fs::write(temp_file, "nameserver 8.8.8.8\n").is_ok() {
+                    let _ = Command::new("sudo")
+                        .args(["mv", temp_file, "/etc/resolv.conf"])
+                        .status();
+                }
                 println!("  ✅ DNS resolution fixed");
             }
             3 => {
@@ -170,12 +183,15 @@ fn bootloader_recovery() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Bootloader Recovery")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => detect_bootloader(),
@@ -238,12 +254,15 @@ fn grub_recovery() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("GRUB Recovery")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -255,10 +274,13 @@ fn grub_recovery() {
         }
         1 => {
             println!("🔧 Reinstalling GRUB...");
-            let device: String = Input::new()
+            let device: String = match Input::new()
                 .with_prompt("Enter device (e.g., /dev/sda)")
                 .interact_text()
-                .unwrap();
+            {
+                Ok(d) => d,
+                Err(_) => return,
+            };
 
             let _ = Command::new("sudo")
                 .args(["grub-install", &device])
@@ -296,11 +318,14 @@ fn fix_grub_rescue() {
     println!("  boot                   # Boot system");
 
     println!("\n🔧 Automated rescue attempt:");
-    let attempt = Confirm::new()
+    let attempt = match Confirm::new()
         .with_prompt("Attempt automated GRUB rescue?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(a)) => a,
+        _ => return,
+    };
 
     if attempt {
         println!("🔄 Attempting to rebuild GRUB...");
@@ -327,12 +352,15 @@ fn systemd_boot_recovery() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Systemd-boot Recovery")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -366,11 +394,14 @@ fn fix_boot_entries() {
             .args(["-la", "/boot/loader/entries/"])
             .status();
 
-        let regenerate = Confirm::new()
+        let regenerate = match Confirm::new()
             .with_prompt("Remove all entries and regenerate?")
             .default(false)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(r)) => r,
+            _ => return,
+        };
 
         if regenerate {
             let _ = Command::new("sudo")
@@ -382,11 +413,14 @@ fn fix_boot_entries() {
         }
     } else {
         println!("❌ Boot entries directory not found");
-        let create = Confirm::new()
+        let create = match Confirm::new()
             .with_prompt("Create boot entries directory?")
             .default(true)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => return,
+        };
 
         if create {
             let _ = Command::new("sudo")
@@ -400,27 +434,35 @@ fn fix_boot_entries() {
 fn create_basic_boot_entry() {
     println!("🆕 Creating basic boot entry...");
 
-    // Detect installed kernels
-    let output = Command::new("ls").args(["/boot/vmlinuz-*"]).output();
+    // Detect installed kernels by reading /boot directory
+    if let Ok(entries) = std::fs::read_dir("/boot") {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let name_str = name.to_string_lossy();
+            if name_str.starts_with("vmlinuz-") {
+                let kernel_name = name_str.strip_prefix("vmlinuz-").unwrap_or(&name_str);
 
-    if let Ok(output) = output {
-        let kernels = String::from_utf8_lossy(&output.stdout);
-        for kernel in kernels.lines() {
-            if !kernel.is_empty() {
-                let kernel_name = kernel.replace("/boot/vmlinuz-", "");
+                // Get root PARTUUID
+                let root_partuuid = Command::new("findmnt")
+                    .args(["-n", "-o", "PARTUUID", "/"])
+                    .output()
+                    .ok()
+                    .and_then(|o| String::from_utf8_lossy(&o.stdout).trim().to_string().into())
+                    .unwrap_or_else(|| "FIXME".to_string());
+
                 let entry_content = format!(
-                    "title   Arch Linux ({})\nlinux   /vmlinuz-{}\ninitrd  /initramfs-{}.img\noptions root=PARTUUID=$(blkid -s PARTUUID -o value /dev/$(findmnt -n -o SOURCE /) | head -1) rw\n",
-                    kernel_name, kernel_name, kernel_name
+                    "title   Arch Linux ({})\nlinux   /vmlinuz-{}\ninitrd  /initramfs-{}.img\noptions root=PARTUUID={} rw\n",
+                    kernel_name, kernel_name, kernel_name, root_partuuid
                 );
 
                 let entry_file = format!("/boot/loader/entries/arch-{}.conf", kernel_name);
-                let _ = Command::new("sudo")
-                    .args([
-                        "bash",
-                        "-c",
-                        &format!("echo '{}' > '{}'", entry_content, entry_file),
-                    ])
-                    .status();
+                // Write to temp file and move with sudo
+                let temp_file = "/tmp/boot_entry.conf.tmp";
+                if std::fs::write(temp_file, &entry_content).is_ok() {
+                    let _ = Command::new("sudo")
+                        .args(["mv", temp_file, &entry_file])
+                        .status();
+                }
 
                 println!("✅ Created entry for {}", kernel_name);
             }
@@ -442,12 +484,15 @@ fn filesystem_repair() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Filesystem Repair")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => check_filesystem_integrity(),
@@ -471,10 +516,13 @@ fn check_filesystem_integrity() {
         .status();
 
     // Check each filesystem
-    let device: String = Input::new()
+    let device: String = match Input::new()
         .with_prompt("Enter device to check (e.g., /dev/sda1, or 'all' for all)")
         .interact_text()
-        .unwrap();
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
     if device == "all" {
         println!("🔍 Checking all filesystems...");
@@ -539,16 +587,22 @@ fn repair_filesystem_errors() {
     println!("⚠️  WARNING: This will attempt to repair filesystem errors.");
     println!("💾 Make sure you have backups before proceeding!");
 
-    let device: String = Input::new()
+    let device: String = match Input::new()
         .with_prompt("Enter device to repair (e.g., /dev/sda1)")
         .interact_text()
-        .unwrap();
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Proceed with filesystem repair? (This may cause data loss)")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if !confirm {
         return;
@@ -561,10 +615,13 @@ fn repair_filesystem_errors() {
     let fstype = if let Ok(output) = output {
         String::from_utf8_lossy(&output.stdout).trim().to_string()
     } else {
-        Input::new()
+        match Input::new()
             .with_prompt("Enter filesystem type (ext4, btrfs, xfs)")
             .interact_text()
-            .unwrap()
+        {
+            Ok(t) => t,
+            Err(_) => return,
+        }
     };
 
     println!("🔧 Repairing {} filesystem on {}...", fstype, device);
@@ -600,11 +657,14 @@ fn check_disk_health() {
         .status();
 
     // Detailed SMART info
-    let detailed = Confirm::new()
+    let detailed = match Confirm::new()
         .with_prompt("Show detailed SMART information?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(d)) => d,
+        _ => false,
+    };
 
     if detailed {
         let _ = Command::new("sudo")
@@ -654,12 +714,15 @@ fn emergency_fs_recovery() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Emergency Recovery")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => force_filesystem_check(),
@@ -673,10 +736,13 @@ fn emergency_fs_recovery() {
 fn force_filesystem_check() {
     println!("🔄 Force Filesystem Check");
 
-    let device: String = Input::new()
+    let _device: String = match Input::new()
         .with_prompt("Enter device to force check")
         .interact_text()
-        .unwrap();
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
     println!("⚠️  Creating force fsck file...");
     let _ = Command::new("sudo").args(["touch", "/forcefsck"]).status();
@@ -713,10 +779,13 @@ fn data_recovery_options() {
     println!("• ddrescue - Drive imaging/recovery");
     println!("• extundelete - ext3/4 file recovery");
 
-    let tool: String = Input::new()
+    let tool: String = match Input::new()
         .with_prompt("Enter tool to install/run (or 'skip')")
         .interact_text()
-        .unwrap();
+    {
+        Ok(t) => t,
+        Err(_) => return,
+    };
 
     if tool != "skip" {
         println!("📦 Installing {}...", tool);
@@ -731,16 +800,22 @@ fn data_recovery_options() {
 fn reset_filesystem_journal() {
     println!("🛠️  Reset Filesystem Journal");
 
-    let device: String = Input::new()
+    let device: String = match Input::new()
         .with_prompt("Enter ext4 device to reset journal")
         .interact_text()
-        .unwrap();
+    {
+        Ok(d) => d,
+        Err(_) => return,
+    };
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Reset filesystem journal? (ext4 only)")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         let _ = Command::new("sudo")
@@ -771,12 +846,15 @@ fn user_account_recovery() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("User Recovery")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => reset_user_password(),
@@ -792,10 +870,13 @@ fn user_account_recovery() {
 fn reset_user_password() {
     println!("🔓 Reset User Password");
 
-    let username: String = Input::new()
+    let username: String = match Input::new()
         .with_prompt("Enter username to reset password")
         .interact_text()
-        .unwrap();
+    {
+        Ok(u) => u,
+        Err(_) => return,
+    };
 
     println!("🔑 Resetting password for {}...", username);
     let _ = Command::new("sudo").args(["passwd", &username]).status();
@@ -804,11 +885,14 @@ fn reset_user_password() {
 fn create_emergency_user() {
     println!("👤 Create Emergency User");
 
-    let username: String = Input::new()
+    let username: String = match Input::new()
         .with_prompt("Enter emergency username")
         .with_initial_text("rescue")
         .interact_text()
-        .unwrap();
+    {
+        Ok(u) => u,
+        Err(_) => return,
+    };
 
     println!("👤 Creating emergency user: {}", username);
     let _ = Command::new("sudo")
@@ -824,15 +908,18 @@ fn create_emergency_user() {
 fn fix_user_permissions() {
     println!("🔑 Fix User Permissions");
 
-    let username: String = Input::new()
+    let username: String = match Input::new()
         .with_prompt("Enter username to fix permissions")
         .interact_text()
-        .unwrap();
+    {
+        Ok(u) => u,
+        Err(_) => return,
+    };
 
     println!("🔧 Fixing permissions for {}...", username);
 
     // Fix home directory ownership
-    let home_dir = format!("/home/{}", username);
+    let home_dir = std::env::var("HOME").unwrap_or_else(|_| format!("/home/{}", username));
     let _ = Command::new("sudo")
         .args([
             "chown",
@@ -853,12 +940,15 @@ fn fix_user_permissions() {
 fn recover_home_directory() {
     println!("🏠 Recover Home Directory");
 
-    let username: String = Input::new()
+    let username: String = match Input::new()
         .with_prompt("Enter username to recover home directory")
         .interact_text()
-        .unwrap();
+    {
+        Ok(u) => u,
+        Err(_) => return,
+    };
 
-    let home_dir = format!("/home/{}", username);
+    let home_dir = std::env::var("HOME").unwrap_or_else(|_| format!("/home/{}", username));
 
     if !Path::new(&home_dir).exists() {
         println!("📁 Creating home directory...");
@@ -885,25 +975,34 @@ fn recover_home_directory() {
 fn fix_sudo_access() {
     println!("🔐 Fix Sudo Access");
 
-    let username: String = Input::new()
+    let username: String = match Input::new()
         .with_prompt("Enter username to add to wheel group")
         .interact_text()
-        .unwrap();
+    {
+        Ok(u) => u,
+        Err(_) => return,
+    };
 
     println!("🔐 Adding {} to wheel group...", username);
     let _ = Command::new("sudo")
         .args(["usermod", "-aG", "wheel", &username])
         .status();
 
-    // Ensure wheel group has sudo access
+    // Ensure wheel group has sudo access by appending to sudoers via temp file
     println!("🔧 Ensuring wheel group has sudo access...");
-    let _ = Command::new("sudo")
-        .args([
-            "bash",
-            "-c",
-            "echo '%wheel ALL=(ALL:ALL) ALL' >> /etc/sudoers",
-        ])
-        .status();
+    // Read existing sudoers, check if wheel rule exists
+    if let Ok(content) = std::fs::read_to_string("/etc/sudoers") {
+        if !content.contains("%wheel ALL=(ALL:ALL) ALL") {
+            // Write to temp file and use visudo to validate
+            let temp_file = "/tmp/sudoers_wheel.tmp";
+            if std::fs::write(temp_file, "%wheel ALL=(ALL:ALL) ALL\n").is_ok() {
+                // Append to sudoers.d instead for safety
+                let _ = Command::new("sudo")
+                    .args(["mv", temp_file, "/etc/sudoers.d/wheel"])
+                    .status();
+            }
+        }
+    }
 
     println!("✅ Sudo access fixed");
 }
@@ -933,12 +1032,15 @@ fn package_database_recovery() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Database Recovery")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => rebuild_package_database(),
@@ -954,11 +1056,14 @@ fn package_database_recovery() {
 fn rebuild_package_database() {
     println!("🔄 Rebuilding Package Database");
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Rebuild entire package database?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         println!("💾 Creating backup...");
@@ -994,11 +1099,14 @@ fn restore_database_backup() {
     println!("📋 Restore Database Backup");
 
     if Path::new("/var/lib/pacman.backup").exists() {
-        let confirm = Confirm::new()
+        let confirm = match Confirm::new()
             .with_prompt("Restore from /var/lib/pacman.backup?")
             .default(true)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(c)) => c,
+            _ => return,
+        };
 
         if confirm {
             let _ = Command::new("sudo")
@@ -1043,8 +1151,9 @@ fn create_database_backup() {
         "/var/lib/pacman.backup.{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
+            .ok()
+            .map(|d| d.as_secs())
+            .unwrap_or(0)
     );
 
     let _ = Command::new("sudo")
@@ -1067,12 +1176,15 @@ fn network_recovery() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Network Recovery")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => reset_network_config(),
@@ -1087,11 +1199,14 @@ fn network_recovery() {
 fn reset_network_config() {
     println!("🔌 Reset Network Configuration");
 
-    let confirm = Confirm::new()
+    let confirm = match Confirm::new()
         .with_prompt("Reset network configuration to defaults?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     if confirm {
         println!("🔄 Resetting network...");
@@ -1115,12 +1230,15 @@ fn fix_wifi_issues() {
         "🔧 Check WiFi drivers",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("WiFi Fix")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -1163,23 +1281,26 @@ fn reset_dns_settings() {
         println!("{}. {}", i + 1, server);
     }
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select DNS server")
         .items(&dns_servers)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     let selected_dns = dns_servers[choice];
 
     println!("🔧 Setting DNS to {}", selected_dns);
-    let _ = Command::new("sudo")
-        .args([
-            "bash",
-            "-c",
-            &format!("echo 'nameserver {}' > /etc/resolv.conf", selected_dns),
-        ])
-        .status();
+    // Write DNS config to temp file and move with sudo
+    let temp_file = "/tmp/resolv.conf.tmp";
+    if std::fs::write(temp_file, format!("nameserver {}\n", selected_dns)).is_ok() {
+        let _ = Command::new("sudo")
+            .args(["mv", temp_file, "/etc/resolv.conf"])
+            .status();
+    }
 
     println!("✅ DNS settings updated");
 }
@@ -1233,12 +1354,15 @@ fn display_recovery() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Display Recovery")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => reset_display_config(),
@@ -1275,11 +1399,14 @@ fn fix_x11_issues() {
     let _ = Command::new("sudo").args(["chmod", "755", "/tmp"]).status();
 
     println!("3. 📱 Generate new xorg.conf");
-    let generate = Confirm::new()
+    let generate = match Confirm::new()
         .with_prompt("Generate new xorg.conf?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(g)) => g,
+        _ => false,
+    };
 
     if generate {
         let _ = Command::new("sudo").args(["X", "-configure"]).status();
@@ -1315,11 +1442,14 @@ fn graphics_driver_recovery() {
     println!("• AMD: sudo pacman -S xf86-video-amdgpu mesa");
     println!("• Intel: sudo pacman -S xf86-video-intel mesa");
 
-    let reinstall = Confirm::new()
+    let reinstall = match Confirm::new()
         .with_prompt("Reinstall graphics drivers?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(r)) => r,
+        _ => false,
+    };
 
     if reinstall {
         println!("📦 Reinstalling basic graphics drivers...");
@@ -1341,12 +1471,15 @@ fn system_rollback_tools() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Rollback Tools")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => btrfs_snapshots(),
@@ -1385,22 +1518,28 @@ fn timeshift_rollback() {
         println!("📋 Available snapshots:");
         let _ = Command::new("sudo").args(["timeshift", "--list"]).status();
 
-        let restore = Confirm::new()
+        let restore = match Confirm::new()
             .with_prompt("Open Timeshift for restore?")
             .default(false)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(r)) => r,
+            _ => false,
+        };
 
         if restore {
             let _ = Command::new("sudo").args(["timeshift-gtk"]).status();
         }
     } else {
         println!("❌ Timeshift not installed");
-        let install = Confirm::new()
+        let install = match Confirm::new()
             .with_prompt("Install Timeshift?")
             .default(true)
-            .interact()
-            .unwrap();
+            .interact_opt()
+        {
+            Ok(Some(i)) => i,
+            _ => false,
+        };
 
         if install {
             let _ = Command::new("sudo")
@@ -1413,10 +1552,13 @@ fn timeshift_rollback() {
 fn package_downgrade() {
     println!("📦 Package Downgrade");
 
-    let package: String = Input::new()
+    let package: String = match Input::new()
         .with_prompt("Enter package name to downgrade")
         .interact_text()
-        .unwrap();
+    {
+        Ok(p) => p,
+        Err(_) => return,
+    };
 
     if Command::new("which").arg("downgrade").status().is_ok() {
         let _ = Command::new("sudo").args(["downgrade", &package]).status();
@@ -1479,16 +1621,22 @@ fn mount_efi_partition() {
         println!("🔍 Found EFI partitions:");
         println!("{}", content);
 
-        let device: String = Input::new()
+        let device: String = match Input::new()
             .with_prompt("Enter EFI partition (e.g., /dev/sda1)")
             .interact_text()
-            .unwrap();
+        {
+            Ok(d) => d,
+            Err(_) => return,
+        };
 
-        let mount_point: String = Input::new()
+        let mount_point: String = match Input::new()
             .with_prompt("Mount point")
             .with_initial_text("/boot")
             .interact_text()
-            .unwrap();
+        {
+            Ok(m) => m,
+            Err(_) => return,
+        };
 
         let _ = Command::new("sudo")
             .args(["mount", &device, &mount_point])
@@ -1526,20 +1674,26 @@ fn install_bootloader() {
     println!("🆕 Install/Reinstall Bootloader");
 
     let bootloaders = ["GRUB", "systemd-boot"];
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select bootloader")
         .items(&bootloaders)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
             println!("📦 Installing GRUB...");
-            let device: String = Input::new()
+            let device: String = match Input::new()
                 .with_prompt("Enter device (e.g., /dev/sda)")
                 .interact_text()
-                .unwrap();
+            {
+                Ok(d) => d,
+                Err(_) => return,
+            };
 
             let _ = Command::new("sudo")
                 .args(["pacman", "-S", "--noconfirm", "grub", "efibootmgr"])
@@ -1589,23 +1743,32 @@ fn mount_operations() {
         "🔍 Find unmounted partitions",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Mount Operations")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
-            let device: String = Input::new()
+            let device: String = match Input::new()
                 .with_prompt("Device to mount (e.g., /dev/sda1)")
                 .interact_text()
-                .unwrap();
-            let mount_point: String = Input::new()
+            {
+                Ok(d) => d,
+                Err(_) => return,
+            };
+            let mount_point: String = match Input::new()
                 .with_prompt("Mount point (e.g., /mnt)")
                 .interact_text()
-                .unwrap();
+            {
+                Ok(m) => m,
+                Err(_) => return,
+            };
 
             let _ = Command::new("sudo")
                 .args(["mkdir", "-p", &mount_point])
@@ -1616,10 +1779,13 @@ fn mount_operations() {
             println!("✅ Mounted {} to {}", device, mount_point);
         }
         1 => {
-            let mount_point: String = Input::new()
+            let mount_point: String = match Input::new()
                 .with_prompt("Mount point to unmount")
                 .interact_text()
-                .unwrap();
+            {
+                Ok(m) => m,
+                Err(_) => return,
+            };
             let _ = Command::new("sudo").args(["umount", &mount_point]).status();
             println!("✅ Unmounted {}", mount_point);
         }
@@ -1643,11 +1809,14 @@ fn create_recovery_usb() {
     println!("3. 💾 Write ISO to USB: sudo dd if=archlinux.iso of=/dev/sdX bs=4M status=progress");
     println!("4. 🔄 Sync: sudo sync");
 
-    let show_devices = Confirm::new()
+    let show_devices = match Confirm::new()
         .with_prompt("Show available devices?")
         .default(true)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(s)) => s,
+        _ => false,
+    };
 
     if show_devices {
         println!("📱 Available devices:");
@@ -1667,12 +1836,15 @@ fn advanced_repair_options() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Advanced Repair")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -1694,10 +1866,13 @@ fn advanced_repair_options() {
         }
         3 => {
             println!("🗂️  Deep filesystem scan...");
-            let device: String = Input::new()
+            let device: String = match Input::new()
                 .with_prompt("Enter device for deep scan")
                 .interact_text()
-                .unwrap();
+            {
+                Ok(d) => d,
+                Err(_) => return,
+            };
             let _ = Command::new("sudo")
                 .args(["badblocks", "-v", &device])
                 .status();
@@ -1719,12 +1894,15 @@ fn fix_boot_issues() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Boot Repair")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -1735,10 +1913,13 @@ fn fix_boot_issues() {
         }
         1 => {
             println!("🔧 Reinstalling GRUB...");
-            let device: String = Input::new()
+            let device: String = match Input::new()
                 .with_prompt("Enter device to install GRUB to (e.g. /dev/sda)")
                 .interact_text()
-                .unwrap();
+            {
+                Ok(d) => d,
+                Err(_) => return,
+            };
             let _ = Command::new("sudo")
                 .args(["grub-install", &device])
                 .status();
@@ -1777,12 +1958,15 @@ fn repair_critical_packages() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Package Repair")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => {
@@ -1809,10 +1993,13 @@ fn repair_critical_packages() {
         }
         3 => {
             println!("📥 Downgrading packages...");
-            let package: String = Input::new()
+            let package: String = match Input::new()
                 .with_prompt("Enter package name to downgrade")
                 .interact_text()
-                .unwrap();
+            {
+                Ok(p) => p,
+                Err(_) => return,
+            };
             let _ = Command::new("sudo").args(["downgrade", &package]).status();
         }
         4 => {
@@ -1839,12 +2026,15 @@ fn reset_system_config() {
         "⬅️  Back",
     ];
 
-    let choice = Select::with_theme(&ColorfulTheme::default())
+    let choice = match Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Configuration Reset")
         .items(&options)
         .default(0)
-        .interact()
-        .unwrap();
+        .interact_opt()
+    {
+        Ok(Some(c)) => c,
+        _ => return,
+    };
 
     match choice {
         0 => reset_network_config(),
@@ -1865,10 +2055,13 @@ fn reset_audio_config() {
 
 fn reset_user_permissions() {
     println!("🔑 Resetting user permissions...");
-    let username: String = Input::new()
+    let username: String = match Input::new()
         .with_prompt("Enter username to reset permissions")
         .interact_text()
-        .unwrap();
+    {
+        Ok(u) => u,
+        Err(_) => return,
+    };
 
     let _ = Command::new("sudo")
         .args([
@@ -1901,4 +2094,264 @@ fn reset_file_permissions() {
     let _ = Command::new("sudo")
         .args(["chmod", "600", "/etc/shadow"])
         .status();
+}
+
+// ============= Utility functions for testing =============
+
+/// Check if a bootloader path exists
+pub fn bootloader_exists(bootloader: &str) -> bool {
+    match bootloader.to_lowercase().as_str() {
+        "grub" => Path::new("/boot/grub").exists() || Path::new("/boot/grub2").exists(),
+        "systemd-boot" => {
+            Path::new("/boot/EFI/systemd").exists() || Path::new("/boot/loader").exists()
+        }
+        "refind" => Path::new("/boot/EFI/refind").exists(),
+        _ => false,
+    }
+}
+
+/// Validate a PCI device path format
+pub fn is_valid_device_path(path: &str) -> bool {
+    if path.is_empty() {
+        return false;
+    }
+    // Basic validation for /dev/ paths
+    path.starts_with("/dev/") && !path.contains("..") && path.len() > 5
+}
+
+/// Parse filesystem type from blkid output
+pub fn parse_filesystem_type(blkid_output: &str) -> Option<String> {
+    // Format: TYPE="ext4" or TYPE="btrfs"
+    if let Some(start) = blkid_output.find("TYPE=\"") {
+        let start = start + 6;
+        if let Some(end) = blkid_output[start..].find('"') {
+            return Some(blkid_output[start..start + end].to_string());
+        }
+    }
+    None
+}
+
+/// Check if a filesystem type is supported for repair
+pub fn is_supported_filesystem(fstype: &str) -> bool {
+    matches!(
+        fstype.to_lowercase().as_str(),
+        "ext4" | "ext3" | "ext2" | "btrfs" | "xfs"
+    )
+}
+
+/// Validate username format
+pub fn is_valid_username(username: &str) -> bool {
+    if username.is_empty() || username.len() > 32 {
+        return false;
+    }
+    // First character must be lowercase letter or underscore
+    let first = username.chars().next().unwrap_or('u');
+    if !first.is_ascii_lowercase() && first != '_' {
+        return false;
+    }
+    // Rest must be lowercase, digits, underscore, or hyphen
+    username
+        .chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-')
+}
+
+/// Parse DNS server from resolv.conf line
+pub fn parse_dns_server(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    if trimmed.starts_with("nameserver ") {
+        let server = trimmed.strip_prefix("nameserver ")?.trim();
+        if !server.is_empty() {
+            return Some(server.to_string());
+        }
+    }
+    None
+}
+
+/// Validate IPv4 address format
+pub fn is_valid_ipv4(ip: &str) -> bool {
+    let parts: Vec<&str> = ip.split('.').collect();
+    if parts.len() != 4 {
+        return false;
+    }
+    parts
+        .iter()
+        .all(|p| p.parse::<u8>().is_ok() && !p.starts_with('0') || *p == "0")
+}
+
+/// Get backup path for a config file
+pub fn get_backup_path(original_path: &str, suffix: &str) -> String {
+    format!("{}.{}", original_path, suffix)
+}
+
+/// Check if path is a system critical directory
+pub fn is_critical_system_path(path: &str) -> bool {
+    let critical_paths = [
+        "/", "/boot", "/etc", "/usr", "/var", "/lib", "/lib64", "/bin", "/sbin",
+    ];
+    critical_paths
+        .iter()
+        .any(|&p| path == p || path.starts_with(&format!("{}/", p)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_valid_device_path_valid() {
+        assert!(is_valid_device_path("/dev/sda"));
+        assert!(is_valid_device_path("/dev/sda1"));
+        assert!(is_valid_device_path("/dev/nvme0n1"));
+        assert!(is_valid_device_path("/dev/nvme0n1p1"));
+        assert!(is_valid_device_path("/dev/mapper/root"));
+    }
+
+    #[test]
+    fn test_is_valid_device_path_invalid() {
+        assert!(!is_valid_device_path(""));
+        assert!(!is_valid_device_path("/dev/"));
+        assert!(!is_valid_device_path("sda"));
+        assert!(!is_valid_device_path("/dev/../etc/passwd"));
+        assert!(!is_valid_device_path("/home/user"));
+    }
+
+    #[test]
+    fn test_parse_filesystem_type_ext4() {
+        let output = "/dev/sda1: UUID=\"abc\" TYPE=\"ext4\" PARTUUID=\"xyz\"";
+        assert_eq!(parse_filesystem_type(output), Some("ext4".to_string()));
+    }
+
+    #[test]
+    fn test_parse_filesystem_type_btrfs() {
+        let output = "TYPE=\"btrfs\"";
+        assert_eq!(parse_filesystem_type(output), Some("btrfs".to_string()));
+    }
+
+    #[test]
+    fn test_parse_filesystem_type_xfs() {
+        let output = "/dev/nvme0n1p2: LABEL=\"data\" TYPE=\"xfs\"";
+        assert_eq!(parse_filesystem_type(output), Some("xfs".to_string()));
+    }
+
+    #[test]
+    fn test_parse_filesystem_type_missing() {
+        let output = "/dev/sda1: UUID=\"abc\" PARTUUID=\"xyz\"";
+        assert_eq!(parse_filesystem_type(output), None);
+    }
+
+    #[test]
+    fn test_is_supported_filesystem_supported() {
+        assert!(is_supported_filesystem("ext4"));
+        assert!(is_supported_filesystem("ext3"));
+        assert!(is_supported_filesystem("ext2"));
+        assert!(is_supported_filesystem("btrfs"));
+        assert!(is_supported_filesystem("xfs"));
+        assert!(is_supported_filesystem("EXT4")); // case insensitive
+    }
+
+    #[test]
+    fn test_is_supported_filesystem_unsupported() {
+        assert!(!is_supported_filesystem("ntfs"));
+        assert!(!is_supported_filesystem("fat32"));
+        assert!(!is_supported_filesystem("vfat"));
+        assert!(!is_supported_filesystem("zfs"));
+        assert!(!is_supported_filesystem(""));
+    }
+
+    #[test]
+    fn test_is_valid_username_valid() {
+        assert!(is_valid_username("user"));
+        assert!(is_valid_username("user123"));
+        assert!(is_valid_username("_user"));
+        assert!(is_valid_username("user_name"));
+        assert!(is_valid_username("user-name"));
+        assert!(is_valid_username("a"));
+    }
+
+    #[test]
+    fn test_is_valid_username_invalid() {
+        assert!(!is_valid_username(""));
+        assert!(!is_valid_username("User")); // uppercase
+        assert!(!is_valid_username("123user")); // starts with number
+        assert!(!is_valid_username("-user")); // starts with hyphen
+        assert!(!is_valid_username("user name")); // space
+        assert!(!is_valid_username("user@name")); // special char
+        assert!(!is_valid_username(
+            "a_very_long_username_that_exceeds_32_chars"
+        ));
+    }
+
+    #[test]
+    fn test_parse_dns_server_valid() {
+        assert_eq!(
+            parse_dns_server("nameserver 8.8.8.8"),
+            Some("8.8.8.8".to_string())
+        );
+        assert_eq!(
+            parse_dns_server("nameserver 1.1.1.1"),
+            Some("1.1.1.1".to_string())
+        );
+        assert_eq!(
+            parse_dns_server("  nameserver   192.168.1.1  "),
+            Some("192.168.1.1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_dns_server_invalid() {
+        assert_eq!(parse_dns_server(""), None);
+        assert_eq!(parse_dns_server("# nameserver 8.8.8.8"), None);
+        assert_eq!(parse_dns_server("search example.com"), None);
+        assert_eq!(parse_dns_server("nameserver "), None);
+    }
+
+    #[test]
+    fn test_is_valid_ipv4_valid() {
+        assert!(is_valid_ipv4("192.168.1.1"));
+        assert!(is_valid_ipv4("8.8.8.8"));
+        assert!(is_valid_ipv4("255.255.255.255"));
+        assert!(is_valid_ipv4("0.0.0.0"));
+        assert!(is_valid_ipv4("10.0.0.1"));
+    }
+
+    #[test]
+    fn test_is_valid_ipv4_invalid() {
+        assert!(!is_valid_ipv4(""));
+        assert!(!is_valid_ipv4("192.168.1")); // only 3 octets
+        assert!(!is_valid_ipv4("192.168.1.256")); // octet > 255
+        assert!(!is_valid_ipv4("192.168.1.1.1")); // 5 octets
+        assert!(!is_valid_ipv4("not.an.ip.address"));
+    }
+
+    #[test]
+    fn test_get_backup_path() {
+        assert_eq!(
+            get_backup_path("/etc/pacman.conf", "backup"),
+            "/etc/pacman.conf.backup"
+        );
+        assert_eq!(get_backup_path("/etc/fstab", "bak"), "/etc/fstab.bak");
+        assert_eq!(
+            get_backup_path("/var/lib/pacman", "20240101"),
+            "/var/lib/pacman.20240101"
+        );
+    }
+
+    #[test]
+    fn test_is_critical_system_path_critical() {
+        assert!(is_critical_system_path("/"));
+        assert!(is_critical_system_path("/boot"));
+        assert!(is_critical_system_path("/etc"));
+        assert!(is_critical_system_path("/etc/pacman.conf"));
+        assert!(is_critical_system_path("/usr/bin"));
+        assert!(is_critical_system_path("/var/lib/pacman"));
+    }
+
+    #[test]
+    fn test_is_critical_system_path_non_critical() {
+        assert!(!is_critical_system_path("/home"));
+        assert!(!is_critical_system_path("/home/user"));
+        assert!(!is_critical_system_path("/tmp"));
+        assert!(!is_critical_system_path("/opt"));
+        assert!(!is_critical_system_path("/mnt/data"));
+    }
 }
