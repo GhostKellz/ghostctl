@@ -2167,13 +2167,28 @@ fn apply_rule_optimizations() {
 
     // Add fast-path for established connections
     Command::new("sudo")
-        .args(["nft", "insert", "rule", "filter", "input", "ct", "state", "{", "established,", "related", "}", "accept"])
+        .args([
+            "nft",
+            "insert",
+            "rule",
+            "filter",
+            "input",
+            "ct",
+            "state",
+            "{",
+            "established,",
+            "related",
+            "}",
+            "accept",
+        ])
         .status()
         .ok();
 
     // Drop invalid packets early
     Command::new("sudo")
-        .args(["nft", "insert", "rule", "filter", "input", "ct", "state", "invalid", "drop"])
+        .args([
+            "nft", "insert", "rule", "filter", "input", "ct", "state", "invalid", "drop",
+        ])
         .status()
         .ok();
 
@@ -2235,9 +2250,7 @@ fn convert_iptables_to_nftables() {
     let converted_path = format!("{}/nftables_converted.rules", home);
 
     // Save iptables rules (capture output and write to file)
-    let save_output = Command::new("sudo")
-        .args(["iptables-save"])
-        .output();
+    let save_output = Command::new("sudo").args(["iptables-save"]).output();
 
     match save_output {
         Ok(out) if out.status.success() => {
@@ -2283,17 +2296,13 @@ fn backup_iptables_rules() {
     let backup_path = format!("{}/iptables_{}.rules", backup_dir, timestamp);
 
     // Capture iptables-save output and write to file
-    let output = Command::new("sudo")
-        .args(["iptables-save"])
-        .output();
+    let output = Command::new("sudo").args(["iptables-save"]).output();
 
     match output {
-        Ok(out) if out.status.success() => {
-            match std::fs::write(&backup_path, &out.stdout) {
-                Ok(_) => println!("✅ Backup saved to: {}", backup_path),
-                Err(e) => println!("❌ Failed to write backup: {}", e),
-            }
-        }
+        Ok(out) if out.status.success() => match std::fs::write(&backup_path, &out.stdout) {
+            Ok(_) => println!("✅ Backup saved to: {}", backup_path),
+            Err(e) => println!("❌ Failed to write backup: {}", e),
+        },
         _ => println!("❌ Backup failed"),
     }
 }
@@ -2499,7 +2508,10 @@ fn restore_ruleset() {
         );
 
         // Capture nft list ruleset and write to file
-        if let Ok(out) = Command::new("sudo").args(["nft", "list", "ruleset"]).output() {
+        if let Ok(out) = Command::new("sudo")
+            .args(["nft", "list", "ruleset"])
+            .output()
+        {
             if out.status.success() {
                 let _ = std::fs::write(&temp_backup, &out.stdout);
             }
@@ -2960,10 +2972,7 @@ fn performance_monitoring() {
     }
 
     // Connection tracking stats
-    if let Ok(output) = Command::new("sudo")
-        .args(["conntrack", "-C"])
-        .output()
-    {
+    if let Ok(output) = Command::new("sudo").args(["conntrack", "-C"]).output() {
         if output.status.success() {
             let count = String::from_utf8_lossy(&output.stdout).trim().to_string();
             println!("  • Active connections: {}", count);
@@ -3089,9 +3098,7 @@ table inet filter {
             return;
         }
 
-        let status = Command::new("sudo")
-            .args(["nft", "-f", temp_file])
-            .status();
+        let status = Command::new("sudo").args(["nft", "-f", temp_file]).status();
 
         fs::remove_file(temp_file).ok();
 
@@ -3192,9 +3199,7 @@ table inet gaming {{
             return;
         }
 
-        let status = Command::new("sudo")
-            .args(["nft", "-f", temp_file])
-            .status();
+        let status = Command::new("sudo").args(["nft", "-f", temp_file]).status();
 
         fs::remove_file(temp_file).ok();
 

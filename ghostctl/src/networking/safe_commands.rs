@@ -294,8 +294,19 @@ pub fn iptables_allow_input(port: u16, proto: &str, comment: &str) -> Result<()>
 
     let port_str = port.to_string();
     let output = run_sudo(&[
-        "iptables", "-A", "INPUT", "-p", proto, "--dport", &port_str, "-j", "ACCEPT", "-m",
-        "comment", "--comment", comment,
+        "iptables",
+        "-A",
+        "INPUT",
+        "-p",
+        proto,
+        "--dport",
+        &port_str,
+        "-j",
+        "ACCEPT",
+        "-m",
+        "comment",
+        "--comment",
+        comment,
     ])?;
     check_output(output, "Failed to add iptables input rule")?;
     Ok(())
@@ -493,8 +504,7 @@ pub fn sudo_write_file(path: &str, content: &str) -> Result<()> {
     // - Unpredictable filename (prevents symlink race attacks)
     // - Restrictive default permissions (0600)
     // - Automatic cleanup on drop if not persisted
-    let mut temp_file =
-        NamedTempFile::new().context("Failed to create secure temp file")?;
+    let mut temp_file = NamedTempFile::new().context("Failed to create secure temp file")?;
 
     temp_file
         .write_all(content.as_bytes())

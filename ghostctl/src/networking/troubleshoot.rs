@@ -145,7 +145,10 @@ fn complete_network_diagnosis() {
                     Ok(out) if out.status.success() => {
                         let text = String::from_utf8_lossy(&out.stdout);
                         for line in text.lines() {
-                            if line.contains("Speed") || line.contains("Duplex") || line.contains("Link") {
+                            if line.contains("Speed")
+                                || line.contains("Duplex")
+                                || line.contains("Link")
+                            {
                                 println!("{}", line);
                             }
                         }

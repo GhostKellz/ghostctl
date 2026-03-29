@@ -11,8 +11,9 @@ use std::sync::LazyLock;
 use thiserror::Error;
 
 // Pre-compiled regex patterns for validation (compiled once at first use)
-static IPV4_CIDR_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})$").expect("valid regex"));
+static IPV4_CIDR_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})$").expect("valid regex")
+});
 static IPV6_CIDR_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^[0-9a-fA-F:]+/(\d{1,3})$").expect("valid regex"));
 static INTERFACE_REGEX: LazyLock<Regex> =

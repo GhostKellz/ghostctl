@@ -48,7 +48,10 @@ fn apply_firewalld_rule(args: &[&str]) {
 /// Helper to apply a sysctl setting safely
 fn apply_sysctl(param: &str, value: &str) {
     let setting = format!("{}={}", param, value);
-    match Command::new("sudo").args(["sysctl", "-w", &setting]).status() {
+    match Command::new("sudo")
+        .args(["sysctl", "-w", &setting])
+        .status()
+    {
         Ok(status) if !status.success() => {
             log::warn!("sysctl failed: {}", setting);
         }
@@ -311,13 +314,14 @@ fn ufw_management() {
                         }
                     }
                     4 => {
-                        let service_input: String = match Input::with_theme(&ColorfulTheme::default())
-                            .with_prompt("Enter service name (e.g., ssh, http, https)")
-                            .interact_text()
-                        {
-                            Ok(i) => i,
-                            Err(_) => continue,
-                        };
+                        let service_input: String =
+                            match Input::with_theme(&ColorfulTheme::default())
+                                .with_prompt("Enter service name (e.g., ssh, http, https)")
+                                .interact_text()
+                            {
+                                Ok(i) => i,
+                                Err(_) => continue,
+                            };
 
                         // Validate service name
                         let validated_service =
@@ -627,13 +631,14 @@ fn firewalld_management() {
                         Command::new("sudo").args(&args).status().ok();
                     }
                     1 => {
-                        let service_input: String = match Input::with_theme(&ColorfulTheme::default())
-                            .with_prompt("Enter service name (e.g., http, https, ssh)")
-                            .interact_text()
-                        {
-                            Ok(i) => i,
-                            Err(_) => continue,
-                        };
+                        let service_input: String =
+                            match Input::with_theme(&ColorfulTheme::default())
+                                .with_prompt("Enter service name (e.g., http, https, ssh)")
+                                .interact_text()
+                            {
+                                Ok(i) => i,
+                                Err(_) => continue,
+                            };
 
                         let validated_service =
                             match ValidatedServiceName::from_input(&service_input) {
@@ -655,13 +660,14 @@ fn firewalld_management() {
                         Command::new("sudo").args(&args).status().ok();
                     }
                     2 => {
-                        let source_input: String = match Input::with_theme(&ColorfulTheme::default())
-                            .with_prompt("Enter source IP or subnet")
-                            .interact_text()
-                        {
-                            Ok(i) => i,
-                            Err(_) => continue,
-                        };
+                        let source_input: String =
+                            match Input::with_theme(&ColorfulTheme::default())
+                                .with_prompt("Enter source IP or subnet")
+                                .interact_text()
+                            {
+                                Ok(i) => i,
+                                Err(_) => continue,
+                            };
 
                         // Validate IP or CIDR
                         let validated_source = if source_input.contains('/') {
@@ -780,13 +786,14 @@ fn firewalld_management() {
                             .status()
                             .ok();
 
-                        let service_input: String = match Input::with_theme(&ColorfulTheme::default())
-                            .with_prompt("Enter service to remove")
-                            .interact_text()
-                        {
-                            Ok(i) => i,
-                            Err(_) => continue,
-                        };
+                        let service_input: String =
+                            match Input::with_theme(&ColorfulTheme::default())
+                                .with_prompt("Enter service to remove")
+                                .interact_text()
+                            {
+                                Ok(i) => i,
+                                Err(_) => continue,
+                            };
 
                         let validated_service =
                             match ValidatedServiceName::from_input(&service_input) {
@@ -814,13 +821,14 @@ fn firewalld_management() {
                             .status()
                             .ok();
 
-                        let source_input: String = match Input::with_theme(&ColorfulTheme::default())
-                            .with_prompt("Enter source to remove")
-                            .interact_text()
-                        {
-                            Ok(i) => i,
-                            Err(_) => continue,
-                        };
+                        let source_input: String =
+                            match Input::with_theme(&ColorfulTheme::default())
+                                .with_prompt("Enter source to remove")
+                                .interact_text()
+                            {
+                                Ok(i) => i,
+                                Err(_) => continue,
+                            };
 
                         // Validate IP or CIDR
                         let validated_source = if source_input.contains('/') {
@@ -1268,8 +1276,9 @@ fn rich_rules_management() {
             };
 
             // Validate rate format (number/unit where unit is s, m, h, d)
-            static RATE_REGEX: std::sync::LazyLock<regex::Regex> =
-                std::sync::LazyLock::new(|| regex::Regex::new(r"^\d+/[smhd]$").expect("valid regex"));
+            static RATE_REGEX: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+                regex::Regex::new(r"^\d+/[smhd]$").expect("valid regex")
+            });
             if !RATE_REGEX.is_match(&rate_input) {
                 println!("❌ Invalid rate format. Use: number/unit (e.g., 3/m, 10/s)");
                 return;
@@ -3412,7 +3421,9 @@ fn quick_fixes() {
                     std::thread::sleep(std::time::Duration::from_secs(duration_mins as u64 * 60));
                     // Re-enable firewalls
                     let _ = Command::new("sudo").args(["ufw", "enable"]).status();
-                    let _ = Command::new("sudo").args(["systemctl", "start", "firewalld"]).status();
+                    let _ = Command::new("sudo")
+                        .args(["systemctl", "start", "firewalld"])
+                        .status();
                     log::info!("Firewall re-enabled after {} minute timeout", duration_mins);
                 });
             }
@@ -3589,7 +3600,16 @@ fn view_firewall_logs() {
             println!("👁️ Live Firewall Monitoring (Ctrl+C to stop):");
             // Use direct tail command with proper arguments
             Command::new("sudo")
-                .args(["journalctl", "-f", "-u", "ufw", "-u", "firewalld", "-u", "iptables"])
+                .args([
+                    "journalctl",
+                    "-f",
+                    "-u",
+                    "ufw",
+                    "-u",
+                    "firewalld",
+                    "-u",
+                    "iptables",
+                ])
                 .status()
                 .ok();
         }
@@ -5252,53 +5272,128 @@ fn gaming_qos_configuration() {
     let _ = safe_commands::tc_del_qdisc(&interface, "root");
 
     // Add root qdisc with HTB
-    if let Err(e) = safe_commands::tc_add_qdisc(&interface, &["root", "handle", "1:", "htb", "default", "30"]) {
+    if let Err(e) = safe_commands::tc_add_qdisc(
+        &interface,
+        &["root", "handle", "1:", "htb", "default", "30"],
+    ) {
         println!("⚠️ Failed to add root qdisc: {}", e);
     }
 
     // Create classes for different traffic types
     // Root class
-    if let Err(e) = safe_commands::tc_add_class(&interface, &["parent", "1:", "classid", "1:1", "htb", "rate", "1000mbit"]) {
+    if let Err(e) = safe_commands::tc_add_class(
+        &interface,
+        &["parent", "1:", "classid", "1:1", "htb", "rate", "1000mbit"],
+    ) {
         println!("⚠️ Failed to add root class: {}", e);
     }
 
     // Gaming class (high priority)
-    if let Err(e) = safe_commands::tc_add_class(&interface, &["parent", "1:1", "classid", "1:10", "htb", "rate", "800mbit", "ceil", "1000mbit", "prio", "1"]) {
+    if let Err(e) = safe_commands::tc_add_class(
+        &interface,
+        &[
+            "parent", "1:1", "classid", "1:10", "htb", "rate", "800mbit", "ceil", "1000mbit",
+            "prio", "1",
+        ],
+    ) {
         println!("⚠️ Failed to add gaming class: {}", e);
     }
 
     // Voice class (medium priority)
-    if let Err(e) = safe_commands::tc_add_class(&interface, &["parent", "1:1", "classid", "1:20", "htb", "rate", "150mbit", "ceil", "300mbit", "prio", "2"]) {
+    if let Err(e) = safe_commands::tc_add_class(
+        &interface,
+        &[
+            "parent", "1:1", "classid", "1:20", "htb", "rate", "150mbit", "ceil", "300mbit",
+            "prio", "2",
+        ],
+    ) {
         println!("⚠️ Failed to add voice class: {}", e);
     }
 
     // Default class (low priority)
-    if let Err(e) = safe_commands::tc_add_class(&interface, &["parent", "1:1", "classid", "1:30", "htb", "rate", "50mbit", "ceil", "200mbit", "prio", "3"]) {
+    if let Err(e) = safe_commands::tc_add_class(
+        &interface,
+        &[
+            "parent", "1:1", "classid", "1:30", "htb", "rate", "50mbit", "ceil", "200mbit", "prio",
+            "3",
+        ],
+    ) {
         println!("⚠️ Failed to add default class: {}", e);
     }
 
     // Add SFQ qdiscs for fairness
-    let _ = safe_commands::tc_add_qdisc(&interface, &["parent", "1:10", "handle", "10:", "sfq", "perturb", "10"]);
-    let _ = safe_commands::tc_add_qdisc(&interface, &["parent", "1:20", "handle", "20:", "sfq", "perturb", "10"]);
-    let _ = safe_commands::tc_add_qdisc(&interface, &["parent", "1:30", "handle", "30:", "sfq", "perturb", "10"]);
+    let _ = safe_commands::tc_add_qdisc(
+        &interface,
+        &["parent", "1:10", "handle", "10:", "sfq", "perturb", "10"],
+    );
+    let _ = safe_commands::tc_add_qdisc(
+        &interface,
+        &["parent", "1:20", "handle", "20:", "sfq", "perturb", "10"],
+    );
+    let _ = safe_commands::tc_add_qdisc(
+        &interface,
+        &["parent", "1:30", "handle", "30:", "sfq", "perturb", "10"],
+    );
 
     // Add filters for gaming traffic
     // WoW ports
-    let _ = safe_commands::tc_add_filter(&interface, &["protocol", "ip", "parent", "1:0", "prio", "1", "u32", "match", "ip", "dport", "3724", "0xffff", "flowid", "1:10"]);
-    let _ = safe_commands::tc_add_filter(&interface, &["protocol", "ip", "parent", "1:0", "prio", "1", "u32", "match", "ip", "dport", "1119", "0xffff", "flowid", "1:10"]);
+    let _ = safe_commands::tc_add_filter(
+        &interface,
+        &[
+            "protocol", "ip", "parent", "1:0", "prio", "1", "u32", "match", "ip", "dport", "3724",
+            "0xffff", "flowid", "1:10",
+        ],
+    );
+    let _ = safe_commands::tc_add_filter(
+        &interface,
+        &[
+            "protocol", "ip", "parent", "1:0", "prio", "1", "u32", "match", "ip", "dport", "1119",
+            "0xffff", "flowid", "1:10",
+        ],
+    );
 
     // Steam ports
-    let _ = safe_commands::tc_add_filter(&interface, &["protocol", "ip", "parent", "1:0", "prio", "1", "u32", "match", "ip", "dport", "27015", "0xffff", "flowid", "1:10"]);
-    let _ = safe_commands::tc_add_filter(&interface, &["protocol", "ip", "parent", "1:0", "prio", "1", "u32", "match", "ip", "dport", "27030", "0xffff", "flowid", "1:10"]);
+    let _ = safe_commands::tc_add_filter(
+        &interface,
+        &[
+            "protocol", "ip", "parent", "1:0", "prio", "1", "u32", "match", "ip", "dport", "27015",
+            "0xffff", "flowid", "1:10",
+        ],
+    );
+    let _ = safe_commands::tc_add_filter(
+        &interface,
+        &[
+            "protocol", "ip", "parent", "1:0", "prio", "1", "u32", "match", "ip", "dport", "27030",
+            "0xffff", "flowid", "1:10",
+        ],
+    );
 
     // Discord voice (high priority)
-    let _ = safe_commands::tc_add_filter(&interface, &["protocol", "ip", "parent", "1:0", "prio", "1", "u32", "match", "ip", "sport", "50000", "0xc000", "flowid", "1:20"]);
+    let _ = safe_commands::tc_add_filter(
+        &interface,
+        &[
+            "protocol", "ip", "parent", "1:0", "prio", "1", "u32", "match", "ip", "sport", "50000",
+            "0xc000", "flowid", "1:20",
+        ],
+    );
 
     // DSCP marking: EF for gaming
-    let _ = safe_commands::tc_add_filter(&interface, &["protocol", "ip", "parent", "1:0", "prio", "1", "u32", "match", "ip", "tos", "0xb8", "0xfc", "flowid", "1:10"]);
+    let _ = safe_commands::tc_add_filter(
+        &interface,
+        &[
+            "protocol", "ip", "parent", "1:0", "prio", "1", "u32", "match", "ip", "tos", "0xb8",
+            "0xfc", "flowid", "1:10",
+        ],
+    );
 
     // DSCP marking: AF41 for voice
-    let _ = safe_commands::tc_add_filter(&interface, &["protocol", "ip", "parent", "1:0", "prio", "2", "u32", "match", "ip", "tos", "0x88", "0xfc", "flowid", "1:20"]);
+    let _ = safe_commands::tc_add_filter(
+        &interface,
+        &[
+            "protocol", "ip", "parent", "1:0", "prio", "2", "u32", "match", "ip", "tos", "0x88",
+            "0xfc", "flowid", "1:20",
+        ],
+    );
 
     println!("\n🎮 Gaming traffic prioritization configured!");
     println!("📊 QoS classes created:");
@@ -5413,7 +5508,9 @@ fn configure_gaming_dns() {
         primary_dns, secondary_dns
     );
 
-    if let Err(e) = safe_commands::sudo_write_file("/etc/NetworkManager/conf.d/gaming-dns.conf", &nm_conf) {
+    if let Err(e) =
+        safe_commands::sudo_write_file("/etc/NetworkManager/conf.d/gaming-dns.conf", &nm_conf)
+    {
         println!("⚠️ Failed to update NetworkManager config: {}", e);
     }
 
@@ -5436,7 +5533,11 @@ fn setup_dns_caching() {
         .args(&["is-active", "systemd-resolved"])
         .status();
 
-    if resolved_check.as_ref().map(|s| s.success()).unwrap_or(false) {
+    if resolved_check
+        .as_ref()
+        .map(|s| s.success())
+        .unwrap_or(false)
+    {
         println!("📡 Configuring systemd-resolved for DNS caching...");
 
         let resolved_conf = r#"[Resolve]
@@ -5450,7 +5551,8 @@ DNSStubListener=yes
 ReadEtcHosts=yes
 "#;
 
-        if let Err(e) = safe_commands::sudo_write_file("/etc/systemd/resolved.conf", resolved_conf) {
+        if let Err(e) = safe_commands::sudo_write_file("/etc/systemd/resolved.conf", resolved_conf)
+        {
             println!("⚠️ Failed to update resolved.conf: {}", e);
         }
 
@@ -6042,7 +6144,10 @@ fn realtime_latency_monitoring() {
     );
 
     // Validate target (basic check for alphanumeric + dots/hyphens for hostnames/IPs)
-    if !target.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == ':') {
+    if !target
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == ':')
+    {
         println!("❌ Invalid target hostname/IP");
         return;
     }
@@ -6055,8 +6160,9 @@ fn realtime_latency_monitoring() {
         .args([
             &format!("{}s", timeout_secs),
             "ping",
-            "-i", "0.2",
-            "-D",  // Print timestamps (on supported systems)
+            "-i",
+            "0.2",
+            "-D", // Print timestamps (on supported systems)
             &target,
         ])
         .status();

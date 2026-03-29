@@ -175,10 +175,7 @@ fn install_zig_official() {
 
     // Create zig directory
     let zig_dir = "/opt/zig";
-    if let Err(e) = Command::new("sudo")
-        .args(["mkdir", "-p", zig_dir])
-        .status()
-    {
+    if let Err(e) = Command::new("sudo").args(["mkdir", "-p", zig_dir]).status() {
         eprintln!("Failed to create directory: {}", e);
         return;
     }
@@ -188,7 +185,15 @@ fn install_zig_official() {
     let download_url = "https://ziglang.org/builds/zig-linux-x86_64-0.12.0-dev.latest.tar.xz";
 
     match Command::new("curl")
-        .args(["-L", "-f", "--proto", "=https", download_url, "-o", "/tmp/zig.tar.xz"])
+        .args([
+            "-L",
+            "-f",
+            "--proto",
+            "=https",
+            download_url,
+            "-o",
+            "/tmp/zig.tar.xz",
+        ])
         .status()
     {
         Ok(status) if status.success() => {
