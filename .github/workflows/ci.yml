@@ -60,7 +60,7 @@ jobs:
 
       - name: Setup Rust (GitHub-hosted only)
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Install system dependencies
         run: |
