@@ -754,21 +754,21 @@ pub fn parse_trivy_summary(output: &str) -> TrivySummary {
     for line in output.lines() {
         let line_lower = line.to_lowercase();
         if line_lower.contains("critical:") {
-            if let Some(count) = extract_count_after(&line, "critical:") {
+            if let Some(count) = extract_count_after(line, "critical:") {
                 summary.critical = count;
             }
         } else if line_lower.contains("high:") {
-            if let Some(count) = extract_count_after(&line, "high:") {
+            if let Some(count) = extract_count_after(line, "high:") {
                 summary.high = count;
             }
         } else if line_lower.contains("medium:") {
-            if let Some(count) = extract_count_after(&line, "medium:") {
+            if let Some(count) = extract_count_after(line, "medium:") {
                 summary.medium = count;
             }
-        } else if line_lower.contains("low:") {
-            if let Some(count) = extract_count_after(&line, "low:") {
-                summary.low = count;
-            }
+        } else if line_lower.contains("low:")
+            && let Some(count) = extract_count_after(line, "low:")
+        {
+            summary.low = count;
         }
     }
 
@@ -779,11 +779,7 @@ fn extract_count_after(line: &str, keyword: &str) -> Option<u32> {
     let lower = line.to_lowercase();
     if let Some(pos) = lower.find(&keyword.to_lowercase()) {
         let after = &line[pos + keyword.len()..];
-        after
-            .trim()
-            .split_whitespace()
-            .next()
-            .and_then(|s| s.parse().ok())
+        after.split_whitespace().next().and_then(|s| s.parse().ok())
     } else {
         None
     }

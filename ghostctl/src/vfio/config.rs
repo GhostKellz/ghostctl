@@ -50,7 +50,7 @@ pub struct VfioDeviceConfig {
 }
 
 /// Complete VFIO configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct VfioConfig {
     /// Devices to bind to vfio-pci at boot
     pub devices: Vec<VfioDeviceConfig>,
@@ -58,16 +58,6 @@ pub struct VfioConfig {
     pub unsafe_interrupts: bool,
     /// Whether to enable ACS override
     pub acs_override: bool,
-}
-
-impl Default for VfioConfig {
-    fn default() -> Self {
-        Self {
-            devices: Vec::new(),
-            unsafe_interrupts: false,
-            acs_override: false,
-        }
-    }
 }
 
 /// Detect which initramfs system is in use
@@ -362,13 +352,13 @@ pub fn print_config_status() {
         }
     );
 
-    if status.modprobe_configured {
-        if let Ok(content) = fs::read_to_string("/etc/modprobe.d/vfio.conf") {
-            println!("\nCurrent modprobe.d/vfio.conf:");
-            for line in content.lines() {
-                if !line.trim().is_empty() && !line.starts_with('#') {
-                    println!("  {}", line);
-                }
+    if status.modprobe_configured
+        && let Ok(content) = fs::read_to_string("/etc/modprobe.d/vfio.conf")
+    {
+        println!("\nCurrent modprobe.d/vfio.conf:");
+        for line in content.lines() {
+            if !line.trim().is_empty() && !line.starts_with('#') {
+                println!("  {}", line);
             }
         }
     }

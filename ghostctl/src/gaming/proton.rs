@@ -43,10 +43,10 @@ impl VersionCache {
     }
 
     fn get(&self, repo: &str) -> Option<Vec<String>> {
-        if let Some(cached) = self.cache.get(repo) {
-            if cached.fetched_at.elapsed() < self.cache_ttl {
-                return Some(cached.versions.clone());
-            }
+        if let Some(cached) = self.cache.get(repo)
+            && cached.fetched_at.elapsed() < self.cache_ttl
+        {
+            return Some(cached.versions.clone());
         }
         None
     }
@@ -72,10 +72,10 @@ fn fetch_github_releases(owner: &str, repo: &str, limit: usize) -> Vec<String> {
     let cache_key = format!("{}/{}", owner, repo);
 
     // Check cache first
-    if let Ok(cache) = get_version_cache().lock() {
-        if let Some(versions) = cache.get(&cache_key) {
-            return versions;
-        }
+    if let Ok(cache) = get_version_cache().lock()
+        && let Some(versions) = cache.get(&cache_key)
+    {
+        return versions;
     }
 
     // Fetch from GitHub API
@@ -105,10 +105,10 @@ fn fetch_github_releases(owner: &str, repo: &str, limit: usize) -> Vec<String> {
     };
 
     // Update cache if we got results
-    if !versions.is_empty() {
-        if let Ok(mut cache) = get_version_cache().lock() {
-            cache.set(&cache_key, versions.clone());
-        }
+    if !versions.is_empty()
+        && let Ok(mut cache) = get_version_cache().lock()
+    {
+        cache.set(&cache_key, versions.clone());
     }
 
     versions
@@ -182,13 +182,12 @@ fn save_version_cache_to_disk() {
 /// Load version cache from disk
 pub fn load_version_cache_from_disk() {
     let cache_path = format!("{}/.cache/ghostctl/version_cache.json", get_home_dir());
-    if let Ok(json) = fs::read_to_string(&cache_path) {
-        if let Ok(data) = serde_json::from_str::<HashMap<String, Vec<String>>>(&json) {
-            if let Ok(mut cache) = get_version_cache().lock() {
-                for (repo, versions) in data {
-                    cache.set(&repo, versions);
-                }
-            }
+    if let Ok(json) = fs::read_to_string(&cache_path)
+        && let Ok(data) = serde_json::from_str::<HashMap<String, Vec<String>>>(&json)
+        && let Ok(mut cache) = get_version_cache().lock()
+    {
+        for (repo, versions) in data {
+            cache.set(&repo, versions);
         }
     }
 }

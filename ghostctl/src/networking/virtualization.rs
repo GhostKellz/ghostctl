@@ -48,17 +48,12 @@ fn docker_network_troubleshooting() {
         "Back",
     ];
 
-    loop {
-        let choice = match Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("Docker Network Troubleshooting")
-            .items(&options)
-            .default(0)
-            .interact_opt()
-        {
-            Ok(Some(choice)) => choice,
-            Ok(None) | Err(_) => break,
-        };
-
+    while let Ok(Some(choice)) = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Docker Network Troubleshooting")
+        .items(&options)
+        .default(0)
+        .interact_opt()
+    {
         match choice {
             0 => docker_network_status(),
             1 => container_network_diagnosis(),
@@ -1617,17 +1612,12 @@ fn qemu_kvm_bridge_management() {
         "Back",
     ];
 
-    loop {
-        let choice = match Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("QEMU/KVM Bridge Management")
-            .items(&options)
-            .default(0)
-            .interact_opt()
-        {
-            Ok(Some(c)) => c,
-            Ok(None) | Err(_) => break,
-        };
-
+    while let Ok(Some(choice)) = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("QEMU/KVM Bridge Management")
+        .items(&options)
+        .default(0)
+        .interact_opt()
+    {
         match choice {
             0 => create_bridge_interface(),
             1 => configure_bridge(),
@@ -1812,17 +1802,12 @@ fn configure_bridge() {
         "Back",
     ];
 
-    loop {
-        let choice = match Select::with_theme(&ColorfulTheme::default())
-            .with_prompt(&format!("Configure Bridge: {}", bridge_name))
-            .items(&config_options)
-            .default(0)
-            .interact_opt()
-        {
-            Ok(Some(c)) => c,
-            Ok(None) | Err(_) => break,
-        };
-
+    while let Ok(Some(choice)) = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt(&format!("Configure Bridge: {}", bridge_name))
+        .items(&config_options)
+        .default(0)
+        .interact_opt()
+    {
         match choice {
             0 => {
                 let enable_stp = match Confirm::with_theme(&ColorfulTheme::default())

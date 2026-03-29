@@ -264,10 +264,10 @@ fn install_zig_from_source() {
     }
 
     // Clean up previous attempt
-    if std::path::Path::new("/tmp/zig-source").exists() {
-        if let Err(e) = std::fs::remove_dir_all("/tmp/zig-source") {
-            eprintln!("Warning: Failed to clean previous build: {}", e);
-        }
+    if std::path::Path::new("/tmp/zig-source").exists()
+        && let Err(e) = std::fs::remove_dir_all("/tmp/zig-source")
+    {
+        eprintln!("Warning: Failed to clean previous build: {}", e);
     }
 
     println!("Cloning Zig repository...");
@@ -593,10 +593,10 @@ fn install_zls() {
     let zls_dir = "/tmp/zls-build";
 
     // Clean up previous attempt
-    if std::path::Path::new(zls_dir).exists() {
-        if let Err(e) = std::fs::remove_dir_all(zls_dir) {
-            eprintln!("Warning: Failed to clean up {}: {}", zls_dir, e);
-        }
+    if std::path::Path::new(zls_dir).exists()
+        && let Err(e) = std::fs::remove_dir_all(zls_dir)
+    {
+        eprintln!("Warning: Failed to clean up {}: {}", zls_dir, e);
     }
 
     match Command::new("git")

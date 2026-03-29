@@ -499,10 +499,10 @@ fn install_ghost_tool(name: &str, repo: &str) {
     let install_path = format!("/usr/bin/{}", name);
 
     // Clean up any previous attempt
-    if std::path::Path::new(&tmp_dir).exists() {
-        if let Err(e) = std::fs::remove_dir_all(&tmp_dir) {
-            eprintln!("Warning: Failed to clean up {}: {}", tmp_dir, e);
-        }
+    if std::path::Path::new(&tmp_dir).exists()
+        && let Err(e) = std::fs::remove_dir_all(&tmp_dir)
+    {
+        eprintln!("Warning: Failed to clean up {}: {}", tmp_dir, e);
     }
 
     // Clone repository - using direct command args, no shell interpolation

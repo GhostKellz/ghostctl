@@ -83,7 +83,7 @@ pub fn dump_rom(pci_address: &str, output_path: Option<&str>) -> Result<RomDumpR
     // Default output path
     let output = output_path
         .map(|p| p.to_string())
-        .unwrap_or_else(|| format!("gpu_{}.rom", short_addr.replace(':', "_").replace('.', "_")));
+        .unwrap_or_else(|| format!("gpu_{}.rom", short_addr.replace([':', '.'], "_")));
 
     // Check if ROM exists
     let rom_path = format!("/sys/bus/pci/devices/{}/rom", address);
@@ -158,7 +158,7 @@ pub fn dump_rom_nvidia(pci_address: &str, output_path: Option<&str>) -> Result<R
 
     let output = output_path
         .map(|p| p.to_string())
-        .unwrap_or_else(|| format!("gpu_{}.rom", short_addr.replace(':', "_").replace('.', "_")));
+        .unwrap_or_else(|| format!("gpu_{}.rom", short_addr.replace([':', '.'], "_")));
 
     // Check if nvidia-smi exists
     let nvidia_smi = Command::new("which")

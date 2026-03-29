@@ -338,7 +338,7 @@ fn proxmox_system_info() {
 
     // Cluster status
     println!("\n🌐 Cluster Status:");
-    if let Err(_) = Command::new("pvecm").arg("status").status() {
+    if Command::new("pvecm").arg("status").status().is_err() {
         println!("(Not in a cluster or pvecm not available)");
     }
 
@@ -551,7 +551,7 @@ fn proxmox_cluster_management() {
 
 fn show_cluster_status() {
     println!("📊 Cluster Status:");
-    if let Err(_) = Command::new("pvecm").arg("status").status() {
+    if Command::new("pvecm").arg("status").status().is_err() {
         println!("(Not in a cluster or pvecm not available)");
     }
 }

@@ -28,10 +28,10 @@ fn set_all_cpu_governors(governor: &str) -> bool {
             let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
             if name.starts_with("cpu") && name[3..].chars().all(|c| c.is_ascii_digit()) {
                 let governor_path = path.join("cpufreq/scaling_governor");
-                if governor_path.exists() {
-                    if !write_sysfs(governor_path.to_str().unwrap_or(""), governor) {
-                        success = false;
-                    }
+                if governor_path.exists()
+                    && !write_sysfs(governor_path.to_str().unwrap_or(""), governor)
+                {
+                    success = false;
                 }
             }
         }
@@ -45,10 +45,10 @@ fn set_all_io_schedulers(scheduler: &str) -> bool {
     if let Ok(entries) = std::fs::read_dir("/sys/block") {
         for entry in entries.flatten() {
             let scheduler_path = entry.path().join("queue/scheduler");
-            if scheduler_path.exists() {
-                if !write_sysfs(scheduler_path.to_str().unwrap_or(""), scheduler) {
-                    success = false;
-                }
+            if scheduler_path.exists()
+                && !write_sysfs(scheduler_path.to_str().unwrap_or(""), scheduler)
+            {
+                success = false;
             }
         }
     }
@@ -388,11 +388,11 @@ fn io_scheduler_optimization() {
     if let Ok(entries) = std::fs::read_dir("/sys/block") {
         for entry in entries.flatten() {
             let scheduler_path = entry.path().join("queue/scheduler");
-            if scheduler_path.exists() {
-                if let Ok(scheduler) = std::fs::read_to_string(&scheduler_path) {
-                    let dev_name = entry.file_name();
-                    println!("  {}: {}", dev_name.to_string_lossy(), scheduler.trim());
-                }
+            if scheduler_path.exists()
+                && let Ok(scheduler) = std::fs::read_to_string(&scheduler_path)
+            {
+                let dev_name = entry.file_name();
+                println!("  {}: {}", dev_name.to_string_lossy(), scheduler.trim());
             }
         }
     }
@@ -1427,12 +1427,12 @@ fn power_status() {
 
     println!("\n⚡ Power consumption:");
     let powertop_check = Command::new("which").arg("powertop").status();
-    if let Ok(status) = powertop_check {
-        if status.success() {
-            let _ = Command::new("sudo")
-                .args(&["powertop", "--time=10"])
-                .status();
-        }
+    if let Ok(status) = powertop_check
+        && status.success()
+    {
+        let _ = Command::new("sudo")
+            .args(&["powertop", "--time=10"])
+            .status();
     }
 }
 

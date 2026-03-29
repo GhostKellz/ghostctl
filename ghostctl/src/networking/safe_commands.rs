@@ -655,7 +655,7 @@ pub fn firewalld_state() -> Result<String> {
 
 /// Add port to firewalld
 pub fn firewalld_add_port(port: &ValidatedPort, proto: &ValidatedProtocol) -> Result<()> {
-    let port_proto = format!("{}/{}", port.value(), proto.to_string());
+    let port_proto = format!("{}/{}", port.value(), proto);
     let output = run_sudo(&["firewall-cmd", "--add-port", &port_proto, "--permanent"])?;
     check_output(output, "Failed to add firewalld port")?;
     Ok(())
@@ -663,7 +663,7 @@ pub fn firewalld_add_port(port: &ValidatedPort, proto: &ValidatedProtocol) -> Re
 
 /// Remove port from firewalld
 pub fn firewalld_remove_port(port: &ValidatedPort, proto: &ValidatedProtocol) -> Result<()> {
-    let port_proto = format!("{}/{}", port.value(), proto.to_string());
+    let port_proto = format!("{}/{}", port.value(), proto);
     let output = run_sudo(&["firewall-cmd", "--remove-port", &port_proto, "--permanent"])?;
     check_output(output, "Failed to remove firewalld port")?;
     Ok(())

@@ -23,11 +23,11 @@ fn secure_docker_login(registry: Option<&str>, username: &str, password: &str) -
         }
     };
 
-    if let Some(ref mut stdin) = child.stdin {
-        if stdin.write_all(password.as_bytes()).is_err() {
-            println!("❌ Failed to send password to docker");
-            return false;
-        }
+    if let Some(ref mut stdin) = child.stdin
+        && stdin.write_all(password.as_bytes()).is_err()
+    {
+        println!("❌ Failed to send password to docker");
+        return false;
     }
 
     match child.wait() {
@@ -657,11 +657,11 @@ fn configure_multiple_mirrors() {
     );
 
     let daemon_config = serde_json::Value::Object(mirror_config);
-    if let Ok(config_json) = serde_json::to_string_pretty(&daemon_config) {
-        if let Err(e) = fs::write("/etc/docker/daemon.json", config_json) {
-            println!("❌ Failed to write daemon config: {}", e);
-            return;
-        }
+    if let Ok(config_json) = serde_json::to_string_pretty(&daemon_config)
+        && let Err(e) = fs::write("/etc/docker/daemon.json", config_json)
+    {
+        println!("❌ Failed to write daemon config: {}", e);
+        return;
     }
 
     println!("✅ Multiple mirrors configured!");
@@ -718,11 +718,10 @@ fn remove_mirror() {
 
             if let Ok(config_json) =
                 serde_json::to_string_pretty(&serde_json::Value::Object(new_config))
+                && let Err(e) = fs::write("/etc/docker/daemon.json", config_json)
             {
-                if let Err(e) = fs::write("/etc/docker/daemon.json", config_json) {
-                    println!("❌ Failed to write daemon config: {}", e);
-                    return;
-                }
+                println!("❌ Failed to write daemon config: {}", e);
+                return;
             }
             println!("✅ Mirrors removed!");
             restart_docker_daemon();
@@ -1760,7 +1759,7 @@ pub fn parse_image_reference(image: &str) -> ImageReference {
             && first
                 .split(':')
                 .nth(1)
-                .map_or(false, |p| p.chars().all(|c| c.is_ascii_digit())));
+                .is_some_and(|p| p.chars().all(|c| c.is_ascii_digit())));
 
     let (registry, repo_tag) = if is_registry && rest.is_some() {
         (Some(first.to_string()), rest.unwrap_or(""))

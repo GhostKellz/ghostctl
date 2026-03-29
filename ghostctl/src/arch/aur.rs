@@ -161,20 +161,20 @@ fn install_paru() {
             .args(["clone", "https://aur.archlinux.org/paru.git", build_dir])
             .status();
 
-        if let Ok(s) = status {
-            if s.success() {
-                let build_status = Command::new("makepkg")
-                    .args(["-si", "--noconfirm"])
-                    .current_dir(build_dir)
-                    .status();
+        if let Ok(s) = status
+            && s.success()
+        {
+            let build_status = Command::new("makepkg")
+                .args(["-si", "--noconfirm"])
+                .current_dir(build_dir)
+                .status();
 
-                match build_status {
-                    Ok(s) if s.success() => {
-                        println!("✅ Paru installed successfully!");
-                        println!("💡 Use 'paru -S package' to install AUR packages");
-                    }
-                    _ => println!("❌ Failed to build Paru"),
+            match build_status {
+                Ok(s) if s.success() => {
+                    println!("✅ Paru installed successfully!");
+                    println!("💡 Use 'paru -S package' to install AUR packages");
                 }
+                _ => println!("❌ Failed to build Paru"),
             }
         }
 
@@ -205,20 +205,20 @@ fn install_yay() {
             .args(["clone", "https://aur.archlinux.org/yay.git", build_dir])
             .status();
 
-        if let Ok(s) = status {
-            if s.success() {
-                let build_status = Command::new("makepkg")
-                    .args(["-si", "--noconfirm"])
-                    .current_dir(build_dir)
-                    .status();
+        if let Ok(s) = status
+            && s.success()
+        {
+            let build_status = Command::new("makepkg")
+                .args(["-si", "--noconfirm"])
+                .current_dir(build_dir)
+                .status();
 
-                match build_status {
-                    Ok(s) if s.success() => {
-                        println!("✅ Yay installed successfully!");
-                        println!("💡 Use 'yay -S package' to install AUR packages");
-                    }
-                    _ => println!("❌ Failed to build Yay"),
+            match build_status {
+                Ok(s) if s.success() => {
+                    println!("✅ Yay installed successfully!");
+                    println!("💡 Use 'yay -S package' to install AUR packages");
                 }
+                _ => println!("❌ Failed to build Yay"),
             }
         }
 

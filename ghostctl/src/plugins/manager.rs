@@ -334,13 +334,13 @@ pub fn generate_checksums() {
                 let path = entry.path();
                 if path.is_file() {
                     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-                    if ext == "lua" || ext == "sh" {
-                        if let (Some(filename), Ok(hash)) = (
+                    if (ext == "lua" || ext == "sh")
+                        && let (Some(filename), Ok(hash)) = (
                             path.file_name().and_then(|n| n.to_str()),
                             calculate_file_checksum(&path),
-                        ) {
-                            checksums.push_str(&format!("{}  {}\n", hash, filename));
-                        }
+                        )
+                    {
+                        checksums.push_str(&format!("{}  {}\n", hash, filename));
                     }
                 }
             }

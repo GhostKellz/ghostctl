@@ -71,25 +71,23 @@ pub fn install_zsh() {
 
                         if confirm {
                             // Create temp file and execute
-                            if let Ok(mut temp_file) = NamedTempFile::new() {
-                                if temp_file.write_all(content.as_bytes()).is_ok() {
-                                    let path = temp_file.path();
-                                    let _ = fs::set_permissions(
-                                        path,
-                                        fs::Permissions::from_mode(0o700),
-                                    );
+                            if let Ok(mut temp_file) = NamedTempFile::new()
+                                && temp_file.write_all(content.as_bytes()).is_ok()
+                            {
+                                let path = temp_file.path();
+                                let _ =
+                                    fs::set_permissions(path, fs::Permissions::from_mode(0o700));
 
-                                    let status = std::process::Command::new("sh")
-                                        .env("RUNZSH", "no")
-                                        .env("CHSH", "no")
-                                        .arg(path)
-                                        .status();
+                                let status = std::process::Command::new("sh")
+                                    .env("RUNZSH", "no")
+                                    .env("CHSH", "no")
+                                    .arg(path)
+                                    .status();
 
-                                    if status.map(|s| s.success()).unwrap_or(false) {
-                                        println!("Oh My Zsh installed.");
-                                    } else {
-                                        println!("Failed to install Oh My Zsh.");
-                                    }
+                                if status.map(|s| s.success()).unwrap_or(false) {
+                                    println!("Oh My Zsh installed.");
+                                } else {
+                                    println!("Failed to install Oh My Zsh.");
                                 }
                             }
                         }

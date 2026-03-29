@@ -92,14 +92,14 @@ fn list_installed_kernels() {
 
     // Check /boot for kernel files
     println!("\n📁 Kernel files in /boot:");
-    if Path::new("/boot").exists() {
-        if let Ok(entries) = std::fs::read_dir("/boot") {
-            for entry in entries.flatten() {
-                let name = entry.file_name();
-                let name_str = name.to_string_lossy();
-                if name_str.starts_with("vmlinuz-") {
-                    println!("  {}", name_str);
-                }
+    if Path::new("/boot").exists()
+        && let Ok(entries) = std::fs::read_dir("/boot")
+    {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let name_str = name.to_string_lossy();
+            if name_str.starts_with("vmlinuz-") {
+                println!("  {}", name_str);
             }
         }
     }
@@ -393,13 +393,10 @@ fn get_root_uuid() -> String {
         Ok(out) => String::from_utf8_lossy(&out.stdout).trim().to_string(),
         Err(_) => {
             println!("❌ Could not detect root UUID. Please enter manually.");
-            match Input::new()
+            Input::new()
                 .with_prompt("Root partition UUID")
                 .interact_text()
-            {
-                Ok(uuid) => uuid,
-                Err(_) => String::new(),
-            }
+                .unwrap_or_default()
         }
     }
 }
@@ -706,12 +703,12 @@ fn edit_kernel_parameters() {
                     let _ = Command::new("sudo")
                         .args(["mkdir", "-p", "/etc/kernel"])
                         .status();
-                    if let Ok(cmdline) = std::fs::read_to_string("/proc/cmdline") {
-                        if std::fs::write("/tmp/cmdline.tmp", &cmdline).is_ok() {
-                            let _ = Command::new("sudo")
-                                .args(["mv", "/tmp/cmdline.tmp", "/etc/kernel/cmdline"])
-                                .status();
-                        }
+                    if let Ok(cmdline) = std::fs::read_to_string("/proc/cmdline")
+                        && std::fs::write("/tmp/cmdline.tmp", &cmdline).is_ok()
+                    {
+                        let _ = Command::new("sudo")
+                            .args(["mv", "/tmp/cmdline.tmp", "/etc/kernel/cmdline"])
+                            .status();
                     }
                 }
             }
@@ -730,7 +727,7 @@ fn edit_kernel_parameters() {
             let entries: Vec<String> = match std::fs::read_dir(entries_path) {
                 Ok(dir) => dir
                     .filter_map(|e| e.ok())
-                    .filter(|e| e.path().extension().map_or(false, |ext| ext == "conf"))
+                    .filter(|e| e.path().extension().is_some_and(|ext| ext == "conf"))
                     .map(|e| e.file_name().to_string_lossy().to_string())
                     .collect(),
                 Err(e) => {
@@ -1045,7 +1042,7 @@ fn manage_boot_entries() {
     let entries: Vec<String> = match std::fs::read_dir(entries_path) {
         Ok(dir) => dir
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map_or(false, |ext| ext == "conf"))
+            .filter(|e| e.path().extension().is_some_and(|ext| ext == "conf"))
             .map(|e| e.file_name().to_string_lossy().to_string())
             .collect(),
         Err(e) => {

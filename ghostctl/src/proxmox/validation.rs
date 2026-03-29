@@ -18,7 +18,7 @@ pub fn validate_vmid(vmid: &str) -> Result<u32, ProxmoxError> {
     }
 
     match vmid_trimmed.parse::<u32>() {
-        Ok(id) if id >= 100 && id <= 999_999_999 => Ok(id),
+        Ok(id) if (100..=999_999_999).contains(&id) => Ok(id),
         Ok(id) => Err(ProxmoxError::VmOperationError {
             vmid: id,
             reason: "VMID must be between 100 and 999999999".to_string(),
@@ -42,7 +42,7 @@ pub fn validate_ctid(ctid: &str) -> Result<u32, ProxmoxError> {
     }
 
     match ctid_trimmed.parse::<u32>() {
-        Ok(id) if id >= 100 && id <= 999_999_999 => Ok(id),
+        Ok(id) if (100..=999_999_999).contains(&id) => Ok(id),
         Ok(id) => Err(ProxmoxError::ContainerOperationError {
             ctid: id,
             reason: "CTID must be between 100 and 999999999".to_string(),
@@ -74,13 +74,13 @@ pub fn validate_storage_name(name: &str) -> Result<&str, ProxmoxError> {
 
     // Must start with a letter, then alphanumeric, hyphens, or underscores
     let mut chars = name_trimmed.chars();
-    if let Some(first) = chars.next() {
-        if !first.is_ascii_alphabetic() {
-            return Err(ProxmoxError::StorageError {
-                storage: name_trimmed.to_string(),
-                reason: "Storage name must start with a letter".to_string(),
-            });
-        }
+    if let Some(first) = chars.next()
+        && !first.is_ascii_alphabetic()
+    {
+        return Err(ProxmoxError::StorageError {
+            storage: name_trimmed.to_string(),
+            reason: "Storage name must start with a letter".to_string(),
+        });
     }
 
     for c in name_trimmed.chars() {

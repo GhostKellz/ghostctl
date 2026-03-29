@@ -620,10 +620,10 @@ fn fix_docker_permissions() {
         .args(["chgrp", "docker", "/var/run/docker.sock"])
         .status();
 
-    if let Ok(s) = status {
-        if s.success() {
-            println!("✅ Docker socket group ownership set to 'docker'");
-        }
+    if let Ok(s) = status
+        && s.success()
+    {
+        println!("✅ Docker socket group ownership set to 'docker'");
     }
 
     println!("✅ Docker permissions configured (group-based access)");

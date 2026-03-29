@@ -311,8 +311,7 @@ fn create_ansible_project_structure() {
     }
 
     // Create ansible.cfg
-    let ansible_cfg = format!(
-        r#"[defaults]
+    let ansible_cfg = r#"[defaults]
 inventory = inventory/hosts.yml
 roles_path = roles
 host_key_checking = False
@@ -326,7 +325,7 @@ become_method = sudo
 become_user = root
 become_ask_pass = False
 "#
-    );
+    .to_string();
 
     let _ = fs::write(format!("{}/ansible.cfg", project_name), ansible_cfg);
 
@@ -1042,10 +1041,10 @@ fn list_ansible_playbooks() {
                 let filename = entry.file_name().to_string_lossy().to_string();
                 if filename.ends_with(".yml") || filename.ends_with(".yaml") {
                     // Check if it looks like a playbook (contains hosts:)
-                    if let Ok(content) = fs::read_to_string(entry.path()) {
-                        if content.contains("hosts:") {
-                            found_playbooks.push((entry.path().display().to_string(), filename));
-                        }
+                    if let Ok(content) = fs::read_to_string(entry.path())
+                        && content.contains("hosts:")
+                    {
+                        found_playbooks.push((entry.path().display().to_string(), filename));
                     }
                 }
             }

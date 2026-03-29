@@ -237,20 +237,22 @@ pub fn analyze_device(device: &PciDevice, group: &IommuGroup) -> PassthroughAnal
                 message: "Device is already bound to vfio-pci driver".to_string(),
                 fix: None,
             });
-        } else if device.is_gpu() {
-            if driver == "nvidia" || driver == "amdgpu" || driver == "nouveau" || driver == "radeon"
-            {
-                issues.push(PassthroughIssue {
-                    severity: IssueSeverity::Info,
-                    code: "GPU_DRIVER".to_string(),
-                    message: format!("GPU is currently bound to {} driver", driver),
-                    fix: Some("Bind to vfio-pci for passthrough".to_string()),
-                });
-                recommendations.push(format!(
-                    "Add 'vfio-pci.ids={}' to kernel parameters or use modprobe.d",
-                    vfio_device_ids.join(",")
-                ));
-            }
+        } else if device.is_gpu()
+            && (driver == "nvidia"
+                || driver == "amdgpu"
+                || driver == "nouveau"
+                || driver == "radeon")
+        {
+            issues.push(PassthroughIssue {
+                severity: IssueSeverity::Info,
+                code: "GPU_DRIVER".to_string(),
+                message: format!("GPU is currently bound to {} driver", driver),
+                fix: Some("Bind to vfio-pci for passthrough".to_string()),
+            });
+            recommendations.push(format!(
+                "Add 'vfio-pci.ids={}' to kernel parameters or use modprobe.d",
+                vfio_device_ids.join(",")
+            ));
         }
     }
 

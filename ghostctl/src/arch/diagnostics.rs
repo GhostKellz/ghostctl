@@ -770,27 +770,37 @@ pub fn is_connectivity_error(error_msg: &str) -> bool {
 
 /// Validate keyring directory structure
 pub fn validate_keyring_structure(keyring_path: &std::path::Path) -> KeyringValidation {
-    let mut validation = KeyringValidation::default();
-
-    validation.directory_exists = keyring_path.exists();
-    if !validation.directory_exists {
-        return validation;
+    let directory_exists = keyring_path.exists();
+    if !directory_exists {
+        return KeyringValidation {
+            directory_exists,
+            ..Default::default()
+        };
     }
 
     let pubring = keyring_path.join("pubring.gpg");
-    validation.pubring_exists = pubring.exists();
+    let pubring_exists = pubring.exists();
 
-    if validation.pubring_exists {
+    let (pubring_size, pubring_valid) = if pubring_exists {
         if let Ok(metadata) = std::fs::metadata(&pubring) {
-            validation.pubring_size = metadata.len();
-            validation.pubring_valid = metadata.len() >= 100;
+            (metadata.len(), metadata.len() >= 100)
+        } else {
+            (0, false)
         }
-    }
+    } else {
+        (0, false)
+    };
 
     let trustdb = keyring_path.join("trustdb.gpg");
-    validation.trustdb_exists = trustdb.exists();
+    let trustdb_exists = trustdb.exists();
 
-    validation
+    KeyringValidation {
+        directory_exists,
+        pubring_exists,
+        pubring_size,
+        pubring_valid,
+        trustdb_exists,
+    }
 }
 
 /// Result of keyring validation

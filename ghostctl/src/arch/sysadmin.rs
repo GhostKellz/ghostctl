@@ -1271,10 +1271,8 @@ fn package_cache_management() {
                 Ok(Some(c)) => c,
                 Ok(None) | Err(_) => return,
             };
-            if confirm {
-                if let Err(e) = Command::new("sudo").args(["pacman", "-Scc"]).status() {
-                    eprintln!("Failed to clean cache: {}", e);
-                }
+            if confirm && let Err(e) = Command::new("sudo").args(["pacman", "-Scc"]).status() {
+                eprintln!("Failed to clean cache: {}", e);
             }
         }
         1 => {
@@ -1498,10 +1496,8 @@ fn firewall_configuration() {
                     Ok(Some(c)) => c,
                     Ok(None) | Err(_) => return,
                 };
-                if confirm {
-                    if let Err(e) = Command::new("sudo").args(["ufw", "disable"]).status() {
-                        eprintln!("Failed to disable UFW: {}", e);
-                    }
+                if confirm && let Err(e) = Command::new("sudo").args(["ufw", "disable"]).status() {
+                    eprintln!("Failed to disable UFW: {}", e);
                 }
             }
             2 => {
@@ -1557,10 +1553,8 @@ fn ssh_hardening() {
         Ok(None) | Err(_) => return,
     };
 
-    if confirm {
-        if let Err(e) = Command::new("cat").arg("/etc/ssh/sshd_config").status() {
-            eprintln!("Failed to read SSH config: {}", e);
-        }
+    if confirm && let Err(e) = Command::new("cat").arg("/etc/ssh/sshd_config").status() {
+        eprintln!("Failed to read SSH config: {}", e);
     }
 }
 
@@ -1921,10 +1915,8 @@ fn performance_metrics() {
         .status()
         .map(|s| s.success())
         .unwrap_or(false);
-    if iostat_installed {
-        if let Err(e) = Command::new("iostat").args(["-x", "1", "1"]).status() {
-            eprintln!("Failed to get I/O statistics: {}", e);
-        }
+    if iostat_installed && let Err(e) = Command::new("iostat").args(["-x", "1", "1"]).status() {
+        eprintln!("Failed to get I/O statistics: {}", e);
     }
 
     println!("\n🌐 Network statistics:");
@@ -2378,13 +2370,12 @@ fn log_cleanup() {
                 Ok(Some(c)) => c,
                 Ok(None) | Err(_) => return,
             };
-            if confirm {
-                if let Err(e) = Command::new("sudo")
+            if confirm
+                && let Err(e) = Command::new("sudo")
                     .args(["journalctl", "--vacuum-time=7d"])
                     .status()
-                {
-                    eprintln!("Failed to vacuum logs: {}", e);
-                }
+            {
+                eprintln!("Failed to vacuum logs: {}", e);
             }
         }
         1 => {

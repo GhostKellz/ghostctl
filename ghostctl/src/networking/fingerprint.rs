@@ -381,13 +381,12 @@ pub fn fingerprint_os(ttl: u8, window_size: u16, tcp_options: &[u8]) -> Option<O
         }
 
         // MSS match (weighted 0.15)
-        if let Some(ref opts) = options_info {
-            if let Some(mss) = opts.mss {
-                if sig.mss_values.contains(&mss) {
-                    score += 0.15;
-                    match_count += 1;
-                }
-            }
+        if let Some(ref opts) = options_info
+            && let Some(mss) = opts.mss
+            && sig.mss_values.contains(&mss)
+        {
+            score += 0.15;
+            match_count += 1;
         }
 
         // Only consider if we have at least 2 matching indicators

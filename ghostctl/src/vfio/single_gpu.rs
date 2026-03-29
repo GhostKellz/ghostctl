@@ -106,27 +106,26 @@ pub fn detect_display_manager() -> DisplayManager {
             .args(["is-active", service])
             .output();
 
-        if let Ok(output) = status {
-            if String::from_utf8_lossy(&output.stdout).trim() == "active" {
-                return match *service {
-                    "gdm" => DisplayManager::Gdm,
-                    "sddm" => DisplayManager::Sddm,
-                    "lightdm" => DisplayManager::Lightdm,
-                    "ly" => DisplayManager::Ly,
-                    "greetd" => DisplayManager::Greetd,
-                    _ => DisplayManager::Other(service.to_string()),
-                };
-            }
+        if let Ok(output) = status
+            && String::from_utf8_lossy(&output.stdout).trim() == "active"
+        {
+            return match *service {
+                "gdm" => DisplayManager::Gdm,
+                "sddm" => DisplayManager::Sddm,
+                "lightdm" => DisplayManager::Lightdm,
+                "ly" => DisplayManager::Ly,
+                "greetd" => DisplayManager::Greetd,
+                _ => DisplayManager::Other(service.to_string()),
+            };
         }
     }
 
     // Check if running from tty (startx)
-    if let Ok(tty) = std::env::var("XDG_VTNR") {
-        if !tty.is_empty() {
-            if std::env::var("DISPLAY").is_ok() || std::env::var("WAYLAND_DISPLAY").is_ok() {
-                return DisplayManager::Startx;
-            }
-        }
+    if let Ok(tty) = std::env::var("XDG_VTNR")
+        && !tty.is_empty()
+        && (std::env::var("DISPLAY").is_ok() || std::env::var("WAYLAND_DISPLAY").is_ok())
+    {
+        return DisplayManager::Startx;
     }
 
     DisplayManager::Other("unknown".to_string())
@@ -408,10 +407,10 @@ pub fn list_configurations() -> Vec<String> {
 
     if let Ok(entries) = fs::read_dir(hooks_dir) {
         for entry in entries.filter_map(|e| e.ok()) {
-            if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
-                if let Some(name) = entry.file_name().to_str() {
-                    configs.push(name.to_string());
-                }
+            if entry.file_type().map(|t| t.is_dir()).unwrap_or(false)
+                && let Some(name) = entry.file_name().to_str()
+            {
+                configs.push(name.to_string());
             }
         }
     }

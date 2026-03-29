@@ -364,10 +364,10 @@ fn run_batch_script() {
     if let Ok(entries) = fs::read_dir(&script_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("sh") {
-                if let Some(name) = path.file_name() {
-                    scripts.push(name.to_string_lossy().to_string());
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("sh")
+                && let Some(name) = path.file_name()
+            {
+                scripts.push(name.to_string_lossy().to_string());
             }
         }
     }
@@ -420,10 +420,10 @@ fn edit_batch_script() {
     if let Ok(entries) = fs::read_dir(&script_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("sh") {
-                if let Some(name) = path.file_name() {
-                    scripts.push(name.to_string_lossy().to_string());
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("sh")
+                && let Some(name) = path.file_name()
+            {
+                scripts.push(name.to_string_lossy().to_string());
             }
         }
     }
@@ -463,10 +463,10 @@ fn delete_batch_script() {
     if let Ok(entries) = fs::read_dir(&script_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("sh") {
-                if let Some(name) = path.file_name() {
-                    scripts.push(name.to_string_lossy().to_string());
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("sh")
+                && let Some(name) = path.file_name()
+            {
+                scripts.push(name.to_string_lossy().to_string());
             }
         }
     }
@@ -556,10 +556,10 @@ fn export_batch_script() {
     if let Ok(entries) = fs::read_dir(&script_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("sh") {
-                if let Some(name) = path.file_name() {
-                    scripts.push(name.to_string_lossy().to_string());
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("sh")
+                && let Some(name) = path.file_name()
+            {
+                scripts.push(name.to_string_lossy().to_string());
             }
         }
     }
@@ -866,10 +866,10 @@ fn load_winetricks_profile() {
     if let Ok(entries) = fs::read_dir(&profile_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("profile") {
-                if let Some(stem) = path.file_stem() {
-                    profiles.push(stem.to_string_lossy().to_string());
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("profile")
+                && let Some(stem) = path.file_stem()
+            {
+                profiles.push(stem.to_string_lossy().to_string());
             }
         }
     }
@@ -926,10 +926,10 @@ fn edit_winetricks_profile() {
     if let Ok(entries) = fs::read_dir(&profile_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("profile") {
-                if let Some(stem) = path.file_stem() {
-                    profiles.push(stem.to_string_lossy().to_string());
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("profile")
+                && let Some(stem) = path.file_stem()
+            {
+                profiles.push(stem.to_string_lossy().to_string());
             }
         }
     }
@@ -969,10 +969,10 @@ fn delete_winetricks_profile() {
     if let Ok(entries) = fs::read_dir(&profile_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("profile") {
-                if let Some(stem) = path.file_stem() {
-                    profiles.push(stem.to_string_lossy().to_string());
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("profile")
+                && let Some(stem) = path.file_stem()
+            {
+                profiles.push(stem.to_string_lossy().to_string());
             }
         }
     }
@@ -1022,10 +1022,10 @@ fn export_winetricks_profile() {
     if let Ok(entries) = fs::read_dir(&profile_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("profile") {
-                if let Some(stem) = path.file_stem() {
-                    profiles.push(stem.to_string_lossy().to_string());
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("profile")
+                && let Some(stem) = path.file_stem()
+            {
+                profiles.push(stem.to_string_lossy().to_string());
             }
         }
     }

@@ -1502,7 +1502,7 @@ fn chain_priorities_configuration() {
 
         // Validate priority
         let priority: i32 = match priority_input.parse() {
-            Ok(p) if p >= -300 && p <= 300 => p,
+            Ok(p) if (-300..=300).contains(&p) => p,
             _ => {
                 println!("❌ Invalid priority: must be a number between -300 and 300");
                 return;
@@ -2463,10 +2463,10 @@ fn restore_ruleset() {
     if let Ok(entries) = fs::read_dir(&backup_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("nft") {
-                if let Some(stem) = path.file_stem() {
-                    backups.push(stem.to_string_lossy().to_string());
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("nft")
+                && let Some(stem) = path.file_stem()
+            {
+                backups.push(stem.to_string_lossy().to_string());
             }
         }
     }
@@ -2511,10 +2511,9 @@ fn restore_ruleset() {
         if let Ok(out) = Command::new("sudo")
             .args(["nft", "list", "ruleset"])
             .output()
+            && out.status.success()
         {
-            if out.status.success() {
-                let _ = std::fs::write(&temp_backup, &out.stdout);
-            }
+            let _ = std::fs::write(&temp_backup, &out.stdout);
         }
 
         // Flush and restore
@@ -2557,17 +2556,17 @@ fn list_backups() {
     if let Ok(entries) = fs::read_dir(&backup_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("nft") {
-                if let Some(name) = path.file_name() {
-                    let name = name.to_string_lossy();
-                    let metadata = fs::metadata(&path).ok();
-                    let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
-                    let modified = metadata.and_then(|m| m.modified().ok());
+            if path.extension().and_then(|s| s.to_str()) == Some("nft")
+                && let Some(name) = path.file_name()
+            {
+                let name = name.to_string_lossy();
+                let metadata = fs::metadata(&path).ok();
+                let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
+                let modified = metadata.and_then(|m| m.modified().ok());
 
-                    println!("  📁 {} ({} bytes)", name, size);
-                    if let Some(time) = modified {
-                        println!("     Modified: {:?}", time);
-                    }
+                println!("  📁 {} ({} bytes)", name, size);
+                if let Some(time) = modified {
+                    println!("     Modified: {:?}", time);
                 }
             }
         }
@@ -2591,10 +2590,10 @@ fn delete_backup() {
     if let Ok(entries) = fs::read_dir(&backup_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("nft") {
-                if let Some(name) = path.file_name() {
-                    backups.push(name.to_string_lossy().to_string());
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("nft")
+                && let Some(name) = path.file_name()
+            {
+                backups.push(name.to_string_lossy().to_string());
             }
         }
     }
@@ -2726,12 +2725,11 @@ ls -t "$BACKUP_DIR"/auto_*.nft | tail -n +31 | xargs -r rm
             }
         };
 
-        if let Some(ref mut stdin) = child.stdin {
-            if stdin.write_all(new_crontab.as_bytes()).is_ok() {
-                if child.wait().is_ok() {
-                    println!("✅ Automatic backup scheduled");
-                }
-            }
+        if let Some(ref mut stdin) = child.stdin
+            && stdin.write_all(new_crontab.as_bytes()).is_ok()
+            && child.wait().is_ok()
+        {
+            println!("✅ Automatic backup scheduled");
         }
     }
 }
@@ -2953,30 +2951,29 @@ fn performance_monitoring() {
     if let Ok(output) = Command::new("sudo")
         .args(["nft", "list", "ruleset", "-a", "-n"])
         .output()
+        && output.status.success()
     {
-        if output.status.success() {
-            let ruleset = String::from_utf8_lossy(&output.stdout);
-            let rule_count = ruleset.lines().filter(|l| l.contains("handle")).count();
-            println!("  • Total rules: {}", rule_count);
-        }
+        let ruleset = String::from_utf8_lossy(&output.stdout);
+        let rule_count = ruleset.lines().filter(|l| l.contains("handle")).count();
+        println!("  • Total rules: {}", rule_count);
     }
 
     // Check packet counters
     if let Ok(output) = Command::new("sudo")
         .args(["nft", "list", "counters"])
         .output()
+        && output.status.success()
+        && !output.stdout.is_empty()
     {
-        if output.status.success() && !output.stdout.is_empty() {
-            println!("  • Active counters detected");
-        }
+        println!("  • Active counters detected");
     }
 
     // Connection tracking stats
-    if let Ok(output) = Command::new("sudo").args(["conntrack", "-C"]).output() {
-        if output.status.success() {
-            let count = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            println!("  • Active connections: {}", count);
-        }
+    if let Ok(output) = Command::new("sudo").args(["conntrack", "-C"]).output()
+        && output.status.success()
+    {
+        let count = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        println!("  • Active connections: {}", count);
     }
 
     // CPU usage - use /proc instead of piping through shell
@@ -2989,14 +2986,14 @@ fn performance_monitoring() {
     // Show nft process if running (via /proc)
     if let Ok(entries) = std::fs::read_dir("/proc") {
         for entry in entries.flatten() {
-            if let Ok(name) = entry.file_name().into_string() {
-                if name.chars().all(|c| c.is_ascii_digit()) {
-                    let comm_path = entry.path().join("comm");
-                    if let Ok(comm) = std::fs::read_to_string(&comm_path) {
-                        if comm.trim() == "nft" {
-                            println!("  • nft process running (PID: {})", name);
-                        }
-                    }
+            if let Ok(name) = entry.file_name().into_string()
+                && name.chars().all(|c| c.is_ascii_digit())
+            {
+                let comm_path = entry.path().join("comm");
+                if let Ok(comm) = std::fs::read_to_string(&comm_path)
+                    && comm.trim() == "nft"
+                {
+                    println!("  • nft process running (PID: {})", name);
                 }
             }
         }

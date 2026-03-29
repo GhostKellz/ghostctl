@@ -97,13 +97,12 @@ fn enable_gamemode() {
                         return;
                     };
 
-                    if start_daemon {
-                        if let Err(e) = Command::new("systemctl")
+                    if start_daemon
+                        && let Err(e) = Command::new("systemctl")
                             .args(["--user", "start", "gamemode"])
                             .status()
-                        {
-                            eprintln!("Failed to start gamemode daemon: {}", e);
-                        }
+                    {
+                        eprintln!("Failed to start gamemode daemon: {}", e);
                     }
                 }
             }
@@ -906,10 +905,8 @@ fn enable_filesystem_optimizations() {
         return;
     };
 
-    if show_fstab {
-        if let Err(e) = Command::new("cat").arg("/etc/fstab").status() {
-            eprintln!("Failed to read fstab: {}", e);
-        }
+    if show_fstab && let Err(e) = Command::new("cat").arg("/etc/fstab").status() {
+        eprintln!("Failed to read fstab: {}", e);
     }
 }
 

@@ -403,10 +403,10 @@ fn edit_configuration() {
         let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nvim".to_string());
 
         let _ = Command::new(&editor).arg(file_path).status();
-    } else if choice == available_files.len() - 2 {
-        if let Some(nvim_config_str) = nvim_config.to_str() {
-            let _ = Command::new("ls").args(&["-la", nvim_config_str]).status();
-        }
+    } else if choice == available_files.len() - 2
+        && let Some(nvim_config_str) = nvim_config.to_str()
+    {
+        let _ = Command::new("ls").args(&["-la", nvim_config_str]).status();
     }
 }
 

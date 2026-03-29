@@ -349,10 +349,8 @@ fn container_storage_migration() {
             return;
         };
 
-        if start_after {
-            if let Err(e) = Command::new("pct").args(["start", &ct_id]).status() {
-                println!("Warning: Could not start container: {}", e);
-            }
+        if start_after && let Err(e) = Command::new("pct").args(["start", &ct_id]).status() {
+            println!("Warning: Could not start container: {}", e);
         }
 
         if migration_success {
@@ -914,34 +912,32 @@ fn storage_usage_analysis() {
     if let Ok(output) = Command::new("pvesh")
         .args(["get", "/nodes/localhost/qemu", "--output-format", "json"])
         .output()
+        && let Ok(stdout) = String::from_utf8(output.stdout)
     {
-        if let Ok(stdout) = String::from_utf8(output.stdout) {
-            // Parse JSON to extract VM IDs
-            if let Ok(vms) = serde_json::from_str::<Vec<serde_json::Value>>(&stdout) {
-                for vm in vms {
-                    if let Some(vmid) = vm.get("vmid").and_then(|v| v.as_u64()) {
-                        println!("VM {}:", vmid);
-                        // Get VM config and filter for disk entries
-                        if let Ok(config_output) = Command::new("pvesh")
-                            .args([
-                                "get",
-                                &format!("/nodes/localhost/qemu/{}/config", vmid),
-                                "--output-format",
-                                "json",
-                            ])
-                            .output()
-                        {
-                            if let Ok(config_str) = String::from_utf8(config_output.stdout) {
-                                // Filter lines containing disk-related keys
-                                for line in config_str.lines() {
-                                    let lower = line.to_lowercase();
-                                    if lower.contains("virtio")
-                                        || lower.contains("scsi")
-                                        || lower.contains("ide")
-                                    {
-                                        println!("  {}", line.trim());
-                                    }
-                                }
+        // Parse JSON to extract VM IDs
+        if let Ok(vms) = serde_json::from_str::<Vec<serde_json::Value>>(&stdout) {
+            for vm in vms {
+                if let Some(vmid) = vm.get("vmid").and_then(|v| v.as_u64()) {
+                    println!("VM {}:", vmid);
+                    // Get VM config and filter for disk entries
+                    if let Ok(config_output) = Command::new("pvesh")
+                        .args([
+                            "get",
+                            &format!("/nodes/localhost/qemu/{}/config", vmid),
+                            "--output-format",
+                            "json",
+                        ])
+                        .output()
+                        && let Ok(config_str) = String::from_utf8(config_output.stdout)
+                    {
+                        // Filter lines containing disk-related keys
+                        for line in config_str.lines() {
+                            let lower = line.to_lowercase();
+                            if lower.contains("virtio")
+                                || lower.contains("scsi")
+                                || lower.contains("ide")
+                            {
+                                println!("  {}", line.trim());
                             }
                         }
                     }
@@ -1030,10 +1026,8 @@ fn pre_migration_assessment() {
         }
     }
 
-    // Clean up test file
-    if let Err(_) = Command::new("rm").args(["-f", &test_file]).status() {
-        // Ignore cleanup errors
-    }
+    // Clean up test file - ignore errors
+    let _ = Command::new("rm").args(["-f", &test_file]).status();
 
     println!("✅ Pre-migration assessment complete!");
 }

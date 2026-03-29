@@ -367,14 +367,13 @@ fn copy_to_clipboard(text: &str) -> bool {
                 cmd.args(["-selection", "clipboard"]);
             }
 
-            if let Ok(mut child) = cmd.stdin(Stdio::piped()).stdout(Stdio::null()).spawn() {
-                if let Some(mut stdin) = child.stdin.take() {
-                    if stdin.write_all(text.as_bytes()).is_ok() {
-                        drop(stdin);
-                        if child.wait().is_ok_and(|s| s.success()) {
-                            return true;
-                        }
-                    }
+            if let Ok(mut child) = cmd.stdin(Stdio::piped()).stdout(Stdio::null()).spawn()
+                && let Some(mut stdin) = child.stdin.take()
+                && stdin.write_all(text.as_bytes()).is_ok()
+            {
+                drop(stdin);
+                if child.wait().is_ok_and(|s| s.success()) {
+                    return true;
                 }
             }
         }

@@ -713,9 +713,7 @@ fn view_ghostcert_help() {
 }
 
 fn find_ghostcert_script() -> Option<String> {
-    let Some(home_dir) = dirs::home_dir() else {
-        return None;
-    };
+    let home_dir = dirs::home_dir()?;
     let home_path = home_dir
         .join(".config/ghostctl/scripts/ghostcert.sh")
         .to_string_lossy()

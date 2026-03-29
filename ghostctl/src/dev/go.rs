@@ -305,10 +305,10 @@ fn install_go_from_source() {
 
     if confirm {
         // Clean up any previous attempt
-        if std::path::Path::new("/tmp/go-source").exists() {
-            if let Err(e) = std::fs::remove_dir_all("/tmp/go-source") {
-                eprintln!("Warning: Failed to clean previous build directory: {}", e);
-            }
+        if std::path::Path::new("/tmp/go-source").exists()
+            && let Err(e) = std::fs::remove_dir_all("/tmp/go-source")
+        {
+            eprintln!("Warning: Failed to clean previous build directory: {}", e);
         }
 
         println!("Cloning Go repository...");
@@ -383,16 +383,15 @@ fn setup_go_environment() {
         if std::path::Path::new(shell_file).exists()
             && let Ok(content) = std::fs::read_to_string(shell_file)
             && !content.contains("GOPATH")
+            && let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(shell_file)
         {
-            if let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(shell_file) {
-                use std::io::Write;
-                let _ = writeln!(file, "\n# Go environment");
-                for env_var in &go_env {
-                    let _ = writeln!(file, "{}", env_var);
-                }
-
-                println!("✅ Added Go environment to {}", shell_file);
+            use std::io::Write;
+            let _ = writeln!(file, "\n# Go environment");
+            for env_var in &go_env {
+                let _ = writeln!(file, "{}", env_var);
             }
+
+            println!("✅ Added Go environment to {}", shell_file);
         }
     }
 

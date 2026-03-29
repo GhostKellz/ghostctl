@@ -257,8 +257,8 @@ fn install_python_from_source() {
 
     if confirm {
         // Install build dependencies first
-        if Command::new("which").arg("pacman").status().is_ok() {
-            if let Err(e) = Command::new("sudo")
+        if Command::new("which").arg("pacman").status().is_ok()
+            && let Err(e) = Command::new("sudo")
                 .args([
                     "pacman",
                     "-S",
@@ -269,9 +269,8 @@ fn install_python_from_source() {
                     "bzip2",
                 ])
                 .status()
-            {
-                eprintln!("Failed to install build dependencies: {}", e);
-            }
+        {
+            eprintln!("Failed to install build dependencies: {}", e);
         }
 
         println!("📥 Downloading Python source...");

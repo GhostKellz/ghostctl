@@ -1331,10 +1331,9 @@ fn recreate_wine_prefix() {
                 .with_prompt("Apply recommended gaming configuration?")
                 .default(true)
                 .interact()
+                && auto_config
             {
-                if auto_config {
-                    apply_gaming_wine_config();
-                }
+                apply_gaming_wine_config();
             }
         }
         _ => println!("❌ Failed to recreate Wine prefix"),

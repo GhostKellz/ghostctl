@@ -96,11 +96,11 @@ pub fn install_open_beta() {
     ];
 
     for (helper, args) in &helpers {
-        if let Ok(status) = std::process::Command::new(helper).args(args).status() {
-            if status.success() {
-                println!("NVIDIA open beta driver installed via {}.", helper);
-                return;
-            }
+        if let Ok(status) = std::process::Command::new(helper).args(args).status()
+            && status.success()
+        {
+            println!("NVIDIA open beta driver installed via {}.", helper);
+            return;
         }
     }
     println!("Failed to install NVIDIA open beta driver (tried yay, ghostbrew, pacu).");

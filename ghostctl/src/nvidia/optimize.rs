@@ -120,10 +120,10 @@ pub fn apply_preset(preset: PerformancePreset) {
             // Enable persistence mode for faster wake
             set_persistence_mode(true);
             // Set power limit to minimum
-            if let Some(gpu) = get_gpu_info(0) {
-                if let Some(min_power) = gpu.power_limit_min {
-                    set_power_limit(0, min_power);
-                }
+            if let Some(gpu) = get_gpu_info(0)
+                && let Some(min_power) = gpu.power_limit_min
+            {
+                set_power_limit(0, min_power);
             }
             // Force low performance level
             set_performance_level("0");
@@ -145,10 +145,10 @@ pub fn apply_preset(preset: PerformancePreset) {
         PerformancePreset::Performance => {
             set_persistence_mode(true);
             // Set power limit to 90% of max
-            if let Some(gpu) = get_gpu_info(0) {
-                if let Some(max_power) = gpu.power_limit_max {
-                    set_power_limit(0, max_power * 90 / 100);
-                }
+            if let Some(gpu) = get_gpu_info(0)
+                && let Some(max_power) = gpu.power_limit_max
+            {
+                set_power_limit(0, max_power * 90 / 100);
             }
             set_performance_level("3");
             println!("Performance preset applied - Higher clocks enabled");
@@ -156,10 +156,10 @@ pub fn apply_preset(preset: PerformancePreset) {
         PerformancePreset::Max => {
             set_persistence_mode(true);
             // Set power limit to maximum
-            if let Some(gpu) = get_gpu_info(0) {
-                if let Some(max_power) = gpu.power_limit_max {
-                    set_power_limit(0, max_power);
-                }
+            if let Some(gpu) = get_gpu_info(0)
+                && let Some(max_power) = gpu.power_limit_max
+            {
+                set_power_limit(0, max_power);
             }
             set_performance_level("3");
             // Enable max clocks
@@ -535,7 +535,7 @@ fn set_fan_speed_interactive() {
     };
 
     if let Ok(speed) = input.parse::<u32>() {
-        if speed >= 30 && speed <= 100 {
+        if (30..=100).contains(&speed) {
             set_fan_speed(0, speed);
         } else {
             println!("Speed must be between 30-100%");

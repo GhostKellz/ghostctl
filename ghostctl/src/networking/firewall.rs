@@ -129,17 +129,12 @@ fn ufw_management() {
         "⬅️ Back",
     ];
 
-    loop {
-        let choice = match Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("🛡️ UFW Management")
-            .items(&options)
-            .default(0)
-            .interact_opt()
-        {
-            Ok(Some(c)) => c,
-            Ok(None) | Err(_) => break,
-        };
-
+    while let Ok(Some(choice)) = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("🛡️ UFW Management")
+        .items(&options)
+        .default(0)
+        .interact_opt()
+    {
         match choice {
             0 => {
                 let enable = match Confirm::with_theme(&ColorfulTheme::default())
@@ -481,17 +476,12 @@ fn firewalld_management() {
         "⬅️ Back",
     ];
 
-    loop {
-        let choice = match Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("🔥 Firewalld Management")
-            .items(&options)
-            .default(0)
-            .interact_opt()
-        {
-            Ok(Some(c)) => c,
-            Ok(None) | Err(_) => break,
-        };
-
+    while let Ok(Some(choice)) = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("🔥 Firewalld Management")
+        .items(&options)
+        .default(0)
+        .interact_opt()
+    {
         match choice {
             0 => {
                 let action = match Select::with_theme(&ColorfulTheme::default())
@@ -1355,17 +1345,12 @@ fn iptables_management() {
         "⬅️ Back",
     ];
 
-    loop {
-        let choice = match Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("⚙️ iptables Management")
-            .items(&options)
-            .default(0)
-            .interact_opt()
-        {
-            Ok(Some(c)) => c,
-            Ok(None) | Err(_) => break,
-        };
-
+    while let Ok(Some(choice)) = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("⚙️ iptables Management")
+        .items(&options)
+        .default(0)
+        .interact_opt()
+    {
         match choice {
             0 => {
                 let table = match Select::with_theme(&ColorfulTheme::default())
@@ -1443,24 +1428,24 @@ fn iptables_management() {
                 };
 
                 // Use iptables-save and write to file via tee
-                if let Ok(output) = Command::new("sudo").args(["iptables-save"]).output() {
-                    if output.status.success() {
-                        use std::io::Write;
-                        let result = std::process::Command::new("sudo")
-                            .args(["tee", &save_path])
-                            .stdin(std::process::Stdio::piped())
-                            .stdout(std::process::Stdio::null())
-                            .spawn()
-                            .and_then(|mut child| {
-                                if let Some(stdin) = child.stdin.as_mut() {
-                                    stdin.write_all(&output.stdout)?;
-                                }
-                                child.wait()
-                            });
-                        match result {
-                            Ok(_) => println!("Rules saved to {}", save_path),
-                            Err(e) => eprintln!("Failed to save: {}", e),
-                        }
+                if let Ok(output) = Command::new("sudo").args(["iptables-save"]).output()
+                    && output.status.success()
+                {
+                    use std::io::Write;
+                    let result = std::process::Command::new("sudo")
+                        .args(["tee", &save_path])
+                        .stdin(std::process::Stdio::piped())
+                        .stdout(std::process::Stdio::null())
+                        .spawn()
+                        .and_then(|mut child| {
+                            if let Some(stdin) = child.stdin.as_mut() {
+                                stdin.write_all(&output.stdout)?;
+                            }
+                            child.wait()
+                        });
+                    match result {
+                        Ok(_) => println!("Rules saved to {}", save_path),
+                        Err(e) => eprintln!("Failed to save: {}", e),
                     }
                 }
             }
@@ -1993,17 +1978,12 @@ fn nftables_management() {
         "⬅️ Back",
     ];
 
-    loop {
-        let choice = match Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("🚀 nftables Management")
-            .items(&options)
-            .default(0)
-            .interact_opt()
-        {
-            Ok(Some(c)) => c,
-            Ok(None) | Err(_) => break,
-        };
-
+    while let Ok(Some(choice)) = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("🚀 nftables Management")
+        .items(&options)
+        .default(0)
+        .interact_opt()
+    {
         match choice {
             0 => {
                 println!("📋 nftables Rules:");
@@ -2228,24 +2208,23 @@ fn nftables_management() {
                 if let Ok(output) = Command::new("sudo")
                     .args(["nft", "list", "ruleset"])
                     .output()
+                    && output.status.success()
                 {
-                    if output.status.success() {
-                        use std::io::Write;
-                        let result = std::process::Command::new("sudo")
-                            .args(["tee", &path])
-                            .stdin(std::process::Stdio::piped())
-                            .stdout(std::process::Stdio::null())
-                            .spawn()
-                            .and_then(|mut child| {
-                                if let Some(stdin) = child.stdin.as_mut() {
-                                    stdin.write_all(&output.stdout)?;
-                                }
-                                child.wait()
-                            });
-                        match result {
-                            Ok(_) => println!("Configuration saved to {}", path),
-                            Err(e) => eprintln!("Failed to save: {}", e),
-                        }
+                    use std::io::Write;
+                    let result = std::process::Command::new("sudo")
+                        .args(["tee", &path])
+                        .stdin(std::process::Stdio::piped())
+                        .stdout(std::process::Stdio::null())
+                        .spawn()
+                        .and_then(|mut child| {
+                            if let Some(stdin) = child.stdin.as_mut() {
+                                stdin.write_all(&output.stdout)?;
+                            }
+                            child.wait()
+                        });
+                    match result {
+                        Ok(_) => println!("Configuration saved to {}", path),
+                        Err(e) => eprintln!("Failed to save: {}", e),
                     }
                 }
             }
@@ -2762,10 +2741,10 @@ fn port_scanner() {
                         std::collections::HashMap::new();
                     for line in output.lines() {
                         let parts: Vec<&str> = line.split_whitespace().collect();
-                        if parts.len() >= 4 {
-                            if let Some(port) = parts[3].rsplit(':').next() {
-                                *port_counts.entry(port.to_string()).or_insert(0) += 1;
-                            }
+                        if parts.len() >= 4
+                            && let Some(port) = parts[3].rsplit(':').next()
+                        {
+                            *port_counts.entry(port.to_string()).or_insert(0) += 1;
                         }
                     }
                     let mut sorted: Vec<_> = port_counts.iter().collect();
@@ -3845,9 +3824,8 @@ fn optimize_all_gaming_ports() {
     for (port, protocol, service) in &gaming_ports {
         println!("  ⚡ Optimizing {} - {} ({})", service, port, protocol);
 
-        // UFW rules - port ranges use : for ufw
-        let ufw_port = port.replace(':', ":");
-        let port_arg = format!("{}/{}", ufw_port, protocol);
+        // UFW rules - port ranges already use : format
+        let port_arg = format!("{}/{}", port, protocol);
         Command::new("sudo")
             .args(["ufw", "allow", &port_arg])
             .status()

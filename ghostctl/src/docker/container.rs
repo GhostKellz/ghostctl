@@ -81,11 +81,11 @@ fn run_container() {
     };
 
     // Validate container name if provided
-    if !name.is_empty() {
-        if let Err(e) = crate::docker::validate_container_name(&name) {
-            println!("❌ Invalid container name: {}", e);
-            return;
-        }
+    if !name.is_empty()
+        && let Err(e) = crate::docker::validate_container_name(&name)
+    {
+        println!("❌ Invalid container name: {}", e);
+        return;
     }
 
     let mut args = vec!["run", "-d"];

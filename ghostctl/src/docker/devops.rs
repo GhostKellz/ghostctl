@@ -2043,13 +2043,13 @@ if command -v gitleaks &> /dev/null; then
 fi
 "#;
 
-        if fs::create_dir_all(".git/hooks").is_ok() {
-            if fs::write(".git/hooks/pre-commit", hook_content).is_ok() {
-                let _ = Command::new("chmod")
-                    .args(["+x", ".git/hooks/pre-commit"])
-                    .status();
-                println!("✅ Pre-commit hook installed");
-            }
+        if fs::create_dir_all(".git/hooks").is_ok()
+            && fs::write(".git/hooks/pre-commit", hook_content).is_ok()
+        {
+            let _ = Command::new("chmod")
+                .args(["+x", ".git/hooks/pre-commit"])
+                .status();
+            println!("✅ Pre-commit hook installed");
         }
     }
 }
@@ -2487,16 +2487,14 @@ pub fn extract_prometheus_jobs(config: &str) -> Vec<String> {
 
     for line in config.lines() {
         let trimmed = line.trim();
-        if trimmed.starts_with("- job_name:") || trimmed.starts_with("-job_name:") {
-            if let Some(name) = trimmed
+        if (trimmed.starts_with("- job_name:") || trimmed.starts_with("-job_name:"))
+            && let Some(name) = trimmed
                 .split(':')
                 .nth(1)
                 .map(|s| s.trim().trim_matches('\'').trim_matches('"'))
-            {
-                if !name.is_empty() {
-                    jobs.push(name.to_string());
-                }
-            }
+            && !name.is_empty()
+        {
+            jobs.push(name.to_string());
         }
     }
 

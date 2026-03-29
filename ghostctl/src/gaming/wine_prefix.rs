@@ -929,11 +929,11 @@ fn auto_detect_prefixes() {
                         let path = entry.path();
                         if path.is_dir() {
                             let pfx_path = format!("{}/pfx", path.display());
-                            if Path::new(&pfx_path).exists() {
-                                if let Some(file_name) = path.file_name() {
-                                    found_prefixes
-                                        .push(format!("Steam: {}", file_name.to_string_lossy()));
-                                }
+                            if Path::new(&pfx_path).exists()
+                                && let Some(file_name) = path.file_name()
+                            {
+                                found_prefixes
+                                    .push(format!("Steam: {}", file_name.to_string_lossy()));
                             }
                         }
                     }
@@ -943,11 +943,11 @@ fn auto_detect_prefixes() {
                 if let Ok(entries) = fs::read_dir(location) {
                     for entry in entries.flatten() {
                         let path = entry.path();
-                        if path.is_dir() {
-                            if let Some(file_name) = path.file_name() {
-                                found_prefixes
-                                    .push(format!("Bottles: {}", file_name.to_string_lossy()));
-                            }
+                        if path.is_dir()
+                            && let Some(file_name) = path.file_name()
+                        {
+                            found_prefixes
+                                .push(format!("Bottles: {}", file_name.to_string_lossy()));
                         }
                     }
                 }

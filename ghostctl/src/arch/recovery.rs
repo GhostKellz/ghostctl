@@ -991,16 +991,16 @@ fn fix_sudo_access() {
     // Ensure wheel group has sudo access by appending to sudoers via temp file
     println!("🔧 Ensuring wheel group has sudo access...");
     // Read existing sudoers, check if wheel rule exists
-    if let Ok(content) = std::fs::read_to_string("/etc/sudoers") {
-        if !content.contains("%wheel ALL=(ALL:ALL) ALL") {
-            // Write to temp file and use visudo to validate
-            let temp_file = "/tmp/sudoers_wheel.tmp";
-            if std::fs::write(temp_file, "%wheel ALL=(ALL:ALL) ALL\n").is_ok() {
-                // Append to sudoers.d instead for safety
-                let _ = Command::new("sudo")
-                    .args(["mv", temp_file, "/etc/sudoers.d/wheel"])
-                    .status();
-            }
+    if let Ok(content) = std::fs::read_to_string("/etc/sudoers")
+        && !content.contains("%wheel ALL=(ALL:ALL) ALL")
+    {
+        // Write to temp file and use visudo to validate
+        let temp_file = "/tmp/sudoers_wheel.tmp";
+        if std::fs::write(temp_file, "%wheel ALL=(ALL:ALL) ALL\n").is_ok() {
+            // Append to sudoers.d instead for safety
+            let _ = Command::new("sudo")
+                .args(["mv", temp_file, "/etc/sudoers.d/wheel"])
+                .status();
         }
     }
 

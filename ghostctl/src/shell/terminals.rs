@@ -53,12 +53,12 @@ pub fn setup_starship() {
         .args(["pacman", "-S", "--noconfirm", "starship"])
         .status();
 
-    if let Ok(s) = pacman_status {
-        if s.success() {
-            println!("Starship installed successfully via pacman.");
-            configure_starship_shell();
-            return;
-        }
+    if let Ok(s) = pacman_status
+        && s.success()
+    {
+        println!("Starship installed successfully via pacman.");
+        configure_starship_shell();
+        return;
     }
 
     // Fall back to official installer with verification
@@ -89,32 +89,31 @@ pub fn setup_starship() {
 
                 if confirm {
                     // Create temp file and execute
-                    if let Ok(mut temp_file) = NamedTempFile::new() {
-                        if temp_file.write_all(content.as_bytes()).is_ok() {
-                            let path = temp_file.path();
-                            if let Err(e) =
-                                fs::set_permissions(path, fs::Permissions::from_mode(0o700))
-                            {
-                                eprintln!("Failed to set script permissions: {}", e);
-                                return;
-                            }
+                    if let Ok(mut temp_file) = NamedTempFile::new()
+                        && temp_file.write_all(content.as_bytes()).is_ok()
+                    {
+                        let path = temp_file.path();
+                        if let Err(e) = fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+                        {
+                            eprintln!("Failed to set script permissions: {}", e);
+                            return;
+                        }
 
-                            // Run with -y for non-interactive
-                            let status = std::process::Command::new("sh")
-                                .args([path.to_str().unwrap_or(""), "-y"])
-                                .status();
+                        // Run with -y for non-interactive
+                        let status = std::process::Command::new("sh")
+                            .args([path.to_str().unwrap_or(""), "-y"])
+                            .status();
 
-                            match status {
-                                Ok(s) if s.success() => {
-                                    println!("Starship installed successfully.");
-                                    configure_starship_shell();
-                                }
-                                Ok(s) => eprintln!(
-                                    "Starship installation failed (exit code: {})",
-                                    s.code().unwrap_or(-1)
-                                ),
-                                Err(e) => eprintln!("Failed to run install script: {}", e),
+                        match status {
+                            Ok(s) if s.success() => {
+                                println!("Starship installed successfully.");
+                                configure_starship_shell();
                             }
+                            Ok(s) => eprintln!(
+                                "Starship installation failed (exit code: {})",
+                                s.code().unwrap_or(-1)
+                            ),
+                            Err(e) => eprintln!("Failed to run install script: {}", e),
                         }
                     }
                 }
@@ -137,12 +136,12 @@ fn configure_starship_shell() {
     let bashrc = home.join(".bashrc");
     if bashrc.exists() {
         let content = std::fs::read_to_string(&bashrc).unwrap_or_default();
-        if !content.contains("starship init bash") {
-            if let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(&bashrc) {
-                writeln!(file, "\n# Starship prompt").ok();
-                writeln!(file, "eval \"$(starship init bash)\"").ok();
-                println!("Added Starship to .bashrc");
-            }
+        if !content.contains("starship init bash")
+            && let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(&bashrc)
+        {
+            writeln!(file, "\n# Starship prompt").ok();
+            writeln!(file, "eval \"$(starship init bash)\"").ok();
+            println!("Added Starship to .bashrc");
         }
     }
 
@@ -150,12 +149,12 @@ fn configure_starship_shell() {
     let zshrc = home.join(".zshrc");
     if zshrc.exists() {
         let content = std::fs::read_to_string(&zshrc).unwrap_or_default();
-        if !content.contains("starship init zsh") {
-            if let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(&zshrc) {
-                writeln!(file, "\n# Starship prompt").ok();
-                writeln!(file, "eval \"$(starship init zsh)\"").ok();
-                println!("Added Starship to .zshrc");
-            }
+        if !content.contains("starship init zsh")
+            && let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(&zshrc)
+        {
+            writeln!(file, "\n# Starship prompt").ok();
+            writeln!(file, "eval \"$(starship init zsh)\"").ok();
+            println!("Added Starship to .zshrc");
         }
     }
 }

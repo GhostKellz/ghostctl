@@ -134,12 +134,12 @@ fn parse_device_details(output: &str) -> Result<HashMap<String, DeviceDetail>> {
                 current_detail.description = parts[1].to_string();
 
                 // Extract device class
-                if let Some(class_start) = parts[1].find('[') {
-                    if let Some(class_end) = parts[1][class_start..].find(']') {
-                        let class_code = &parts[1][class_start + 1..class_start + class_end];
-                        if class_code.len() == 4 {
-                            current_detail.class_code = class_code.to_string();
-                        }
+                if let Some(class_start) = parts[1].find('[')
+                    && let Some(class_end) = parts[1][class_start..].find(']')
+                {
+                    let class_code = &parts[1][class_start + 1..class_start + class_end];
+                    if class_code.len() == 4 {
+                        current_detail.class_code = class_code.to_string();
                     }
                 }
 
@@ -156,11 +156,11 @@ fn parse_device_details(output: &str) -> Result<HashMap<String, DeviceDetail>> {
             }
         } else if line.contains("LnkSta:") {
             // Link status line
-            if let Some(speed_start) = line.find("Speed ") {
-                if let Some(speed_end) = line[speed_start..].find(',') {
-                    current_detail.link_speed =
-                        Some(line[speed_start + 6..speed_start + speed_end].to_string());
-                }
+            if let Some(speed_start) = line.find("Speed ")
+                && let Some(speed_end) = line[speed_start..].find(',')
+            {
+                current_detail.link_speed =
+                    Some(line[speed_start + 6..speed_start + speed_end].to_string());
             }
             if let Some(width_start) = line.find("Width x") {
                 let width_part = &line[width_start + 6..];
@@ -260,10 +260,9 @@ fn extract_address_from_tree_line(line: &str) -> Option<String> {
             && part
                 .chars()
                 .all(|c| c.is_ascii_hexdigit() || c == '.' || c == ':')
+            && part.len() >= 4
         {
-            if part.len() >= 4 {
-                return Some(part.to_string());
-            }
+            return Some(part.to_string());
         }
     }
     None
@@ -443,8 +442,8 @@ fn build_iommu_groups_map() -> Result<HashMap<String, u32>> {
                 let addr = device.file_name().to_string_lossy().to_string();
                 // Store both full and short addresses
                 map.insert(addr.clone(), group_id);
-                if addr.starts_with("0000:") {
-                    map.insert(addr[5..].to_string(), group_id);
+                if let Some(short_addr) = addr.strip_prefix("0000:") {
+                    map.insert(short_addr.to_string(), group_id);
                 }
             }
         }

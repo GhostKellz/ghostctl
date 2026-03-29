@@ -209,7 +209,7 @@ fn container_cleanup() {
                                 continue;
                             }
                             // Validate container ID before using
-                            if let Err(_) = crate::docker::validate_container_name(container) {
+                            if crate::docker::validate_container_name(container).is_err() {
                                 continue;
                             }
                             match Command::new("docker").args(["rm", container]).status() {
@@ -292,7 +292,7 @@ fn container_cleanup() {
                         if container.trim().is_empty() {
                             continue;
                         }
-                        if let Err(_) = crate::docker::validate_container_name(container) {
+                        if crate::docker::validate_container_name(container).is_err() {
                             continue;
                         }
                         if Command::new("docker")
@@ -609,15 +609,15 @@ fn volume_cleanup() {
                     let mut removed = 0;
                     for volume in volumes.lines() {
                         // Check if volume name is a hash (anonymous)
-                        if volume.len() == 64 && volume.chars().all(|c| c.is_ascii_hexdigit()) {
-                            if Command::new("docker")
+                        if volume.len() == 64
+                            && volume.chars().all(|c| c.is_ascii_hexdigit())
+                            && Command::new("docker")
                                 .args(["volume", "rm", "-f", volume])
                                 .status()
                                 .map(|s| s.success())
                                 .unwrap_or(false)
-                            {
-                                removed += 1;
-                            }
+                        {
+                            removed += 1;
                         }
                     }
                     println!("✅ Removed {} anonymous volumes", removed);
@@ -653,15 +653,14 @@ fn volume_cleanup() {
                     let volumes = String::from_utf8_lossy(&output.stdout);
                     let mut removed = 0;
                     for volume in volumes.lines() {
-                        if volume.contains(pattern) {
-                            if Command::new("docker")
+                        if volume.contains(pattern)
+                            && Command::new("docker")
                                 .args(["volume", "rm", "-f", volume])
                                 .status()
                                 .map(|s| s.success())
                                 .unwrap_or(false)
-                            {
-                                removed += 1;
-                            }
+                        {
+                            removed += 1;
                         }
                     }
                     println!("✅ Removed {} matching volumes", removed);
@@ -866,18 +865,17 @@ fn reset_docker_networks() {
     println!("🛑 Stopping all containers...");
     let containers_output = Command::new("docker").args(["ps", "-aq"]).output();
 
-    if let Ok(output) = containers_output {
-        if output.status.success() {
-            let containers = String::from_utf8_lossy(&output.stdout);
-            for container in containers.lines() {
-                if !container.trim().is_empty() {
-                    if let Err(e) = Command::new("docker")
-                        .args(["stop", container.trim()])
-                        .status()
-                    {
-                        println!("  Warning: could not stop {}: {}", container, e);
-                    }
-                }
+    if let Ok(output) = containers_output
+        && output.status.success()
+    {
+        let containers = String::from_utf8_lossy(&output.stdout);
+        for container in containers.lines() {
+            if !container.trim().is_empty()
+                && let Err(e) = Command::new("docker")
+                    .args(["stop", container.trim()])
+                    .status()
+            {
+                println!("  Warning: could not stop {}: {}", container, e);
             }
         }
     }
@@ -1237,7 +1235,7 @@ pub fn is_anonymous_volume(name: &str) -> bool {
 /// Parse container age from Docker output format
 pub fn parse_container_age(age_str: &str) -> Option<std::time::Duration> {
     // Parse formats like "2 hours ago", "3 days ago", "4 weeks ago"
-    let parts: Vec<&str> = age_str.trim().split_whitespace().collect();
+    let parts: Vec<&str> = age_str.split_whitespace().collect();
     if parts.len() < 2 {
         return None;
     }

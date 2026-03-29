@@ -435,10 +435,10 @@ impl MockRunner {
         }
 
         // Return default if set
-        if let Ok(default_response) = self.default_response.lock() {
-            if let Some(default) = default_response.as_ref() {
-                return Ok(default.clone());
-            }
+        if let Ok(default_response) = self.default_response.lock()
+            && let Some(default) = default_response.as_ref()
+        {
+            return Ok(default.clone());
         }
 
         // Default success if no mock configured
@@ -507,10 +507,7 @@ impl CommandRunner for MockRunner {
 
     fn read_file(&self, path: &str) -> io::Result<String> {
         let Ok(files) = self.files.lock() else {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "Failed to acquire lock",
-            ));
+            return Err(io::Error::other("Failed to acquire lock"));
         };
         files
             .get(path)
@@ -520,10 +517,7 @@ impl CommandRunner for MockRunner {
 
     fn write_file(&self, path: &str, content: &str) -> io::Result<()> {
         let Ok(mut files) = self.files.lock() else {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "Failed to acquire lock",
-            ));
+            return Err(io::Error::other("Failed to acquire lock"));
         };
         files.insert(path.to_string(), content.to_string());
         Ok(())

@@ -564,22 +564,22 @@ pub fn full_health_report() {
                 if let Some(name) = line.split(':').nth(1) {
                     current_name = name.trim().to_string();
                 }
-            } else if line.starts_with("Installed Size") {
-                if let Some(size_str) = line.split(':').nth(1) {
-                    let size_str = size_str.trim();
-                    // Parse size like "123.45 MiB" or "1.23 GiB"
-                    let parts: Vec<&str> = size_str.split_whitespace().collect();
-                    if parts.len() >= 2 {
-                        if let Ok(num) = parts[0].parse::<f64>() {
-                            let multiplier = match parts[1] {
-                                "KiB" => 1.0 / 1024.0,
-                                "MiB" => 1.0,
-                                "GiB" => 1024.0,
-                                _ => 1.0,
-                            };
-                            packages.push((current_name.clone(), num * multiplier));
-                        }
-                    }
+            } else if line.starts_with("Installed Size")
+                && let Some(size_str) = line.split(':').nth(1)
+            {
+                let size_str = size_str.trim();
+                // Parse size like "123.45 MiB" or "1.23 GiB"
+                let parts: Vec<&str> = size_str.split_whitespace().collect();
+                if parts.len() >= 2
+                    && let Ok(num) = parts[0].parse::<f64>()
+                {
+                    let multiplier = match parts[1] {
+                        "KiB" => 1.0 / 1024.0,
+                        "MiB" => 1.0,
+                        "GiB" => 1024.0,
+                        _ => 1.0,
+                    };
+                    packages.push((current_name.clone(), num * multiplier));
                 }
             }
         }
@@ -645,10 +645,10 @@ fn system_diagnostics() {
 /// Returns (mountpoint, percentage) if successfully parsed
 pub fn parse_disk_usage_line(line: &str) -> Option<(String, u32)> {
     let parts: Vec<&str> = line.split_whitespace().collect();
-    if parts.len() >= 6 {
-        if let Ok(usage) = parts[4].trim_end_matches('%').parse::<u32>() {
-            return Some((parts[5].to_string(), usage));
-        }
+    if parts.len() >= 6
+        && let Ok(usage) = parts[4].trim_end_matches('%').parse::<u32>()
+    {
+        return Some((parts[5].to_string(), usage));
     }
     None
 }

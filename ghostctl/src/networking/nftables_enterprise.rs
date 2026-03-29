@@ -1099,32 +1099,23 @@ fn get_custom_conntrack_config() -> (u32, u32, (u32, u32, u32)) {
         Err(_) => max_connections / 8,
     };
 
-    let tcp_established: u32 = match Input::with_theme(&ColorfulTheme::default())
+    let tcp_established: u32 = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("TCP established timeout (seconds)")
         .default(3600u32)
         .interact()
-    {
-        Ok(v) => v,
-        Err(_) => 3600,
-    };
+        .unwrap_or(3600);
 
-    let tcp_syn: u32 = match Input::with_theme(&ColorfulTheme::default())
+    let tcp_syn: u32 = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("TCP SYN timeout (seconds)")
         .default(60u32)
         .interact()
-    {
-        Ok(v) => v,
-        Err(_) => 60,
-    };
+        .unwrap_or(60);
 
-    let udp_timeout: u32 = match Input::with_theme(&ColorfulTheme::default())
+    let udp_timeout: u32 = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("UDP timeout (seconds)")
         .default(30u32)
         .interact()
-    {
-        Ok(v) => v,
-        Err(_) => 30,
-    };
+        .unwrap_or(30);
 
     (
         max_connections,
@@ -1292,12 +1283,12 @@ fn show_conntrack_stats() {
     // Get detailed stats via conntrack tool
     let output = Command::new("conntrack").args(["-S"]).output();
 
-    if let Ok(result) = output {
-        if result.status.success() {
-            println!("\n  Detailed Statistics:");
-            for line in String::from_utf8_lossy(&result.stdout).lines() {
-                println!("    {}", line);
-            }
+    if let Ok(result) = output
+        && result.status.success()
+    {
+        println!("\n  Detailed Statistics:");
+        for line in String::from_utf8_lossy(&result.stdout).lines() {
+            println!("    {}", line);
         }
     }
 
@@ -1359,11 +1350,12 @@ fn show_throughput_stats() {
     // Show nftables counter chains if any
     let nft_output = Command::new("nft").args(["list", "counters"]).output();
 
-    if let Ok(result) = nft_output {
-        if result.status.success() && !result.stdout.is_empty() {
-            println!("\n  Named Counters:");
-            println!("{}", String::from_utf8_lossy(&result.stdout));
-        }
+    if let Ok(result) = nft_output
+        && result.status.success()
+        && !result.stdout.is_empty()
+    {
+        println!("\n  Named Counters:");
+        println!("{}", String::from_utf8_lossy(&result.stdout));
     }
 }
 
@@ -1491,11 +1483,11 @@ fn list_automation_rules() {
         Ok(entries) => {
             let mut found = false;
             for entry in entries.flatten() {
-                if let Some(name) = entry.file_name().to_str() {
-                    if name.ends_with(".json") {
-                        println!("  • {}", name.trim_end_matches(".json"));
-                        found = true;
-                    }
+                if let Some(name) = entry.file_name().to_str()
+                    && name.ends_with(".json")
+                {
+                    println!("  • {}", name.trim_end_matches(".json"));
+                    found = true;
                 }
             }
             if !found {
@@ -1746,10 +1738,10 @@ fn show_offloading_statistics() {
     // Show flowtable statistics if available
     let output = Command::new("nft").args(["list", "flowtables"]).output();
 
-    if let Ok(result) = output {
-        if result.status.success() {
-            println!("{}", String::from_utf8_lossy(&result.stdout));
-        }
+    if let Ok(result) = output
+        && result.status.success()
+    {
+        println!("{}", String::from_utf8_lossy(&result.stdout));
     }
 
     // Show flow stats from /proc if available
@@ -2087,17 +2079,12 @@ fn advanced_rule_builder() {
 
     let mut matches: Vec<String> = Vec::new();
 
-    loop {
-        let match_idx = match Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("Add match condition")
-            .items(&match_options)
-            .default(7)
-            .interact_opt()
-        {
-            Ok(Some(i)) => i,
-            Ok(None) | Err(_) => break,
-        };
-
+    while let Ok(Some(match_idx)) = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Add match condition")
+        .items(&match_options)
+        .default(7)
+        .interact_opt()
+    {
         match match_idx {
             0 => {
                 let ip: String = match Input::with_theme(&ColorfulTheme::default())
@@ -3032,17 +3019,17 @@ fn automatic_optimization() {
     let mut optimizations: Vec<(&str, bool)> = Vec::new();
 
     // Check conntrack
-    if let Ok(count) = fs::read_to_string("/proc/sys/net/netfilter/nf_conntrack_count") {
-        if let Ok(max) = fs::read_to_string("/proc/sys/net/netfilter/nf_conntrack_max") {
-            let count: u64 = count.trim().parse().unwrap_or(0);
-            let max: u64 = max.trim().parse().unwrap_or(1);
-            let usage = (count as f64 / max as f64) * 100.0;
+    if let Ok(count) = fs::read_to_string("/proc/sys/net/netfilter/nf_conntrack_count")
+        && let Ok(max) = fs::read_to_string("/proc/sys/net/netfilter/nf_conntrack_max")
+    {
+        let count: u64 = count.trim().parse().unwrap_or(0);
+        let max: u64 = max.trim().parse().unwrap_or(1);
+        let usage = (count as f64 / max as f64) * 100.0;
 
-            if usage > 80.0 {
-                optimizations.push(("Increase conntrack max", true));
-            } else {
-                optimizations.push(("Conntrack capacity", false));
-            }
+        if usage > 80.0 {
+            optimizations.push(("Increase conntrack max", true));
+        } else {
+            optimizations.push(("Conntrack capacity", false));
         }
     }
 
@@ -3103,8 +3090,8 @@ pub fn is_valid_rate_limit(rate: u32, unit: &RateUnit) -> bool {
     match unit {
         RateUnit::PacketsPerSecond => rate <= 10_000_000,
         RateUnit::PacketsPerMinute => rate <= 600_000_000,
-        RateUnit::PacketsPerHour => rate <= u32::MAX,
-        RateUnit::BytesPerSecond => rate <= 10_000_000_000u64 as u32,
+        RateUnit::PacketsPerHour => true, // Any u32 value is valid for hourly rates
+        RateUnit::BytesPerSecond => rate <= (10_000_000_000u64 as u32),
         RateUnit::KilobytesPerSecond => rate <= 10_000_000,
         RateUnit::MegabytesPerSecond => rate <= 10_000,
     }

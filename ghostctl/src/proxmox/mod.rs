@@ -374,10 +374,18 @@ fn pve_upgrade_guide() {
 
             // Check for running VMs
             println!("\nRunning VMs/Containers:");
-            if let Err(_) = std::process::Command::new("qm").arg("list").status() {
+            if std::process::Command::new("qm")
+                .arg("list")
+                .status()
+                .is_err()
+            {
                 println!("(VM list not available)");
             }
-            if let Err(_) = std::process::Command::new("pct").arg("list").status() {
+            if std::process::Command::new("pct")
+                .arg("list")
+                .status()
+                .is_err()
+            {
                 println!("(Container list not available)");
             }
 

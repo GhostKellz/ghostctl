@@ -210,12 +210,11 @@ fn list_ssh_keys() -> Result<()> {
                 println!("  📄 {}", filename.to_string_lossy());
 
                 // Show key fingerprint
-                if let Some(path_str) = path.to_str() {
-                    if let Ok(output) = Command::new("ssh-keygen").args(&["-lf", path_str]).output()
-                    {
-                        let fingerprint = String::from_utf8_lossy(&output.stdout);
-                        println!("    🔍 {}", fingerprint.trim());
-                    }
+                if let Some(path_str) = path.to_str()
+                    && let Ok(output) = Command::new("ssh-keygen").args(&["-lf", path_str]).output()
+                {
+                    let fingerprint = String::from_utf8_lossy(&output.stdout);
+                    println!("    🔍 {}", fingerprint.trim());
                 }
             }
         }

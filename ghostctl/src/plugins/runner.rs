@@ -387,15 +387,15 @@ pub fn run_user_script_menu() {
     let mut scripts = vec![];
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.is_file() {
-            if let Some(file_name) = path.file_name() {
-                let name = file_name.to_string_lossy().to_string();
-                // Validate script name
-                if validate_plugin_name(&name).is_ok() {
-                    scripts.push(name);
-                } else {
-                    log::warn!("Skipping script with invalid name: {}", name);
-                }
+        if path.is_file()
+            && let Some(file_name) = path.file_name()
+        {
+            let name = file_name.to_string_lossy().to_string();
+            // Validate script name
+            if validate_plugin_name(&name).is_ok() {
+                scripts.push(name);
+            } else {
+                log::warn!("Skipping script with invalid name: {}", name);
             }
         }
     }

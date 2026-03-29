@@ -631,12 +631,11 @@ pub fn performance_analysis() {
 /// Parse MemTotal from /proc/meminfo content
 pub fn parse_meminfo_total(content: &str) -> Option<u64> {
     for line in content.lines() {
-        if line.starts_with("MemTotal:") {
-            if let Some(kb_str) = line.split_whitespace().nth(1) {
-                if let Ok(kb) = kb_str.parse::<u64>() {
-                    return Some(kb / 1024); // Convert to MB
-                }
-            }
+        if line.starts_with("MemTotal:")
+            && let Some(kb_str) = line.split_whitespace().nth(1)
+            && let Ok(kb) = kb_str.parse::<u64>()
+        {
+            return Some(kb / 1024); // Convert to MB
         }
     }
     None

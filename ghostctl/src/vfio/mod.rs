@@ -417,11 +417,13 @@ fn load_modules_interactive() {
     println!("{}", "=".repeat(40));
 
     // Check current status
-    if let Ok(modules) = check_vfio_modules() {
-        if modules.vfio_loaded && modules.vfio_pci_loaded && modules.vfio_iommu_type1_loaded {
-            println!("All VFIO modules are already loaded.");
-            return;
-        }
+    if let Ok(modules) = check_vfio_modules()
+        && modules.vfio_loaded
+        && modules.vfio_pci_loaded
+        && modules.vfio_iommu_type1_loaded
+    {
+        println!("All VFIO modules are already loaded.");
+        return;
     }
 
     match load_vfio_modules() {

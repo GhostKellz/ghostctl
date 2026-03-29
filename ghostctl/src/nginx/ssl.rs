@@ -79,30 +79,30 @@ fn setup_letsencrypt() {
         ])
         .status();
 
-    if let Ok(s) = status {
-        if s.success() {
-            // Copy certificates to custom structure
-            println!("📋 Copying certificates to custom nginx structure...");
-            let letsencrypt_dir = format!("/etc/letsencrypt/live/{}", domain);
+    if let Ok(s) = status
+        && s.success()
+    {
+        // Copy certificates to custom structure
+        println!("📋 Copying certificates to custom nginx structure...");
+        let letsencrypt_dir = format!("/etc/letsencrypt/live/{}", domain);
 
-            let _ = Command::new("sudo")
-                .args(&[
-                    "cp",
-                    &format!("{}/fullchain.pem", letsencrypt_dir),
-                    &format!("{}/cert.pem", cert_dir),
-                ])
-                .status();
+        let _ = Command::new("sudo")
+            .args(&[
+                "cp",
+                &format!("{}/fullchain.pem", letsencrypt_dir),
+                &format!("{}/cert.pem", cert_dir),
+            ])
+            .status();
 
-            let _ = Command::new("sudo")
-                .args(&[
-                    "cp",
-                    &format!("{}/privkey.pem", letsencrypt_dir),
-                    &format!("{}/privkey.pem", cert_dir),
-                ])
-                .status();
+        let _ = Command::new("sudo")
+            .args(&[
+                "cp",
+                &format!("{}/privkey.pem", letsencrypt_dir),
+                &format!("{}/privkey.pem", cert_dir),
+            ])
+            .status();
 
-            println!("✅ Certificates installed to: {}", cert_dir);
-        }
+        println!("✅ Certificates installed to: {}", cert_dir);
     }
 }
 
