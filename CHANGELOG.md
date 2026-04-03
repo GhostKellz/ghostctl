@@ -2,6 +2,29 @@
 
 All notable changes to GhostCTL will be documented in this file.
 
+## [0.9.8] - 2026-04-03
+
+### Security
+
+- **Dependency audit**: Fixed 1 critical vulnerability and removed 6 unmaintained/unsound transitive dependencies
+  - `bytes` 1.10.1 → 1.11.1 (integer overflow fix)
+  - `indicatif` 0.17 → 0.18 (removes unmaintained `number_prefix`)
+  - `ratatui` 0.28 → 0.30 (removes unsound `lru` 0.12.5, unmaintained `paste`)
+  - `reqwest` 0.11 → 0.13 (modern TLS stack, removes unmaintained `rustls-pemfile`)
+  - `keyring` now uses `linux-no-secret-service` feature (kernel keyutils instead of D-Bus)
+
+### Changed
+
+- **Keyring backend**: Switched from D-Bus secret-service to kernel-level keyutils for credential storage (more secure, fewer dependencies)
+
+### Build
+
+- All changes verified:
+  - `cargo audit` (0 advisories)
+  - `cargo clippy --all-features` (0 warnings)
+  - `cargo test --all-features` (370 tests passed)
+  - `cargo build --release --all-features`
+
 ## [0.9.7] - 2026-03-29
 
 ### 🔧 CI/CD Improvements

@@ -1,6 +1,6 @@
 [package]
 name = "ghostctl"
-version = "0.9.7"
+version = "0.9.8"
 edition = "2024"
 license = "MIT"
 description = "Modular CLI toolkit for Linux sysadmins, homelabbers, and power users."
@@ -30,16 +30,16 @@ serde_yaml = "0.9"
 toml = "0.8"
 mlua = { version = "0.9", features = ["lua54"] }
 dialoguer = "0.11"
-reqwest = { version = "0.11", features = ["blocking", "json"] }
+reqwest = { version = "0.13", features = ["blocking", "json"] }
 chrono = "0.4"
 base64 = "0.21"
 gethostname = "0.4"
-ratatui = "0.28"
+ratatui = "0.30"
 crossterm = "0.28"
 tokio = { version = "1.0", features = ["full"] }
 regex = "1.10"
 ipnet = "2.9"
-indicatif = "0.17"
+indicatif = "0.18"
 rayon = "1.10"
 sha2 = "0.10.9"
 argon2 = "0.5"
@@ -53,4 +53,6 @@ socket2 = { version = "0.5", features = ["all"] }
 bluer = { version = "0.17", features = ["bluetoothd"] }
 
 # Optional dependencies
-keyring = { version = "2", optional = true }
+# Use linux-keyutils directly (kernel-level) instead of D-Bus secret-service
+# This avoids unmaintained zbus transitive dependencies and is more secure
+keyring = { version = "2", optional = true, default-features = false, features = ["linux-no-secret-service"] }
