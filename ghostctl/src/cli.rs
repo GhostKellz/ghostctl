@@ -2,7 +2,7 @@ use crate::terminal::terminal_menu;
 use crate::utils::{set_dry_run_mode, set_headless_mode, set_plain_mode};
 use crate::{
     arch, backup, bluetooth, btrfs, cloud, iommu, network, nvidia, proxmox, restore, security,
-    shell, sysctl, systemd, tools, vfio, wifi,
+    shell, sysctl, systemd, tools, uefi, vfio, wifi,
 };
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use dialoguer::{Select, theme::ColorfulTheme};
@@ -806,6 +806,7 @@ pub fn build_cli() -> Command {
         )
         .subcommand(Command::new("version").about("Show version information"))
         .subcommand(Command::new("list").about("List available commands"))
+        .subcommand(uefi::command())
 }
 
 pub fn handle_cli_args(matches: &ArgMatches) {
@@ -879,6 +880,12 @@ pub fn handle_cli_args(matches: &ArgMatches) {
         Some(("ghost", matches)) => handle_ghost_commands(matches),
         Some(("homelab", matches)) => handle_homelab_commands(matches),
         Some(("terminal", matches)) => handle_terminal_commands(matches),
+        Some(("uefi", matches)) => {
+            if let Err(e) = uefi::handle(matches) {
+                eprintln!("Error: {e:#}");
+                std::process::exit(1);
+            }
+        }
         Some(("menu", _)) | None => crate::menu::show(),
         Some((cmd, _)) => {
             eprintln!("Unknown command: {}", cmd);

@@ -2,6 +2,26 @@
 
 All notable changes to GhostCTL will be documented in this file.
 
+## [0.9.9] - 2026-04-04
+
+### Added
+
+- **UEFI Secure Boot module**: New `ghostctl uefi` command for Windows 11 VMs
+  - `ghostctl uefi status` - Check firmware and tool availability
+  - `ghostctl uefi enroll -o <file>` - Create OVMF VARS with Secure Boot keys
+  - `ghostctl uefi verify <file>` - Verify VARS has keys enrolled
+- **SECURITY.md**: Security policy with vulnerability reporting and dependency auditing
+
+### Documentation
+
+- **docs/uefi/README.md**: UEFI Secure Boot documentation with libvirt integration
+- **docs/reference/COMMANDS.md**: Added UEFI section
+
+### Dependencies
+
+- Uses `virt-firmware` package (`virt-fw-vars`) for key enrollment
+- Uses `which` crate for tool detection
+
 ## [0.9.8] - 2026-04-03
 
 ### Security

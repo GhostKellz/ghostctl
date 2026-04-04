@@ -1084,10 +1084,32 @@ restic restore latest --repo /backup/location --target /restore/path
 restic check --repo /backup/location
 ```
 
+## 🔐 UEFI Secure Boot Management
+
+### Status Check
+```bash
+ghostctl uefi status
+```
+
+### Key Enrollment
+```bash
+# Create VARS with Secure Boot keys for Windows 11
+ghostctl uefi enroll -o /var/lib/libvirt/qemu/nvram/win11_VARS.fd
+
+# Fix ownership for libvirt
+sudo chown libvirt-qemu:libvirt-qemu /var/lib/libvirt/qemu/nvram/win11_VARS.fd
+```
+
+### Verify VARS
+```bash
+ghostctl uefi verify /path/to/vars.fd
+```
+
 ---
 
 For more detailed information, see the specific documentation files:
 - [Docker Guide](DOCKER.md)
-- [Proxmox Integration](PROXMOX.md) 
+- [Proxmox Integration](PROXMOX.md)
 - [Cloud Services](CLOUD.md)
 - [Backup with Restic](RESTIC.md)
+- [UEFI Secure Boot](../uefi/README.md)

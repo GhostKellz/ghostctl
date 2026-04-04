@@ -2,7 +2,7 @@
 # Contributor: CK Technology LLC
 
 pkgname=ghostctl
-pkgver=0.9.8
+pkgver=0.9.9
 pkgrel=1
 pkgdesc="Ghost Infrastructure Control - Complete system and homelab management toolkit"
 arch=('x86_64' 'aarch64')
@@ -16,6 +16,8 @@ optdepends=(
     'restic: for backup functionality'
     'btrfs-progs: for Btrfs filesystem management'
     'proxmox-ve: for Proxmox VE management'
+    'virt-firmware: for UEFI Secure Boot key enrollment'
+    'edk2-ovmf: for UEFI VM firmware'
 )
 # Use git source with signed tag verification for supply-chain security
 # The commit hash is pinned and verified against the signed tag

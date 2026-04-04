@@ -47,6 +47,7 @@ mod systemd;
 mod terminal;
 mod tools;
 pub mod tui;
+mod uefi;
 mod utils;
 mod vfio;
 mod wifi;
