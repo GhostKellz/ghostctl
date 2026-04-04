@@ -1,23 +1,20 @@
 <div align="center">
   <img src="assets/ghostctl-logo.png" alt="GhostCTL Logo" width="200" height="200" />
 
-  # 🚀 GhostCTL - Professional System Administration Toolkit
+  # GhostCTL
+
+  **Professional System Administration Toolkit**
 
   **The Ultimate Linux Management Suite for Power Users, DevOps Engineers & Homelabbers**
+
+  ![Rust](https://img.shields.io/badge/RUST-000000?style=for-the-badge&logo=rust&logoColor=white)
+  ![Linux](https://img.shields.io/badge/LINUX-FCC624?style=for-the-badge&logo=linux&logoColor=black)
+  ![Arch Linux](https://img.shields.io/badge/ARCH_LINUX-1793D1?style=for-the-badge&logo=arch-linux&logoColor=white)
+  ![Docker](https://img.shields.io/badge/DOCKER-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+  ![Proxmox](https://img.shields.io/badge/PROXMOX-E57000?style=for-the-badge&logo=proxmox&logoColor=white)
+  ![NVIDIA](https://img.shields.io/badge/NVIDIA-76B900?style=for-the-badge&logo=nvidia&logoColor=white)
+
 </div>
-
-
-[![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org)
-[![Platform](https://img.shields.io/badge/platform-linux-lightgrey.svg)](https://www.kernel.org)
-[![Build Status](https://github.com/GhostKellz/ghostctl/actions/workflows/ci.yml/badge.svg)](https://github.com/GhostKellz/ghostctl/actions/workflows/ci.yml)
-[![Arch Linux](https://img.shields.io/badge/Arch--Linux-blue?logo=arch-linux&logoColor=white)](https://archlinux.org)
-[![Btrfs](https://img.shields.io/badge/Btrfs--supported-blueviolet?logo=linux)](https://btrfs.readthedocs.io)
-[![Rust](https://img.shields.io/badge/Rust--Toolchain-orange?logo=rust)](https://www.rust-lang.org/)
-[![NVIDIA](https://img.shields.io/badge/NVIDIA--supported-green?logo=nvidia)](https://developer.nvidia.com/)
-[![Vim](https://img.shields.io/badge/Vim--supported-darkgreen?logo=vim)](https://www.vim.org/)
-[![Zsh](https://img.shields.io/badge/Zsh--supported-black?logo=gnu-bash)](https://www.zsh.org/)
-[![Proxmox](https://img.shields.io/badge/Proxmox--helpers-orange?logo=proxmox)](https://www.proxmox.com/)
-[![Docker](https://img.shields.io/badge/Docker--supported-blue?logo=docker)](https://www.docker.com/)
 
 
 
