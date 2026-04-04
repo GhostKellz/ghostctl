@@ -1,20 +1,28 @@
-<div align="center">
+<p align="center">
   <img src="assets/ghostctl-logo.png" alt="GhostCTL Logo" width="200" height="200" />
+</p>
 
-  # GhostCTL
+<h1 align="center">GhostCTL</h1>
 
-  **Professional System Administration Toolkit**
+<p align="center">
+  <strong>Professional System Administration Toolkit</strong>
+</p>
 
-  **The Ultimate Linux Management Suite for Power Users, DevOps Engineers & Homelabbers**
+<p align="center">
+  <strong>The Ultimate Linux Management Suite for Power Users, DevOps Engineers & Homelabbers</strong>
+</p>
 
-  ![Rust](https://img.shields.io/badge/RUST-000000?style=for-the-badge&logo=rust&logoColor=white)
-  ![Linux](https://img.shields.io/badge/LINUX-FCC624?style=for-the-badge&logo=linux&logoColor=black)
-  ![Arch Linux](https://img.shields.io/badge/ARCH_LINUX-1793D1?style=for-the-badge&logo=arch-linux&logoColor=white)
-  ![Docker](https://img.shields.io/badge/DOCKER-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-  ![Proxmox](https://img.shields.io/badge/PROXMOX-E57000?style=for-the-badge&logo=proxmox&logoColor=white)
-  ![NVIDIA](https://img.shields.io/badge/NVIDIA-76B900?style=for-the-badge&logo=nvidia&logoColor=white)
-
-</div>
+<p align="center">
+  <img src="https://img.shields.io/badge/Rust-B7410E?style=for-the-badge&logo=rust&logoColor=white" alt="Rust">
+  <img src="https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Linux">
+  <img src="https://img.shields.io/badge/Arch_Linux-1793D1?style=for-the-badge&logo=arch-linux&logoColor=white" alt="Arch Linux">
+  <img src="https://img.shields.io/badge/Btrfs-8A2BE2?style=for-the-badge&logo=linux&logoColor=white" alt="Btrfs">
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/Proxmox-E57000?style=for-the-badge&logo=proxmox&logoColor=white" alt="Proxmox">
+  <img src="https://img.shields.io/badge/NVIDIA-76B900?style=for-the-badge&logo=nvidia&logoColor=white" alt="NVIDIA">
+  <img src="https://img.shields.io/badge/Vim-117A65?style=for-the-badge&logo=vim&logoColor=white" alt="Vim">
+  <img src="https://img.shields.io/badge/Zsh-428850?style=for-the-badge&logo=gnu-bash&logoColor=white" alt="Zsh">
+</p>
 
 
 
