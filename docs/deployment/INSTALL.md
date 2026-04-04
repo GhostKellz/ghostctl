@@ -3,11 +3,7 @@
 ## Quick Install (Recommended)
 
 ```bash
-# One-line installation (available at ghostctl.cktech.sh)
-curl -sSL https://raw.githubusercontent.com/ghostkellz/ghostctl/main/install.sh | bash
-
-# Or with wget
-wget -qO- https://raw.githubusercontent.com/ghostkellz/ghostctl/main/install.sh | bash
+curl -sSL https://ghostctl.cktech.sh | bash
 ```
 
 ## Installation Options
@@ -20,32 +16,37 @@ The installer automatically detects your distribution and tries methods in this 
 2. **Binary Download** - Downloads pre-built binaries from GitHub releases
 3. **Source Build** - Compiles from source as fallback
 
-### 📦 Package Manager Installation
+### 📦 Distribution-Specific Installation
 
-#### Arch Linux (AUR)
+#### Arch Linux
 ```bash
-# With yay
+# Via AUR helper (recommended)
 yay -S ghostctl
-
-# With paru
+# or
 paru -S ghostctl
 
-# Manual PKGBUILD
-git clone https://aur.archlinux.org/ghostctl.git
-cd ghostctl
+# Manual PKGBUILD from repo
+git clone https://github.com/ghostkellz/ghostctl.git
+cd ghostctl/packaging/arch
 makepkg -si
 ```
 
-#### Debian/Ubuntu
+#### Debian / Ubuntu / Pop!_OS
 ```bash
-# Will be available via APT repository (coming soon)
-# For now, use the universal installer or build from source
+# Build .deb package
+git clone https://github.com/ghostkellz/ghostctl.git
+cd ghostctl
+./packaging/build-packages.sh debian
+sudo dpkg -i build/debian/packages/*.deb
 ```
 
-#### Fedora/RHEL/CentOS
+#### Fedora / RHEL / CentOS
 ```bash
-# Will be available via DNF/YUM repository (coming soon)
-# For now, use the universal installer or build from source
+# Build .rpm package
+git clone https://github.com/ghostkellz/ghostctl.git
+cd ghostctl
+./packaging/build-packages.sh fedora
+sudo rpm -i build/rpm/packages/*.rpm
 ```
 
 ### 💾 Binary Installation
@@ -77,32 +78,29 @@ sudo cp target/release/ghostctl /usr/local/bin/
 ### Custom Installation Directory
 
 ```bash
-# Install to custom directory
-curl -sSL https://raw.githubusercontent.com/ghostkellz/ghostctl/main/install.sh | bash -s -- --dir ~/.local/bin
+curl -sSL https://ghostctl.cktech.sh | bash -s -- --dir ~/.local/bin
 ```
 
 ### Specific Version
 
 ```bash
-# Install specific version
-curl -sSL https://raw.githubusercontent.com/ghostkellz/ghostctl/main/install.sh | bash -s -- --version v1.0.0
+curl -sSL https://ghostctl.cktech.sh | bash -s -- --version v0.9.9
 ```
 
 ### Force Installation Method
 
 ```bash
 # Force binary installation
-curl -sSL https://raw.githubusercontent.com/ghostkellz/ghostctl/main/install.sh | bash -s -- --method binary
+curl -sSL https://ghostctl.cktech.sh | bash -s -- --method binary
 
 # Force source build
-curl -sSL https://raw.githubusercontent.com/ghostkellz/ghostctl/main/install.sh | bash -s -- --method source
+curl -sSL https://ghostctl.cktech.sh | bash -s -- --method source
 ```
 
 ### Skip Optional Features
 
 ```bash
-# Skip shell completions and desktop entry
-curl -sSL https://raw.githubusercontent.com/ghostkellz/ghostctl/main/install.sh | bash -s -- --no-completions --no-desktop
+curl -sSL https://ghostctl.cktech.sh | bash -s -- --no-completions --no-desktop
 ```
 
 ## Environment Variables
@@ -111,8 +109,8 @@ Set these environment variables to customize installation:
 
 ```bash
 export GHOSTCTL_INSTALL_DIR="/usr/local/bin"  # Installation directory
-export GHOSTCTL_VERSION="v1.0.1"             # Specific version
-export GHOSTCTL_METHOD="binary"              # Installation method
+export GHOSTCTL_VERSION="v0.9.9"              # Specific version
+export GHOSTCTL_METHOD="binary"               # Installation method
 ```
 
 ## Post-Installation
@@ -146,19 +144,21 @@ ghostctl version
 
 ## Building Packages
 
-For maintainers and contributors:
+Package files are organized in `packaging/`:
+```
+packaging/
+├── arch/PKGBUILD          # Arch Linux
+├── fedora/ghostctl.spec   # Fedora/RHEL
+├── debian/                # Debian/Ubuntu
+└── build-packages.sh      # Build script
+```
 
+Build commands:
 ```bash
-# Build package for current distribution
-./packaging/build-packages.sh
-
-# Build specific package type
-./packaging/build-packages.sh arch     # Arch Linux
-./packaging/build-packages.sh debian   # Debian/Ubuntu
-./packaging/build-packages.sh fedora   # Fedora/RHEL
-
-# Install build dependencies
-./packaging/build-packages.sh deps
+./packaging/build-packages.sh arch     # Build Arch package
+./packaging/build-packages.sh debian   # Build .deb package
+./packaging/build-packages.sh fedora   # Build .rpm package
+./packaging/build-packages.sh deps     # Install build dependencies
 ```
 
 ## Supported Platforms
@@ -186,7 +186,7 @@ sudo mkdir -p /usr/local/bin
 sudo chown $USER:$USER /usr/local/bin
 
 # Or install to user directory
-curl -sSL https://raw.githubusercontent.com/ghostkellz/ghostctl/main/install.sh | bash -s -- --dir ~/.local/bin
+curl -sSL https://ghostctl.cktech.sh | bash -s -- --dir ~/.local/bin
 ```
 
 ### PATH Issues
@@ -235,4 +235,4 @@ sudo rm /usr/share/zsh/site-functions/_ghostctl
 
 ---
 
-For more information about using GhostCTL after installation, see the [main README](README.md) and [documentation](DOCS.md).
+For more information about using GhostCTL after installation, see the [Commands Reference](../reference/COMMANDS.md).

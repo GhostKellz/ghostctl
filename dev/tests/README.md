@@ -48,19 +48,19 @@ Tests networking and firewall features:
 
 3. **Make test scripts executable:**
    ```bash
-   chmod +x test_scripts/*.sh
+   chmod +x dev/tests/*.sh
    ```
 
 4. **Run the test suites:**
    ```bash
    # Run all tests
-   ./test_scripts/test_all_features.sh
+   ./dev/tests/test_all_features.sh
 
    # Test gaming features specifically
-   ./test_scripts/test_gaming_features.sh
+   ./dev/tests/test_gaming_features.sh
 
    # Test networking features specifically
-   ./test_scripts/test_networking_features.sh
+   ./dev/tests/test_networking_features.sh
    ```
 
 ## 📊 Test Results Interpretation
@@ -169,7 +169,7 @@ After running tests, you can create a report:
 
 ```bash
 # Run all tests and save output
-./test_scripts/test_all_features.sh > test_results.txt 2>&1
+./dev/tests/test_all_features.sh > test_results.txt 2>&1
 
 # View summary
 grep -E "(PASS|FAIL|SKIP)" test_results.txt | sort | uniq -c

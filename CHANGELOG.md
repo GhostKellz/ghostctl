@@ -6,16 +6,46 @@ All notable changes to GhostCTL will be documented in this file.
 
 ### Added
 
-- **UEFI Secure Boot module**: New `ghostctl uefi` command for Windows 11 VMs
-  - `ghostctl uefi status` - Check firmware and tool availability
-  - `ghostctl uefi enroll -o <file>` - Create OVMF VARS with Secure Boot keys
-  - `ghostctl uefi verify <file>` - Verify VARS has keys enrolled
+- **UEFI Secure Boot support**: Added `ghostctl uefi` for preparing Windows 11 VM firmware with pre-enrolled Secure Boot keys
+  - `ghostctl uefi status` checks OVMF firmware files and `virt-fw-vars` availability
+  - `ghostctl uefi enroll -o <file>` creates an OVMF VARS file using the supported Red Hat plus Microsoft key enrollment path
+  - `ghostctl uefi verify <file>` performs a best-effort check for `PK`, `KEK`, `db`, and Secure Boot state in a generated VARS file
+  - output includes the required libvirt `<loader>` and `<nvram>` snippets for VM configuration
 - **SECURITY.md**: Security policy with vulnerability reporting and dependency auditing
 
 ### Documentation
 
-- **docs/uefi/README.md**: UEFI Secure Boot documentation with libvirt integration
-- **docs/reference/COMMANDS.md**: Added UEFI section
+#### Structure Overhaul
+Reorganized documentation from monolithic files to topic-based directories with proper breakout files:
+
+- **docs/btrfs/**: snapshots.md, snapper.md, maintenance.md, recovery.md
+- **docs/storage/**: New directory for S3/MinIO, local, and network storage docs
+- **docs/networking/**: Added dns.md, netcat.md; expanded firewall.md
+- **docs/proxmox/**: Added backup.md, storage.md, templates.md
+- **docs/docker/**: containers.md, compose.md, security.md
+- **docs/security/**: ssh.md, gpg.md
+- **docs/development/**: neovim.md, terminals.md
+- **docs/virtualization/**: gpu-passthrough.md
+- **docs/arch/**: aur.md, pacman.md, mirrors.md, troubleshooting.md
+- **docs/uefi/README.md**: UEFI Secure Boot setup guide
+- **docs/index.md**: Updated with links to all topic directories
+
+#### Fixes
+- **README.md**: Fixed non-existent CLI flags (`--dev`, `--docker`, `--pve`, `--system`), corrected `ghostctl proxmox menu` to `ghostctl pve menu`, fixed typos
+- **docs/deployment/INSTALL.md**: Updated install URLs to use `ghostctl.cktech.sh`
+- **docs/reference/COMMANDS.md**: Removed version clutter, fixed inaccurate command references
+
+### Changed
+
+#### Project Organization
+- **dev/tests/**: Moved test scripts from `test_scripts/` to `dev/tests/`
+- **packaging/**: Reorganized to `packaging/arch/`, `packaging/fedora/`, `packaging/debian/`
+
+### Removed
+
+- **demo_working_features.py**: Outdated v1.0.0 demo script
+- **test_scripts/**: Moved to dev/tests/
+- **install/**: Duplicate install directory
 
 ### Dependencies
 
@@ -118,7 +148,7 @@ This release addresses findings from a comprehensive third-party security audit,
 - `src/nvidia/container.rs` - Group-based Docker access
 - `src/pve.rs` - Masked password input
 - `.github/workflows/*.yml` - SHA-pinned actions
-- `install.sh`, `install/install.sh` - Checksum verification
+- `install.sh` - Checksum verification
 - `PKGBUILD` - Git source with tag verification
 
 ## [1.0.0] - 2025-08-08
@@ -517,5 +547,5 @@ ghostctl systemd restart          # Restart services
 - 📦 **Dependencies**: Library and dependency updates
 - 🏗️ **Infrastructure**: Build and development improvements
 
-For detailed command usage, see [COMMANDS.md](COMMANDS.md).
-For usage guides and examples, see [DOCS.md](DOCS.md).
+For command reference, see [docs/reference/COMMANDS.md](docs/reference/COMMANDS.md).
+For full documentation, see [docs/index.md](docs/index.md).

@@ -1,8 +1,6 @@
-# 📋 GhostCTL Commands Reference v1 
+# 📋 GhostCTL Commands Reference
 
-Complete command documentation for GhostCTL v1.0.1 - The ultimate system and homelab management tool.
-
-⚠️ **Version Note**: This documentation covers the latest v1.0.1 features including the new native network scanner with TUI, enhanced gaming module, complete PVE automation, and all v0.8.2 features (Docker ecosystem, multi-registry support, Restic CLI integration, AUR helper preference system).
+Complete command documentation for GhostCTL - The ultimate system and homelab management tool.
 
 ## 🚀 Core Commands
 
@@ -55,15 +53,14 @@ ghostctl arch bouncer all         # Full system recovery sequence
 
 ### 🎯 NVIDIA Management
 ```bash
-# NVIDIA driver and GPU management
-ghostctl nvidia menu              # NVIDIA management menu
-ghostctl nvidia status            # Check driver status
-ghostctl nvidia drivers           # Driver management (proprietary/open/open-beta)
-ghostctl nvidia container         # Container GPU support setup
+ghostctl nvidia                   # Interactive NVIDIA menu
+ghostctl nvidia install           # Install NVIDIA drivers
+ghostctl nvidia optimize          # Optimize GPU performance
 ghostctl nvidia passthrough       # GPU passthrough setup for VMs
-ghostctl nvidia fix               # Fix NVIDIA issues
-ghostctl nvidia optimize          # Optimize performance
-ghostctl nvidia info              # Show GPU information
+ghostctl nvidia wayland           # Configure Wayland support
+ghostctl nvidia build-source      # Build kernel modules from source
+ghostctl nvidia dkms-status       # Show DKMS module status
+ghostctl nvidia dkms-cleanup      # Clean old DKMS entries
 ```
 
 ## 🛠️ Development Environment
@@ -96,7 +93,7 @@ ghostctl nvim install             # Install Neovim distribution
 ghostctl nvim lazyvim             # Install LazyVim configuration
 ```
 
-### 🔨 Mason.nvim Integration (New in v0.7.0)
+### 🔨 Mason.nvim Integration
 ```bash
 # Mason.nvim LSP/DAP/Tool management
 ghostctl nvim mason               # Access Mason management menu
@@ -118,7 +115,7 @@ ghostctl terminal ghostty         # Setup Ghostty terminal
 ghostctl terminal starship        # Install Starship prompt
 ```
 
-### 🔷 Advanced Terminal Support (New in v0.7.0)
+### 🔷 Advanced Terminal Support
 ```bash
 # Enhanced terminal ecosystem
 # - Ghostty with full configuration
@@ -138,7 +135,7 @@ ghostctl docker status            # Docker status
 ghostctl docker homelab           # Homelab container stacks
 ```
 
-### 🏠 Proxmox VE Management (Enhanced in v0.8.0)
+### 🏠 Proxmox VE Management
 ```bash
 ghostctl pve menu                 # PVE management menu
 ghostctl proxmox menu             # Enhanced Proxmox tools with categories
@@ -165,21 +162,24 @@ ghostctl pve ct start <id>        # Start container
 ghostctl pve ct stop <id>         # Stop container
 ```
 
-## 🔐 Security & Key Management (Updated in v0.7.0)
+## 🔐 Security & Key Management
 
 ### Security Commands
 ```bash
-# Full security menu (both long and short form)
 ghostctl security menu            # Security management menu
-ghostctl sec menu                 # Security management menu (short alias)
+ghostctl security ssh             # SSH configuration
+ghostctl security gpg             # GPG management
+ghostctl security credentials     # Credential management
 
-# Direct command access
+# Short aliases
+ghostctl sec menu                 # Security menu (short)
+ghostctl sec ssh                  # SSH (short)
+ghostctl sec gpg                  # GPG (short)
+ghostctl sec credentials          # Credentials (short)
+
+# Standalone commands
 ghostctl ssh                      # SSH key management
 ghostctl gpg                      # GPG key management
-ghostctl security credentials     # Credential management
-ghostctl sec credentials          # Credential management (short alias)
-ghostctl security audit           # Security audit
-ghostctl sec audit                # Security audit (short alias)
 ```
 
 ### SSH Key Management
@@ -194,12 +194,7 @@ ghostctl ssh config               # SSH configuration management
 
 ### GPG Key Management
 ```bash
-# GPG operations (direct access)
-ghostctl gpg                      # Interactive GPG key management
-ghostctl gpg generate             # Generate new GPG key
-ghostctl gpg list                 # List GPG keys
-ghostctl gpg export               # Export GPG keys
-ghostctl gpg import               # Import GPG keys
+ghostctl gpg                      # Interactive GPG key management menu
 ```
 
 ### Credential Management
@@ -216,7 +211,7 @@ ghostctl sec credentials          # Credential management menu (short)
 # - Delete credential
 ```
 
-## 💾 Backup & Recovery (New in v0.7.0)
+## 💾 Backup & Recovery
 
 ### Backup Management
 ```bash
@@ -235,7 +230,7 @@ ghostctl restore btrfs            # Rollback Btrfs snapshot
 ghostctl restore chroot           # Enter recovery chroot
 ```
 
-## 🗃️ Filesystem Management (New in v0.7.0)
+## 🗃️ Filesystem Management
 
 ### Btrfs Operations
 ```bash
@@ -259,7 +254,7 @@ ghostctl btrfs snapper edit CONFIG # Edit snapper configuration
 ghostctl btrfs snapper list      # List snapper configurations
 ```
 
-## 🌐 Network & Infrastructure (Updated in v0.7.0)
+## 🌐 Network & Infrastructure
 
 ### Network Management
 ```bash
@@ -276,7 +271,7 @@ ghostctl scan TARGET              # Network port scanning with TUI
 ghostctl network scan TARGET      # Legacy alias (deprecated)
 ```
 
-### DNS Operations (Enhanced in v0.8.0)
+### DNS Operations
 ```bash
 # DNS lookup and management
 ghostctl dns google.com           # DNS lookup for domain
@@ -290,7 +285,7 @@ ghostctl dns --reverse 8.8.8.8    # Reverse DNS lookup
 # - DNS performance testing
 ```
 
-### Network Scanning with Native TUI Scanner (New in v1.0.1)
+### Network Scanning with Native TUI Scanner
 ```bash
 # Basic scan with beautiful TUI
 ghostctl scan 192.168.1.1
@@ -363,7 +358,7 @@ ghostctl cloud azure              # Azure tools
 ghostctl cloud gcp                # Google Cloud tools
 ```
 
-## ⚙️ System Services (New in v0.7.0)
+## ⚙️ System Services
 
 ### Systemd Management
 ```bash
@@ -374,7 +369,7 @@ ghostctl systemd disable          # Disable service
 ghostctl systemd restart          # Restart service
 ```
 
-## 🔐 SSL Certificate Management (Enhanced in v0.8.0)
+## 🔐 SSL Certificate Management
 
 ### SSL Operations
 ```bash
@@ -406,7 +401,7 @@ ghostctl nginx restart            # Restart Nginx
 ghostctl nginx ssl-setup <domain> # Setup SSL for domain
 ```
 
-## 💾 Restic Backup CLI (New in v0.8.0)
+## 💾 Restic Backup CLI
 
 ### Restic Operations
 ```bash
@@ -422,7 +417,7 @@ ghostctl backup menu              # Full backup management system
 # - Check repository integrity
 ```
 
-## 📦 AUR Helper Management (Enhanced in v0.8.0)
+## 📦 AUR Helper Management
 
 ### AUR Operations  
 ```bash
@@ -460,64 +455,10 @@ ghostctl homelab monitoring       # Setup monitoring stack
 
 ### Tool Management
 ```bash
-ghostctl tools menu               # External tools menu
-ghostctl tools external           # External tools management
-ghostctl tools acme               # acme.sh SSL management
+ghostctl tools install            # Install development tools
+ghostctl tools configure          # Configure tools
+ghostctl tools update             # Update tools
 ```
-
----
-
-## 🆕 What's New in v0.8.0
-
-### 🚀 Enhanced Infrastructure Management 
-- **Restic CLI Integration**: Complete interactive restic backup management with repository initialization, backup creation, snapshot management, restoration, and integrity checking
-- **AUR Helper Preference System**: Persistent AUR helper selection (reap/paru/yay) with automatic fallback and installation management  
-- **Enhanced Proxmox VE Tools**: Comprehensive Proxmox management with categorized scripts, cluster management, bulk operations, and system administration tools
-
-### 🌐 Network & DNS Improvements
-- **Enhanced DNS Tools**: DNSSEC verification, comprehensive record type support, and DNS performance testing
-- **Interactive Network Scanning**: Target-based scanning with real-time results, service detection, and network discovery
-- **SSL Certificate Enhancements**: PowerDNS and Azure DNS provider support for ACME.sh integration
-
-### 💾 Backup & Security Enhancements  
-- **Restic CLI Menu**: Full interactive menu for repository management, backup scheduling, snapshot browsing, and restoration workflows
-- **Container Security**: Enhanced Docker container management with security scanning and vulnerability assessment
-- **Credential Management**: Improved secure credential storage with interactive management interface
-
-## 🆕 What's New in v0.7.0
-
-### 🚀 Enhanced CLI Experience (New in v0.7.0)
-- **Short Command Aliases**: Quick access with `ghostctl net` and `ghostctl sec` shortcuts
-- **Direct Command Access**: Run `ghostctl ssh`, `ghostctl gpg`, `ghostctl dns`, `ghostctl nc` directly without menus
-- **Unified Menu System**: Both long and short forms support interactive menus (`ghostctl network menu` or `ghostctl net menu`)
-- **Intuitive Command Structure**: Unix-like command patterns for better usability
-- **Backward Compatibility**: All existing commands continue to work as before
-
-### 🎯 Enhanced System Management
-- **Arch Linux Enhancements**: Complete system maintenance with dotfiles management, disk space checking, package database rebuild, swap/zram configuration
-- **NVIDIA Complete Suite**: Driver management (proprietary/open/open-beta), container runtime setup, GPU passthrough for VMs
-- **Health Monitoring**: System health checks, performance optimization, maintenance automation
-
-### 🛠️ Development Environment Improvements  
-- **Mason.nvim Integration**: Zero-config Neovim development environments for multiple languages
-- **Terminal Ecosystem**: Full Alacritty support, enhanced Ghostty/WezTerm configurations
-- **Language Support**: Comprehensive Rust, Python, Go, Zig development environments
-
-### 🔐 Security & Infrastructure
-- **Enhanced Security Management**: Direct command access for SSH (`ghostctl ssh`) and GPG (`ghostctl gpg`) operations
-- **Short Command Aliases**: Use `ghostctl sec` and `ghostctl net` for quick access to security and network menus
-- **Credential Management**: Secure credential storage and management with interactive menus
-- **Backup & Recovery**: Automated backup systems, integrity verification, system recovery
-- **Network Tools**: Direct access to DNS lookups (`ghostctl dns`), netcat utilities (`ghostctl nc`), and network diagnostics
-
-### 📁 Filesystem & Storage
-- **Btrfs Management**: Snapshot creation, restoration, management
-- **Storage Optimization**: Disk space monitoring, cleanup automation
-
-### ☁️ Cloud & DevOps
-- **Cloud Provider Support**: AWS, Azure, GCP tool integration
-- **Container Ecosystem**: Enhanced Docker management, GPU container support
-- **Infrastructure as Code**: Network configuration, service management
 
 ---
 
@@ -574,9 +515,8 @@ ghostctl homelab media-server
 ## 📚 Documentation Structure
 
 - **COMMANDS.md** (this file) - Complete command reference
-- **DOCS.md** - Usage guides and examples
-- **README.md** - Overview and quick start
-- **Individual module docs** - Detailed feature documentation
+- **README.md** - Project overview and quick start
+- **INSTALL.md** - Installation guide
 
 ---
 
@@ -633,14 +573,10 @@ ghostctl systemd menu           # System service management
 ghostctl nginx ssl-setup        # Automated SSL setup
 ```
 
----
-
-For detailed usage examples and guides, see [DOCS.md](DOCS.md).
-For quick start and overview, see [README.md](README.md).
-               # Update GhostCTL
-ghostctl update system        # Update system packages
-ghostctl update ghost-tools   # Update Ghost tools
-ghostctl update all           # Update everything
+### Updates
+```bash
+ghostctl system update        # Update system packages
+ghostctl tools update         # Update Ghost tools
 ```
 
 ### Maintenance
@@ -1107,9 +1043,8 @@ ghostctl uefi verify /path/to/vars.fd
 
 ---
 
-For more detailed information, see the specific documentation files:
-- [Docker Guide](DOCKER.md)
-- [Proxmox Integration](PROXMOX.md)
-- [Cloud Services](CLOUD.md)
-- [Backup with Restic](RESTIC.md)
+For more detailed information, see:
+- [Docker Guide](../docker/README.md)
+- [Proxmox Integration](../proxmox/README.md)
+- [Network Scanner](../networking/scanner.md)
 - [UEFI Secure Boot](../uefi/README.md)

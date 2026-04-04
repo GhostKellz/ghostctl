@@ -1,103 +1,56 @@
-# 📚 GhostCTL Documentation Index
+# GhostCTL Documentation
 
-## 🚀 **Quick Start**
-- [Installation Guide](deployment/INSTALL.md) - Get GhostCTL running on your system
-- [Command Reference](reference/COMMANDS.md) - Essential commands and syntax
+## Quick Start
 
-## 🔥 **Core Features**
+- [Installation Guide](deployment/INSTALL.md) - Get GhostCTL running
+- [Command Reference](reference/COMMANDS.md) - All commands and syntax
 
-### 🔍 **Network & Security**
-- [**Scanner**](features/SCANNER.md) - Native Rust port scanner with TUI
-- [**Networking**](features/NETWORKING.md) - Advanced networking, firewalls, and virtualization
-- [**Docker**](features/DOCKER.md) - Container management and DevOps tools
+## System Management
 
-### 🖥️ **Virtualization & Cloud**
-- [**Proxmox VE**](features/PROXMOX.md) - Complete PVE management and automation
-- [**PVE v9 Features**](features/pve_v9.md) - Latest Proxmox VE capabilities
+| Topic | Description |
+|-------|-------------|
+| [Arch Linux](arch/README.md) | Pacman, AUR, mirrors, system maintenance |
+| [Btrfs](btrfs/README.md) | Snapshots, snapper, filesystem management |
+| [NVIDIA](nvidia/README.md) | Drivers, DKMS, optimization, Wayland |
 
-### 🎮 **Gaming & Desktop**
-- [**Proton & Gaming**](features/PROTON.md) - Gaming optimization and compatibility
+## Infrastructure
 
-## 🏗️ **System Administration**
-- [**Architecture Overview**](architecture/) - System design and module structure
-- [**API Reference**](api/) - REST API and integration interfaces
-- [**Development Guides**](guides/) - Contributing and extending GhostCTL
+| Topic | Description |
+|-------|-------------|
+| [Proxmox](proxmox/README.md) | PVE management, templates, clustering |
+| [Docker](docker/README.md) | Containers, compose, homelab stacks |
+| [Virtualization](virtualization/README.md) | VFIO, IOMMU, GPU passthrough |
+| [Storage](storage/README.md) | S3, MinIO, local and network storage |
 
-## 📋 **Reference Materials**
-- [**TODO & Roadmap**](reference/TODO.md) - Planned features and development timeline
-- [**Command Reference**](reference/COMMANDS.md) - Complete command documentation
+## Networking & Security
 
-## 🔧 **Migration & Updates**
+| Topic | Description |
+|-------|-------------|
+| [Networking](networking/README.md) | Firewalls, DNS, port scanning |
+| [Security](security/README.md) | SSH, GPG, credentials |
+| [UEFI](uefi/README.md) | Secure Boot, key enrollment |
 
-### Recent Changes (v1.0+)
-- **✅ Native Scanner** - Replaced external `gscan` with high-performance Rust implementation
-- **✅ Enhanced Documentation** - Reorganized docs with comprehensive feature coverage
-- **✅ Advanced Networking** - Enterprise-grade nftables, UFW, and libvirt integration
-- **✅ Proxmox Integration** - Complete PVE automation with native scanner support
+## Development & Gaming
 
-## 🎯 **Popular Use Cases**
+| Topic | Description |
+|-------|-------------|
+| [Development](development/README.md) | Rust, Zig, Go, Python environments |
+| [Gaming](gaming/README.md) | Proton, graphics optimization |
 
-### 🔐 **Security & Compliance**
+## Quick Examples
+
 ```bash
-# Network security scanning
-ghostctl scan 192.168.1.0/24
+# System management
+ghostctl arch fix                 # Fix Arch issues
+ghostctl btrfs create backup      # Create snapshot
 
-# Firewall automation with scan integration
-ghostctl pve firewall
+# Network scanning
+ghostctl scan 192.168.1.0/24      # Scan network
 
-# Advanced nftables management
-ghostctl network firewall advanced
+# Proxmox
+ghostctl pve menu                 # PVE management
+
+# GPU passthrough
+ghostctl iommu groups --gpu       # List GPU IOMMU groups
+ghostctl vfio setup               # VFIO wizard
 ```
-
-### 🏢 **Enterprise Infrastructure**
-```bash
-# Proxmox cluster management
-ghostctl proxmox menu
-
-# Storage migration and backup rotation
-ghostctl pve storage-migration
-ghostctl pve backup-rotation
-
-# Container registry and DevOps
-ghostctl docker registry
-```
-
-### 🎮 **Gaming & Desktop**
-```bash
-# Gaming environment optimization
-ghostctl gaming setup
-
-# Graphics and performance tuning
-ghostctl gaming graphics
-ghostctl gaming performance
-```
-
-## 🆘 **Support & Troubleshooting**
-
-### Common Issues
-- **Scanner Performance**: Use appropriate timing templates for your network
-- **Permission Errors**: Some features require elevated privileges
-- **Integration Issues**: Ensure target services (Docker, Proxmox) are running
-
-### Getting Help
-- Check the [Command Reference](reference/COMMANDS.md) for syntax
-- Review feature-specific documentation in [`features/`](features/)
-- Examine the [development roadmap](reference/TODO.md) for planned enhancements
-
-## 📈 **Performance Characteristics**
-
-| Feature | Performance | Resource Usage |
-|---------|-------------|----------------|
-| Native Scanner | 1000 ports/30-60s | <50MB RAM |
-| Network Management | Real-time | Minimal overhead |
-| PVE Integration | API-limited | Low CPU impact |
-| Container Ops | Docker-native | Efficient delegation |
-
----
-
-**📍 Quick Navigation:**
-- [📖 Main README](../README.md) - Project overview and features
-- [⚡ Installation](deployment/INSTALL.md) - Get started immediately
-- [🔍 Scanner Guide](features/SCANNER.md) - Network discovery and analysis
-- [🌐 Networking](features/NETWORKING.md) - Advanced network management
-- [🏢 Enterprise](features/PROXMOX.md) - Business infrastructure automation

@@ -28,18 +28,6 @@
 
 GhostCTL is a comprehensive system administration platform that transforms complex Linux operations into intuitive, interactive workflows. Built in Rust for performance and reliability, it provides enterprise-grade tools through a user-friendly interface.
 
-## 🚀 Quick Install
-
-```bash
-# One-line installation for all Linux distributions
-curl -sSL https://ghostctl.cktech.sh | bash
-```
-
-**Supports:** Arch Linux, Ubuntu/Debian, Fedora/RHEL, openSUSE, Alpine, macOS
-**Auto-detects:** Your OS and installs via package manager, binary, or source build
-
-[📋 **Detailed Installation Guide**](INSTALL.md) • [🎯 **All Installation Options**](INSTALL.md#installation-options)
-
 ## 🎯 Why GhostCTL?
 
 - **🔧 All-in-One Solution**: Replace dozens of tools with one comprehensive platform
@@ -63,13 +51,13 @@ curl -sSL https://ghostctl.cktech.sh | bash
 - **SSL Certificate Management**: GhostCert integration for automated certificate handling
 - **Security Auditing**: Comprehensive system security assessment and recommendations
 
-### 💾 **Data Protection & Backups** (Enhanced in v0.8.0)
+### 💾 **Data Protection & Backups**
 - **Btrfs Integration**: Snapshot management, subvolume operations, filesystem optimization
 - **Snapper Automation**: Automated snapshot creation, cleanup, and rollback capabilities
 - **Restic CLI Tools**: Interactive restic backup management with repository initialization, snapshot browsing, restoration workflows, and integrity checking
 - **Automated Workflows**: Custom backup scripts with systemd timer integration
 
-### ☁️ **Object Storage & S3 Management** (New in v1.0.0)
+### ☁️ **Object Storage & S3 Management**
 - **MinIO Cluster Management**: Distributed cluster setup, node management, and health monitoring
 - **Erasure Code Configuration**: Automated EC setup with performance vs storage optimization
 - **Performance Tuning**: System-level optimization for storage, network, and memory usage
@@ -77,30 +65,33 @@ curl -sSL https://ghostctl.cktech.sh | bash
 - **Backup & Replication**: Cross-cluster replication and disaster recovery planning
 - **S3 Compatible Operations**: Bucket management, file operations, and AWS CLI integration
 
-### 🐳 **DevOps & Container Management** (Enhanced in v1.0.0)
+### 🐳 **DevOps & Container Management**
 - **Docker Registry Mirror Setup**: Local registry deployment with corporate proxy support and authentication
 - **Container Cleanup Tools**: Automated cleanup for images, volumes, networks, and containers with safety checks
-- **Docker Registry**: Private registry management (`docker.cktechx.io` integration)
+- **Docker Registry**: Private registry management
 - **Container Orchestration**: Docker Compose, Swarm, and deployment automation
 - **GitHub Templates**: Direct deployment from repository templates
 - **Environment Management**: Multi-environment project isolation
 
-### 🏥 **Proxmox VE Management** (Major v1.0.0 Update)
-- **Template Management**: Complete lifecycle management for LXC containers, VM ISOs, and appliance templates with upload/download/customization capabilities
+### 🏥 **Proxmox VE Management**
+- **Template Management**: Complete lifecycle management for LXC containers, VM ISOs, and appliance templates
 - **Storage Migration**: VM/container storage migration tools with bulk operations and storage pool management
-- **Backup Rotation & Pruning**: Automated backup job management, retention policies, verification, and pruning with comprehensive analytics
-- **Firewall Automation**: Advanced firewall rule management with security profiles, network scanning (gscan integration), and automated policy enforcement
-- **Enhanced Script Categories**: Container templates, VMs, system administration, monitoring tools, and development environments
+- **Backup Rotation & Pruning**: Automated backup job management, retention policies, and verification
+- **Firewall Automation**: Advanced firewall rule management with security profiles and network scanning
 - **Cluster Management**: Join/leave cluster operations, node management, and cluster status monitoring
 - **Bulk Operations**: Mass VM/container start/stop/restart with confirmation prompts
-- **System Administration**: Post-install setup, backup management, resource usage reports, and network configuration
-- **Community Scripts Integration**: Access to 40+ categorized Proxmox helper scripts with preview and execution
+- **Community Scripts Integration**: Access to 40+ categorized Proxmox helper scripts
 
-### 🛠️ **System Administration** (Enhanced in v0.8.0)
+### 🛠️ **System Administration**
 - **Arch Linux Optimization**: Package management, AUR helpers with persistent preferences, system fixes
 - **AUR Helper Management**: Preference system for reaper/paru/yay with automatic detection and installation
 - **Service Management**: Systemd operations, log analysis, performance monitoring
-- **Network Diagnostics**: Enhanced DNS tools with DNSSEC verification, interactive network scanning, and comprehensive troubleshooting
+- **Network Diagnostics**: DNS tools with DNSSEC verification, network scanning, and troubleshooting
+
+### 🔒 **UEFI & Virtualization**
+- **Secure Boot Management**: Generate OVMF VARS with Microsoft keys for Windows 11 VMs
+- **Key Enrollment**: Automated Secure Boot key enrollment via virt-fw-vars
+- **VARS Verification**: Validate Secure Boot configuration in OVMF firmware files
 
 ### 💻 **Development Environment**
 - **Neovim Management**: Health checks, plugin management, LSP configuration
@@ -112,32 +103,15 @@ curl -sSL https://ghostctl.cktech.sh | bash
 
 ### Installation
 
-#### Arch Linux (AUR)
 ```bash
-yay -S ghostctl
+curl -sSL https://ghostctl.cktech.sh | bash
 ```
-
-#### Universal Installer (All Distributions) - **Recommended**
-```bash
-curl -sSL https://raw.githubusercontent.com/ghostkellz/ghostctl/main/install/install.sh | bash
-```
-
-The universal installer supports:
-- **Linux**: x86_64 and aarch64 (GNU and musl)
-- **Automatic OS Detection**: Arch, Debian/Ubuntu, RHEL/Fedora
-- **Fallback Building**: Builds from source if binaries aren't available
-- **Custom Install Locations**: Use `--install-dir` for custom paths
 
 #### Manual Installation
 ```bash
-# Clone repository
 git clone https://github.com/ghostkellz/ghostctl.git
 cd ghostctl/ghostctl
-
-# Build from source
 cargo build --release
-
-# Install
 sudo install target/release/ghostctl /usr/local/bin/
 ```
 
@@ -171,9 +145,9 @@ ghostctl arch menu             # Arch Linux specific tools
 ghostctl backup menu           # Backup management
 ghostctl btrfs menu            # Btrfs operations
 
-# DevOps & Infrastructure  
+# DevOps & Infrastructure
 ghostctl docker menu           # Docker/container management
-ghostctl proxmox menu          # Proxmox VE management (enhanced v1.0.0)
+ghostctl pve menu              # Proxmox VE management
 ghostctl cloud menu            # Cloud provider tools
 
 # Storage Management
@@ -192,42 +166,33 @@ ghostctl security menu         # Security & key management
 ghostctl nginx menu            # Nginx configuration
 ```
 
-### Quick Access Flags
+### Direct Subcommands
 ```bash
-# Direct menu access
-ghostctl --dev                 # Development environment menu
-ghostctl --docker             # Docker management menu  
-ghostctl --pve                 # Proxmox VE menu
-ghostctl --system             # System management menu
+# Jump directly to specific menus
+ghostctl dev menu              # Development environment
+ghostctl docker menu           # Docker management
+ghostctl pve menu              # Proxmox VE management
+ghostctl arch menu             # Arch Linux tools
 ```
 
 ### Quick Operations
 ```bash
-# Version and help
-ghostctl version              # Show detailed version info
-ghostctl backup menu             # Backup management system
-ghostctl restic menu             # Interactive restic CLI tools
+ghostctl version                 # Show version info
+ghostctl backup menu             # Backup management
+ghostctl btrfs menu              # Btrfs snapshots
 
-# Infrastructure & Virtualization
-ghostctl proxmox menu            # Enhanced Proxmox VE management (v1.0.0)
-ghostctl pve templates           # PVE template management
-ghostctl pve firewall            # PVE firewall automation with gscan
-ghostctl pve storage             # PVE storage migration tools
-ghostctl pve backup              # PVE backup rotation & pruning
+# Virtualization
+ghostctl pve menu                # Proxmox VE management
+ghostctl uefi status             # Check UEFI dependencies
+ghostctl uefi enroll -o file.fd  # Create Secure Boot VARS
 
-# Object Storage & MinIO
-ghostctl storage s3              # MinIO cluster management
-ghostctl s3 cluster              # MinIO distributed setup
-ghostctl s3 performance         # MinIO performance tuning
+# Containers & Storage
+ghostctl docker menu             # Docker management
+ghostctl storage s3              # MinIO/S3 management
 
-# Infrastructure as Code  
-ghostctl infrastructure ansible  # Ansible management
-ghostctl infrastructure terraform # Terraform operations
-
-# Development & System
-ghostctl arch aur               # AUR helper management
-ghostctl nvim health-check       # Neovim diagnostics
-ghostctl shell setup-zsh         # ZSH configuration
+# Development
+ghostctl dev menu                # Development tools
+ghostctl nvim menu               # Neovim management
 ```
 
 ## 🏗️ Architecture
@@ -276,11 +241,10 @@ GhostCTL/
 
 ## 📚 Documentation
 
-- **[Commands Reference](COMMANDS.md)** - Complete command documentation with v0.8.0 features
-- **[User Guide](DOCS.md)** - Detailed usage instructions and examples  
-- **[Change Log](CHANGELOG.md)** - Version history and feature updates
-- **[Configuration](config.md)** - Setup and customization
-- **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
+- **[Full Documentation](docs/index.md)** - Complete documentation index
+- **[Commands Reference](docs/reference/COMMANDS.md)** - All commands and syntax
+- **[Installation Guide](docs/deployment/INSTALL.md)** - Installation options
+- **[Change Log](CHANGELOG.md)** - Version history
 
 ## 🤝 Contributing
 
@@ -305,9 +269,9 @@ cargo install --path ghostctl
 ## 📦 Package Information
 
 ### Dependencies
-- **Core**: Rust 1.70+, OpenSSL
-- **Optional**: Docker, Ansible, Terraform, Azure CLI, AWS CLI, PowerDNS
-- **Recommended**: Snapper, Restic, Neovim, ZSH, gscan (for network scanning)
+- **Core**: Rust 1.91+, OpenSSL
+- **Optional**: Docker, Ansible, Terraform, virt-firmware (for UEFI)
+- **Recommended**: Snapper, Restic, Neovim, ZSH
 
 ### Supported Distributions
 - ✅ Arch Linux (native package)
@@ -326,7 +290,7 @@ GhostCTL follows security best practices:
 - 📊 Regular security assessments
 - 🔒 Encrypted backup and communication
 
-Report security issues to: security@ghostctl.dev
+Report security issues to: ckelley@ghostkellz.sh
 
 ## 📄 License
 
@@ -343,12 +307,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - 🐛 **Issues**: [GitHub Issues](https://github.com/ghostkellz/ghostctl/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/ghostkellz/ghostctl/discussions)
-- 📧 **Email**: support@ghostctl.io
-- 📖 **Documentation**: [docs.ghostctl.dev](https://docs.ghostctl.dev)
+- 📧 **Email**: ckelley@ghostkellz.sh
 
 ---
 
-**Made for for the Linux community**
+**Made for the Linux community**
 
 *GhostCTL - Simplifying Linux administration, one command at a time.*
 

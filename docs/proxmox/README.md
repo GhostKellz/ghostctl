@@ -1,16 +1,23 @@
-# 🏠 Proxmox Integration with GhostCTL
+# Proxmox Integration
 
 Complete guide for homelab automation and Proxmox VE integration.
 
-## 🚀 Overview
+## Documentation
+
+- [Backup Management](backup.md) - Backup rotation and PBS integration
+- [Storage Migration](storage.md) - VM/CT storage operations
+- [Templates](templates.md) - Template creation and management
+- [PVE v9](pve_v9.md) - Proxmox VE 9 features
+
+## Overview
 
 GhostCTL provides comprehensive Proxmox Virtual Environment (PVE) integration for:
 
-### 🆕 v1.0.0 Enterprise Features:
+### Enterprise Features
 - **Template Management**: Complete lifecycle for LXC/VM templates with upload/download
 - **Storage Migration**: VM/Container storage migration with live operations support
-- **Backup Rotation & Pruning**: Advanced backup management with retention policies  
-- **Firewall Automation**: Security rule management with gscan network scanning integration
+- **Backup Rotation & Pruning**: Advanced backup management with retention policies
+- **Firewall Automation**: Security rule management with network scanning integration
 
 ### Core Features:
 - Virtual machine management and automation
@@ -731,4 +738,4 @@ echo never > /sys/kernel/mm/transparent_hugepage/enabled
 
 ---
 
-For container deployment strategies, see [Docker Guide](DOCKER.md). For backup integration, see [Backup with Restic](RESTIC.md).
+For container deployment strategies, see [Docker Guide](../docker/README.md).

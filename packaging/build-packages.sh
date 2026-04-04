@@ -50,7 +50,7 @@ build_arch_package() {
         return 1
     fi
 
-    cd "$PROJECT_ROOT"
+    cd "$PACKAGING_DIR/arch"
 
     # Update PKGBUILD version
     sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
@@ -122,7 +122,7 @@ build_fedora_package() {
         ghostctl/
 
     # Copy spec file and update version
-    cp "$PACKAGING_DIR/ghostctl.spec" "$BUILD_DIR/rpm/SPECS/"
+    cp "$PACKAGING_DIR/fedora/ghostctl.spec" "$BUILD_DIR/rpm/SPECS/"
     sed -i "s/^Version:.*/Version:        $VERSION/" "$BUILD_DIR/rpm/SPECS/ghostctl.spec"
 
     # Build RPM
