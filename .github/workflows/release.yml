@@ -58,13 +58,18 @@ jobs:
           ARCHIVE_DIR="ghostctl-${VERSION}-${TARGET}"
           BINARY="./ghostctl/target/release/ghostctl"
 
-          mkdir -p "$ARCHIVE_DIR"
+          mkdir -p "$ARCHIVE_DIR/completions"
           cp "$BINARY" "$ARCHIVE_DIR/ghostctl"
           cp README.md "$ARCHIVE_DIR/" 2>/dev/null || true
           cp LICENSE "$ARCHIVE_DIR/" 2>/dev/null || true
-          cp COMMANDS.md "$ARCHIVE_DIR/" 2>/dev/null || true
-          cp DOCS.md "$ARCHIVE_DIR/" 2>/dev/null || true
+          cp CHANGELOG.md "$ARCHIVE_DIR/" 2>/dev/null || true
+          cp man/ghostctl.1 "$ARCHIVE_DIR/" 2>/dev/null || true
           cp install.sh "$ARCHIVE_DIR/" 2>/dev/null || true
+
+          # Generate shell completions from built binary
+          "$BINARY" completion bash > "$ARCHIVE_DIR/completions/ghostctl.bash"
+          "$BINARY" completion zsh > "$ARCHIVE_DIR/completions/_ghostctl"
+          "$BINARY" completion fish > "$ARCHIVE_DIR/completions/ghostctl.fish"
 
           tar -czvf "ghostctl-${VERSION}-${TARGET}.tar.gz" "$ARCHIVE_DIR"
 
@@ -158,8 +163,8 @@ jobs:
             ### Documentation
 
             - [Getting Started](https://github.com/ghostkellz/ghostctl#readme)
-            - [Commands Reference](https://github.com/ghostkellz/ghostctl/blob/main/COMMANDS.md)
-            - [Documentation](https://github.com/ghostkellz/ghostctl/blob/main/DOCS.md)
+            - [Commands Reference](https://github.com/ghostkellz/ghostctl/blob/main/docs/reference/COMMANDS.md)
+            - [Documentation](https://github.com/ghostkellz/ghostctl/blob/main/docs/README.md)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

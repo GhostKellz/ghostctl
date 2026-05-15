@@ -5,6 +5,7 @@ use crate::{
     shell, sysctl, systemd, tools, uefi, vfio, wifi,
 };
 use clap::{Arg, ArgAction, ArgMatches, Command};
+use clap_complete::{Shell, generate};
 use dialoguer::{Select, theme::ColorfulTheme};
 
 // Command-line interface setup
@@ -60,20 +61,20 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("system")
-                .about("System management")
+                .about("Manage system packages and services")
                 .subcommand(Command::new("update").about("Update system packages"))
                 .subcommand(Command::new("status").about("Show system status"))
                 .subcommand(Command::new("arch").about("Arch Linux management"))
-                .subcommand(Command::new("nixos").about("NixOS management")),
+                .subcommand(Command::new("nixos").about("Manage NixOS system")),
         )
         .subcommand(
             Command::new("dev")
-                .about("Development environment")
+                .about("Manage development tools and environments")
                 .subcommand(Command::new("menu").about("Development menu"))
-                .subcommand(Command::new("rust").about("Rust development"))
-                .subcommand(Command::new("zig").about("Zig development"))
-                .subcommand(Command::new("go").about("Go development"))
-                .subcommand(Command::new("python").about("Python development")),
+                .subcommand(Command::new("rust").about("Manage Rust toolchain"))
+                .subcommand(Command::new("zig").about("Manage Zig toolchain"))
+                .subcommand(Command::new("go").about("Manage Go toolchain"))
+                .subcommand(Command::new("python").about("Manage Python toolchain")),
         )
         .subcommand(
             Command::new("pve")
@@ -115,20 +116,20 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("docker")
-                .about("Docker management")
+                .about("Manage Docker containers and stacks")
                 .subcommand(Command::new("menu").about("Docker menu"))
                 .subcommand(Command::new("install").about("Install Docker"))
-                .subcommand(Command::new("status").about("Docker status"))
+                .subcommand(Command::new("status").about("Show Docker service status"))
                 .subcommand(Command::new("homelab").about("Homelab stacks")),
         )
         .subcommand(
             Command::new("scripts")
-                .about("Script management")
+                .about("Manage and run local scripts")
                 .subcommand(Command::new("menu").about("Scripts menu"))
                 .subcommand(Command::new("local").about("Local scripts"))
                 .subcommand(
                     Command::new("run")
-                        .about("Run script")
+                        .about("Run a local script by name")
                         .arg(Arg::new("script").required(true).help("Script name")),
                 )
                 .subcommand(
@@ -152,7 +153,7 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("nginx")
-                .about("Nginx management")
+                .about("Manage Nginx web server")
                 .subcommand(Command::new("menu").about("Nginx menu"))
                 .subcommand(Command::new("status").about("Nginx status"))
                 .subcommand(Command::new("restart").about("Restart Nginx"))
@@ -171,31 +172,30 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("terminal")
-                .about("Terminal configuration")
+                .about("Configure terminal emulators")
                 .subcommand(Command::new("menu").about("Terminal menu"))
                 .subcommand(Command::new("ghostty").about("Install Ghostty"))
                 .subcommand(Command::new("starship").about("Install Starship")),
         )
         .subcommand(
             Command::new("ghost")
-                .about("Ghost tools management")
+                .about("Manage Ghost tool suite")
                 .subcommand(Command::new("menu").about("Ghost tools menu"))
                 .subcommand(Command::new("install-all").about("Install all Ghost tools"))
                 .subcommand(Command::new("reaper").about("Install Reaper"))
                 .subcommand(Command::new("oxygen").about("Install Oxygen"))
                 .subcommand(Command::new("zion").about("Install Zion"))
-                .subcommand(Command::new("status").about("Check status")),
+                .subcommand(Command::new("status").about("Show Ghost tool suite status")),
         )
         .subcommand(
             Command::new("homelab")
-                .about("Homelab management")
+                .about("Manage homelab environment")
                 .subcommand(Command::new("menu").about("Homelab menu"))
-                .subcommand(Command::new("init").about("Initialize homelab"))
-                .subcommand(Command::new("monitoring").about("Setup monitoring")),
+                .subcommand(Command::new("init").about("Initialize homelab")),
         )
         .subcommand(
             Command::new("btrfs")
-                .about("Btrfs filesystem management")
+                .about("Manage Btrfs filesystems and snapshots")
                 .subcommand(Command::new("list").about("List snapshots"))
                 .subcommand(
                     Command::new("create")
@@ -422,15 +422,15 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("security")
-                .about("Security management")
+                .about("Manage security and credentials")
                 .subcommand(Command::new("menu").about("Security management menu"))
-                .subcommand(Command::new("ssh").about("SSH configuration"))
-                .subcommand(Command::new("gpg").about("GPG management"))
-                .subcommand(Command::new("credentials").about("Credential management")),
+                .subcommand(Command::new("ssh").about("Configure SSH keys and agent"))
+                .subcommand(Command::new("gpg").about("Manage GPG keys"))
+                .subcommand(Command::new("credentials").about("Manage stored credentials")),
         )
         .subcommand(
             Command::new("bluetooth")
-                .about("Bluetooth device management")
+                .about("Manage Bluetooth devices")
                 .visible_alias("bt")
                 .subcommand(Command::new("menu").about("Interactive Bluetooth menu"))
                 .subcommand(Command::new("tui").about("Launch Bluetooth TUI"))
@@ -465,7 +465,7 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("backup")
-                .about("Backup management")
+                .about("Manage backup systems")
                 .subcommand(Command::new("setup").about("Setup backup system"))
                 .subcommand(Command::new("schedule").about("Schedule backups"))
                 .subcommand(Command::new("verify").about("Verify backups"))
@@ -473,20 +473,20 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("restore")
-                .about("System restore")
+                .about("Restore system from backups")
                 .subcommand(Command::new("btrfs").about("Restore from Btrfs"))
                 .subcommand(Command::new("system").about("System restore"))
                 .subcommand(Command::new("chroot").about("Chroot restore")),
         )
         .subcommand(
             Command::new("shell")
-                .about("Shell configuration")
+                .about("Configure shell environment")
                 .subcommand(Command::new("setup").about("Setup shell environment"))
                 .subcommand(Command::new("zsh").about("Install and configure ZSH")),
         )
         .subcommand(
             Command::new("systemd")
-                .about("Systemd management")
+                .about("Manage systemd services and timers")
                 .subcommand(
                     Command::new("enable")
                         .about("Enable service")
@@ -505,7 +505,7 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("arch")
-                .about("Arch Linux management")
+                .about("Manage Arch Linux system")
                 .subcommand(Command::new("fix").about("Fix common Arch issues"))
                 .subcommand(
                     Command::new("clean").about("Clean specific target").arg(
@@ -533,7 +533,7 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("network")
-                .about("Network management")
+                .about("Manage network configuration and tools")
                 .subcommand(Command::new("menu").about("Network management menu"))
                 .subcommand(
                     Command::new("dns").about("DNS configuration").arg(
@@ -545,7 +545,7 @@ pub fn build_cli() -> Command {
                 .subcommand(Command::new("mesh").about("Mesh networking"))
                 .subcommand(
                     Command::new("scan")
-                        .about("Network port scanning with native Rust implementation")
+                        .about("Scan network ports")
                         .arg(
                             Arg::new("target").required(true).help(
                                 "Target IP, CIDR, or range (e.g. 192.168.1.1, 192.168.1.0/24)",
@@ -592,7 +592,7 @@ pub fn build_cli() -> Command {
                                         "Host to connect to (if not provided, starts server)",
                                     ),
                                 )
-                                .arg(Arg::new("port").required(true).help("Port to use")),
+                                .arg(Arg::new("port").help("Port to use (required)")),
                         )
                         .subcommand(
                             Command::new("check")
@@ -604,14 +604,14 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("cloud")
-                .about("Cloud provider management")
+                .about("Manage cloud provider integrations")
                 .subcommand(Command::new("aws").about("AWS management"))
                 .subcommand(Command::new("azure").about("Azure management"))
                 .subcommand(Command::new("gcp").about("Google Cloud management")),
         )
         .subcommand(
             Command::new("tools")
-                .about("System tools and utilities")
+                .about("Install and manage system tools")
                 .subcommand(Command::new("install").about("Install development tools"))
                 .subcommand(Command::new("configure").about("Configure tools"))
                 .subcommand(Command::new("update").about("Update tools")),
@@ -619,7 +619,7 @@ pub fn build_cli() -> Command {
         // Short aliases (hidden from main help)
         .subcommand(
             Command::new("net")
-                .about("Network management (short alias)")
+                .about("Manage network configuration (short alias)")
                 .subcommand(Command::new("menu").about("Network management menu"))
                 .subcommand(
                     Command::new("dns").about("DNS configuration").arg(
@@ -666,7 +666,7 @@ pub fn build_cli() -> Command {
                             Command::new("chat")
                                 .about("Start or join a chat session")
                                 .arg(Arg::new("host").help("Host to connect to"))
-                                .arg(Arg::new("port").required(true).help("Port to use")),
+                                .arg(Arg::new("port").help("Port to use (required)")),
                         )
                         .subcommand(
                             Command::new("check")
@@ -746,7 +746,7 @@ pub fn build_cli() -> Command {
                     Command::new("chat")
                         .about("Start chat session")
                         .arg(Arg::new("host").help("Host to connect to (omit for server mode)"))
-                        .arg(Arg::new("port").required(true).help("Port")),
+                        .arg(Arg::new("port").help("Port (required)")),
                 )
                 .subcommand(
                     Command::new("check")
@@ -766,7 +766,6 @@ pub fn build_cli() -> Command {
                 )
                 .arg(
                     Arg::new("ports")
-                        .short('p')
                         .long("ports")
                         .help("Port specification (e.g., 80,443,8080 or 1-1000)")
                         .default_value("1-1000"),
@@ -802,6 +801,76 @@ pub fn build_cli() -> Command {
                         .long("quiet")
                         .action(clap::ArgAction::SetTrue)
                         .help("Minimal output"),
+                ),
+        )
+        .subcommand(
+            Command::new("completion")
+                .about("Generate shell completions")
+                .arg(
+                    Arg::new("shell")
+                        .required(true)
+                        .value_parser(["bash", "zsh", "fish"])
+                        .help("Shell to generate completions for"),
+                ),
+        )
+        .subcommand(
+            Command::new("support")
+                .about("Support diagnostics and local state")
+                .subcommand(Command::new("doctor").about("Run quick support readiness checks"))
+                .subcommand(Command::new("paths").about("Show support and log paths"))
+                .subcommand(Command::new("logs").about("Show recent GhostCTL activity logs"))
+                .subcommand(
+                    Command::new("bundle")
+                        .about("Write a shareable support bundle")
+                        .arg(
+                            Arg::new("output")
+                                .short('o')
+                                .long("output")
+                                .value_name("PATH")
+                                .help("Output path for the support bundle"),
+                        )
+                        .arg(
+                            Arg::new("redact-paths")
+                                .long("redact-paths")
+                                .action(ArgAction::SetTrue)
+                                .help("Redact home directory paths from the bundle"),
+                        )
+                        .arg(
+                            Arg::new("gzip")
+                                .long("gzip")
+                                .action(ArgAction::SetTrue)
+                                .conflicts_with("tarball")
+                                .help("Write gzip-compressed text bundle"),
+                        )
+                        .arg(
+                            Arg::new("tarball")
+                                .long("tarball")
+                                .action(ArgAction::SetTrue)
+                                .help("Write tar.gz archive containing bundle and metadata"),
+                        )
+                        .arg(
+                            Arg::new("log-tail")
+                                .long("log-tail")
+                                .value_name("LINES")
+                                .default_value("80")
+                                .value_parser(clap::value_parser!(usize))
+                                .help("Number of recent activity log lines to include"),
+                        ),
+                ),
+        )
+        .subcommand(
+            Command::new("docs")
+                .about("Documentation utilities")
+                .subcommand(
+                    Command::new("generate")
+                        .about("Generate command reference from CLI definition")
+                        .arg(
+                            Arg::new("output")
+                                .short('o')
+                                .long("output")
+                                .value_name("PATH")
+                                .help("Write to file instead of stdout"),
+                        ),
                 ),
         )
         .subcommand(Command::new("version").about("Show version information"))
@@ -842,6 +911,9 @@ pub fn handle_cli_args(matches: &ArgMatches) {
             println!("{} GhostCTL", crate::tui::icons::ghost());
             println!("Author: Christopher Kelley <ckelley@ghostkellz.sh>");
         }
+        Some(("completion", matches)) => handle_completion_command(matches),
+        Some(("support", matches)) => handle_support_commands(matches),
+        Some(("docs", matches)) => handle_docs_commands(matches),
         Some(("list", _)) => {
             show_command_list();
         }
@@ -891,6 +963,168 @@ pub fn handle_cli_args(matches: &ArgMatches) {
             eprintln!("Unknown command: {}", cmd);
             std::process::exit(1);
         }
+    }
+}
+
+fn handle_completion_command(matches: &ArgMatches) {
+    let Some(shell) = matches.get_one::<String>("shell") else {
+        eprintln!("Missing shell. Use: bash, zsh, fish");
+        std::process::exit(2);
+    };
+
+    let generator = match shell.as_str() {
+        "bash" => Shell::Bash,
+        "zsh" => Shell::Zsh,
+        "fish" => Shell::Fish,
+        _ => unreachable!("shell is restricted by clap value_parser"),
+    };
+
+    let mut command = build_cli();
+    generate(generator, &mut command, "ghostctl", &mut std::io::stdout());
+}
+
+fn handle_support_commands(matches: &ArgMatches) {
+    match matches.subcommand() {
+        Some(("doctor", _)) => crate::support::print_doctor(),
+        Some(("paths", _)) => crate::support::print_paths(),
+        Some(("logs", _)) => crate::logging::GhostLogger::show_recent_logs(),
+        Some(("bundle", sub_matches)) => {
+            let format = if sub_matches.get_flag("tarball") {
+                crate::support::BundleFormat::Tarball
+            } else if sub_matches.get_flag("gzip") {
+                crate::support::BundleFormat::Gzip
+            } else {
+                crate::support::BundleFormat::Text
+            };
+            let output = sub_matches
+                .get_one::<String>("output")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|| crate::support::timestamped_bundle_path_for(format));
+            let redact_paths = sub_matches.get_flag("redact-paths");
+            let log_tail = sub_matches
+                .get_one::<usize>("log-tail")
+                .copied()
+                .unwrap_or(80);
+
+            match crate::support::write_bundle(&output, redact_paths, log_tail, format) {
+                Ok(metadata_path) => {
+                    println!("Support bundle: {}", output.display());
+                    if let Some(metadata_path) = metadata_path {
+                        println!("Metadata: {}", metadata_path.display());
+                    } else {
+                        println!("Metadata: embedded in archive");
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to write support bundle: {e:#}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        None => crate::support::print_paths(),
+        _ => unreachable!(),
+    }
+}
+
+fn handle_docs_commands(matches: &ArgMatches) {
+    match matches.subcommand() {
+        Some(("generate", sub_matches)) => {
+            let output = sub_matches.get_one::<String>("output");
+            generate_command_reference(output.map(|s| s.as_str()));
+        }
+        None => {
+            eprintln!("Usage: ghostctl docs generate [-o PATH]");
+        }
+        _ => unreachable!(),
+    }
+}
+
+fn generate_command_reference(output_path: Option<&str>) {
+    use std::fmt::Write;
+
+    let cmd = build_cli();
+    let mut doc = String::new();
+    writeln!(doc, "# GhostCTL Command Reference\n").unwrap();
+    writeln!(doc, "Auto-generated from `ghostctl docs generate`.\n").unwrap();
+
+    write_command_docs(&mut doc, &cmd, "ghostctl", 0);
+
+    match output_path {
+        Some(path) => {
+            if let Err(e) = std::fs::write(path, &doc) {
+                eprintln!("Failed to write {path}: {e}");
+                std::process::exit(1);
+            }
+            println!("Command reference written to {path}");
+        }
+        None => print!("{doc}"),
+    }
+}
+
+fn write_command_docs(doc: &mut String, cmd: &clap::Command, prefix: &str, depth: usize) {
+    use std::fmt::Write;
+
+    let heading = "#".repeat((depth + 2).min(6));
+
+    if depth > 0 {
+        writeln!(doc, "{heading} `{prefix}`\n").unwrap();
+        if let Some(about) = cmd.get_about() {
+            writeln!(doc, "{about}\n").unwrap();
+        }
+    }
+
+    // List arguments and flags (skip help/version)
+    let args: Vec<_> = cmd
+        .get_arguments()
+        .filter(|a| {
+            let id = a.get_id().as_str();
+            id != "help" && id != "version"
+        })
+        .collect();
+
+    if !args.is_empty() && depth > 0 {
+        writeln!(doc, "**Options:**\n").unwrap();
+        for arg in &args {
+            let help = arg.get_help().map(|h| h.to_string()).unwrap_or_default();
+            match (arg.get_short(), arg.get_long()) {
+                (Some(s), Some(l)) => writeln!(doc, "- `-{s}`, `--{l}` -- {help}").unwrap(),
+                (None, Some(l)) => writeln!(doc, "- `--{l}` -- {help}").unwrap(),
+                (Some(s), None) => writeln!(doc, "- `-{s}` -- {help}").unwrap(),
+                (None, None) => {
+                    let name = arg.get_id().as_str();
+                    writeln!(doc, "- `<{name}>` -- {help}").unwrap();
+                }
+            }
+        }
+        writeln!(doc).unwrap();
+    }
+
+    // List subcommands
+    let subs: Vec<_> = cmd
+        .get_subcommands()
+        .filter(|s| s.get_name() != "help")
+        .collect();
+
+    if !subs.is_empty() && depth > 0 {
+        writeln!(doc, "**Subcommands:**\n").unwrap();
+        for sub in &subs {
+            let sub_about = sub.get_about().map(|a| a.to_string()).unwrap_or_default();
+            writeln!(doc, "- `{prefix} {}` -- {sub_about}", sub.get_name()).unwrap();
+        }
+        writeln!(doc).unwrap();
+    }
+
+    // Recurse
+    for sub in cmd.get_subcommands() {
+        if sub.get_name() == "help" {
+            continue;
+        }
+        let child_prefix = if depth == 0 {
+            sub.get_name().to_string()
+        } else {
+            format!("{prefix} {}", sub.get_name())
+        };
+        write_command_docs(doc, sub, &child_prefix, depth + 1);
     }
 }
 
@@ -1072,9 +1306,8 @@ fn handle_homelab_commands(matches: &ArgMatches) {
     match matches.subcommand() {
         Some(("menu", _)) => homelab_management_menu(),
         Some(("init", _)) => initialize_homelab(),
-        Some(("monitoring", _)) => setup_homelab_monitoring(),
         None => homelab_management_menu(),
-        _ => unreachable!(),
+        _ => homelab_management_menu(),
     }
 }
 
@@ -1740,16 +1973,15 @@ fn handle_bluetooth_commands(matches: &ArgMatches) {
             }
         }
         Some(("list", _)) => {
-            crate::tui::header("Bluetooth Devices");
-            // Uses the list functionality from the bluetooth module
-            bluetooth::bluetooth_menu(); // Shows the menu which has list option
+            crate::tui::info("Launching interactive menu for device listing...");
+            bluetooth::bluetooth_menu();
         }
         Some(("scan", _)) => {
-            crate::tui::info("Starting Bluetooth scan...");
-            bluetooth::bluetooth_menu(); // Uses the scan functionality
+            crate::tui::info("Launching interactive menu for scanning...");
+            bluetooth::bluetooth_menu();
         }
         Some(("power", _)) => {
-            crate::tui::info("Toggling Bluetooth adapter power...");
+            crate::tui::info("Launching interactive menu for power toggle...");
             bluetooth::bluetooth_menu();
         }
         None => bluetooth::bluetooth_menu(),
@@ -1771,20 +2003,29 @@ fn handle_wifi_commands(matches: &ArgMatches) {
             }
         }
         Some(("status", _)) => {
-            crate::tui::header("WiFi Status");
+            crate::tui::info("Launching interactive menu for WiFi status...");
             wifi::wifi_menu();
         }
         Some(("list", _)) => {
-            crate::tui::header("Known Networks");
+            crate::tui::info("Launching interactive menu for network listing...");
             wifi::wifi_menu();
         }
         Some(("scan", _)) => {
-            crate::tui::info("Scanning for WiFi networks...");
+            crate::tui::info("Launching interactive menu for network scanning...");
             wifi::wifi_menu();
         }
-        Some(("connect", _)) => wifi::wifi_menu(),
-        Some(("disconnect", _)) => wifi::wifi_menu(),
-        Some(("power", _)) => wifi::wifi_menu(),
+        Some(("connect", _)) => {
+            crate::tui::info("Launching interactive menu for connection...");
+            wifi::wifi_menu();
+        }
+        Some(("disconnect", _)) => {
+            crate::tui::info("Launching interactive menu for disconnection...");
+            wifi::wifi_menu();
+        }
+        Some(("power", _)) => {
+            crate::tui::info("Launching interactive menu for power toggle...");
+            wifi::wifi_menu();
+        }
         None => wifi::wifi_menu(),
         _ => wifi::wifi_menu(),
     }
@@ -1798,11 +2039,26 @@ fn handle_sysctl_commands(matches: &ArgMatches) {
                 crate::tui::error(&format!("Sysctl TUI error: {}", e));
             }
         }
-        Some(("list", _)) => sysctl::sysctl_menu(),
-        Some(("search", _)) => sysctl::sysctl_menu(),
-        Some(("get", _)) => sysctl::sysctl_menu(),
-        Some(("set", _)) => sysctl::sysctl_menu(),
-        Some(("export", _)) => sysctl::sysctl_menu(),
+        Some(("list", _)) => {
+            crate::tui::info("Launching interactive menu for parameter listing...");
+            sysctl::sysctl_menu();
+        }
+        Some(("search", _)) => {
+            crate::tui::info("Launching interactive menu for parameter search...");
+            sysctl::sysctl_menu();
+        }
+        Some(("get", _)) => {
+            crate::tui::info("Launching interactive menu for parameter lookup...");
+            sysctl::sysctl_menu();
+        }
+        Some(("set", _)) => {
+            crate::tui::info("Launching interactive menu for parameter configuration...");
+            sysctl::sysctl_menu();
+        }
+        Some(("export", _)) => {
+            crate::tui::info("Launching interactive menu for configuration export...");
+            sysctl::sysctl_menu();
+        }
         None => sysctl::sysctl_menu(),
         _ => sysctl::sysctl_menu(),
     }

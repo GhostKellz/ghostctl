@@ -1,6 +1,6 @@
 [package]
 name = "ghostctl"
-version = "0.9.9"
+version = "0.10.0"
 edition = "2024"
 license = "MIT"
 description = "Modular CLI toolkit for Linux sysadmins, homelabbers, and power users."
@@ -12,6 +12,7 @@ keyring-backend = ["dep:keyring"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
+clap_complete = "4.5"
 log = "0.4"
 env_logger = "0.10"
 duct = "0.13"
@@ -48,6 +49,8 @@ libc = "0.2.179"
 futures = "0.3"
 tempfile = "3.10"
 socket2 = { version = "0.5", features = ["all"] }
+flate2 = "1.1"
+tar = "0.4"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 bluer = { version = "0.17", features = ["bluetoothd"] }
@@ -56,3 +59,6 @@ bluer = { version = "0.17", features = ["bluetoothd"] }
 # Use linux-keyutils directly (kernel-level) instead of D-Bus secret-service
 # This avoids unmaintained zbus transitive dependencies and is more secure
 keyring = { version = "2", optional = true, default-features = false, features = ["linux-no-secret-service"] }
+
+[dev-dependencies]
+assert_cmd = "2"

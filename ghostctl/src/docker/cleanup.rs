@@ -536,10 +536,9 @@ fn image_cleanup() {
                         .unwrap_or(false);
                     if remove {
                         let mut removed = 0;
-                        // Parse and remove large images
+                        // Parse and remove large images (>= 500MB)
                         for line in images.lines().skip(1) {
-                            if (line.contains("GB")
-                                || (line.contains("MB") && !line.contains("MB")))
+                            if parse_image_size_mb(line) >= 500.0
                                 && let Some(image) = line.split_whitespace().next()
                             {
                                 if crate::docker::validate_image_name(image).is_err() {
@@ -1191,11 +1190,9 @@ pub fn parse_docker_df_output(output: &str) -> DockerDiskUsage {
                         usage.volumes_size = parts[4].to_string();
                     }
                 }
-                "Build" => {
+                "Build" if parts.len() >= 4 => {
                     // Build cache
-                    if parts.len() >= 4 {
-                        usage.build_cache_size = parts[3].to_string();
-                    }
+                    usage.build_cache_size = parts[3].to_string();
                 }
                 _ => {}
             }
@@ -1255,6 +1252,33 @@ pub fn parse_container_age(age_str: &str) -> Option<std::time::Duration> {
     };
 
     Some(std::time::Duration::from_secs(seconds))
+}
+
+/// Parse a docker image size string (e.g. "1.2GB", "543MB", "120kB") and return the value in MB.
+/// Extracts the last whitespace-delimited token from the line and parses it.
+/// Returns 0.0 if the format is unrecognized.
+fn parse_image_size_mb(line: &str) -> f64 {
+    let token = match line.split_whitespace().last() {
+        Some(t) => t,
+        None => return 0.0,
+    };
+    // Split at the boundary between digits/dot and alphabetic characters
+    let split_pos = token
+        .find(|c: char| c.is_alphabetic())
+        .unwrap_or(token.len());
+    let (num_str, unit) = token.split_at(split_pos);
+    let value: f64 = match num_str.parse() {
+        Ok(v) => v,
+        Err(_) => return 0.0,
+    };
+    match unit {
+        "TB" => value * 1_024.0 * 1_024.0,
+        "GB" => value * 1_024.0,
+        "MB" => value,
+        "kB" | "KB" => value / 1_024.0,
+        "B" => value / (1_024.0 * 1_024.0),
+        _ => 0.0,
+    }
 }
 
 /// Format bytes to human readable size
@@ -1391,5 +1415,38 @@ mod tests {
         assert_eq!(usage.containers_total, 0);
         assert_eq!(usage.volumes_total, 0);
         assert!(usage.images_size.is_empty());
+    }
+
+    #[test]
+    fn test_parse_image_size_mb_gigabytes() {
+        assert!((parse_image_size_mb("nginx:latest\t1.2GB") - 1228.8).abs() < 0.1);
+        assert!((parse_image_size_mb("ubuntu:22.04\t2GB") - 2048.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_parse_image_size_mb_megabytes() {
+        assert!((parse_image_size_mb("alpine:latest\t543MB") - 543.0).abs() < 0.1);
+        assert!((parse_image_size_mb("busybox:latest\t5.6MB") - 5.6).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_parse_image_size_mb_kilobytes() {
+        assert!(parse_image_size_mb("scratch:latest\t120kB") < 1.0);
+    }
+
+    #[test]
+    fn test_parse_image_size_mb_threshold() {
+        // 499MB should be below 500 threshold
+        assert!(parse_image_size_mb("small:latest\t499MB") < 500.0);
+        // 500MB should meet threshold
+        assert!(parse_image_size_mb("medium:latest\t500MB") >= 500.0);
+        // Any GB image should exceed threshold
+        assert!(parse_image_size_mb("large:latest\t1.1GB") >= 500.0);
+    }
+
+    #[test]
+    fn test_parse_image_size_mb_invalid() {
+        assert_eq!(parse_image_size_mb(""), 0.0);
+        assert_eq!(parse_image_size_mb("no-size-here"), 0.0);
     }
 }

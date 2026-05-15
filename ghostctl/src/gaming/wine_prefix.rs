@@ -523,16 +523,12 @@ fn configure_prefix() {
         "⬅️ Back",
     ];
 
-    loop {
-        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("Configure Prefix")
-            .items(&options)
-            .default(0)
-            .interact()
-        else {
-            break;
-        };
-
+    while let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Configure Prefix")
+        .items(&options)
+        .default(0)
+        .interact()
+    {
         match choice {
             0 => change_windows_version(&prefix_path),
             1 => {

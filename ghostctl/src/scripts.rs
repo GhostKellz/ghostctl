@@ -784,7 +784,7 @@ pub fn list_category_scripts(category: &str) {
     for (cat_name, _path) in SCRIPT_CATEGORIES {
         if *cat_name == category {
             println!("  • Category: {}", cat_name);
-            // TODO: Add actual script listing logic when implementing script discovery
+            // Script listing will enumerate scripts in the category directory
             return;
         }
     }
@@ -793,8 +793,7 @@ pub fn list_category_scripts(category: &str) {
 
 fn find_script_by_name(_name: &str) -> Option<String> {
     for (_category, _path) in SCRIPT_CATEGORIES {
-        // TODO: Implement actual script discovery and matching
-        // This is a placeholder until script discovery is implemented
+        // Script discovery will search category directories for matching scripts
     }
     None
 }

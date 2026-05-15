@@ -965,17 +965,23 @@ echo {} > /proc/sys/net/netfilter/nf_flowtable_udp_timeout
 
 fn apply_flowtable_config(config: &str) {
     // Save config to temporary file
-    let temp_file = "/tmp/nft_flowtable.conf";
-    if fs::write(temp_file, config).is_ok() {
+    let temp_file = match tempfile::NamedTempFile::new() {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("Failed to create temporary file: {}", e);
+            return;
+        }
+    };
+    let temp_path = temp_file.path().to_string_lossy().to_string();
+
+    if fs::write(&temp_path, config).is_ok() {
         // Apply nftables configuration
-        let apply_result = Command::new("nft").args(&["-f", temp_file]).output();
+        let apply_result = Command::new("nft").args(&["-f", &temp_path]).output();
 
         match apply_result {
             Ok(result) if result.status.success() => {
                 println!("✅ Flow offloading configuration applied successfully");
-
-                // Clean up temp file
-                let _ = fs::remove_file(temp_file);
+                // temp_file auto-deletes on drop
             }
             Ok(result) => {
                 println!("❌ Failed to apply configuration:");
@@ -1366,8 +1372,13 @@ fn export_statistics_json() {
 
     match output {
         Ok(result) if result.status.success() => {
+            let export_dir = dirs::cache_dir()
+                .map(|d| d.join("ghostctl"))
+                .unwrap_or_else(|| std::path::PathBuf::from("/tmp"));
+            let _ = std::fs::create_dir_all(&export_dir);
             let filename = format!(
-                "/tmp/nftables_stats_{}.json",
+                "{}/nftables_stats_{}.json",
+                export_dir.display(),
                 chrono::Local::now().format("%Y%m%d_%H%M%S")
             );
 
@@ -2056,6 +2067,11 @@ fn advanced_rule_builder() {
         Err(_) => return,
     };
 
+    if !validate_nft_identifier(&table_name) {
+        println!("❌ Invalid table name. Use only letters, numbers, underscores, and hyphens.");
+        return;
+    }
+
     let chain_name: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Chain name")
         .default("input".to_string())
@@ -2064,6 +2080,11 @@ fn advanced_rule_builder() {
         Ok(c) => c,
         Err(_) => return,
     };
+
+    if !validate_nft_identifier(&chain_name) {
+        println!("❌ Invalid chain name. Use only letters, numbers, underscores, and hyphens.");
+        return;
+    }
 
     // Build match conditions
     let match_options = vec![
@@ -2094,6 +2115,10 @@ fn advanced_rule_builder() {
                     Ok(i) => i,
                     Err(_) => continue,
                 };
+                if !validate_ip_cidr(&ip) {
+                    println!("❌ Invalid IP/CIDR format.");
+                    continue;
+                }
                 matches.push(format!("ip saddr {}", ip));
             }
             1 => {
@@ -2104,6 +2129,10 @@ fn advanced_rule_builder() {
                     Ok(i) => i,
                     Err(_) => continue,
                 };
+                if !validate_ip_cidr(&ip) {
+                    println!("❌ Invalid IP/CIDR format.");
+                    continue;
+                }
                 matches.push(format!("ip daddr {}", ip));
             }
             2 => {
@@ -2114,6 +2143,10 @@ fn advanced_rule_builder() {
                     Ok(p) => p,
                     Err(_) => continue,
                 };
+                if !validate_port(&port) {
+                    println!("❌ Invalid port. Must be 1-65535.");
+                    continue;
+                }
                 matches.push(format!("tcp sport {}", port));
             }
             3 => {
@@ -2124,6 +2157,10 @@ fn advanced_rule_builder() {
                     Ok(p) => p,
                     Err(_) => continue,
                 };
+                if !validate_port(&port) {
+                    println!("❌ Invalid port. Must be 1-65535.");
+                    continue;
+                }
                 matches.push(format!("tcp dport {}", port));
             }
             4 => {
@@ -2160,6 +2197,10 @@ fn advanced_rule_builder() {
                     Ok(i) => i,
                     Err(_) => continue,
                 };
+                if !validate_interface_name(&iface) {
+                    println!("❌ Invalid interface name.");
+                    continue;
+                }
                 matches.push(format!("iif {}", iface));
             }
             _ => break,
@@ -2603,17 +2644,23 @@ fn configuration_management() {
     }
 }
 
+fn get_nft_backup_dir() -> std::path::PathBuf {
+    dirs::state_dir()
+        .map(|d| d.join("ghostctl").join("nft-backups"))
+        .unwrap_or_else(|| std::path::PathBuf::from("/var/lib/ghostctl/nft-backups"))
+}
+
 fn backup_ruleset() {
     println!("\n💾 Backup Current Ruleset");
 
-    let backup_dir = "/var/lib/ghostctl/nft-backups";
-    if let Err(e) = fs::create_dir_all(backup_dir) {
+    let backup_dir = get_nft_backup_dir();
+    if let Err(e) = fs::create_dir_all(&backup_dir) {
         println!("❌ Failed to create backup directory: {}", e);
         return;
     }
 
     let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-    let backup_file = format!("{}/nftables_{}.conf", backup_dir, timestamp);
+    let backup_file = format!("{}/nftables_{}.conf", backup_dir.display(), timestamp);
 
     let output = Command::new("nft").args(["list", "ruleset"]).output();
 
@@ -2634,11 +2681,11 @@ fn backup_ruleset() {
 fn restore_from_backup() {
     println!("\n📂 Restore from Backup");
 
-    let backup_dir = "/var/lib/ghostctl/nft-backups";
-    let entries = match fs::read_dir(backup_dir) {
+    let backup_dir = get_nft_backup_dir();
+    let entries = match fs::read_dir(&backup_dir) {
         Ok(e) => e,
         Err(_) => {
-            println!("❌ No backups found in {}", backup_dir);
+            println!("❌ No backups found in {}", backup_dir.display());
             return;
         }
     };
@@ -2663,7 +2710,7 @@ fn restore_from_backup() {
         Ok(None) | Err(_) => return,
     };
 
-    let backup_file = format!("{}/{}", backup_dir, backups[selection]);
+    let backup_file = format!("{}/{}", backup_dir.display(), backups[selection]);
 
     let confirm = match Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("This will replace current ruleset. Continue?")
@@ -2702,9 +2749,13 @@ fn restore_from_backup() {
 fn export_ruleset() {
     println!("\n📝 Export Ruleset");
 
+    let default_path = dirs::cache_dir()
+        .map(|d| d.join("ghostctl").join("nftables_export.conf"))
+        .unwrap_or_else(|| std::path::PathBuf::from("/tmp/nftables_export.conf"));
+
     let export_path: String = match Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Export path")
-        .default("/tmp/nftables_export.conf".to_string())
+        .default(default_path.to_string_lossy().to_string())
         .interact_text()
     {
         Ok(p) => p,
@@ -2772,8 +2823,12 @@ fn import_ruleset() {
 fn show_config_diff() {
     println!("\n🔄 Configuration Diff");
     println!("=====================");
+    let backup_dir = get_nft_backup_dir();
     println!("💡 Compare two configuration files:");
-    println!("   diff /etc/nftables.conf /var/lib/ghostctl/nft-backups/nftables_*.conf");
+    println!(
+        "   diff /etc/nftables.conf {}/nftables_*.conf",
+        backup_dir.display()
+    );
 }
 
 // ==================== Performance Functions ====================
@@ -3119,6 +3174,36 @@ pub fn is_valid_dscp(dscp: u8) -> bool {
     dscp <= 63
 }
 
+// ==================== Input Validation ====================
+
+fn validate_ip_cidr(input: &str) -> bool {
+    !input.is_empty()
+        && input.len() <= 43
+        && input
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() || c == ':' || c == '.' || c == '/')
+}
+
+fn validate_port(input: &str) -> bool {
+    input.parse::<u16>().map(|p| p >= 1).unwrap_or(false)
+}
+
+fn validate_interface_name(input: &str) -> bool {
+    !input.is_empty()
+        && input.len() <= 15
+        && input
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_' || c == '-')
+}
+
+fn validate_nft_identifier(input: &str) -> bool {
+    !input.is_empty()
+        && input.len() <= 64
+        && input
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3277,7 +3362,7 @@ mod tests {
 
     #[test]
     fn test_conntrack_states() {
-        let states = vec![
+        let states = [
             ConntrackState::New,
             ConntrackState::Established,
             ConntrackState::Related,
@@ -3331,7 +3416,7 @@ mod tests {
 
     #[test]
     fn test_set_flags() {
-        let flags = vec![
+        let flags = [
             SetFlag::Constant,
             SetFlag::Interval,
             SetFlag::Timeout,

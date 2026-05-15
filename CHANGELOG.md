@@ -2,6 +2,53 @@
 
 All notable changes to GhostCTL will be documented in this file.
 
+## [0.10.0] - 2026-05-15
+
+### Added
+
+- **Support command surface**: `ghostctl support doctor`, `ghostctl support paths`, `ghostctl support logs`, `ghostctl support bundle` with `--redact-paths`, `--gzip`, `--tarball`, and `--log-tail` options
+- **Domain-specific diagnostics**: `support doctor` shows conditional sections for Docker, Proxmox, VFIO/IOMMU, NVIDIA, Storage, Networking, and UEFI when relevant tools are detected
+- **Shell completions generation**: `ghostctl completion <bash|zsh|fish>` for runtime completion generation
+- **Completion installer**: `scripts/install-completions.sh` auto-detects shell and installs completions to system directories
+- **Man page**: `man/ghostctl.1` installed by all package recipes
+- **Command reference generation**: `ghostctl docs generate [-o PATH]` introspects the clap command tree and outputs markdown
+- **Issue templates**: `.github/ISSUE_TEMPLATE/` with diagnostic-first bug report and feature request forms
+- **Regression test suite**: `ghostctl/tests/cli_regressions.rs` covering completions, support paths, doctor, and bundle formats
+- **Makefile**: build, install, test, fmt, clippy, audit, dev-cycle, release, completions, package-arch, clean, help targets
+- **Support bundle formats**: plain text, gzip-compressed, and tar.gz archive with embedded metadata
+- **Redaction**: home paths, usernames, hostnames, IPv4, MAC addresses, PCI IDs, serial identifiers in support bundles
+- **GitHub issue templates**: diagnostic-first bug reports requiring support bundles, structured feature requests
+
+### Changed
+
+- **XDG state directory**: Activity logs and support data now use `$XDG_STATE_HOME/ghostctl/` (typically `~/.local/state/ghostctl/`) while still reading legacy XDG data history if present
+- **Package recipes overhauled**: PKGBUILD, debian/changelog, fedora spec updated to v0.10.0 with shell completions, man page, and documentation installation
+- **Release archive**: now includes CHANGELOG.md, man page, and generated shell completions; removed references to non-existent root-level COMMANDS.md and DOCS.md
+- **Documentation links**: release body now points to `docs/reference/COMMANDS.md` and `docs/README.md`
+- **CLI help text normalized**: all top-level and subcommand help strings now use consistent imperative verb phrases
+- **Docker security checks**: replaced 8 hardcoded stub functions with real checks using `docker inspect` and `docker ps` for non-root containers, read-only filesystems, resource limits, security options, trusted registries, secrets exposure, image sizes, and update freshness
+- **nftables path handling**: backup/export paths migrated from hardcoded `/tmp` and `/var/lib/ghostctl` to XDG state and cache directories via `dirs` crate
+- **Gaming temp paths**: Proton-GE downloads and Wine tool scripts now use `tempfile::TempDir` instead of hardcoded `/tmp`
+- **CLI handler honesty**: bluetooth, wifi, and sysctl subcommands now inform the user they are launching the interactive menu instead of silently ignoring arguments
+- **Homelab CLI trimmed**: removed `monitoring` subcommand from `--help` (still available via interactive menu)
+
+### Fixed
+
+- **FIXME sentinel in recovery.rs**: replaced `"FIXME"` fallback with `"unknown"` for missing PARTUUID in UEFI boot entry generation
+- **Docker cleanup logic bug**: fixed contradictory condition in `image_cleanup()` that could never match MB-sized images; replaced with proper `parse_image_size_mb()` parser
+- **TODO markers removed**: replaced 11 user-facing "TODO" messages with professional "not yet available" wording across lsp, devops, network, nvim, and systemd modules
+
+### Removed
+
+- **Dead code**: deleted orphaned `ghostctl/src/devops.rs` placeholder
+
+### Security
+
+- Dependency audit carried forward from v0.9.8 (`cargo audit` clean)
+- **Shell injection hardening**: replaced ~21 `sh -c` + `format!()` patterns in wine_tools.rs with direct `Command::new()` calls, eliminating shell interpretation of user input
+- **nftables input validation**: added IP/CIDR, port, interface, and identifier validators to the interactive rule builder
+- **Error visibility**: replaced 27 silent `.ok()` calls on critical operations (backups, file writes, command execution) with `eprintln!` error reporting in wine_tools.rs
+
 ## [0.9.9] - 2026-04-04
 
 ### Added

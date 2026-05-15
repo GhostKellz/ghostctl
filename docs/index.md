@@ -4,6 +4,7 @@
 
 - [Installation Guide](deployment/INSTALL.md) - Get GhostCTL running
 - [Command Reference](reference/COMMANDS.md) - All commands and syntax
+- [Support Bundles](support/README.md) - Diagnostics and issue bundles
 
 ## System Management
 
@@ -28,6 +29,7 @@
 |-------|-------------|
 | [Networking](networking/README.md) | Firewalls, DNS, port scanning |
 | [Security](security/README.md) | SSH, GPG, credentials |
+| [Support](support/README.md) | Diagnostics, logs, issue bundles |
 | [UEFI](uefi/README.md) | Secure Boot, key enrollment |
 
 ## Development & Gaming

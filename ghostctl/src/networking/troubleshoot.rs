@@ -48,16 +48,12 @@ fn general_network_troubleshooting() {
         "⬅️ Back",
     ];
 
-    loop {
-        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("🌐 General Network Troubleshooting")
-            .items(&options)
-            .default(0)
-            .interact()
-        else {
-            break;
-        };
-
+    while let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("🌐 General Network Troubleshooting")
+        .items(&options)
+        .default(0)
+        .interact()
+    {
         match choice {
             0 => complete_network_diagnosis(),
             1 => internet_connectivity_test(),

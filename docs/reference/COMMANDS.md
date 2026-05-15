@@ -1,1050 +1,1487 @@
-# 📋 GhostCTL Commands Reference
-
-Complete command documentation for GhostCTL - The ultimate system and homelab management tool.
-
-## 🚀 Core Commands
-
-### Basic Usage
-```bash
-# Launch interactive menu
-ghostctl
-
-# Show version and help
-ghostctl version                   # Show version information
-ghostctl help                     # Show help information
-```
-
-## 🏠 System Management
-
-### System Commands
-```bash
-ghostctl system update            # Update system packages
-ghostctl system status            # Show system status  
-ghostctl system arch              # Arch Linux management
-ghostctl system nixos             # NixOS management
-```
-
-### 🐧 Arch Linux Management
-```bash
-# Arch system maintenance and optimization
-ghostctl arch fix                 # Fix common Arch issues (pacman, keyring, mirrors)
-ghostctl arch clean <target>      # Clean specific targets (orphans, mirrors, pkgfix, gpg, locks, all)
-ghostctl arch bouncer <target>    # Fix and bounce back from issues (pacman, keyring, mirrors, all)
-ghostctl arch aur                 # AUR package management
-ghostctl arch boot                # Boot configuration management
-ghostctl arch health              # System health check and maintenance
-ghostctl arch performance         # Performance optimization
-ghostctl arch optimize            # Optimize system performance (zram/zswap)
-ghostctl arch mirrors             # Optimize mirror list with reflector
-ghostctl arch orphans             # Remove orphaned packages
-
-# Clean target examples:
-ghostctl arch clean orphans       # Remove orphaned packages
-ghostctl arch clean mirrors       # Clean and optimize mirror list
-ghostctl arch clean locks         # Clear pacman locks
-ghostctl arch clean all           # Perform all cleanup operations
-
-# Bouncer target examples:
-ghostctl arch bouncer pacman      # Fix pacman database and bounce back
-ghostctl arch bouncer keyring     # Fix keyring issues and bounce back
-ghostctl arch bouncer mirrors     # Fix mirrors and test connectivity
-ghostctl arch bouncer all         # Full system recovery sequence
-```
-
-### 🎯 NVIDIA Management
-```bash
-ghostctl nvidia                   # Interactive NVIDIA menu
-ghostctl nvidia install           # Install NVIDIA drivers
-ghostctl nvidia optimize          # Optimize GPU performance
-ghostctl nvidia passthrough       # GPU passthrough setup for VMs
-ghostctl nvidia wayland           # Configure Wayland support
-ghostctl nvidia build-source      # Build kernel modules from source
-ghostctl nvidia dkms-status       # Show DKMS module status
-ghostctl nvidia dkms-cleanup      # Clean old DKMS entries
-```
-
-## 🛠️ Development Environment
-
-### Development Commands
-```bash
-ghostctl dev menu                 # Development environment menu
-ghostctl dev rust                 # Rust development setup
-ghostctl dev zig                  # Zig development setup
-ghostctl dev go                   # Go development setup
-ghostctl dev python               # Python development setup
-```
-
-### 👻 Ghost Tools Ecosystem
-```bash
-ghostctl ghost menu               # Ghost tools management menu
-ghostctl ghost install-all        # Install all Ghost tools
-ghostctl ghost reaper             # Install Reaper AUR helper
-ghostctl ghost oxygen             # Install Oxygen Rust tool
-ghostctl ghost zion               # Install Zion Zig tool
-ghostctl ghost status             # Check Ghost tools status
-```
-
-## 📝 Neovim & Editor Management
-
-### Neovim Setup
-```bash
-ghostctl nvim menu                # Neovim management menu
-ghostctl nvim install             # Install Neovim distribution
-ghostctl nvim lazyvim             # Install LazyVim configuration
-```
-
-### 🔨 Mason.nvim Integration
-```bash
-# Mason.nvim LSP/DAP/Tool management
-ghostctl nvim mason               # Access Mason management menu
-
-# Through Mason menu:
-# - Check Mason status and health
-# - Setup essential language servers
-# - Language-specific environments (Rust, Python, Go, Zig, Web, DevOps)
-# - Install/update specific tools
-# - Diagnose Mason issues
-```
-
-## 💻 Terminal Configuration
-
-### Terminal Setup
-```bash
-ghostctl terminal menu            # Terminal configuration menu
-ghostctl terminal ghostty         # Setup Ghostty terminal
-ghostctl terminal starship        # Install Starship prompt
-```
-
-### 🔷 Advanced Terminal Support
-```bash
-# Enhanced terminal ecosystem
-# - Ghostty with full configuration
-# - WezTerm support
-# - Alacritty complete setup and theming
-# - Nerd Font management
-# - Terminal performance optimization
-```
-
-## 🐳 Container & DevOps
-
-### Docker Management
-```bash
-ghostctl docker menu              # Docker management menu
-ghostctl docker install           # Install Docker
-ghostctl docker status            # Docker status
-ghostctl docker homelab           # Homelab container stacks
-```
-
-### 🏠 Proxmox VE Management
-```bash
-ghostctl pve menu                 # PVE management menu
-ghostctl proxmox menu             # Enhanced Proxmox tools with categories
-
-# Through enhanced Proxmox menu:
-# - Container Templates (Docker, Portainer, Nginx Proxy Manager, Pi-hole, etc.)
-# - Virtual Machines (Home Assistant OS, Windows 11, Ubuntu, Debian)
-# - System Administration (Post install, PBS, Dark theme, CPU scaling)
-# - Monitoring & Logging (Prometheus, Grafana, InfluxDB, Zabbix)
-# - Development Tools (GitLab, Jenkins, Code Server, Docker Registry)
-# - Proxmox Management Tools (Bulk VM/CT operations, backup management)
-# - Cluster Management (status, join, add/remove nodes)
-# - Resource usage reports and system information
-
-# Legacy commands still available:
-ghostctl pve status               # Show PVE status
-ghostctl pve vm list              # List VMs
-ghostctl pve vm create            # Create VM wizard
-ghostctl pve vm start <id>        # Start VM
-ghostctl pve vm stop <id>         # Stop VM
-ghostctl pve ct list              # List containers
-ghostctl pve ct create            # Create container
-ghostctl pve ct start <id>        # Start container
-ghostctl pve ct stop <id>         # Stop container
-```
-
-## 🔐 Security & Key Management
-
-### Security Commands
-```bash
-ghostctl security menu            # Security management menu
-ghostctl security ssh             # SSH configuration
-ghostctl security gpg             # GPG management
-ghostctl security credentials     # Credential management
-
-# Short aliases
-ghostctl sec menu                 # Security menu (short)
-ghostctl sec ssh                  # SSH (short)
-ghostctl sec gpg                  # GPG (short)
-ghostctl sec credentials          # Credentials (short)
-
-# Standalone commands
-ghostctl ssh                      # SSH key management
-ghostctl gpg                      # GPG key management
-```
-
-### SSH Key Management
-```bash
-# SSH operations (direct access)
-ghostctl ssh                      # Interactive SSH key management
-ghostctl ssh generate             # Generate new SSH key pair
-ghostctl ssh list                 # List SSH keys
-ghostctl ssh copy-id user@host    # Copy SSH key to remote host
-ghostctl ssh config               # SSH configuration management
-```
-
-### GPG Key Management
-```bash
-ghostctl gpg                      # Interactive GPG key management menu
-```
-
-### Credential Management
-```bash
-# Secure credential storage
-ghostctl security credentials     # Credential management menu
-ghostctl sec credentials          # Credential management menu (short)
-
-# Available operations through menu:
-# - Unlock credential store
-# - Store new credential
-# - List stored credentials
-# - Retrieve credential
-# - Delete credential
-```
-
-## 💾 Backup & Recovery
-
-### Backup Management
-```bash
-ghostctl backup menu              # Backup management menu
-ghostctl backup setup             # Setup backup system
-ghostctl backup schedule          # Schedule automated backups
-ghostctl backup verify            # Verify backup integrity
-ghostctl backup cleanup           # Clean old backups
-```
-
-### System Recovery
-```bash
-ghostctl restore menu             # System recovery menu
-ghostctl restore restic           # Restore from Restic backup
-ghostctl restore btrfs            # Rollback Btrfs snapshot
-ghostctl restore chroot           # Enter recovery chroot
-```
-
-## 🗃️ Filesystem Management
-
-### Btrfs Operations
-```bash
-ghostctl btrfs menu               # Btrfs management menu
-ghostctl btrfs list               # List snapshots
-ghostctl btrfs create NAME        # Create snapshot with specified name
-ghostctl btrfs create NAME -s /home  # Create snapshot of specific subvolume
-ghostctl btrfs delete NAME        # Delete snapshot by name
-ghostctl btrfs restore NAME PATH  # Restore snapshot to target path
-ghostctl btrfs status             # Show filesystem status and health
-ghostctl btrfs scrub [PATH]       # Start filesystem scrub (default: /)
-ghostctl btrfs balance [PATH]     # Start filesystem balance (default: /)
-ghostctl btrfs usage [PATH]       # Show filesystem usage (default: /)
-ghostctl btrfs quota [PATH]       # Manage quotas (default: /)
-```
-
-### Snapper Integration
-```bash
-ghostctl btrfs snapper setup     # Setup snapper configurations
-ghostctl btrfs snapper edit CONFIG # Edit snapper configuration
-ghostctl btrfs snapper list      # List snapper configurations
-```
-
-## 🌐 Network & Infrastructure
-
-### Network Management
-```bash
-# Full network menu (both long and short form)
-ghostctl network menu             # Network management menu
-ghostctl net menu                 # Network management menu (short alias)
-
-# Direct command access
-ghostctl dns DOMAIN               # DNS lookup and configuration
-ghostctl nc                       # Netcat utilities
-ghostctl network mesh             # Mesh networking (Tailscale/Headscale)
-ghostctl net mesh                 # Mesh networking (short alias)
-ghostctl scan TARGET              # Network port scanning with TUI
-ghostctl network scan TARGET      # Legacy alias (deprecated)
-```
-
-### DNS Operations
-```bash
-# DNS lookup and management
-ghostctl dns google.com           # DNS lookup for domain
-ghostctl dns --type MX domain.com # Specific record type lookup
-ghostctl dns --reverse 8.8.8.8    # Reverse DNS lookup
-
-# Through network menu:
-# - DNS lookup with multiple record types
-# - DNSSEC verification and validation
-# - Reverse DNS lookups
-# - DNS performance testing
-```
-
-### Network Scanning with Native TUI Scanner
-```bash
-# Basic scan with beautiful TUI
-ghostctl scan 192.168.1.1
-
-# Scan specific ports
-ghostctl scan 192.168.1.1 -p 80,443,8080
-ghostctl scan 192.168.1.1 -p 1-1000
-
-# Full port scan (all 65535 ports)
-ghostctl scan 192.168.1.1 --full
-
-# Scan with service detection
-ghostctl scan 192.168.1.1 --service
-
-# Scan with custom thread count
-ghostctl scan 192.168.1.1 -t 200
-
-# Network range scan (CIDR)
-ghostctl scan 192.168.1.0/24
-
-# Output formats (disable TUI)
-ghostctl scan 192.168.1.1 --json      # JSON output
-ghostctl scan 192.168.1.1 --quiet     # Minimal output
-
-# Combined options
-ghostctl scan 192.168.1.1 -p 1-10000 --service -t 150
-```
-
-**✨ Scanner Features:**
-- 🎨 **Beautiful TUI** - Real-time progress with ratatui interface
-- ⚡ **Async Performance** - Concurrent scanning with configurable threads
-- 🔍 **Service Detection** - Identify services running on open ports
-- 🌐 **CIDR Support** - Scan entire network ranges
-- 📊 **Real-time Stats** - Live progress, ETA, and port statistics
-- 🎛️ **Interactive Controls** - Navigate results with keyboard shortcuts
-- 📈 **Multiple Views** - Overview, results, statistics, and settings tabs
-- 🚀 **Zero Dependencies** - Native Rust implementation (replaces gscan)
-
-**🎮 TUI Controls:**
-- `←` `→` : Switch between tabs
-- `↑` `↓` : Navigate scan results
-- `q` : Quit scanner
-
-```bash
-# Legacy network menu access (still available):
-# ghostctl network menu → Network Scanner & Discovery
-# - Service detection and banner grabbing
-# - Network discovery and host enumeration
-```
-
-### Netcat Utilities
-```bash
-# File transfer
-ghostctl nc send FILE HOST PORT    # Send file to host
-ghostctl nc receive FILE PORT      # Receive file on port
-
-# Communication
-ghostctl nc chat HOST PORT         # Connect to chat session
-ghostctl nc chat PORT              # Start chat server
-
-# Connectivity testing
-ghostctl nc check HOST PORT        # Check port connectivity
-```
-
-### ☁️ Cloud Provider Management
-```bash
-ghostctl cloud menu               # Cloud management menu
-ghostctl cloud aws                # AWS tools
-ghostctl cloud azure              # Azure tools
-ghostctl cloud gcp                # Google Cloud tools
-```
-
-## ⚙️ System Services
-
-### Systemd Management
-```bash
-ghostctl systemd menu             # Systemd management menu
-ghostctl systemd status           # Service status
-ghostctl systemd enable           # Enable service
-ghostctl systemd disable          # Disable service
-ghostctl systemd restart          # Restart service
-```
-
-## 🔐 SSL Certificate Management
-
-### SSL Operations
-```bash
-ghostctl ssl menu                 # SSL management menu
-ghostctl nginx menu               # Enhanced nginx management with ACME.sh
-
-# Through nginx menu:
-# - ACME.sh installation and setup
-# - Certificate issuance with multiple DNS providers
-# - PowerDNS API integration
-# - Azure DNS provider support  
-# - Automated certificate deployment
-# - Certificate renewal and monitoring
-
-# Legacy commands still available:
-ghostctl ssl install              # Install acme.sh
-ghostctl ssl issue <domain>       # Issue certificate
-ghostctl ssl renew                # Renew certificates
-ghostctl ssl list                 # List certificates
-```
-
-## 🌐 Web Server Management
-
-### Nginx Operations
-```bash
-ghostctl nginx menu               # Nginx management menu
-ghostctl nginx status             # Nginx status
-ghostctl nginx restart            # Restart Nginx
-ghostctl nginx ssl-setup <domain> # Setup SSL for domain
-```
-
-## 💾 Restic Backup CLI
-
-### Restic Operations
-```bash
-ghostctl restic menu              # Interactive restic CLI tools
-ghostctl backup menu              # Full backup management system
-
-# Through restic menu:
-# - Initialize repository
-# - Create backups with custom paths
-# - List and browse snapshots  
-# - Restore from specific snapshots
-# - Forget old snapshots with retention policies
-# - Check repository integrity
-```
-
-## 📦 AUR Helper Management
-
-### AUR Operations  
-```bash
-ghostctl arch aur                 # AUR helper management menu
-
-# Through AUR menu:
-# - Check installed AUR helpers (reaper/paru/yay/trizen/pikaur)
-# - Set preferred AUR helper with persistent config
-# - Install AUR helpers (reaper recommended, paru, yay)
-# - Update AUR packages using preferred helper
-# - Clean AUR cache with confirmation
-```
-
-## 📋 Script Management
-
-### Script Operations
-```bash
-ghostctl scripts menu             # Scripts management menu
-ghostctl scripts local            # Local script management
-ghostctl scripts run <script>     # Run specific script
-ghostctl scripts list <category>  # List scripts by category
-```
-
-## 🏠 Homelab Integration
-
-### Homelab Commands
-```bash
-ghostctl homelab menu             # Homelab management menu
-ghostctl homelab init             # Initialize homelab environment
-ghostctl homelab media-server     # Deploy media server
-ghostctl homelab monitoring       # Setup monitoring stack
-```
-
-## 🔧 External Tools
-
-### Tool Management
-```bash
-ghostctl tools install            # Install development tools
-ghostctl tools configure          # Configure tools
-ghostctl tools update             # Update tools
-```
-
----
-
-## 💡 Command Examples
-
-### Quick System Maintenance
-```bash
-# Complete Arch system maintenance  
-ghostctl arch clean all          # Comprehensive cleanup
-ghostctl arch bouncer all        # Full recovery sequence
-
-# Check system health
-ghostctl arch health
-
-# Optimize system performance  
-ghostctl arch optimize
-```
-
-### Development Setup
-```bash
-# Setup complete Rust environment
-ghostctl dev rust
-ghostctl nvim mason  # Then select Rust environment
-
-# Setup GPU development
-ghostctl nvidia container
-```
-
-### Security & Backup
-```bash
-# Setup security
-ghostctl security audit
-ghostctl sec audit               # Short form
-ghostctl ssh                     # SSH key management
-ghostctl gpg                     # GPG key management
-ghostctl security credentials    # Credential management
-ghostctl sec credentials         # Short form
-
-# Setup automated backups
-ghostctl backup setup
-ghostctl backup schedule
-```
-
-### Homelab Deployment
-```bash
-# Initialize homelab
-ghostctl homelab init
-ghostctl homelab monitoring
-ghostctl homelab media-server
-```
-
----
-
-## 📚 Documentation Structure
-
-- **COMMANDS.md** (this file) - Complete command reference
-- **README.md** - Project overview and quick start
-- **INSTALL.md** - Installation guide
-
----
-
-## ⚡ Performance & Optimization
-
-### System Optimization Commands
-```bash
-# Memory management
-ghostctl arch swap                # Configure swap/zram optimal settings
-
-# Performance tuning  
-ghostctl arch perf               # System performance optimization
-ghostctl nvidia optimize         # GPU performance tuning
-
-# Maintenance automation
-ghostctl arch clean all          # Complete system cleanup
-ghostctl arch bouncer all        # Full system recovery
-ghostctl backup verify           # Backup integrity verification
-```
-
-### Development Optimization
-```bash
-# Language servers and tools
-ghostctl nvim mason              # Install/update development tools
-
-# Container performance
-ghostctl nvidia container        # GPU acceleration for containers
-ghostctl docker homelab         # Optimized homelab stacks
-```
-
----
-
-## 🛠️ Advanced Usage
-
-### Automation & Scripting
-```bash
-# Backup automation
-ghostctl backup schedule         # Setup automated backups
-ghostctl scripts run backup     # Run backup scripts
-
-# System maintenance  
-ghostctl arch full              # Automated system maintenance
-ghostctl security audit         # Security scanning
-```
-
-### Infrastructure Management
-```bash
-# Network configuration
-ghostctl network config         # Network setup and optimization
-ghostctl cloud aws              # Cloud infrastructure tools
-
-# Service management
-ghostctl systemd menu           # System service management
-ghostctl nginx ssl-setup        # Automated SSL setup
-```
-
-### Updates
-```bash
-ghostctl system update        # Update system packages
-ghostctl tools update         # Update Ghost tools
-```
-
-### Maintenance
-```bash
-ghostctl maintenance          # Run maintenance tasks
-ghostctl cleanup              # Clean temporary files
-ghostctl backup-config        # Backup configurations
-ghostctl restore-config       # Restore configurations
-```
-
-## 🚨 Troubleshooting Commands
-
-### Diagnostics
-```bash
-ghostctl diagnose            # Run diagnostics
-ghostctl logs                # View all logs
-ghostctl debug               # Enable debug mode
-ghostctl reset               # Reset to defaults
-```
-
-### Repair Operations
-```bash
-ghostctl repair docker       # Repair Docker installation
-ghostctl repair nginx        # Repair Nginx configuration
-ghostctl repair ssl          # Repair SSL certificates
-ghostctl repair permissions  # Fix file permissions
-```
-
-## 💡 Help & Documentation
-
-### Help System
-```bash
-ghostctl help                # Main help
-ghostctl help <command>      # Command-specific help
-ghostctl docs                # Open documentation
-ghostctl examples            # Show examples
-ghostctl tips                # Usage tips
-```
-
-### Interactive Guides
-```bash
-ghostctl guide homelab       # Homelab setup guide
-ghostctl guide dev-env       # Development environment guide
-ghostctl guide ssl           # SSL setup guide
-ghostctl guide docker        # Docker guide
-```
-
----
-
-## 📝 Notes
-
-- All commands can be run interactively through the main menu: `ghostctl`
-- Most commands have both interactive and non-interactive modes
-- Use `ghostctl help <command>` for detailed command information
-- Configuration files are stored in `~/.config/ghostctl/`
-- Scripts are located in `/data/projects/ghostctl/scripts/`
-- Logs are available via `ghostctl logs` or `journalctl -u ghostctl`
-
-## 🛠️ Development Environment
-
-### Multi-Language Support
-
-#### 🦀 Rust Development
-```bash
-# Toolchain management
-rustup update                # Update Rust
-cargo new project           # New project
-cargo build --release      # Release build
-cargo test                 # Run tests
-cargo clippy              # Linting
-cargo fmt                 # Formatting
-```
-
-#### ⚡ Zig Development
-```bash
-# With Zion meta-tool
-zion new project           # New project
-zion build                # Build project
-zion test                 # Run tests
-
-# Direct Zig commands
-zig init-exe              # Initialize executable
-zig build                 # Build project
-zig test                  # Run tests
-```
-
-#### 🐹 Go Development
-```bash
-# Module management
-go mod init module-name    # Initialize module
-go mod tidy               # Clean dependencies
-go get package            # Add dependency
-go build                  # Build project
-go test ./...             # Run tests
-go run .                  # Run project
-```
-
-#### 🐍 Python Development
-```bash
-# Virtual environments
-python3 -m venv env       # Create venv
-source env/bin/activate   # Activate venv
-conda create -n env       # Create conda env
-conda activate env       # Activate conda env
-
-# Package management
-pip install package       # Install package
-pip freeze > requirements.txt  # Export deps
-pip install -r requirements.txt  # Install deps
-```
-
-### 👻 Ghost Tools Commands
-
-#### ⚡ Reaper (AUR Helper)
-```bash
-reap <package>            # Install package
-reap -S <query>           # Search packages
-reap -R <package>         # Remove package
-reap -Syu                 # System update
-reap -Qm                  # List AUR packages
-```
-
-#### 🦀 Oxygen (Rust Tool)
-```bash
-oxygen new <project>      # New Rust project
-oxygen build             # Build project
-oxygen test              # Run tests
-oxygen deploy            # Deploy project
-oxygen bench             # Run benchmarks
-```
-
-#### ⚡ Zion (Zig Tool)
-```bash
-zion new <project>        # New Zig project
-zion build               # Build project
-zion test                # Run tests
-zion clean               # Clean build
-zion deps                # Manage dependencies
-```
-
-#### 🎮 NVControl
-```bash
-nvcontrol status         # GPU status
-nvcontrol temp           # Temperature info
-nvcontrol fan            # Fan control
-nvcontrol overclock      # Performance tuning
-```
-
-## 🔐 SSL Certificate Management (acme.sh)
-
-### Installation & Setup
-```bash
-# Install acme.sh
-curl https://get.acme.sh | sh
-source ~/.bashrc
-
-# Account registration
-acme.sh --register-account -m your@email.com
-```
-
-### Certificate Operations
-```bash
-# Issue certificate (webroot)
-acme.sh --issue -d domain.com --webroot /var/www/html
-
-# Issue certificate (standalone)
-acme.sh --issue -d domain.com --standalone
-
-# Issue certificate (DNS API - Cloudflare)
-export CF_Token="your-token"
-acme.sh --issue -d domain.com --dns dns_cf
-
-# Install certificate to custom location
-acme.sh --install-cert -d domain.com \
-  --cert-file /etc/nginx/certs/domain.com/cert.pem \
-  --key-file /etc/nginx/certs/domain.com/private.key \
-  --fullchain-file /etc/nginx/certs/domain.com/fullchain.pem \
-  --reloadcmd "systemctl reload nginx"
-
-# Renew certificates
-acme.sh --renew-all         # Renew all
-acme.sh --renew -d domain.com  # Renew specific
-
-# List certificates
-acme.sh --list
-
-# Certificate info
-acme.sh --info -d domain.com
-```
-
-### DNS API Configuration
-```bash
-# Cloudflare
-export CF_Token="your-cloudflare-token"
-export CF_Account_ID="your-account-id"
-
-# DigitalOcean
-export DO_API_KEY="your-digitalocean-api-key"
-
-# AWS Route53
-export AWS_ACCESS_KEY_ID="your-access-key"
-export AWS_SECRET_ACCESS_KEY="your-secret-key"
-
-# Add to shell config for persistence
-echo 'export CF_Token="your-token"' >> ~/.bashrc
-```
-
-## 🐳 Docker Management
-
-### Container Operations
-```bash
-# Basic commands
-docker ps                 # List running containers
-docker ps -a              # List all containers
-docker images             # List images
-docker logs container     # View logs
-docker exec -it container bash  # Enter container
-
-# Container lifecycle
-docker run image          # Run container
-docker start container    # Start container
-docker stop container     # Stop container
-docker restart container  # Restart container
-docker rm container       # Remove container
-```
-
-### Docker Compose
-```bash
-# Compose operations
-docker-compose up         # Start services
-docker-compose up -d      # Start in background
-docker-compose down       # Stop services
-docker-compose logs       # View logs
-docker-compose ps         # List services
-docker-compose restart    # Restart services
-```
-
-### Image Management
-```bash
-# Image operations
-docker build -t name .    # Build image
-docker pull image         # Pull image
-docker push image         # Push image
-docker rmi image          # Remove image
-docker system prune       # Clean unused data
-```
-
-## 🌐 Nginx Management
-
-### Service Control
-```bash
-# Systemd service
-sudo systemctl start nginx     # Start Nginx
-sudo systemctl stop nginx      # Stop Nginx
-sudo systemctl restart nginx   # Restart Nginx
-sudo systemctl reload nginx    # Reload config
-sudo systemctl status nginx    # Check status
-sudo systemctl enable nginx    # Enable auto-start
-```
-
-### Configuration
-```bash
-# Test configuration
-sudo nginx -t             # Test config syntax
-sudo nginx -T             # Test and dump config
-
-# Reload configuration
-sudo nginx -s reload      # Graceful reload
-sudo nginx -s quit        # Graceful shutdown
-```
-
-### SSL Configuration
-```bash
-# Certificate paths (GhostCTL standard)
-/etc/nginx/certs/domain.com/cert.pem
-/etc/nginx/certs/domain.com/private.key
-/etc/nginx/certs/domain.com/fullchain.pem
-
-# Nginx SSL config example
-server {
-    listen 443 ssl;
-    server_name domain.com;
-    
-    ssl_certificate /etc/nginx/certs/domain.com/fullchain.pem;
-    ssl_certificate_key /etc/nginx/certs/domain.com/private.key;
-    
-    # SSL security settings
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-}
-```
-
-## 📝 Script Management
-
-### Local Scripts
-```bash
-# Script directories
-/data/projects/ghostctl/scripts/homelab/     # Homelab automation
-/data/projects/ghostctl/scripts/dev/         # Development scripts
-/data/projects/ghostctl/scripts/docker/      # Container scripts
-/data/projects/ghostctl/scripts/templates/   # Script templates
-
-# Execute scripts
-bash /path/to/script.sh   # Run script
-chmod +x script.sh        # Make executable
-./script.sh              # Execute directly
-```
-
-### Script Templates
-```bash
-# Create from template
-cp templates/basic_bash.sh new_script.sh
-cp templates/service_manager.sh my_service.sh
-cp templates/package_installer.sh install_deps.sh
-```
-
-## 📝 Editor Configuration
-
-### Neovim with LazyVim
-```bash
-# LazyVim commands
-:Lazy                     # Plugin manager
-:LazyUpdate              # Update plugins
-:LazyClean               # Clean unused plugins
-:LazyProfile             # Performance profiling
-
-# LSP commands
-:LspInfo                 # Language server info
-:LspRestart              # Restart language server
-:Mason                   # LSP installer
-
-# File operations
-:Telescope find_files    # Find files
-:Telescope live_grep     # Search in files
-:NvimTreeToggle         # File explorer
-```
-
-### Terminal (Ghostty)
-```bash
-# Ghostty configuration
-~/.config/ghostty/config  # Config file location
-
-# Key bindings (default)
-Ctrl+Shift+T             # New tab
-Ctrl+Shift+N             # New window
-Ctrl+Shift+C             # Copy
-Ctrl+Shift+V             # Paste
-```
-
-## 🏠 Homelab Commands
-
-### Proxmox VE
-```bash
-# VM management
-qm list                  # List VMs
-qm start vmid           # Start VM
-qm stop vmid            # Stop VM
-qm restart vmid         # Restart VM
-qm status vmid          # VM status
-
-# Container management
-pct list                # List containers
-pct start ctid          # Start container
-pct stop ctid           # Stop container
-pct enter ctid          # Enter container
-
-# Storage management
-pvesm status            # Storage status
-pvesm list storage      # List storage
-```
-
-### System Monitoring
-```bash
-# Resource monitoring
-htop                    # Interactive process viewer
-df -h                   # Disk usage
-free -h                 # Memory usage
-iostat                  # I/O statistics
-netstat -tulpn         # Network connections
-
-# Service monitoring
-systemctl list-units   # List services
-journalctl -f          # Follow system logs
-journalctl -u service  # Service-specific logs
-```
-
-## 🔧 Troubleshooting Commands
-
-### System Diagnostics
-```bash
-# System information
-uname -a                # System info
-lsb_release -a         # Distribution info
-cat /proc/version      # Kernel version
-systemctl --failed     # Failed services
-
-# Network diagnostics
-ping google.com        # Network connectivity
-dig domain.com         # DNS lookup
-nslookup domain.com    # DNS resolution
-ss -tulpn             # Socket statistics
-
-# Disk diagnostics
-lsblk                  # Block devices
-fdisk -l              # Disk partitions
-fsck /dev/device      # File system check
-smartctl -a /dev/sda  # SMART disk info
-```
-
-### Log Analysis
-```bash
-# System logs
-journalctl --since yesterday    # Recent logs
-journalctl -p err              # Error logs only
-journalctl -u nginx            # Service logs
-tail -f /var/log/nginx/error.log  # Follow error log
-
-# Application logs
-docker logs container          # Container logs
-tail -f application.log       # Follow app log
-grep -i error /var/log/syslog # Search for errors
-```
-
-## 🔄 Backup & Recovery
-
-### Restic Backup
-```bash
-# Initialize repository
-restic init --repo /backup/location
-
-# Create backup
-restic backup ~/important --repo /backup/location
-
-# List snapshots
-restic snapshots --repo /backup/location
-
-# Restore backup
-restic restore latest --repo /backup/location --target /restore/path
-
-# Check repository
-restic check --repo /backup/location
-```
-
-## 🔐 UEFI Secure Boot Management
-
-### Status Check
-```bash
-ghostctl uefi status
-```
-
-### Key Enrollment
-```bash
-# Create VARS with Secure Boot keys for Windows 11
-ghostctl uefi enroll -o /var/lib/libvirt/qemu/nvram/win11_VARS.fd
-
-# Fix ownership for libvirt
-sudo chown libvirt-qemu:libvirt-qemu /var/lib/libvirt/qemu/nvram/win11_VARS.fd
-```
-
-### Verify VARS
-```bash
-ghostctl uefi verify /path/to/vars.fd
-```
-
----
-
-For more detailed information, see:
-- [Docker Guide](../docker/README.md)
-- [Proxmox Integration](../proxmox/README.md)
-- [Network Scanner](../networking/scanner.md)
-- [UEFI Secure Boot](../uefi/README.md)
+# GhostCTL Command Reference
+
+Auto-generated from `ghostctl docs generate`.
+
+### `system`
+
+Manage system packages and services
+
+**Subcommands:**
+
+- `system update` -- Update system packages
+- `system status` -- Show system status
+- `system arch` -- Arch Linux management
+- `system nixos` -- Manage NixOS system
+
+#### `system update`
+
+Update system packages
+
+#### `system status`
+
+Show system status
+
+#### `system arch`
+
+Arch Linux management
+
+#### `system nixos`
+
+Manage NixOS system
+
+### `dev`
+
+Manage development tools and environments
+
+**Subcommands:**
+
+- `dev menu` -- Development menu
+- `dev rust` -- Manage Rust toolchain
+- `dev zig` -- Manage Zig toolchain
+- `dev go` -- Manage Go toolchain
+- `dev python` -- Manage Python toolchain
+
+#### `dev menu`
+
+Development menu
+
+#### `dev rust`
+
+Manage Rust toolchain
+
+#### `dev zig`
+
+Manage Zig toolchain
+
+#### `dev go`
+
+Manage Go toolchain
+
+#### `dev python`
+
+Manage Python toolchain
+
+### `pve`
+
+Proxmox VE management
+
+**Subcommands:**
+
+- `pve menu` -- PVE management menu
+- `pve status` -- Show PVE status
+- `pve vm` -- Virtual machine management
+- `pve ct` -- Container management
+
+#### `pve menu`
+
+PVE management menu
+
+#### `pve status`
+
+Show PVE status
+
+#### `pve vm`
+
+Virtual machine management
+
+**Subcommands:**
+
+- `pve vm list` -- List VMs
+- `pve vm create` -- Create VM
+- `pve vm start` -- Start VM
+- `pve vm stop` -- Stop VM
+
+##### `pve vm list`
+
+List VMs
+
+##### `pve vm create`
+
+Create VM
+
+##### `pve vm start`
+
+Start VM
+
+**Options:**
+
+- `<id>` -- VM ID
+
+##### `pve vm stop`
+
+Stop VM
+
+**Options:**
+
+- `<id>` -- VM ID
+
+#### `pve ct`
+
+Container management
+
+**Subcommands:**
+
+- `pve ct list` -- List containers
+- `pve ct create` -- Create container
+- `pve ct start` -- Start container
+- `pve ct stop` -- Stop container
+
+##### `pve ct list`
+
+List containers
+
+##### `pve ct create`
+
+Create container
+
+##### `pve ct start`
+
+Start container
+
+**Options:**
+
+- `<id>` -- Container ID
+
+##### `pve ct stop`
+
+Stop container
+
+**Options:**
+
+- `<id>` -- Container ID
+
+### `docker`
+
+Manage Docker containers and stacks
+
+**Subcommands:**
+
+- `docker menu` -- Docker menu
+- `docker install` -- Install Docker
+- `docker status` -- Show Docker service status
+- `docker homelab` -- Homelab stacks
+
+#### `docker menu`
+
+Docker menu
+
+#### `docker install`
+
+Install Docker
+
+#### `docker status`
+
+Show Docker service status
+
+#### `docker homelab`
+
+Homelab stacks
+
+### `scripts`
+
+Manage and run local scripts
+
+**Subcommands:**
+
+- `scripts menu` -- Scripts menu
+- `scripts local` -- Local scripts
+- `scripts run` -- Run a local script by name
+- `scripts list` -- List scripts
+
+#### `scripts menu`
+
+Scripts menu
+
+#### `scripts local`
+
+Local scripts
+
+#### `scripts run`
+
+Run a local script by name
+
+**Options:**
+
+- `<script>` -- Script name
+
+#### `scripts list`
+
+List scripts
+
+**Options:**
+
+- `<category>` -- Script category
+
+### `ssl`
+
+SSL certificate management
+
+**Subcommands:**
+
+- `ssl menu` -- SSL menu
+- `ssl install` -- Install acme.sh
+- `ssl issue` -- Issue certificate
+- `ssl renew` -- Renew certificates
+- `ssl list` -- List certificates
+
+#### `ssl menu`
+
+SSL menu
+
+#### `ssl install`
+
+Install acme.sh
+
+#### `ssl issue`
+
+Issue certificate
+
+**Options:**
+
+- `<domain>` -- Domain name
+
+#### `ssl renew`
+
+Renew certificates
+
+#### `ssl list`
+
+List certificates
+
+### `nginx`
+
+Manage Nginx web server
+
+**Subcommands:**
+
+- `nginx menu` -- Nginx menu
+- `nginx status` -- Nginx status
+- `nginx restart` -- Restart Nginx
+- `nginx ssl-setup` -- Setup SSL
+
+#### `nginx menu`
+
+Nginx menu
+
+#### `nginx status`
+
+Nginx status
+
+#### `nginx restart`
+
+Restart Nginx
+
+#### `nginx ssl-setup`
+
+Setup SSL
+
+**Options:**
+
+- `<domain>` -- Domain name
+
+### `nvim`
+
+Neovim setup
+
+**Subcommands:**
+
+- `nvim menu` -- Neovim menu
+- `nvim install` -- Install Neovim
+- `nvim lazyvim` -- Install LazyVim
+
+#### `nvim menu`
+
+Neovim menu
+
+#### `nvim install`
+
+Install Neovim
+
+#### `nvim lazyvim`
+
+Install LazyVim
+
+### `terminal`
+
+Configure terminal emulators
+
+**Subcommands:**
+
+- `terminal menu` -- Terminal menu
+- `terminal ghostty` -- Install Ghostty
+- `terminal starship` -- Install Starship
+
+#### `terminal menu`
+
+Terminal menu
+
+#### `terminal ghostty`
+
+Install Ghostty
+
+#### `terminal starship`
+
+Install Starship
+
+### `ghost`
+
+Manage Ghost tool suite
+
+**Subcommands:**
+
+- `ghost menu` -- Ghost tools menu
+- `ghost install-all` -- Install all Ghost tools
+- `ghost reaper` -- Install Reaper
+- `ghost oxygen` -- Install Oxygen
+- `ghost zion` -- Install Zion
+- `ghost status` -- Show Ghost tool suite status
+
+#### `ghost menu`
+
+Ghost tools menu
+
+#### `ghost install-all`
+
+Install all Ghost tools
+
+#### `ghost reaper`
+
+Install Reaper
+
+#### `ghost oxygen`
+
+Install Oxygen
+
+#### `ghost zion`
+
+Install Zion
+
+#### `ghost status`
+
+Show Ghost tool suite status
+
+### `homelab`
+
+Manage homelab environment
+
+**Subcommands:**
+
+- `homelab menu` -- Homelab menu
+- `homelab init` -- Initialize homelab
+
+#### `homelab menu`
+
+Homelab menu
+
+#### `homelab init`
+
+Initialize homelab
+
+### `btrfs`
+
+Manage Btrfs filesystems and snapshots
+
+**Subcommands:**
+
+- `btrfs list` -- List snapshots
+- `btrfs create` -- Create snapshot
+- `btrfs delete` -- Delete snapshot
+- `btrfs restore` -- Restore snapshot
+- `btrfs status` -- Show filesystem status and health
+- `btrfs scrub` -- Start filesystem scrub
+- `btrfs balance` -- Start filesystem balance
+- `btrfs usage` -- Show filesystem usage
+- `btrfs quota` -- Manage quotas
+- `btrfs snapper` -- Snapper integration
+- `btrfs cleanup` -- Emergency cleanup snapshots
+
+#### `btrfs list`
+
+List snapshots
+
+#### `btrfs create`
+
+Create snapshot
+
+**Options:**
+
+- `<name>` -- Snapshot name
+- `-s`, `--subvolume` -- Source subvolume
+
+#### `btrfs delete`
+
+Delete snapshot
+
+**Options:**
+
+- `<name>` -- Snapshot name
+
+#### `btrfs restore`
+
+Restore snapshot
+
+**Options:**
+
+- `<name>` -- Snapshot name
+- `<target>` -- Target path
+
+#### `btrfs status`
+
+Show filesystem status and health
+
+#### `btrfs scrub`
+
+Start filesystem scrub
+
+**Options:**
+
+- `<mountpoint>` -- Mountpoint to scrub
+
+#### `btrfs balance`
+
+Start filesystem balance
+
+**Options:**
+
+- `<mountpoint>` -- Mountpoint to balance
+
+#### `btrfs usage`
+
+Show filesystem usage
+
+**Options:**
+
+- `<mountpoint>` -- Mountpoint to analyze
+
+#### `btrfs quota`
+
+Manage quotas
+
+**Options:**
+
+- `<mountpoint>` -- Mountpoint for quota management
+
+#### `btrfs snapper`
+
+Snapper integration
+
+**Subcommands:**
+
+- `btrfs snapper setup` -- Setup snapper configurations
+- `btrfs snapper edit` -- Edit snapper config
+- `btrfs snapper list` -- List snapper configs
+- `btrfs snapper cleanup` -- Cleanup old snapshots
+
+##### `btrfs snapper setup`
+
+Setup snapper configurations
+
+##### `btrfs snapper edit`
+
+Edit snapper config
+
+**Options:**
+
+- `<config>` -- Config name
+
+##### `btrfs snapper list`
+
+List snapper configs
+
+##### `btrfs snapper cleanup`
+
+Cleanup old snapshots
+
+#### `btrfs cleanup`
+
+Emergency cleanup snapshots
+
+**Options:**
+
+- `--emergency` -- Remove ALL snapshots (DANGEROUS)
+- `--days` -- Remove snapshots older than X days
+- `--range` -- Remove snapshot range (e.g., 1-100)
+
+### `nvidia`
+
+NVIDIA GPU management
+
+**Subcommands:**
+
+- `nvidia install` -- Install NVIDIA drivers
+- `nvidia optimize` -- Optimize GPU settings
+- `nvidia passthrough` -- Setup GPU passthrough
+- `nvidia wayland` -- Configure Wayland support
+- `nvidia build-source` -- Build NVIDIA kernel modules from source
+- `nvidia dkms-status` -- Show DKMS module status
+- `nvidia dkms-cleanup` -- Clean old DKMS entries
+
+#### `nvidia install`
+
+Install NVIDIA drivers
+
+#### `nvidia optimize`
+
+Optimize GPU settings
+
+#### `nvidia passthrough`
+
+Setup GPU passthrough
+
+#### `nvidia wayland`
+
+Configure Wayland support
+
+#### `nvidia build-source`
+
+Build NVIDIA kernel modules from source
+
+**Options:**
+
+- `--all-kernels` -- Build for all installed kernels (default: current kernel only)
+- `--dkms` -- Use DKMS-managed build (default: true)
+- `--no-dkms` -- Use direct make install instead of DKMS
+- `--auto-clean` -- Automatically clean old DKMS entries without prompting
+
+#### `nvidia dkms-status`
+
+Show DKMS module status
+
+#### `nvidia dkms-cleanup`
+
+Clean old DKMS entries
+
+### `iommu`
+
+IOMMU group management and analysis
+
+**Subcommands:**
+
+- `iommu menu` -- Interactive IOMMU menu
+- `iommu status` -- Show IOMMU status
+- `iommu groups` -- List IOMMU groups
+- `iommu analyze` -- Analyze device for passthrough viability
+- `iommu gpus` -- List all GPU devices
+- `iommu usb` -- List USB controllers
+- `iommu nvme` -- List NVMe controllers
+- `iommu sata` -- List SATA controllers
+- `iommu tree` -- Show PCIe topology tree
+- `iommu acs` -- Check ACS override status
+
+#### `iommu menu`
+
+Interactive IOMMU menu
+
+#### `iommu status`
+
+Show IOMMU status
+
+#### `iommu groups`
+
+List IOMMU groups
+
+**Options:**
+
+- `--gpu` -- Show only groups containing GPUs
+- `--json` -- Output in JSON format
+
+#### `iommu analyze`
+
+Analyze device for passthrough viability
+
+**Options:**
+
+- `<device>` -- PCI address (e.g., 01:00.0 or 0000:01:00.0)
+
+#### `iommu gpus`
+
+List all GPU devices
+
+#### `iommu usb`
+
+List USB controllers
+
+#### `iommu nvme`
+
+List NVMe controllers
+
+#### `iommu sata`
+
+List SATA controllers
+
+#### `iommu tree`
+
+Show PCIe topology tree
+
+#### `iommu acs`
+
+Check ACS override status
+
+### `vfio`
+
+VFIO passthrough management
+
+**Subcommands:**
+
+- `vfio menu` -- Interactive VFIO menu
+- `vfio setup` -- VFIO setup wizard
+- `vfio status` -- Show VFIO status and bound devices
+- `vfio bind` -- Bind device to vfio-pci driver
+- `vfio unbind` -- Unbind device from vfio-pci driver
+- `vfio modules` -- Check and load VFIO modules
+- `vfio config` -- Show VFIO configuration status
+- `vfio kernel-params` -- Show recommended kernel parameters
+- `vfio single-gpu` -- Single GPU passthrough management
+- `vfio dump-rom` -- Dump GPU VBIOS ROM
+- `vfio rom-list` -- List GPUs with ROM information
+
+#### `vfio menu`
+
+Interactive VFIO menu
+
+#### `vfio setup`
+
+VFIO setup wizard
+
+#### `vfio status`
+
+Show VFIO status and bound devices
+
+#### `vfio bind`
+
+Bind device to vfio-pci driver
+
+**Options:**
+
+- `<device>` -- PCI address (e.g., 01:00.0 or 0000:01:00.0)
+
+#### `vfio unbind`
+
+Unbind device from vfio-pci driver
+
+**Options:**
+
+- `<device>` -- PCI address (e.g., 01:00.0 or 0000:01:00.0)
+
+#### `vfio modules`
+
+Check and load VFIO modules
+
+#### `vfio config`
+
+Show VFIO configuration status
+
+#### `vfio kernel-params`
+
+Show recommended kernel parameters
+
+#### `vfio single-gpu`
+
+Single GPU passthrough management
+
+**Subcommands:**
+
+- `vfio single-gpu status` -- Show single GPU passthrough status
+- `vfio single-gpu list` -- List configured VMs
+- `vfio single-gpu remove` -- Remove hooks for a VM
+
+##### `vfio single-gpu status`
+
+Show single GPU passthrough status
+
+##### `vfio single-gpu list`
+
+List configured VMs
+
+##### `vfio single-gpu remove`
+
+Remove hooks for a VM
+
+**Options:**
+
+- `<vm>` -- VM name
+
+#### `vfio dump-rom`
+
+Dump GPU VBIOS ROM
+
+**Options:**
+
+- `<device>` -- PCI address (e.g., 01:00.0)
+- `-o`, `--output` -- Output file path
+
+#### `vfio rom-list`
+
+List GPUs with ROM information
+
+### `security`
+
+Manage security and credentials
+
+**Subcommands:**
+
+- `security menu` -- Security management menu
+- `security ssh` -- Configure SSH keys and agent
+- `security gpg` -- Manage GPG keys
+- `security credentials` -- Manage stored credentials
+
+#### `security menu`
+
+Security management menu
+
+#### `security ssh`
+
+Configure SSH keys and agent
+
+#### `security gpg`
+
+Manage GPG keys
+
+#### `security credentials`
+
+Manage stored credentials
+
+### `bluetooth`
+
+Manage Bluetooth devices
+
+**Subcommands:**
+
+- `bluetooth menu` -- Interactive Bluetooth menu
+- `bluetooth tui` -- Launch Bluetooth TUI
+- `bluetooth list` -- List adapters and devices
+- `bluetooth scan` -- Scan for nearby devices
+- `bluetooth power` -- Toggle adapter power
+
+#### `bluetooth menu`
+
+Interactive Bluetooth menu
+
+#### `bluetooth tui`
+
+Launch Bluetooth TUI
+
+#### `bluetooth list`
+
+List adapters and devices
+
+#### `bluetooth scan`
+
+Scan for nearby devices
+
+#### `bluetooth power`
+
+Toggle adapter power
+
+### `wifi`
+
+WiFi network management (requires iwd)
+
+**Subcommands:**
+
+- `wifi menu` -- Interactive WiFi menu
+- `wifi tui` -- Launch WiFi TUI
+- `wifi status` -- Show WiFi status
+- `wifi list` -- List known networks
+- `wifi scan` -- Scan for networks
+- `wifi connect` -- Connect to a network
+- `wifi disconnect` -- Disconnect from network
+- `wifi power` -- Toggle WiFi power
+
+#### `wifi menu`
+
+Interactive WiFi menu
+
+#### `wifi tui`
+
+Launch WiFi TUI
+
+#### `wifi status`
+
+Show WiFi status
+
+#### `wifi list`
+
+List known networks
+
+#### `wifi scan`
+
+Scan for networks
+
+#### `wifi connect`
+
+Connect to a network
+
+#### `wifi disconnect`
+
+Disconnect from network
+
+#### `wifi power`
+
+Toggle WiFi power
+
+### `sysctl`
+
+Kernel parameter browser (systeroid-style)
+
+**Subcommands:**
+
+- `sysctl menu` -- Interactive sysctl menu
+- `sysctl tui` -- Launch kernel parameter TUI
+- `sysctl list` -- List all parameters
+- `sysctl search` -- Search parameters
+- `sysctl get` -- Get a parameter value
+- `sysctl set` -- Set a parameter value
+- `sysctl export` -- Export configuration
+
+#### `sysctl menu`
+
+Interactive sysctl menu
+
+#### `sysctl tui`
+
+Launch kernel parameter TUI
+
+#### `sysctl list`
+
+List all parameters
+
+#### `sysctl search`
+
+Search parameters
+
+#### `sysctl get`
+
+Get a parameter value
+
+#### `sysctl set`
+
+Set a parameter value
+
+#### `sysctl export`
+
+Export configuration
+
+### `backup`
+
+Manage backup systems
+
+**Subcommands:**
+
+- `backup setup` -- Setup backup system
+- `backup schedule` -- Schedule backups
+- `backup verify` -- Verify backups
+- `backup cleanup` -- Cleanup old backups
+
+#### `backup setup`
+
+Setup backup system
+
+#### `backup schedule`
+
+Schedule backups
+
+#### `backup verify`
+
+Verify backups
+
+#### `backup cleanup`
+
+Cleanup old backups
+
+### `restore`
+
+Restore system from backups
+
+**Subcommands:**
+
+- `restore btrfs` -- Restore from Btrfs
+- `restore system` -- System restore
+- `restore chroot` -- Chroot restore
+
+#### `restore btrfs`
+
+Restore from Btrfs
+
+#### `restore system`
+
+System restore
+
+#### `restore chroot`
+
+Chroot restore
+
+### `shell`
+
+Configure shell environment
+
+**Subcommands:**
+
+- `shell setup` -- Setup shell environment
+- `shell zsh` -- Install and configure ZSH
+
+#### `shell setup`
+
+Setup shell environment
+
+#### `shell zsh`
+
+Install and configure ZSH
+
+### `systemd`
+
+Manage systemd services and timers
+
+**Subcommands:**
+
+- `systemd enable` -- Enable service
+- `systemd disable` -- Disable service
+- `systemd status` -- Show service status
+
+#### `systemd enable`
+
+Enable service
+
+**Options:**
+
+- `<service>` -- Service name
+
+#### `systemd disable`
+
+Disable service
+
+**Options:**
+
+- `<service>` -- Service name
+
+#### `systemd status`
+
+Show service status
+
+**Options:**
+
+- `<service>` -- Service name
+
+### `arch`
+
+Manage Arch Linux system
+
+**Subcommands:**
+
+- `arch fix` -- Fix common Arch issues
+- `arch clean` -- Clean specific target
+- `arch bouncer` -- Fix and bounce back from issues (auto-detects if no target)
+- `arch aur` -- AUR package management
+- `arch boot` -- Boot configuration
+- `arch health` -- System health check
+- `arch performance` -- Performance optimization
+- `arch optimize` -- Optimize system performance
+- `arch mirrors` -- Optimize mirror list
+- `arch orphans` -- Clean orphaned packages
+
+#### `arch fix`
+
+Fix common Arch issues
+
+#### `arch clean`
+
+Clean specific target
+
+**Options:**
+
+- `<target>` -- Target to clean (orphans, mirrors, pkgfix, gpg, locks, all)
+
+#### `arch bouncer`
+
+Fix and bounce back from issues (auto-detects if no target)
+
+**Options:**
+
+- `<target>` -- Optional target to fix (pacman, keyring, mirrors, all). Omit for auto-detection.
+
+#### `arch aur`
+
+AUR package management
+
+#### `arch boot`
+
+Boot configuration
+
+#### `arch health`
+
+System health check
+
+#### `arch performance`
+
+Performance optimization
+
+#### `arch optimize`
+
+Optimize system performance
+
+#### `arch mirrors`
+
+Optimize mirror list
+
+#### `arch orphans`
+
+Clean orphaned packages
+
+### `network`
+
+Manage network configuration and tools
+
+**Subcommands:**
+
+- `network menu` -- Network management menu
+- `network dns` -- DNS configuration
+- `network mesh` -- Mesh networking
+- `network scan` -- Scan network ports
+- `network netcat` -- Netcat utilities for file transfer and communication
+
+#### `network menu`
+
+Network management menu
+
+#### `network dns`
+
+DNS configuration
+
+**Options:**
+
+- `<domain>` -- Domain name to lookup
+
+#### `network mesh`
+
+Mesh networking
+
+#### `network scan`
+
+Scan network ports
+
+**Options:**
+
+- `<target>` -- Target IP, CIDR, or range (e.g. 192.168.1.1, 192.168.1.0/24)
+- `-s` -- Start port [default: 1]
+- `-e` -- End port [default: 1024]
+- `--banner` -- Enable banner grabbing
+
+#### `network netcat`
+
+Netcat utilities for file transfer and communication
+
+**Subcommands:**
+
+- `network netcat send` -- Send a file
+- `network netcat receive` -- Receive a file
+- `network netcat chat` -- Start or join a chat session
+- `network netcat check` -- Check port connectivity
+
+##### `network netcat send`
+
+Send a file
+
+**Options:**
+
+- `<file>` -- File to send
+- `<host>` -- Target host
+- `<port>` -- Target port
+
+##### `network netcat receive`
+
+Receive a file
+
+**Options:**
+
+- `<file>` -- File to save as
+- `<port>` -- Port to listen on
+
+##### `network netcat chat`
+
+Start or join a chat session
+
+**Options:**
+
+- `<host>` -- Host to connect to (if not provided, starts server)
+- `<port>` -- Port to use (required)
+
+##### `network netcat check`
+
+Check port connectivity
+
+**Options:**
+
+- `<host>` -- Host to check
+- `<port>` -- Port to check
+
+### `cloud`
+
+Manage cloud provider integrations
+
+**Subcommands:**
+
+- `cloud aws` -- AWS management
+- `cloud azure` -- Azure management
+- `cloud gcp` -- Google Cloud management
+
+#### `cloud aws`
+
+AWS management
+
+#### `cloud azure`
+
+Azure management
+
+#### `cloud gcp`
+
+Google Cloud management
+
+### `tools`
+
+Install and manage system tools
+
+**Subcommands:**
+
+- `tools install` -- Install development tools
+- `tools configure` -- Configure tools
+- `tools update` -- Update tools
+
+#### `tools install`
+
+Install development tools
+
+#### `tools configure`
+
+Configure tools
+
+#### `tools update`
+
+Update tools
+
+### `net`
+
+Manage network configuration (short alias)
+
+**Subcommands:**
+
+- `net menu` -- Network management menu
+- `net dns` -- DNS configuration
+- `net mesh` -- Mesh networking
+- `net scan` -- Network port scanning
+- `net netcat` -- Netcat utilities
+
+#### `net menu`
+
+Network management menu
+
+#### `net dns`
+
+DNS configuration
+
+**Options:**
+
+- `<domain>` -- Domain name to lookup
+
+#### `net mesh`
+
+Mesh networking
+
+#### `net scan`
+
+Network port scanning
+
+**Options:**
+
+- `<target>` -- Target IP, CIDR, or range
+- `-s` -- Start port
+- `-e` -- End port
+- `--banner` -- Enable banner grabbing
+
+#### `net netcat`
+
+Netcat utilities
+
+**Subcommands:**
+
+- `net netcat send` -- Send a file
+- `net netcat receive` -- Receive a file
+- `net netcat chat` -- Start or join a chat session
+- `net netcat check` -- Check port connectivity
+
+##### `net netcat send`
+
+Send a file
+
+**Options:**
+
+- `<file>` -- File to send
+- `<host>` -- Target host
+- `<port>` -- Target port
+
+##### `net netcat receive`
+
+Receive a file
+
+**Options:**
+
+- `<file>` -- File to save as
+- `<port>` -- Port to listen on
+
+##### `net netcat chat`
+
+Start or join a chat session
+
+**Options:**
+
+- `<host>` -- Host to connect to
+- `<port>` -- Port to use (required)
+
+##### `net netcat check`
+
+Check port connectivity
+
+**Options:**
+
+- `<host>` -- Host to check
+- `<port>` -- Port to check
+
+### `sec`
+
+Security management (short alias)
+
+**Subcommands:**
+
+- `sec menu` -- Security management menu
+- `sec ssh` -- SSH configuration
+- `sec gpg` -- GPG management
+- `sec credentials` -- Credential management
+
+#### `sec menu`
+
+Security management menu
+
+#### `sec ssh`
+
+SSH configuration
+
+#### `sec gpg`
+
+GPG management
+
+#### `sec credentials`
+
+Credential management
+
+### `ssh`
+
+SSH configuration and management
+
+**Subcommands:**
+
+- `ssh menu` -- Interactive SSH management menu
+- `ssh generate` -- Generate new SSH key pair
+- `ssh list` -- List SSH keys
+- `ssh copy-id` -- Copy SSH key to remote host
+- `ssh config` -- SSH configuration management
+
+#### `ssh menu`
+
+Interactive SSH management menu
+
+#### `ssh generate`
+
+Generate new SSH key pair
+
+#### `ssh list`
+
+List SSH keys
+
+#### `ssh copy-id`
+
+Copy SSH key to remote host
+
+**Options:**
+
+- `<target>` -- user@hostname
+
+#### `ssh config`
+
+SSH configuration management
+
+### `gpg`
+
+GPG key management
+
+### `dns`
+
+DNS lookup and management
+
+**Options:**
+
+- `<domain>` -- Domain name to lookup
+- `-t`, `--type` -- DNS record type (A, AAAA, MX, NS, TXT, etc.)
+- `-r`, `--reverse` -- Perform reverse DNS lookup
+- `-s`, `--server` -- DNS server to use
+
+### `nc`
+
+Netcat utilities
+
+**Subcommands:**
+
+- `nc send` -- Send file to host
+- `nc receive` -- Receive file on port
+- `nc chat` -- Start chat session
+- `nc check` -- Check port connectivity
+
+#### `nc send`
+
+Send file to host
+
+**Options:**
+
+- `<file>` -- File to send
+- `<host>` -- Target host
+- `<port>` -- Target port
+
+#### `nc receive`
+
+Receive file on port
+
+**Options:**
+
+- `<file>` -- Output file
+- `<port>` -- Listen port
+
+#### `nc chat`
+
+Start chat session
+
+**Options:**
+
+- `<host>` -- Host to connect to (omit for server mode)
+- `<port>` -- Port (required)
+
+#### `nc check`
+
+Check port connectivity
+
+**Options:**
+
+- `<host>` -- Target host
+- `<port>` -- Target port
+
+### `scan`
+
+Network scanner with beautiful TUI
+
+**Options:**
+
+- `<target>` -- Target IP/hostname/CIDR range
+- `--ports` -- Port specification (e.g., 80,443,8080 or 1-1000)
+- `-t`, `--threads` -- Number of concurrent threads
+- `--full` -- Scan all 65535 ports
+- `--service` -- Enable service detection
+- `--json` -- Output results in JSON format (no TUI)
+- `-q`, `--quiet` -- Minimal output
+
+### `completion`
+
+Generate shell completions
+
+**Options:**
+
+- `<shell>` -- Shell to generate completions for
+
+### `support`
+
+Support diagnostics and local state
+
+**Subcommands:**
+
+- `support doctor` -- Run quick support readiness checks
+- `support paths` -- Show support and log paths
+- `support logs` -- Show recent GhostCTL activity logs
+- `support bundle` -- Write a shareable support bundle
+
+#### `support doctor`
+
+Run quick support readiness checks
+
+#### `support paths`
+
+Show support and log paths
+
+#### `support logs`
+
+Show recent GhostCTL activity logs
+
+#### `support bundle`
+
+Write a shareable support bundle
+
+**Options:**
+
+- `-o`, `--output` -- Output path for the support bundle
+- `--redact-paths` -- Redact home directory paths from the bundle
+- `--gzip` -- Write gzip-compressed text bundle
+- `--tarball` -- Write tar.gz archive containing bundle and metadata
+- `--log-tail` -- Number of recent activity log lines to include
+
+### `docs`
+
+Documentation utilities
+
+**Subcommands:**
+
+- `docs generate` -- Generate command reference from CLI definition
+
+#### `docs generate`
+
+Generate command reference from CLI definition
+
+**Options:**
+
+- `-o`, `--output` -- Write to file instead of stdout
+
+### `version`
+
+Show version information
+
+### `list`
+
+List available commands
+
+### `uefi`
+
+UEFI Secure Boot management for VMs
+
+**Subcommands:**
+
+- `uefi enroll` -- Create OVMF VARS with Secure Boot keys for Windows 11
+- `uefi verify` -- Check if VARS file has Secure Boot keys enrolled
+- `uefi status` -- Check OVMF firmware and tools
+
+#### `uefi enroll`
+
+Create OVMF VARS with Secure Boot keys for Windows 11
+
+**Options:**
+
+- `-o`, `--output` -- Output path for enrolled VARS file
+- `--template` -- Path to OVMF_VARS.fd template
+- `-v`, `--verbose` -- Show detailed output
+
+#### `uefi verify`
+
+Check if VARS file has Secure Boot keys enrolled
+
+**Options:**
+
+- `<file>` -- VARS file to verify
+- `-v`, `--verbose` -- Show full variable dump
+
+#### `uefi status`
+
+Check OVMF firmware and tools
+

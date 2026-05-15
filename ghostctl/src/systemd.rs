@@ -210,5 +210,4 @@ pub fn status() {
 
 pub fn create() {
     println!("ghostctl :: Create new systemd service/timer (not yet implemented)");
-    // TODO: Implement interactive creation of service/timer units
 }

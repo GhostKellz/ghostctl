@@ -69,16 +69,12 @@ fn game_library_management() {
         "⬅️ Back",
     ];
 
-    loop {
-        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("🎮 Game Library Management")
-            .items(&options)
-            .default(0)
-            .interact()
-        else {
-            break;
-        };
-
+    while let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("🎮 Game Library Management")
+        .items(&options)
+        .default(0)
+        .interact()
+    {
         match choice {
             0 => scan_game_libraries(),
             1 => find_duplicate_games(),
@@ -915,16 +911,12 @@ fn wine_proton_cleanup() {
         "⬅️ Back",
     ];
 
-    loop {
-        let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("🍷 Wine/Proton Cleanup & Repair")
-            .items(&options)
-            .default(0)
-            .interact()
-        else {
-            break;
-        };
-
+    while let Ok(choice) = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("🍷 Wine/Proton Cleanup & Repair")
+        .items(&options)
+        .default(0)
+        .interact()
+    {
         match choice {
             0 => wine_health_check(),
             1 => repair_wine_installation(),
@@ -1575,11 +1567,20 @@ fn update_proton_ge() {
         return;
     }
 
+    let temp_dir = match tempfile::tempdir() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("Failed to create temporary directory: {}", e);
+            return;
+        }
+    };
+
     println!("📥 Downloading latest Proton-GE...");
     println!("URL: {}", download_url);
 
+    let temp_dir_str = temp_dir.path().to_string_lossy().to_string();
     let download_result = Command::new("wget")
-        .args(&["-P", "/tmp", &download_url])
+        .args(&["-P", &temp_dir_str, &download_url])
         .status();
 
     let download_ok = download_result.map(|s| s.success()).unwrap_or(false);
@@ -1593,11 +1594,11 @@ fn update_proton_ge() {
         .split('/')
         .next_back()
         .unwrap_or("proton-ge.tar.gz");
-    let temp_path = format!("/tmp/{}", filename);
+    let temp_path = temp_dir.path().join(filename);
 
     println!("📂 Extracting Proton-GE...");
     let extract_result = Command::new("tar")
-        .args(&["-xzf", &temp_path, "-C", "/tmp"])
+        .args(&["-xzf", &temp_path.to_string_lossy(), "-C", &temp_dir_str])
         .status();
 
     let extract_ok = extract_result.map(|s| s.success()).unwrap_or(false);
@@ -1608,7 +1609,7 @@ fn update_proton_ge() {
 
     // Find extracted directory
     let extracted_name = filename.replace(".tar.gz", "");
-    let extracted_path = format!("/tmp/{}", extracted_name);
+    let extracted_path = temp_dir.path().join(&extracted_name);
 
     // Install to Steam directory
     let steam_compat_path = format!("{}/steam/steamapps/common", steam_path);
@@ -1616,7 +1617,7 @@ fn update_proton_ge() {
 
     let install_result = Command::new("mv")
         .args(&[
-            &extracted_path,
+            &extracted_path.to_string_lossy().to_string(),
             &format!("{}/{}", steam_compat_path, extracted_name),
         ])
         .status();
@@ -1624,15 +1625,12 @@ fn update_proton_ge() {
     match install_result {
         Ok(s) if s.success() => {
             println!("✅ Proton-GE installed successfully");
-
-            // Cleanup
-            fs::remove_file(&temp_path).ok();
-
             println!("💡 Restart Steam to see the new Proton version");
             println!("💡 Enable it in Steam > Settings > Steam Play > Proton version");
         }
         _ => println!("❌ Installation failed"),
     }
+    // temp_dir is cleaned up automatically when dropped
 }
 
 fn update_proton_tkg() {
@@ -1651,22 +1649,36 @@ fn update_proton_tkg() {
     };
 
     if proceed {
+        let temp_dir = match tempfile::tempdir() {
+            Ok(d) => d,
+            Err(e) => {
+                eprintln!("Failed to create temporary directory: {}", e);
+                return;
+            }
+        };
+
+        let clone_path = temp_dir.path().join("wine-tkg-git");
+        let clone_path_str = clone_path.to_string_lossy().to_string();
+
         println!("📥 Cloning Proton-TKG repository...");
 
         let clone_result = Command::new("git")
             .args(&[
                 "clone",
                 "https://github.com/Frogging-Family/wine-tkg-git.git",
-                "/tmp/wine-tkg-git",
+                &clone_path_str,
             ])
             .status();
 
         match clone_result {
             Ok(s) if s.success() => {
+                // Persist the temp dir so the user can access it for manual build
+                let persisted_path = temp_dir.keep();
+                let build_dir = persisted_path.join("wine-tkg-git");
                 println!("✅ Repository cloned");
-                println!("📂 Build directory: /tmp/wine-tkg-git");
+                println!("📂 Build directory: {}", build_dir.display());
                 println!("🔧 Run the build script manually:");
-                println!("   cd /tmp/wine-tkg-git/wine-tkg-git");
+                println!("   cd {}/wine-tkg-git", build_dir.display());
                 println!("   ./non-makepkg-build.sh");
             }
             _ => println!("❌ Failed to clone repository"),
@@ -2548,7 +2560,7 @@ fn bottles_storage_analysis() {
             }
 
             // Sort by size
-            bottle_info.sort_by(|a, b| b.1.cmp(&a.1));
+            bottle_info.sort_by_key(|b| std::cmp::Reverse(b.1));
 
             for (name, size) in bottle_info {
                 println!("  📦 {}: {} MB", name, size / 1024 / 1024);
@@ -3512,22 +3524,34 @@ fn install_wine_tkg_lutris() {
     };
 
     if proceed {
-        let temp_dir = "/tmp/wine-tkg-lutris";
+        let temp_dir = match tempfile::tempdir() {
+            Ok(d) => d,
+            Err(e) => {
+                eprintln!("Failed to create temporary directory: {}", e);
+                return;
+            }
+        };
+
+        let clone_path = temp_dir.path().join("wine-tkg-lutris");
+        let clone_path_str = clone_path.to_string_lossy().to_string();
 
         println!("📥 Cloning Wine-TKG...");
         let clone_result = Command::new("git")
             .args(&[
                 "clone",
                 "https://github.com/Frogging-Family/wine-tkg-git.git",
-                temp_dir,
+                &clone_path_str,
             ])
             .status();
 
         match clone_result {
             Ok(s) if s.success() => {
-                println!("✅ Repository cloned to {}", temp_dir);
+                // Persist the temp dir so the user can access it for manual build
+                let persisted_path = temp_dir.keep();
+                let build_dir = persisted_path.join("wine-tkg-lutris");
+                println!("✅ Repository cloned to {}", build_dir.display());
                 println!("\n🔧 To build Wine-TKG for Lutris:");
-                println!("   1. cd {}/wine-tkg-git", temp_dir);
+                println!("   1. cd {}/wine-tkg-git", build_dir.display());
                 println!("   2. Edit customization.cfg as needed");
                 println!("   3. ./non-makepkg-build.sh");
                 println!("   4. Copy built Wine to ~/.local/share/lutris/runners/wine/");
@@ -3637,13 +3661,22 @@ fn install_custom_runner() {
 }
 
 fn download_and_install_runner(url: &str, runners_path: &str) {
+    let temp_dir = match tempfile::tempdir() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("Failed to create temporary directory: {}", e);
+            return;
+        }
+    };
+
     let filename = url.split('/').next_back().unwrap_or("wine-runner.tar.xz");
-    let temp_path = format!("/tmp/{}", filename);
+    let temp_path = temp_dir.path().join(filename);
+    let temp_path_str = temp_path.to_string_lossy().to_string();
 
     println!("📥 Downloading {}...", filename);
 
     let download_result = Command::new("curl")
-        .args(&["-L", "-o", &temp_path, url])
+        .args(&["-L", "-o", &temp_path_str, url])
         .status();
 
     match download_result {
@@ -3652,14 +3685,14 @@ fn download_and_install_runner(url: &str, runners_path: &str) {
 
             println!("📦 Extracting...");
             let extract_result = Command::new("tar")
-                .args(&["-xf", &temp_path, "-C", runners_path])
+                .args(&["-xf", &temp_path_str, "-C", runners_path])
                 .status();
 
             match extract_result {
                 Ok(s) if s.success() => {
                     println!("✅ Wine runner installed successfully");
-                    fs::remove_file(&temp_path).ok();
 
+                    let temp_dir_str = temp_dir.path().to_string_lossy().to_string();
                     let find_result = Command::new("find")
                         .args(&[
                             runners_path,
@@ -3668,7 +3701,7 @@ fn download_and_install_runner(url: &str, runners_path: &str) {
                             "-type",
                             "d",
                             "-newer",
-                            "/tmp",
+                            &temp_dir_str,
                         ])
                         .output();
 
@@ -3687,6 +3720,7 @@ fn download_and_install_runner(url: &str, runners_path: &str) {
         }
         _ => println!("❌ Download failed"),
     }
+    // temp_dir is cleaned up automatically when dropped
 }
 
 fn update_lutris_runners() {
@@ -4067,11 +4101,22 @@ fn install_battlenet_for_wow() {
 }
 "#;
 
-    let script_path = "/tmp/battlenet-wow-lutris.json";
-    std::fs::write(script_path, lutris_script).ok();
+    let temp_dir = match tempfile::tempdir() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("Failed to create temporary directory: {}", e);
+            return;
+        }
+    };
+
+    let script_path = temp_dir.path().join("battlenet-wow-lutris.json");
+    let script_path_str = script_path.to_string_lossy().to_string();
+    std::fs::write(&script_path, lutris_script).ok();
 
     println!("🎮 Installing Battle.net via Lutris...");
-    let install_result = Command::new("lutris").args(&["-i", script_path]).status();
+    let install_result = Command::new("lutris")
+        .args(&["-i", &script_path_str])
+        .status();
 
     match install_result {
         Ok(_) => {
@@ -4087,8 +4132,7 @@ fn install_battlenet_for_wow() {
             println!("   4. Install the Battle.net script");
         }
     }
-
-    fs::remove_file(script_path).ok();
+    // temp_dir is cleaned up automatically when dropped
 }
 
 fn optimize_system_for_wow() {
@@ -4380,14 +4424,23 @@ wine reg add 'HKEY_CURRENT_USER\Software\Wine\Direct3D' /v 'Multisampling' /d 'e
 echo "WoW Wine tweaks applied successfully"
 "#;
 
-    let tweaks_script = "/tmp/wow-wine-tweaks.sh";
-    std::fs::write(tweaks_script, wow_tweaks_script).ok();
+    let tweaks_temp_dir = match tempfile::tempdir() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("Failed to create temporary directory: {}", e);
+            return;
+        }
+    };
+
+    let tweaks_script = tweaks_temp_dir.path().join("wow-wine-tweaks.sh");
+    let tweaks_script_str = tweaks_script.to_string_lossy().to_string();
+    std::fs::write(&tweaks_script, wow_tweaks_script).ok();
     Command::new("chmod")
-        .args(&["+x", tweaks_script])
+        .args(&["+x", &tweaks_script_str])
         .status()
         .ok();
-    Command::new("bash").arg(tweaks_script).status().ok();
-    fs::remove_file(tweaks_script).ok();
+    Command::new("bash").arg(&tweaks_script_str).status().ok();
+    // tweaks_temp_dir is cleaned up automatically when dropped
 
     println!("✅ All WoW optimizations installed and configured");
 }
@@ -4995,10 +5048,19 @@ wine reg add 'HKEY_CURRENT_USER\Control Panel\Desktop' /v 'FontSmoothingType' /d
 echo "Default Wine configuration completed"
 "#;
 
-    let config_script = "/tmp/configure-default-wine.sh";
-    std::fs::write(config_script, wine_config_script).ok();
+    let config_temp_dir = match tempfile::tempdir() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("Failed to create temporary directory: {}", e);
+            return;
+        }
+    };
+
+    let config_script = config_temp_dir.path().join("configure-default-wine.sh");
+    let config_script_str = config_script.to_string_lossy().to_string();
+    std::fs::write(&config_script, wine_config_script).ok();
     Command::new("chmod")
-        .args(&["+x", config_script])
+        .args(&["+x", &config_script_str])
         .status()
         .ok();
 
@@ -5007,16 +5069,14 @@ echo "Default Wine configuration completed"
         .default(true)
         .interact()
     else {
-        fs::remove_file(config_script).ok();
         return;
     };
 
     if apply_config {
-        Command::new("bash").arg(config_script).status().ok();
+        Command::new("bash").arg(&config_script_str).status().ok();
         println!("✅ Default Wine configuration applied");
     }
-
-    fs::remove_file(config_script).ok();
+    // config_temp_dir is cleaned up automatically when dropped
 }
 
 fn configure_lutris_directories() {
@@ -5384,7 +5444,7 @@ fn clean_old_lutris_runners() {
         return;
     }
 
-    all_runners.sort_by(|a, b| b.2.cmp(&a.2));
+    all_runners.sort_by_key(|runner| std::cmp::Reverse(runner.2));
 
     println!("📋 Installed Wine Runners:");
     for (name, _, size, modified) in &all_runners {
@@ -5670,7 +5730,7 @@ fn lutris_storage_analysis() {
         }
     }
 
-    category_sizes.sort_by(|a, b| b.1.cmp(&a.1));
+    category_sizes.sort_by_key(|category| std::cmp::Reverse(category.1));
 
     println!("\n📊 Storage Summary:");
     println!(
@@ -5718,7 +5778,7 @@ fn show_large_subdirectories(path: &str, category: &str) {
         }
 
         if !subdirs.is_empty() {
-            subdirs.sort_by(|a, b| b.1.cmp(&a.1));
+            subdirs.sort_by_key(|subdir| std::cmp::Reverse(subdir.1));
             println!("    {} breakdown:", category);
             for (name, size) in subdirs.iter().take(5) {
                 println!("      📦 {}: {} GB", name, size / 1024 / 1024 / 1024);

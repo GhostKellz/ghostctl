@@ -2121,7 +2121,7 @@ scrape_configs:
 }
 
 fn setup_elk_stack() {
-    println!("📊 ELK Stack setup - TODO: Implement");
+    println!("📊 ELK Stack setup — not yet available");
 }
 
 fn generate_monitoring_compose(selected_tools: &[usize]) -> String {

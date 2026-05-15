@@ -4,6 +4,7 @@
 
 - [Installation Guide](deployment/INSTALL.md)
 - [Command Reference](reference/COMMANDS.md)
+- [Support Bundles](support/README.md)
 
 ## Documentation by Topic
 
@@ -20,6 +21,7 @@
 ### Networking & Security
 - [Networking](networking/README.md) - Firewalls, DNS, scanning
 - [Security](security/README.md) - SSH, GPG, credentials
+- [Support](support/README.md) - Diagnostics, logs, issue bundles
 - [UEFI](uefi/README.md) - Secure Boot, key enrollment
 
 ### Development

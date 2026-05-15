@@ -545,7 +545,7 @@ fn search_aur_filtered() {
             });
         } else if selected_filters.contains(&3) {
             // Sort by votes (proxy for last modified)
-            packages.sort_by(|a, b| b.votes.cmp(&a.votes));
+            packages.sort_by_key(|pkg| std::cmp::Reverse(pkg.votes));
         }
 
         // Display results

@@ -274,10 +274,8 @@ fn handle_param_keys(app: &mut App, key: event::KeyEvent) {
         KeyCode::Home => {
             app.param_state.select(Some(0));
         }
-        KeyCode::End => {
-            if !app.filtered_params.is_empty() {
-                app.param_state.select(Some(app.filtered_params.len() - 1));
-            }
+        KeyCode::End if !app.filtered_params.is_empty() => {
+            app.param_state.select(Some(app.filtered_params.len() - 1));
         }
         _ => {}
     }

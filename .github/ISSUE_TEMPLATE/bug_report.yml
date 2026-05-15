@@ -1,0 +1,136 @@
+name: Bug report
+description: Report a regression, runtime failure, packaging problem, or system-specific issue.
+title: "[bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please run diagnostics and attach a support bundle.
+
+        **Required diagnostics:**
+
+        ```bash
+        ghostctl support doctor
+        ghostctl support bundle --redact-paths --tarball
+        ```
+
+        The bundle path is under `~/.local/state/ghostctl/support/`. Attach it below.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is broken?
+      placeholder: Short description of the problem.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of GhostCTL is affected?
+      options:
+        - install / packaging / release
+        - support bundle / diagnostics
+        - Arch / system maintenance
+        - Docker / containers
+        - networking / firewall / scanner
+        - Proxmox / virtualization
+        - VFIO / IOMMU / UEFI
+        - storage / backup / restore
+        - security / SSH / GPG / credentials
+        - NVIDIA / gaming
+        - terminal / shell / development tools
+        - documentation
+        - not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps, commands, or actions that reproduce the issue.
+      placeholder: |
+        1. Run ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include error output, panic messages, or logs.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: GhostCTL version
+      placeholder: ghostctl v0.10.0
+    validations:
+      required: true
+
+  - type: input
+    id: install_method
+    attributes:
+      label: Install method
+      placeholder: ghostctl.cktech.sh / GitHub release archive / Arch package / source build
+    validations:
+      required: true
+
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution
+      placeholder: Arch Linux / Ubuntu 24.04 / Fedora 42 / Proxmox VE 8
+    validations:
+      required: true
+
+  - type: input
+    id: kernel
+    attributes:
+      label: Kernel version
+      placeholder: 6.12.x / 6.14.x / pve-kernel version
+
+  - type: input
+    id: shell
+    attributes:
+      label: Shell / terminal
+      placeholder: bash / zsh / fish, local TTY / SSH / Ghostty / Alacritty
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics and attachments
+      description: Paste output from `ghostctl support doctor` and attach the support bundle.
+      placeholder: |
+        - ghostctl support doctor output:
+          ...
+        - Attached ghostctl-support-YYYYMMDD-HHMMSS.tar.gz
+    validations:
+      required: true
+
+  - type: textarea
+    id: changes
+    attributes:
+      label: What changed before this started?
+      description: Package update, kernel update, config change, hardware change, new install method, etc.
+      placeholder: |
+        - updated ghostctl
+        - changed kernel or distro release
+        - switched shell or terminal
+        - edited network/storage/VM config

@@ -2,7 +2,7 @@
 # Contributor: CK Technology LLC
 
 pkgname=ghostctl
-pkgver=0.9.9
+pkgver=0.10.0
 pkgrel=1
 pkgdesc="Ghost Infrastructure Control - Complete system and homelab management toolkit"
 arch=('x86_64' 'aarch64')
@@ -72,12 +72,21 @@ package() {
     # Install documentation
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
     install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
-    install -Dm644 DOCS.md "$pkgdir/usr/share/doc/$pkgname/DOCS.md" 2>/dev/null || true
-    install -Dm644 COMMANDS.md "$pkgdir/usr/share/doc/$pkgname/COMMANDS.md" 2>/dev/null || true
+    install -Dm644 docs/README.md "$pkgdir/usr/share/doc/$pkgname/DOCS.md"
+    install -Dm644 docs/reference/COMMANDS.md "$pkgdir/usr/share/doc/$pkgname/COMMANDS.md"
+    install -Dm644 man/ghostctl.1 "$pkgdir/usr/share/man/man1/ghostctl.1"
+
+    # Generate shell completions from the built binary
+    "ghostctl/target/release/ghostctl" completion bash > ghostctl.bash
+    "ghostctl/target/release/ghostctl" completion zsh > _ghostctl
+    "ghostctl/target/release/ghostctl" completion fish > ghostctl.fish
+    install -Dm644 ghostctl.bash "$pkgdir/usr/share/bash-completion/completions/ghostctl"
+    install -Dm644 _ghostctl "$pkgdir/usr/share/zsh/site-functions/_ghostctl"
+    install -Dm644 ghostctl.fish "$pkgdir/usr/share/fish/vendor_completions.d/ghostctl.fish"
 
     # Install desktop entry and icon (if present)
-    install -Dm644 packaging/ghostctl.desktop "$pkgdir/usr/share/applications/ghostctl.desktop" 2>/dev/null || true
-    install -Dm644 assets/icons/png/ghostctl-icon-48.png "$pkgdir/usr/share/pixmaps/ghostctl.png" 2>/dev/null || true
+    install -Dm644 packaging/ghostctl.desktop "$pkgdir/usr/share/applications/ghostctl.desktop"
+    install -Dm644 assets/icons/png/ghostctl-icon-48.png "$pkgdir/usr/share/pixmaps/ghostctl.png"
     
     # Install scripts directory (optional)
     if [ -d "scripts" ]; then

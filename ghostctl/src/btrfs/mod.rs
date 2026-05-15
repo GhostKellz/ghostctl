@@ -3,7 +3,6 @@ pub mod snapshot;
 
 use crate::tui;
 use crate::utils::{is_headless, sudo_run};
-// TODO: Remove these imports once all functions are converted to use tui helpers
 use dialoguer::{Confirm, Input, Select, theme::ColorfulTheme};
 use std::process::Command;
 

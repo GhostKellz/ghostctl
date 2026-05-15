@@ -448,7 +448,7 @@ fn create_basic_boot_entry() {
                     .output()
                     .ok()
                     .and_then(|o| String::from_utf8_lossy(&o.stdout).trim().to_string().into())
-                    .unwrap_or_else(|| "FIXME".to_string());
+                    .unwrap_or_else(|| "unknown".to_string());
 
                 let entry_content = format!(
                     "title   Arch Linux ({})\nlinux   /vmlinuz-{}\ninitrd  /initramfs-{}.img\noptions root=PARTUUID={} rw\n",
@@ -1609,7 +1609,7 @@ fn recovery_diagnostics() {
         .status();
 }
 
-// Helper functions for TODO implementations
+// Helper functions for recovery operations
 fn mount_efi_partition() {
     println!("📁 Mount EFI Partition");
 

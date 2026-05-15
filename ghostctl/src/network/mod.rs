@@ -195,5 +195,5 @@ fn netcat_menu() {
 }
 
 pub fn security_audit() {
-    println!("🔍 Network Security Audit - TODO: Implement");
+    println!("🔍 Network Security Audit — not yet available");
 }

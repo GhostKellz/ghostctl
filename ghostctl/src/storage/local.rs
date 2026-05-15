@@ -809,15 +809,11 @@ fn compare_multiple_disks() {
     println!("Enter multiple devices to compare (one per line, empty to finish):");
     let mut devices = Vec::new();
 
-    loop {
-        let Ok(device) = Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Enter device")
-            .default("".to_string())
-            .interact()
-        else {
-            break;
-        };
-
+    while let Ok(device) = Input::<String>::with_theme(&ColorfulTheme::default())
+        .with_prompt("Enter device")
+        .default("".to_string())
+        .interact()
+    {
         if device.is_empty() {
             break;
         }

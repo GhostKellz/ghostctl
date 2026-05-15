@@ -217,5 +217,5 @@ fn plugin_configuration() {
 #[allow(dead_code)]
 pub fn list() {
     println!("- Listing Neovim plugins...");
-    println!("- TODO: Parse lazy-lock.json or plugin dir");
+    println!("- Plugin listing requires lazy-lock.json parsing");
 }

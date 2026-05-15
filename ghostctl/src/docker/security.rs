@@ -362,8 +362,7 @@ fn security_best_practices() {
 fn security_policy_generation() {
     println!("⚙️  Security Policy Generation");
     println!("==============================");
-    println!("This feature is not yet implemented.");
-    println!("Future: Generate AppArmor/SELinux policies for containers");
+    println!("Not yet available — future: generate AppArmor/SELinux profiles for containers");
 }
 
 fn install_trivy() {
@@ -427,12 +426,13 @@ fn install_trivy() {
     {
         Ok(s) if s.success() => {
             // Extract and install
-            if Command::new("tar")
+            let extracted = Command::new("tar")
                 .args(["-xzf", "/tmp/trivy.tar.gz", "-C", "/tmp"])
                 .status()
                 .map(|s| s.success())
-                .unwrap_or(false)
-            {
+                .unwrap_or(false);
+
+            if extracted {
                 match Command::new("sudo")
                     .args(["mv", "/tmp/trivy", "/usr/local/bin/trivy"])
                     .status()
@@ -650,44 +650,253 @@ fn check_security_modules() -> bool {
         || std::path::Path::new("/sys/fs/selinux").exists()
 }
 
+fn docker_running() -> bool {
+    Command::new("docker")
+        .args(["info"])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
+fn get_running_container_ids() -> Vec<String> {
+    Command::new("docker")
+        .args(["ps", "-q"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| {
+            String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .filter(|l| !l.is_empty())
+                .map(String::from)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 fn check_non_root_containers() -> bool {
-    // Simplified check - would need to inspect running containers
+    if !docker_running() {
+        return false;
+    }
+    let ids = get_running_container_ids();
+    if ids.is_empty() {
+        return true; // No containers running, nothing to flag
+    }
+    for id in &ids {
+        let output = Command::new("docker")
+            .args(["inspect", "--format", "{{.Config.User}}", id])
+            .output();
+        if let Ok(o) = output {
+            let user = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            // Empty user or "root" or "0" means running as root
+            if user.is_empty() || user == "root" || user == "0" {
+                return false;
+            }
+        }
+    }
     true
 }
 
 fn check_readonly_containers() -> bool {
-    // Simplified check
+    if !docker_running() {
+        return false;
+    }
+    let ids = get_running_container_ids();
+    if ids.is_empty() {
+        return false;
+    }
+    // Pass if at least one container uses a read-only rootfs
+    for id in &ids {
+        let output = Command::new("docker")
+            .args(["inspect", "--format", "{{.HostConfig.ReadonlyRootfs}}", id])
+            .output();
+        if let Ok(o) = output
+            && String::from_utf8_lossy(&o.stdout).trim() == "true"
+        {
+            return true;
+        }
+    }
     false
 }
 
 fn check_resource_limits() -> bool {
-    // Simplified check
+    if !docker_running() {
+        return false;
+    }
+    let ids = get_running_container_ids();
+    if ids.is_empty() {
+        return false;
+    }
+    // Pass if at least one container has memory or CPU limits
+    for id in &ids {
+        let output = Command::new("docker")
+            .args([
+                "inspect",
+                "--format",
+                "{{.HostConfig.Memory}} {{.HostConfig.NanoCpus}}",
+                id,
+            ])
+            .output();
+        if let Ok(o) = output {
+            let line = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() == 2 {
+                let mem: i64 = parts[0].parse().unwrap_or(0);
+                let cpu: i64 = parts[1].parse().unwrap_or(0);
+                if mem > 0 || cpu > 0 {
+                    return true;
+                }
+            }
+        }
+    }
     false
 }
 
 fn check_security_options() -> bool {
-    // Simplified check
+    if !docker_running() {
+        return false;
+    }
+    let ids = get_running_container_ids();
+    if ids.is_empty() {
+        return false;
+    }
+    // Pass if at least one container has seccomp or apparmor profiles
+    for id in &ids {
+        let output = Command::new("docker")
+            .args(["inspect", "--format", "{{.HostConfig.SecurityOpt}}", id])
+            .output();
+        if let Ok(o) = output {
+            let opts = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            if opts != "[]" && !opts.is_empty() {
+                return true;
+            }
+        }
+    }
     false
 }
 
 fn check_trusted_registries() -> bool {
-    // Simplified check
-    true
+    // Check if Docker daemon has allowed-registries or insecure-registries configured
+    let daemon_json = std::path::Path::new("/etc/docker/daemon.json");
+    if !daemon_json.exists() {
+        return false; // No daemon config means no registry restrictions
+    }
+    match std::fs::read_to_string(daemon_json) {
+        Ok(content) => {
+            // Pass if the config exists and doesn't have insecure-registries
+            !content.contains("insecure-registries")
+        }
+        Err(_) => false,
+    }
 }
 
 fn check_secrets_in_images() -> bool {
-    // Simplified check
+    if !docker_running() {
+        return false;
+    }
+    let ids = get_running_container_ids();
+    if ids.is_empty() {
+        return true; // No containers to check
+    }
+    let secret_patterns = [
+        "PASSWORD=",
+        "SECRET=",
+        "TOKEN=",
+        "API_KEY=",
+        "PRIVATE_KEY=",
+        "AWS_SECRET",
+    ];
+    for id in &ids {
+        let output = Command::new("docker")
+            .args([
+                "inspect",
+                "--format",
+                "{{range .Config.Env}}{{println .}}{{end}}",
+                id,
+            ])
+            .output();
+        if let Ok(o) = output {
+            let envs = String::from_utf8_lossy(&o.stdout);
+            for line in envs.lines() {
+                for pattern in &secret_patterns {
+                    if line.contains(pattern)
+                        && let Some((_key, val)) = line.split_once('=')
+                        && !val.is_empty()
+                        && !val.starts_with("arn:")
+                        && !val.starts_with("vault:")
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
     true
 }
 
 fn check_minimal_images() -> bool {
-    // Simplified check
-    false
+    if !docker_running() {
+        return false;
+    }
+    let output = Command::new("docker")
+        .args(["images", "--format", "{{.Size}}"])
+        .output();
+    match output {
+        Ok(o) if o.status.success() => {
+            let sizes: Vec<f64> = String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .filter_map(|line| {
+                    let line = line.trim();
+                    let split_pos = line.find(|c: char| c.is_alphabetic())?;
+                    let (num, unit) = line.split_at(split_pos);
+                    let val: f64 = num.parse().ok()?;
+                    Some(match unit {
+                        "GB" => val * 1024.0,
+                        "MB" => val,
+                        "kB" | "KB" => val / 1024.0,
+                        _ => 0.0,
+                    })
+                })
+                .collect();
+            if sizes.is_empty() {
+                return false;
+            }
+            let avg = sizes.iter().sum::<f64>() / sizes.len() as f64;
+            avg < 500.0
+        }
+        _ => false,
+    }
 }
 
 fn check_image_updates() -> bool {
-    // Simplified check
-    false
+    if !docker_running() {
+        return false;
+    }
+    // Check if images have been pulled recently (within last 7 days)
+    let output = Command::new("docker")
+        .args(["images", "--format", "{{.CreatedSince}}"])
+        .output();
+    match output {
+        Ok(o) if o.status.success() => {
+            let lines: Vec<String> = String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .filter(|l| !l.is_empty())
+                .map(String::from)
+                .collect();
+            if lines.is_empty() {
+                return false;
+            }
+            // Pass if at least half of images were updated in the last month
+            let recent = lines
+                .iter()
+                .filter(|l| !l.contains("months") && !l.contains("years"))
+                .count();
+            recent > lines.len() / 2
+        }
+        _ => false,
+    }
 }
 
 /// Calculate security score based on check results

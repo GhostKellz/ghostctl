@@ -116,8 +116,11 @@ fn automatic_dependency_resolution() {
     println!("🔍 Analyzing dependencies...");
 
     // Check with ldd in Wine
-    let ldd_cmd = format!("WINEPREFIX={} wine ldd '{}'", wine_prefix, exe_path);
-    let output = Command::new("sh").arg("-c").arg(&ldd_cmd).output();
+    let output = Command::new("wine")
+        .env("WINEPREFIX", &wine_prefix)
+        .arg("ldd")
+        .arg(&exe_path)
+        .output();
 
     let mut missing_dlls = Vec::new();
 
@@ -171,8 +174,13 @@ fn automatic_dependency_resolution() {
         if install {
             for package in packages_to_install {
                 println!("📦 Installing {}...", package);
-                let cmd = format!("WINEPREFIX={} winetricks -q {}", wine_prefix, package);
-                Command::new("sh").arg("-c").arg(&cmd).status().ok();
+                if let Err(e) = Command::new("winetricks")
+                    .env("WINEPREFIX", &wine_prefix)
+                    .args(["-q", &package])
+                    .status()
+                {
+                    eprintln!("Failed to run winetricks for {}: {}", package, e);
+                }
             }
             println!("✅ Dependencies installed");
         }
@@ -339,7 +347,9 @@ fn create_batch_script() {
     fs::create_dir_all(&script_dir).ok();
 
     let script_path = format!("{}/{}.sh", script_dir, script_name);
-    fs::write(&script_path, script_content).ok();
+    if let Err(e) = fs::write(&script_path, &script_content) {
+        eprintln!("Failed to write batch script: {}", e);
+    }
 
     // Make executable
     Command::new("chmod")
@@ -446,7 +456,9 @@ fn edit_batch_script() {
     let script_path = format!("{}/{}", script_dir, script);
 
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
-    Command::new(&editor).arg(&script_path).status().ok();
+    if let Err(e) = Command::new(&editor).arg(&script_path).status() {
+        eprintln!("Failed to launch editor: {}", e);
+    }
 }
 
 fn delete_batch_script() {
@@ -497,7 +509,9 @@ fn delete_batch_script() {
 
     if confirm {
         let script_path = format!("{}/{}", script_dir, script);
-        fs::remove_file(&script_path).ok();
+        if let Err(e) = fs::remove_file(&script_path) {
+            eprintln!("Failed to delete script: {}", e);
+        }
         println!("✅ Script deleted");
     }
 }
@@ -530,8 +544,9 @@ fn import_batch_script() {
 
     let dest_path = format!("{}/{}", script_dir, file_name);
 
-    let cmd = format!("cp '{}' '{}'", import_path, dest_path);
-    Command::new("sh").arg("-c").arg(&cmd).status().ok();
+    if let Err(e) = std::fs::copy(&import_path, &dest_path) {
+        eprintln!("Failed to copy script: {}", e);
+    }
 
     // Make executable
     Command::new("chmod")
@@ -589,8 +604,9 @@ fn export_batch_script() {
         return;
     };
 
-    let cmd = format!("cp '{}' '{}'", script_path, export_path);
-    Command::new("sh").arg("-c").arg(&cmd).status().ok();
+    if let Err(e) = std::fs::copy(&script_path, &export_path) {
+        eprintln!("Failed to export script: {}", e);
+    }
 
     println!("✅ Script exported to: {}", export_path);
 }
@@ -690,14 +706,10 @@ fn custom_verb_creator() {
         3 => {
             println!("📝 Enter custom verb script (end with 'END' on a new line):");
             let mut script = String::new();
-            loop {
-                let Ok(line) = Input::<String>::with_theme(&ColorfulTheme::default())
-                    .allow_empty(true)
-                    .interact()
-                else {
-                    break;
-                };
-
+            while let Ok(line) = Input::<String>::with_theme(&ColorfulTheme::default())
+                .allow_empty(true)
+                .interact()
+            {
                 if line == "END" {
                     break;
                 }
@@ -713,7 +725,9 @@ fn custom_verb_creator() {
     fs::create_dir_all(&verb_dir).ok();
 
     let verb_path = format!("{}/{}.verb", verb_dir, verb_name);
-    fs::write(&verb_path, verb_content).ok();
+    if let Err(e) = fs::write(&verb_path, &verb_content) {
+        eprintln!("Failed to write custom verb: {}", e);
+    }
 
     println!("✅ Custom verb created: {}", verb_path);
     println!("Note: To use this verb, you'll need to integrate it with winetricks");
@@ -847,7 +861,9 @@ fn create_winetricks_profile() {
 
     let profile_path = format!("{}/{}.profile", profile_dir, profile_name);
     let profile_content = components.join("\n");
-    fs::write(&profile_path, profile_content).ok();
+    if let Err(e) = fs::write(&profile_path, &profile_content) {
+        eprintln!("Failed to write profile: {}", e);
+    }
 
     println!("✅ Profile created: {}", profile_name);
 }
@@ -904,8 +920,13 @@ fn load_winetricks_profile() {
         for component in content.lines() {
             if !component.is_empty() {
                 println!("  Installing {}...", component);
-                let cmd = format!("WINEPREFIX={} winetricks -q {}", wine_prefix, component);
-                Command::new("sh").arg("-c").arg(&cmd).status().ok();
+                if let Err(e) = Command::new("winetricks")
+                    .env("WINEPREFIX", &wine_prefix)
+                    .args(["-q", component])
+                    .status()
+                {
+                    eprintln!("Failed to run winetricks for {}: {}", component, e);
+                }
             }
         }
         println!("✅ Profile loaded successfully");
@@ -952,7 +973,9 @@ fn edit_winetricks_profile() {
     let profile_path = format!("{}/{}.profile", profile_dir, profile);
 
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
-    Command::new(&editor).arg(&profile_path).status().ok();
+    if let Err(e) = Command::new(&editor).arg(&profile_path).status() {
+        eprintln!("Failed to launch editor: {}", e);
+    }
 }
 
 fn delete_winetricks_profile() {
@@ -1003,7 +1026,9 @@ fn delete_winetricks_profile() {
 
     if confirm {
         let profile_path = format!("{}/{}.profile", profile_dir, profile);
-        fs::remove_file(&profile_path).ok();
+        if let Err(e) = fs::remove_file(&profile_path) {
+            eprintln!("Failed to delete profile: {}", e);
+        }
         println!("✅ Profile deleted");
     }
 }
@@ -1055,8 +1080,9 @@ fn export_winetricks_profile() {
         return;
     };
 
-    let cmd = format!("cp '{}' '{}'", profile_path, export_path);
-    Command::new("sh").arg("-c").arg(&cmd).status().ok();
+    if let Err(e) = std::fs::copy(&profile_path, &export_path) {
+        eprintln!("Failed to export profile: {}", e);
+    }
 
     println!("✅ Profile exported to: {}", export_path);
 }
@@ -1089,8 +1115,9 @@ fn import_winetricks_profile() {
 
     let dest_path = format!("{}/{}", profile_dir, file_name);
 
-    let cmd = format!("cp '{}' '{}'", import_path, dest_path);
-    Command::new("sh").arg("-c").arg(&cmd).status().ok();
+    if let Err(e) = std::fs::copy(&import_path, &dest_path) {
+        eprintln!("Failed to import profile: {}", e);
+    }
 
     println!("✅ Profile imported: {}", file_name);
 }
@@ -1152,8 +1179,13 @@ fn game_specific_recipes() {
     if install {
         for component in components {
             println!("📦 Installing {}...", component);
-            let cmd = format!("WINEPREFIX={} winetricks -q {}", wine_prefix, component);
-            Command::new("sh").arg("-c").arg(&cmd).status().ok();
+            if let Err(e) = Command::new("winetricks")
+                .env("WINEPREFIX", &wine_prefix)
+                .args(["-q", component])
+                .status()
+            {
+                eprintln!("Failed to run winetricks for {}: {}", component, e);
+            }
         }
         println!("✅ Game recipe applied");
     }
@@ -1249,9 +1281,11 @@ fn component_status() {
 
     // Get winetricks list
     println!("🔍 Checking installed winetricks components...");
-    let cmd = format!("WINEPREFIX={} winetricks list-installed", wine_prefix);
 
-    let output = Command::new("sh").arg("-c").arg(&cmd).output();
+    let output = Command::new("winetricks")
+        .env("WINEPREFIX", &wine_prefix)
+        .arg("list-installed")
+        .output();
 
     match output {
         Ok(out) => {
@@ -1275,17 +1309,27 @@ fn update_winetricks() {
     println!("🔄 Update Winetricks");
 
     println!("📥 Downloading latest winetricks...");
-    let cmd = "sudo wget -O /usr/local/bin/winetricks https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks && sudo chmod +x /usr/local/bin/winetricks";
 
-    let status = Command::new("sh").arg("-c").arg(cmd).status();
+    let status = Command::new("sudo")
+        .args([
+            "wget",
+            "-O",
+            "/usr/local/bin/winetricks",
+            "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks",
+        ])
+        .status();
 
     match status {
         Ok(s) if s.success() => {
+            Command::new("sudo")
+                .args(["chmod", "+x", "/usr/local/bin/winetricks"])
+                .status()
+                .ok();
+
             println!("✅ Winetricks updated successfully");
 
             // Check version
-            let version_cmd = "winetricks --version";
-            if let Ok(output) = Command::new("sh").arg("-c").arg(version_cmd).output() {
+            if let Ok(output) = Command::new("winetricks").arg("--version").output() {
                 let version = String::from_utf8_lossy(&output.stdout);
                 println!("📋 Version: {}", version.trim());
             }
@@ -1355,12 +1399,12 @@ fn create_wine_bottle() {
     let arch_str = if arch == 0 { "win64" } else { "win32" };
 
     println!("🍾 Creating bottle...");
-    let cmd = format!(
-        "WINEPREFIX={} WINEARCH={} wineboot -i",
-        bottle_path, arch_str
-    );
 
-    let status = Command::new("sh").arg("-c").arg(&cmd).status();
+    let status = Command::new("wineboot")
+        .env("WINEPREFIX", &bottle_path)
+        .env("WINEARCH", arch_str)
+        .arg("-i")
+        .status();
 
     match status {
         Ok(s) if s.success() => {
@@ -1380,7 +1424,9 @@ fn create_wine_bottle() {
                 chrono::Local::now().format("%Y-%m-%d %H:%M:%S")
             );
 
-            fs::write(format!("{}/bottle.json", bottle_path), metadata).ok();
+            if let Err(e) = fs::write(format!("{}/bottle.json", bottle_path), &metadata) {
+                eprintln!("Failed to write bottle metadata: {}", e);
+            }
         }
         _ => println!("❌ Failed to create bottle"),
     }
@@ -1444,8 +1490,12 @@ fn configure_wine_bottle() {
         return;
     }
 
-    let cmd = format!("WINEPREFIX={} winecfg", bottle_path);
-    Command::new("sh").arg("-c").arg(&cmd).status().ok();
+    if let Err(e) = Command::new("winecfg")
+        .env("WINEPREFIX", &bottle_path)
+        .status()
+    {
+        eprintln!("Failed to run winecfg: {}", e);
+    }
 }
 
 fn clone_wine_bottle() {
@@ -1476,9 +1526,10 @@ fn clone_wine_bottle() {
     let dest_path = format!("{}/{}", bottles_dir, dest_name);
 
     println!("🔄 Cloning bottle...");
-    let cmd = format!("cp -r '{}' '{}'", source_path, dest_path);
 
-    let status = Command::new("sh").arg("-c").arg(&cmd).status();
+    let status = Command::new("cp")
+        .args(["-r", &source_path, &dest_path])
+        .status();
 
     match status {
         Ok(s) if s.success() => {
@@ -1490,7 +1541,9 @@ fn clone_wine_bottle() {
                 && let Ok(mut content) = fs::read_to_string(&metadata_path)
             {
                 content = content.replace(&source_name, &dest_name);
-                fs::write(&metadata_path, content).ok();
+                if let Err(e) = fs::write(&metadata_path, &content) {
+                    eprintln!("Failed to update bottle metadata: {}", e);
+                }
             }
         }
         _ => println!("❌ Failed to clone bottle"),
@@ -1539,15 +1592,18 @@ fn delete_wine_bottle() {
             );
             fs::create_dir_all(format!("{}/Wine/bottle_backups", get_home_dir())).ok();
 
-            let cmd = format!("tar -czf '{}' -C '{}' .", backup_path, bottle_path);
-            Command::new("sh").arg("-c").arg(&cmd).status().ok();
+            if let Err(e) = Command::new("tar")
+                .args(["-czf", &backup_path, "-C", &bottle_path, "."])
+                .status()
+            {
+                eprintln!("Failed to create backup: {}", e);
+            }
             println!("💾 Backup created: {}", backup_path);
         }
 
-        Command::new("rm")
-            .args(&["-rf", &bottle_path])
-            .status()
-            .ok();
+        if let Err(e) = Command::new("rm").args(&["-rf", &bottle_path]).status() {
+            eprintln!("Failed to delete bottle: {}", e);
+        }
         println!("✅ Bottle deleted");
     }
 }
@@ -1589,9 +1645,10 @@ fn import_export_bottle() {
             };
 
             println!("📦 Exporting bottle...");
-            let cmd = format!("tar -czf '{}' -C '{}' .", export_path, bottle_path);
 
-            let status = Command::new("sh").arg("-c").arg(&cmd).status();
+            let status = Command::new("tar")
+                .args(["-czf", &export_path, "-C", &bottle_path, "."])
+                .status();
 
             match status {
                 Ok(s) if s.success() => println!("✅ Bottle exported to: {}", export_path),
@@ -1625,9 +1682,10 @@ fn import_export_bottle() {
             fs::create_dir_all(&bottle_path).ok();
 
             println!("📥 Importing bottle...");
-            let cmd = format!("tar -xzf '{}' -C '{}'", import_path, bottle_path);
 
-            let status = Command::new("sh").arg("-c").arg(&cmd).status();
+            let status = Command::new("tar")
+                .args(["-xzf", &import_path, "-C", &bottle_path])
+                .status();
 
             match status {
                 Ok(s) if s.success() => println!("✅ Bottle imported: {}", bottle_name),
@@ -1683,37 +1741,57 @@ fn create_wine_bottle_with_template(bottle_name: &str, template_id: &str) {
     println!("🍾 Creating bottle with template: {}", template_id);
 
     // Initialize bottle
-    let cmd = format!("WINEPREFIX={} WINEARCH=win64 wineboot -i", bottle_path);
-    Command::new("sh").arg("-c").arg(&cmd).status().ok();
+    if let Err(e) = Command::new("wineboot")
+        .env("WINEPREFIX", &bottle_path)
+        .env("WINEARCH", "win64")
+        .arg("-i")
+        .status()
+    {
+        eprintln!("Failed to run wineboot: {}", e);
+    }
 
     // Apply template-specific settings
     match template_id {
         "gaming_perf" => {
             // High performance gaming
-            Command::new("sh")
-                .arg("-c")
-                .arg(&format!("WINEPREFIX={} winecfg /v win10", bottle_path))
+            if let Err(e) = Command::new("winecfg")
+                .env("WINEPREFIX", &bottle_path)
+                .args(["/v", "win10"])
                 .status()
-                .ok();
+            {
+                eprintln!("Failed to run winecfg: {}", e);
+            }
 
             let components = ["vcrun2019", "dotnet48", "dxvk", "vkd3d"];
             for comp in &components {
-                let cmd = format!("WINEPREFIX={} winetricks -q {}", bottle_path, comp);
-                Command::new("sh").arg("-c").arg(&cmd).status().ok();
+                if let Err(e) = Command::new("winetricks")
+                    .env("WINEPREFIX", &bottle_path)
+                    .args(["-q", *comp])
+                    .status()
+                {
+                    eprintln!("Failed to run winetricks for {}: {}", comp, e);
+                }
             }
         }
         "gaming_compat" => {
             // Maximum compatibility
-            Command::new("sh")
-                .arg("-c")
-                .arg(&format!("WINEPREFIX={} winecfg /v win7", bottle_path))
+            if let Err(e) = Command::new("winecfg")
+                .env("WINEPREFIX", &bottle_path)
+                .args(["/v", "win7"])
                 .status()
-                .ok();
+            {
+                eprintln!("Failed to run winecfg: {}", e);
+            }
 
             let components = ["vcrun2019", "vcrun2017", "vcrun2015", "dotnet48", "d3dx9"];
             for comp in &components {
-                let cmd = format!("WINEPREFIX={} winetricks -q {}", bottle_path, comp);
-                Command::new("sh").arg("-c").arg(&cmd).status().ok();
+                if let Err(e) = Command::new("winetricks")
+                    .env("WINEPREFIX", &bottle_path)
+                    .args(["-q", *comp])
+                    .status()
+                {
+                    eprintln!("Failed to run winetricks for {}: {}", comp, e);
+                }
             }
         }
         _ => {}

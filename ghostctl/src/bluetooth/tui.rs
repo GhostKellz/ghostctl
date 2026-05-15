@@ -430,53 +430,51 @@ fn handle_adapter_keys(
                 });
             }
         }
-        KeyCode::Char('s') => {
+        KeyCode::Char('s') if !app.scanning => {
             // Start scan
-            if !app.scanning {
-                // Clone adapter first to avoid borrow issues
-                let adapter = app.current_adapter.clone();
-                if let Some(adapter) = adapter {
-                    app.scanning = true;
-                    app.add_notification("Scanning for devices...", NotificationLevel::Info);
+            // Clone adapter first to avoid borrow issues
+            let adapter = app.current_adapter.clone();
+            if let Some(adapter) = adapter {
+                app.scanning = true;
+                app.add_notification("Scanning for devices...", NotificationLevel::Info);
 
-                    let adapter = adapter.clone();
-                    let tx = tx.clone();
-                    rt.spawn(async move {
-                        // Ensure powered
-                        let _ = adapter.set_powered(true).await;
+                let adapter = adapter.clone();
+                let tx = tx.clone();
+                rt.spawn(async move {
+                    // Ensure powered
+                    let _ = adapter.set_powered(true).await;
 
-                        match adapter.discover_devices().await {
-                            Ok(mut stream) => {
-                                let timeout = tokio::time::sleep(Duration::from_secs(10));
-                                tokio::pin!(timeout);
+                    match adapter.discover_devices().await {
+                        Ok(mut stream) => {
+                            let timeout = tokio::time::sleep(Duration::from_secs(10));
+                            tokio::pin!(timeout);
 
-                                loop {
-                                    tokio::select! {
-                                        _ = &mut timeout => break,
-                                        event = stream.next() => {
-                                            match event {
-                                                Some(bluer::AdapterEvent::DeviceAdded(addr)) => {
-                                                    if let Ok(device) = adapter.device(addr) {
-                                                        let info = get_device_info(&device).await;
-                                                        let _ = tx.send(AppEvent::DeviceDiscovered(info));
-                                                    }
+                            loop {
+                                tokio::select! {
+                                    _ = &mut timeout => break,
+                                    event = stream.next() => {
+                                        match event {
+                                            Some(bluer::AdapterEvent::DeviceAdded(addr)) => {
+                                                if let Ok(device) = adapter.device(addr) {
+                                                    let info = get_device_info(&device).await;
+                                                    let _ = tx.send(AppEvent::DeviceDiscovered(info));
                                                 }
-                                                None => break,
-                                                _ => {}
                                             }
+                                            None => break,
+                                            _ => {}
                                         }
                                     }
                                 }
+                            }
 
-                                let _ = tx.send(AppEvent::ScanComplete);
-                            }
-                            Err(e) => {
-                                let _ = tx.send(AppEvent::Error(format!("Scan failed: {}", e)));
-                                let _ = tx.send(AppEvent::ScanComplete);
-                            }
+                            let _ = tx.send(AppEvent::ScanComplete);
                         }
-                    });
-                }
+                        Err(e) => {
+                            let _ = tx.send(AppEvent::Error(format!("Scan failed: {}", e)));
+                            let _ = tx.send(AppEvent::ScanComplete);
+                        }
+                    }
+                });
             }
         }
         _ => {}

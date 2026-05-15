@@ -1,0 +1,78 @@
+.TH GHOSTCTL 1 "April 2026" "ghostctl" "User Commands"
+.SH NAME
+ghostctl \- Linux system, homelab, and virtualization management toolkit
+.SH SYNOPSIS
+.B ghostctl
+[\fIOPTIONS\fR] [\fICOMMAND\fR]
+.SH DESCRIPTION
+.B ghostctl
+is a modular command-line toolkit for Linux administration workflows including system maintenance, Docker, networking, storage, Proxmox, VFIO, UEFI, security, and development environments.
+.SH OPTIONS
+.TP
+.B -H, --headless
+Run without interactive prompts.
+.TP
+.B -n, --non-interactive
+Alias for --headless.
+.TP
+.B -D, --dry-run
+Show what would be done without making changes.
+.TP
+.B -y, --yes
+Automatically answer yes to prompts.
+.TP
+.B -p, --plain
+Use plain output without colors or emoji.
+.TP
+.B -h, --help
+Show help.
+.TP
+.B -V, --version
+Show version.
+.SH COMMANDS
+.TP
+.B completion <bash|zsh|fish>
+Generate shell completions.
+.TP
+.B support paths
+Show GhostCTL state, support, and log paths.
+.TP
+.B support doctor
+Run quick support readiness checks for state paths, log paths, and visible external tools.
+.TP
+.B support logs
+Show recent GhostCTL activity logs.
+.TP
+.B support bundle [--output PATH] [--redact-paths] [--gzip|--tarball] [--log-tail LINES]
+Write a support diagnostics bundle plus JSON metadata sidecar. By default bundles are written under the XDG state directory, normally ~/.local/state/ghostctl/support.
+.TP
+.B support bundle --redact-paths
+Redact home directory paths and common local identifiers before sharing bundle output.
+.TP
+.B support bundle --tarball
+Write a tar.gz archive containing the text report and JSON metadata.
+.TP
+.B list
+List available commands.
+.TP
+.B version
+Show detailed version information.
+.SH COMPLETIONS
+.TP
+.B ghostctl completion bash
+Generate bash completion script.
+.TP
+.B ghostctl completion zsh
+Generate zsh completion script.
+.TP
+.B ghostctl completion fish
+Generate fish completion script.
+.SH FILES
+.TP
+.I ~/.local/state/ghostctl/logs/history.log
+Default activity history log on Linux systems with an XDG state directory.
+.TP
+.I ~/.local/state/ghostctl/support/
+Default support bundle output directory.
+.SH SEE ALSO
+Run \fBghostctl --help\fR and \fBghostctl <command> --help\fR for the live command reference.

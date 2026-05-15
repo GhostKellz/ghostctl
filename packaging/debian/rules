@@ -22,12 +22,18 @@ override_dh_auto_install:
 
 	# Install documentation
 	install -Dm644 README.md debian/ghostctl/usr/share/doc/ghostctl/README.md
+	install -Dm644 docs/README.md debian/ghostctl/usr/share/doc/ghostctl/DOCS.md
+	install -Dm644 docs/reference/COMMANDS.md debian/ghostctl/usr/share/doc/ghostctl/COMMANDS.md
 	install -Dm644 LICENSE debian/ghostctl/usr/share/doc/ghostctl/copyright
 
-	# Install man page if available
-	if [ -f ghostctl.1 ]; then \
-		install -Dm644 ghostctl.1 debian/ghostctl/usr/share/man/man1/ghostctl.1; \
-	fi
+	# Install man page and shell completions
+	install -Dm644 man/ghostctl.1 debian/ghostctl/usr/share/man/man1/ghostctl.1
+	ghostctl/target/release/ghostctl completion bash > debian/ghostctl.bash
+	ghostctl/target/release/ghostctl completion zsh > debian/_ghostctl
+	ghostctl/target/release/ghostctl completion fish > debian/ghostctl.fish
+	install -Dm644 debian/ghostctl.bash debian/ghostctl/usr/share/bash-completion/completions/ghostctl
+	install -Dm644 debian/_ghostctl debian/ghostctl/usr/share/zsh/vendor-completions/_ghostctl
+	install -Dm644 debian/ghostctl.fish debian/ghostctl/usr/share/fish/vendor_completions.d/ghostctl.fish
 
 	# Install desktop entry
 	install -Dm644 packaging/ghostctl.desktop debian/ghostctl/usr/share/applications/ghostctl.desktop
@@ -43,5 +49,6 @@ override_dh_auto_install:
 override_dh_auto_clean:
 	cd ghostctl && cargo clean || true
 	rm -rf $(CARGO_HOME)
+	rm -f debian/ghostctl.bash debian/_ghostctl debian/ghostctl.fish
 
 .PHONY: override_dh_auto_configure override_dh_auto_build override_dh_auto_test override_dh_auto_install override_dh_auto_clean

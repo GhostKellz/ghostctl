@@ -42,6 +42,7 @@ mod scripts;
 mod security;
 mod shell;
 mod storage;
+mod support;
 mod sysctl;
 mod systemd;
 mod terminal;

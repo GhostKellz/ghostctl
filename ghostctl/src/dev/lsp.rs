@@ -402,7 +402,7 @@ fn build_zls_from_source() {
 }
 
 fn configure_language_server() {
-    println!("🔧 Configure Language Server - TODO: Implement");
+    println!("🔧 Configure Language Server — not yet available");
     // Implementation for LSP configuration
 }
 
@@ -490,5 +490,5 @@ fn show_popular_lsps() {
 }
 
 fn uninstall_language_server() {
-    println!("🗑️  Uninstall Language Server - TODO: Implement");
+    println!("🗑️  Uninstall Language Server — not yet available");
 }

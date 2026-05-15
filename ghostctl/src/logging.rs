@@ -9,12 +9,9 @@ impl GhostLogger {
     pub fn init() {
         env_logger::init();
 
-        if let Some(data_dir) = dirs::data_dir() {
-            let log_dir = data_dir.join("ghostctl");
-            std::fs::create_dir_all(&log_dir).unwrap_or_else(|e| {
-                eprintln!("Warning: Could not create log directory: {}", e);
-            });
-        }
+        std::fs::create_dir_all(crate::support::log_dir()).unwrap_or_else(|e| {
+            eprintln!("Warning: Could not create log directory: {}", e);
+        });
 
         info!(
             "GhostCTL started at {}",
@@ -23,11 +20,7 @@ impl GhostLogger {
     }
 
     pub fn log_action(action: &str, success: bool, details: Option<&str>) {
-        let Some(data_dir) = dirs::data_dir() else {
-            return;
-        };
-        let log_dir = data_dir.join("ghostctl");
-        let log_file = log_dir.join("history.log");
+        let log_file = crate::support::history_log_path();
 
         let timestamp = Utc::now().format("%Y-%m-%d %H:%M:%S");
         let status = if success { "SUCCESS" } else { "FAILED" };
@@ -47,11 +40,15 @@ impl GhostLogger {
     }
 
     pub fn show_recent_logs() {
-        let Some(data_dir) = dirs::data_dir() else {
-            println!("Could not determine data directory");
-            return;
+        let log_file = if crate::support::history_log_path().exists() {
+            crate::support::history_log_path()
+        } else if let Some(path) =
+            crate::support::legacy_history_log_path().filter(|path| path.exists())
+        {
+            path
+        } else {
+            crate::support::history_log_path()
         };
-        let log_file = data_dir.join("ghostctl/history.log");
 
         if !log_file.exists() {
             println!("📝 No log file found yet");

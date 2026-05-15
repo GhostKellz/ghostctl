@@ -1,0 +1,61 @@
+name: Feature request
+description: Suggest a new capability, workflow improvement, packaging target, or diagnostic enhancement.
+title: "[feature] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem are you trying to solve?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which GhostCTL area does this affect?
+      options:
+        - install / packaging / release
+        - support bundle / diagnostics
+        - Arch / system maintenance
+        - Docker / containers
+        - networking / firewall / scanner
+        - Proxmox / virtualization
+        - VFIO / IOMMU / UEFI
+        - storage / backup / restore
+        - security / SSH / GPG / credentials
+        - NVIDIA / gaming
+        - terminal / shell / development tools
+        - documentation
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the feature or workflow you want.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: System / workflow context
+      description: Distro, shell, hardware, Proxmox/VM/container setup, packaging target, or automation context if relevant.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Existing commands, scripts, packages, or workarounds you already tried.
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics or examples
+      description: Optional command output, support bundle notes, screenshots, or references that clarify the request.
