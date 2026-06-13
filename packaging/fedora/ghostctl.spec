@@ -1,5 +1,5 @@
 Name:           ghostctl
-Version:        0.10.0
+Version:        0.11.0
 Release:        1%{?dist}
 Summary:        Universal system administration toolkit
 
@@ -87,6 +87,14 @@ cargo test --release --locked
 %endif
 
 %changelog
+* Fri Jun 12 2026 Christopher Kelley <ckelley@ghostctl.sh> - 0.11.0-1
+- Added monitor command for Prometheus/Loki/Alertmanager/Grafana stacks
+- Added ai command for local Ollama models and the Hermes agent
+- Added crowdsec command for threat intel, LAPI metrics, and DNS checks
+- Added obs command for Wayland screencapture, virtual camera, and NVENC
+- Added audit command for Arch Security Tracker CVE checks and PKGBUILD scanning
+- Documentation, man page, and command reference updated
+
 * Thu May 15 2026 Christopher Kelley <ckelley@ghostctl.sh> - 0.10.0-1
 - Release polish: docs generate command, domain diagnostics, Makefile
 - Release archive now includes man page, completions, CHANGELOG

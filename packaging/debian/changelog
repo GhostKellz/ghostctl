@@ -1,3 +1,14 @@
+ghostctl (0.11.0-1) unstable; urgency=medium
+
+  * Added monitor command for Prometheus/Loki/Alertmanager/Grafana stacks.
+  * Added ai command for local Ollama models and the Hermes agent.
+  * Added crowdsec command for threat intel, LAPI metrics, and DNS checks.
+  * Added obs command for Wayland screencapture, virtual camera, and NVENC.
+  * Added audit command for Arch Security Tracker CVE checks and PKGBUILD scanning.
+  * Documentation, man page, and command reference updated for the new commands.
+
+ -- Christopher Kelley <ckelley@ghostctl.sh>  Fri, 12 Jun 2026 12:00:00 +0000
+
 ghostctl (0.10.0-1) unstable; urgency=medium
 
   * Release polish: docs generate command, domain diagnostics, Makefile.

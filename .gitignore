@@ -1,8 +1,7 @@
 # Rust
 target/
 **/*.rs.bk
-Cargo.lock
-
+tasks/
 # IDE
 .vscode/
 .idea/
@@ -18,6 +17,12 @@ Thumbs.db
 
 # Build artifacts
 ghostctl/target/CLAUDE.md
+
+# makepkg build artifacts (git source clone, src/pkg dirs, built packages)
+packaging/arch/ghostctl/
+packaging/arch/src/
+packaging/arch/pkg/
+*.pkg.tar.zst
 
 archive/
 

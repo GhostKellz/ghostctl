@@ -21,12 +21,24 @@
 ### Networking & Security
 - [Networking](networking/README.md) - Firewalls, DNS, scanning
 - [Security](security/README.md) - SSH, GPG, credentials
+- [Package Audit](security/package-audit.md) - CVE checks and AUR PKGBUILD scanning
+- [CrowdSec](security/crowdsec.md) - Threat feed, LAPI metrics, DNS checks
 - [Support](support/README.md) - Diagnostics, logs, issue bundles
 - [UEFI](uefi/README.md) - Secure Boot, key enrollment
+
+### Monitoring & Observability
+- [Monitoring](monitor/monitoring.md) - Prometheus, Loki, Alertmanager, Grafana
+
+### AI & Local Models
+- [AI](ai/ollama.md) - Ollama models, context checks, server tuning, Hermes
+- [OpenShell](openshell/openshell.md) - Sandbox runtime readiness + CLI passthrough
 
 ### Development
 - [Development](development/README.md) - Rust, Zig, Go, Python environments
 - [Gaming](gaming/README.md) - Proton, graphics optimization
+
+### Desktop & Media
+- [OBS & Screencapture](obs/wayland-screencapture.md) - Wayland portals, virtual cam, NVENC
 
 ## Other Resources
 

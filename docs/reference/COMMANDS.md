@@ -1312,6 +1312,47 @@ SSH configuration management
 
 GPG key management
 
+**Subcommands:**
+
+- `gpg list` -- List all GPG keys
+- `gpg info` -- Show key details
+- `gpg export` -- Export public key to stdout
+- `gpg renew` -- Extend key expiration
+- `gpg menu` -- Launch interactive GPG menu
+
+#### `gpg list`
+
+List all GPG keys
+
+#### `gpg info`
+
+Show key details
+
+**Options:**
+
+- `<KEY_ID>` -- Key ID, email, or name
+
+#### `gpg export`
+
+Export public key to stdout
+
+**Options:**
+
+- `<KEY_ID>` -- Key ID, email, or name
+
+#### `gpg renew`
+
+Extend key expiration
+
+**Options:**
+
+- `<KEY_ID>` -- Key ID to renew
+- `-d`, `--duration` -- Duration to extend
+
+#### `gpg menu`
+
+Launch interactive GPG menu
+
 ### `dns`
 
 DNS lookup and management
@@ -1452,6 +1493,33 @@ Show version information
 
 List available commands
 
+### `config`
+
+Manage ghostctl's own configuration (~/.config/ghostctl/config.toml)
+
+**Subcommands:**
+
+- `config show` -- Print all resolved configuration sections
+- `config edit` -- Open the config file in $EDITOR
+- `config path` -- Print the config file path
+- `config reset` -- Delete the config and regenerate defaults
+
+#### `config show`
+
+Print all resolved configuration sections
+
+#### `config edit`
+
+Open the config file in $EDITOR
+
+#### `config path`
+
+Print the config file path
+
+#### `config reset`
+
+Delete the config and regenerate defaults
+
 ### `uefi`
 
 UEFI Secure Boot management for VMs
@@ -1484,4 +1552,480 @@ Check if VARS file has Secure Boot keys enrolled
 #### `uefi status`
 
 Check OVMF firmware and tools
+
+### `sign`
+
+[EXPERIMENTAL] Code signing via Azure Key Vault
+
+**Subcommands:**
+
+- `sign file` -- Sign a file using Azure Key Vault
+- `sign config` -- Show or initialize signing configuration
+- `sign status` -- Check signing dependencies and Azure connectivity
+- `sign export-key` -- Export the signing public key from Azure Key Vault
+- `sign verify` -- Verify a file signature against Azure Key Vault certificate
+- `sign list-keys` -- List signing certificates in Azure Key Vault
+
+#### `sign file`
+
+Sign a file using Azure Key Vault
+
+**Options:**
+
+- `<FILE>` -- File to sign
+- `--format` -- Signing format (auto-detect by default)
+- `--vault-url` -- Azure Key Vault URL (overrides config)
+- `--cert-name` -- Key/certificate name in Key Vault (overrides config)
+- `-a`, `--algorithm` -- Signing algorithm (default: from config or RS256)
+- `-o`, `--output` -- Output path for signature file
+- `--auth` -- Authentication method override
+- `--dry-run` -- Show what would be signed without calling Key Vault
+- `--timestamp` -- Request RFC 3161 timestamp (default for PE if TSA URL configured)
+- `--no-timestamp` -- Disable timestamping
+- `--native` -- Use native package signing (RPM: embed in header, DEB: dpkg-sig format)
+- `-v`, `--verbose` -- Verbose output
+
+#### `sign config`
+
+Show or initialize signing configuration
+
+**Options:**
+
+- `--init` -- Interactive signing configuration setup
+
+#### `sign status`
+
+Check signing dependencies and Azure connectivity
+
+#### `sign export-key`
+
+Export the signing public key from Azure Key Vault
+
+**Options:**
+
+- `--format` -- Export format: pgp (ASCII-armored OpenPGP), pem (X.509 PEM), der (raw DER)
+- `-o`, `--output` -- Output file (stdout if omitted)
+- `--vault-url` -- Azure Key Vault URL (overrides config)
+- `--cert-name` -- Key/certificate name in Key Vault (overrides config)
+- `--auth` -- Authentication method override
+
+#### `sign verify`
+
+Verify a file signature against Azure Key Vault certificate
+
+**Options:**
+
+- `<FILE>` -- File to verify
+- `-s`, `--signature` -- Signature file path (default: FILE.sig)
+- `--vault-url` -- Azure Key Vault URL (overrides config)
+- `--cert-name` -- Key/certificate name in Key Vault (overrides config)
+- `--auth` -- Authentication method override
+- `-v`, `--verbose` -- Verbose output
+
+#### `sign list-keys`
+
+List signing certificates in Azure Key Vault
+
+**Options:**
+
+- `--vault-url` -- Azure Key Vault URL (overrides config)
+- `--auth` -- Authentication method override
+
+### `monitor`
+
+Observability helper (Prometheus, Loki, Alertmanager, Grafana)
+
+**Subcommands:**
+
+- `monitor health` -- Probe all configured services for liveness
+- `monitor targets` -- List Prometheus scrape targets and their health
+- `monitor alerts` -- List alerts currently known to Alertmanager
+- `monitor logs` -- Query Loki with a LogQL expression
+- `monitor tail` -- Follow new Loki log lines for a LogQL query
+- `monitor query` -- Run a pre-baked PromQL query
+- `monitor reload` -- Hot-reload a service config (no restart)
+- `monitor datasources` -- Check Grafana datasource health (needs grafana_token)
+
+#### `monitor health`
+
+Probe all configured services for liveness
+
+#### `monitor targets`
+
+List Prometheus scrape targets and their health
+
+**Options:**
+
+- `--down` -- Show only targets that are not up
+
+#### `monitor alerts`
+
+List alerts currently known to Alertmanager
+
+#### `monitor logs`
+
+Query Loki with a LogQL expression
+
+**Options:**
+
+- `<query>` -- LogQL query, e.g. '{source_type="fortigate"}'
+- `--limit` -- Maximum number of lines to return
+
+#### `monitor tail`
+
+Follow new Loki log lines for a LogQL query
+
+**Options:**
+
+- `<query>` -- LogQL query to follow
+- `-f`, `--follow` -- Keep polling for new lines (Ctrl-C to stop)
+
+#### `monitor query`
+
+Run a pre-baked PromQL query
+
+**Options:**
+
+- `<metric>` -- Which metric to query
+- `--host` -- Filter results to instances containing this string
+
+#### `monitor reload`
+
+Hot-reload a service config (no restart)
+
+**Options:**
+
+- `<service>` -- Service to reload
+
+#### `monitor datasources`
+
+Check Grafana datasource health (needs grafana_token)
+
+### `ai`
+
+Local AI helper (Ollama models + Hermes agent)
+
+**Subcommands:**
+
+- `ai status` -- Ollama service health, GPU detection, and loaded models
+- `ai models` -- List installed Ollama models
+- `ai pull` -- Pull a model from the Ollama registry
+- `ai rm` -- Delete an installed model
+- `ai show` -- Show a model's architecture and max context window
+- `ai ctx-check` -- Verify a model's context window meets the configured minimum
+- `ai run` -- Run a one-shot prompt against a model (streams output)
+- `ai ps` -- Show currently loaded models and VRAM usage
+- `ai tune` -- Inspect or apply Ollama server tuning (systemd override env)
+- `ai hermes` -- Pass through to the Hermes agent CLI
+
+#### `ai status`
+
+Ollama service health, GPU detection, and loaded models
+
+#### `ai models`
+
+List installed Ollama models
+
+#### `ai pull`
+
+Pull a model from the Ollama registry
+
+**Options:**
+
+- `<model>` -- Model name, e.g. qwen3-coder:30b
+
+#### `ai rm`
+
+Delete an installed model
+
+**Options:**
+
+- `<model>` -- Model name to delete
+
+#### `ai show`
+
+Show a model's architecture and max context window
+
+**Options:**
+
+- `<model>` -- Model name
+
+#### `ai ctx-check`
+
+Verify a model's context window meets the configured minimum
+
+**Options:**
+
+- `<model>` -- Model name (defaults to [ai].default_model)
+
+#### `ai run`
+
+Run a one-shot prompt against a model (streams output)
+
+**Options:**
+
+- `<model>` -- Model name
+- `<prompt>` -- Prompt text
+- `--no-stream` -- Wait for the full response instead of streaming
+- `--ctx` -- Context window size in tokens (options.num_ctx)
+- `--temp` -- Sampling temperature (options.temperature)
+- `--num-predict` -- Max tokens to generate, -1 for unlimited (options.num_predict)
+- `--seed` -- RNG seed for reproducible output (options.seed)
+
+#### `ai ps`
+
+Show currently loaded models and VRAM usage
+
+#### `ai tune`
+
+Inspect or apply Ollama server tuning (systemd override env)
+
+**Subcommands:**
+
+- `ai tune show` -- Show the current Ollama override environment
+- `ai tune recommend` -- Print recommended tuning for the detected GPU VRAM
+- `ai tune apply` -- Write the recommended override (sudo) and restart ollama
+
+##### `ai tune show`
+
+Show the current Ollama override environment
+
+##### `ai tune recommend`
+
+Print recommended tuning for the detected GPU VRAM
+
+##### `ai tune apply`
+
+Write the recommended override (sudo) and restart ollama
+
+#### `ai hermes`
+
+Pass through to the Hermes agent CLI
+
+**Options:**
+
+- `<args>` -- Arguments forwarded to `hermes` (e.g. doctor, status, model)
+
+### `crowdsec`
+
+Threat-feed, CrowdSec metrics, and DNS posture checks
+
+**Subcommands:**
+
+- `crowdsec feed` -- Inspect the public threat feed
+- `crowdsec metrics` -- Summarize CrowdSec LAPI Prometheus metrics (if configured)
+- `crowdsec cli` -- Passthrough to local cscli (only works on the LAPI host)
+- `crowdsec dns` -- Check DNS resolver reachability and DNSSEC
+
+#### `crowdsec feed`
+
+Inspect the public threat feed
+
+**Subcommands:**
+
+- `crowdsec feed check` -- Fetch the feed and report entry count + size
+- `crowdsec feed sample` -- Show the first N entries of the feed
+
+##### `crowdsec feed check`
+
+Fetch the feed and report entry count + size
+
+##### `crowdsec feed sample`
+
+Show the first N entries of the feed
+
+**Options:**
+
+- `<count>` -- Number of entries to show
+
+#### `crowdsec metrics`
+
+Summarize CrowdSec LAPI Prometheus metrics (if configured)
+
+#### `crowdsec cli`
+
+Passthrough to local cscli (only works on the LAPI host)
+
+**Options:**
+
+- `<category>` -- cscli category to list
+
+#### `crowdsec dns`
+
+Check DNS resolver reachability and DNSSEC
+
+**Subcommands:**
+
+- `crowdsec dns check` -- Test lookups against the configured resolvers
+
+##### `crowdsec dns check`
+
+Test lookups against the configured resolvers
+
+### `obs`
+
+OBS Studio helper: Wayland screencapture, virtual camera, NVENC
+
+**Subcommands:**
+
+- `obs doctor` -- Full OBS environment report (session, portal, PipeWire, vcam, NVENC)
+- `obs portal` -- Wayland screencapture via xdg-desktop-portal + PipeWire
+- `obs vcam` -- OBS virtual camera via the v4l2loopback kernel module
+- `obs nvenc` -- NVIDIA hardware encoding (NVENC) checks
+- `obs screencast` -- Verify the Wayland ScreenCast portal is usable
+
+#### `obs doctor`
+
+Full OBS environment report (session, portal, PipeWire, vcam, NVENC)
+
+#### `obs portal`
+
+Wayland screencapture via xdg-desktop-portal + PipeWire
+
+**Subcommands:**
+
+- `obs portal check` -- Check the portal backend and PipeWire status
+- `obs portal setup` -- Install + enable the right portal backend and PipeWire stack
+
+##### `obs portal check`
+
+Check the portal backend and PipeWire status
+
+##### `obs portal setup`
+
+Install + enable the right portal backend and PipeWire stack
+
+#### `obs vcam`
+
+OBS virtual camera via the v4l2loopback kernel module
+
+**Subcommands:**
+
+- `obs vcam status` -- Show v4l2loopback and video devices
+- `obs vcam enable` -- Load v4l2loopback with OBS-friendly options
+- `obs vcam disable` -- Unload the v4l2loopback module
+
+##### `obs vcam status`
+
+Show v4l2loopback and video devices
+
+##### `obs vcam enable`
+
+Load v4l2loopback with OBS-friendly options
+
+**Options:**
+
+- `--persist` -- Make the virtual camera load on every boot
+
+##### `obs vcam disable`
+
+Unload the v4l2loopback module
+
+#### `obs nvenc`
+
+NVIDIA hardware encoding (NVENC) checks
+
+**Subcommands:**
+
+- `obs nvenc check` -- Verify driver + ffmpeg NVENC support
+
+##### `obs nvenc check`
+
+Verify driver + ffmpeg NVENC support
+
+#### `obs screencast`
+
+Verify the Wayland ScreenCast portal is usable
+
+**Subcommands:**
+
+- `obs screencast test` -- Probe the ScreenCast portal interface
+
+##### `obs screencast test`
+
+Probe the ScreenCast portal interface
+
+### `openshell`
+
+OpenShell sandbox runtime: readiness checks and CLI passthrough
+
+**Subcommands:**
+
+- `openshell doctor` -- Check OpenShell prerequisites (binary, docker, gateway, registration)
+- `openshell status` -- Show active gateway connection (passthrough)
+- `openshell gateway` -- Manage gateways (passthrough to `openshell gateway`)
+- `openshell sandbox` -- Manage isolated sandboxes (passthrough to `openshell sandbox`)
+- `openshell policy` -- Manage sandbox policy (passthrough to `openshell policy`)
+
+#### `openshell doctor`
+
+Check OpenShell prerequisites (binary, docker, gateway, registration)
+
+#### `openshell status`
+
+Show active gateway connection (passthrough)
+
+#### `openshell gateway`
+
+Manage gateways (passthrough to `openshell gateway`)
+
+**Options:**
+
+- `<args>` -- Arguments forwarded to the `openshell` CLI
+
+#### `openshell sandbox`
+
+Manage isolated sandboxes (passthrough to `openshell sandbox`)
+
+**Options:**
+
+- `<args>` -- Arguments forwarded to the `openshell` CLI
+
+#### `openshell policy`
+
+Manage sandbox policy (passthrough to `openshell policy`)
+
+**Options:**
+
+- `<args>` -- Arguments forwarded to the `openshell` CLI
+
+### `audit`
+
+Audit Arch/AUR packages for CVEs and malicious PKGBUILDs
+
+**Subcommands:**
+
+- `audit cve` -- Check installed packages against the Arch Security Tracker
+- `audit aur` -- Scan installed AUR/foreign package PKGBUILDs for red flags
+- `audit pkgbuild` -- Scan a single PKGBUILD (local path or AUR package name)
+- `audit ioc` -- Check installed packages and pacman history against an IOC package feed
+- `audit summary` -- Quick package-security overview
+
+#### `audit cve`
+
+Check installed packages against the Arch Security Tracker
+
+#### `audit aur`
+
+Scan installed AUR/foreign package PKGBUILDs for red flags
+
+#### `audit pkgbuild`
+
+Scan a single PKGBUILD (local path or AUR package name)
+
+**Options:**
+
+- `<target>` -- Path to a PKGBUILD file, or an AUR package name to fetch
+
+#### `audit ioc`
+
+Check installed packages and pacman history against an IOC package feed
+
+**Options:**
+
+- `--feed` -- Package-name feed to use (overrides the [audit] ioc_feed setting)
+
+#### `audit summary`
+
+Quick package-security overview
 

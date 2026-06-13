@@ -15,6 +15,23 @@ pub struct GhostConfig {
     pub credentials: Option<CredentialsConfig>,
     #[serde(default)]
     pub nvidia: Option<NvidiaConfig>,
+    #[serde(default)]
+    pub signing: Option<crate::sign::config::SigningConfig>,
+    #[serde(default)]
+    pub monitor: Option<crate::monitor::config::MonitorConfig>,
+    #[serde(default)]
+    pub ai: Option<crate::ai::config::AiConfig>,
+    #[serde(default)]
+    pub crowdsec: Option<crate::crowdsec::config::CrowdsecConfig>,
+
+    #[serde(default)]
+    pub obs: Option<crate::obs::config::ObsConfig>,
+
+    #[serde(default)]
+    pub audit: Option<crate::audit::config::AuditConfig>,
+
+    #[serde(default)]
+    pub openshell: Option<crate::openshell::config::OpenshellConfig>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -189,6 +206,13 @@ impl Default for GhostConfig {
             mirrors: None,     // Use defaults when not specified
             credentials: None, // Use auto-detection when not specified
             nvidia: None,      // No NVIDIA config by default
+            signing: None,     // No signing config by default
+            monitor: None,     // Use monitor defaults when not specified
+            ai: None,          // Use AI defaults when not specified
+            crowdsec: None,    // Use crowdsec defaults when not specified
+            obs: None,         // Use OBS defaults when not specified
+            audit: None,       // Use audit defaults when not specified
+            openshell: None,   // Use OpenShell defaults when not specified
         }
     }
 }
@@ -310,6 +334,64 @@ impl GhostConfig {
         println!("  Theme: {}", config.ui.theme);
         println!("  Show Tips: {}", config.ui.show_tips);
         println!("  Confirmations: {}", config.ui.confirmation_prompts);
+        println!();
+
+        let mon = config.monitor.clone().unwrap_or_default();
+        println!("📊 Monitor:");
+        println!("  Prometheus: {}", mon.prometheus_url);
+        println!("  Loki: {}", mon.loki_url);
+        println!("  Alertmanager: {}", mon.alertmanager_url);
+        println!("  Grafana: {}", mon.grafana_url);
+        println!();
+
+        let ai = config.ai.clone().unwrap_or_default();
+        println!("🤖 AI:");
+        println!("  Ollama: {}", ai.ollama_url);
+        println!(
+            "  Default Model: {}",
+            ai.default_model.as_deref().unwrap_or("(unset)")
+        );
+        println!("  Min Context: {} tokens", ai.min_context);
+        println!("  Hermes Bin: {}", ai.hermes_bin);
+        println!();
+
+        let cs = config.crowdsec.clone().unwrap_or_default();
+        println!("🛡  CrowdSec:");
+        println!("  Threat Feed: {}", cs.threat_feed_url);
+        println!(
+            "  LAPI Metrics: {}",
+            cs.lapi_metrics_url.as_deref().unwrap_or("(unset)")
+        );
+        println!("  DNS Primary: {}", cs.dns_primary);
+        println!();
+
+        let obs = config.obs.clone().unwrap_or_default();
+        println!("🎥 OBS:");
+        println!("  Virtual Cam Label: {}", obs.vcam_label);
+        println!("  Virtual Cam Device: /dev/video{}", obs.vcam_video_nr);
+        println!(
+            "  Portal Backend: {}",
+            obs.portal_backend.as_deref().unwrap_or("(auto-detect)")
+        );
+        println!();
+
+        let audit = config.audit.clone().unwrap_or_default();
+        println!("🔒 Audit:");
+        println!("  Tracker URL: {}", audit.tracker_url);
+        println!("  AUR Base: {}", audit.aur_base_url);
+        println!("  Timeout: {}s", audit.timeout_secs);
+        println!(
+            "  IOC Feed: {}",
+            audit.ioc_feed.as_deref().unwrap_or("(none)")
+        );
+        println!("  Pacman Log Glob: {}", audit.pacman_log_glob);
+        println!();
+
+        let openshell = config.openshell.clone().unwrap_or_default();
+        println!("🐚 OpenShell:");
+        println!("  Binary: {}", openshell.bin);
+        println!("  Gateway URL: {}", openshell.gateway_url);
+        println!("  Timeout: {}s", openshell.timeout_secs);
     }
 
     pub fn reset() -> Result<(), Box<dyn std::error::Error>> {

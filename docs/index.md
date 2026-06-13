@@ -29,6 +29,7 @@
 |-------|-------------|
 | [Networking](networking/README.md) | Firewalls, DNS, port scanning |
 | [Security](security/README.md) | SSH, GPG, credentials |
+| [Code Signing](signing/README.md) | Azure Key Vault signing (PE, RPM, DEB, Pacman) |
 | [Support](support/README.md) | Diagnostics, logs, issue bundles |
 | [UEFI](uefi/README.md) | Secure Boot, key enrollment |
 

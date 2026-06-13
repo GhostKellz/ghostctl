@@ -9,7 +9,9 @@
 #![allow(clippy::duplicated_attributes)] // Allow for local overrides
 #![allow(clippy::too_many_arguments)] // Some builder functions need many params
 
+mod ai;
 mod arch;
+mod audit;
 mod backup;
 #[cfg(target_os = "linux")]
 mod bluetooth;
@@ -18,6 +20,7 @@ mod cli;
 mod cloud;
 pub mod command;
 mod config;
+mod crowdsec;
 mod dev;
 mod docker;
 mod gaming;
@@ -25,12 +28,15 @@ mod http_client;
 mod iommu;
 mod logging;
 mod menu;
+mod monitor;
 mod network;
 mod networking;
 mod nginx;
 mod nix;
 mod nvidia;
 mod nvim;
+mod obs;
+mod openshell;
 mod plugins;
 pub mod progress;
 mod proxmox;
@@ -41,6 +47,7 @@ mod restore;
 mod scripts;
 mod security;
 mod shell;
+mod sign;
 mod storage;
 mod support;
 mod sysctl;

@@ -1,8 +1,9 @@
 use crate::terminal::terminal_menu;
 use crate::utils::{set_dry_run_mode, set_headless_mode, set_plain_mode};
 use crate::{
-    arch, backup, bluetooth, btrfs, cloud, iommu, network, nvidia, proxmox, restore, security,
-    shell, sysctl, systemd, tools, uefi, vfio, wifi,
+    ai, arch, audit, backup, bluetooth, btrfs, cloud, crowdsec, iommu, monitor, network, nvidia,
+    obs, openshell, proxmox, restore, security, shell, sign, sysctl, systemd, tools, uefi, vfio,
+    wifi,
 };
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use clap_complete::{Shell, generate};
@@ -700,7 +701,36 @@ pub fn build_cli() -> Command {
                 .subcommand(Command::new("config").about("SSH configuration management"))
                 .hide(true),
         )
-        .subcommand(Command::new("gpg").about("GPG key management").hide(true))
+        .subcommand(
+            Command::new("gpg")
+                .about("GPG key management")
+                .subcommand(Command::new("list").about("List all GPG keys"))
+                .subcommand(
+                    Command::new("info")
+                        .about("Show key details")
+                        .arg(Arg::new("KEY_ID").required(true).help("Key ID, email, or name")),
+                )
+                .subcommand(
+                    Command::new("export")
+                        .about("Export public key to stdout")
+                        .arg(Arg::new("KEY_ID").required(true).help("Key ID, email, or name")),
+                )
+                .subcommand(
+                    Command::new("renew")
+                        .about("Extend key expiration")
+                        .arg(Arg::new("KEY_ID").required(true).help("Key ID to renew"))
+                        .arg(
+                            Arg::new("duration")
+                                .long("duration")
+                                .short('d')
+                                .value_parser(["1y", "2y", "3y", "5y", "10y"])
+                                .default_value("1y")
+                                .help("Duration to extend"),
+                        ),
+                )
+                .subcommand(Command::new("menu").about("Launch interactive GPG menu"))
+                .hide(true),
+        )
         .subcommand(
             Command::new("dns")
                 .about("DNS lookup and management")
@@ -875,7 +905,26 @@ pub fn build_cli() -> Command {
         )
         .subcommand(Command::new("version").about("Show version information"))
         .subcommand(Command::new("list").about("List available commands"))
+        .subcommand(
+            Command::new("config")
+                .about("Manage ghostctl's own configuration (~/.config/ghostctl/config.toml)")
+                .subcommand(
+                    Command::new("show").about("Print all resolved configuration sections"),
+                )
+                .subcommand(Command::new("edit").about("Open the config file in $EDITOR"))
+                .subcommand(Command::new("path").about("Print the config file path"))
+                .subcommand(
+                    Command::new("reset").about("Delete the config and regenerate defaults"),
+                ),
+        )
         .subcommand(uefi::command())
+        .subcommand(sign::command())
+        .subcommand(monitor::command())
+        .subcommand(ai::command())
+        .subcommand(crowdsec::command())
+        .subcommand(obs::command())
+        .subcommand(openshell::command())
+        .subcommand(audit::command())
 }
 
 pub fn handle_cli_args(matches: &ArgMatches) {
@@ -917,6 +966,7 @@ pub fn handle_cli_args(matches: &ArgMatches) {
         Some(("list", _)) => {
             show_command_list();
         }
+        Some(("config", matches)) => handle_config_commands(matches),
         Some(("system", matches)) => handle_system_commands(matches),
         Some(("arch", matches)) => handle_arch_commands(matches),
         Some(("dev", matches)) => handle_dev_commands(matches),
@@ -954,6 +1004,48 @@ pub fn handle_cli_args(matches: &ArgMatches) {
         Some(("terminal", matches)) => handle_terminal_commands(matches),
         Some(("uefi", matches)) => {
             if let Err(e) = uefi::handle(matches) {
+                eprintln!("Error: {e:#}");
+                std::process::exit(1);
+            }
+        }
+        Some(("sign", matches)) => {
+            if let Err(e) = sign::handle(matches) {
+                eprintln!("Error: {e:#}");
+                std::process::exit(1);
+            }
+        }
+        Some(("monitor", matches)) | Some(("mon", matches)) => {
+            if let Err(e) = monitor::handle(matches) {
+                eprintln!("Error: {e:#}");
+                std::process::exit(1);
+            }
+        }
+        Some(("ai", matches)) => {
+            if let Err(e) = ai::handle(matches) {
+                eprintln!("Error: {e:#}");
+                std::process::exit(1);
+            }
+        }
+        Some(("crowdsec", matches)) => {
+            if let Err(e) = crowdsec::handle(matches) {
+                eprintln!("Error: {e:#}");
+                std::process::exit(1);
+            }
+        }
+        Some(("obs", matches)) => {
+            if let Err(e) = obs::handle(matches) {
+                eprintln!("Error: {e:#}");
+                std::process::exit(1);
+            }
+        }
+        Some(("openshell", matches)) => {
+            if let Err(e) = openshell::handle(matches) {
+                eprintln!("Error: {e:#}");
+                std::process::exit(1);
+            }
+        }
+        Some(("audit", matches)) => {
+            if let Err(e) = audit::handle(matches) {
                 eprintln!("Error: {e:#}");
                 std::process::exit(1);
             }
@@ -2315,6 +2407,27 @@ fn show_command_list() {
     println!("For detailed help on any command, use: ghostctl <command> help");
 }
 
+fn handle_config_commands(matches: &ArgMatches) {
+    use crate::config::GhostConfig;
+    match matches.subcommand() {
+        Some(("show", _)) | None => GhostConfig::show(),
+        Some(("path", _)) => println!("{}", GhostConfig::config_path().display()),
+        Some(("edit", _)) => {
+            if let Err(e) = GhostConfig::edit() {
+                eprintln!("Error: {e}");
+                std::process::exit(1);
+            }
+        }
+        Some(("reset", _)) => {
+            if let Err(e) = GhostConfig::reset() {
+                eprintln!("Error: {e}");
+                std::process::exit(1);
+            }
+        }
+        _ => GhostConfig::show(),
+    }
+}
+
 fn handle_arch_clean(target: &str) {
     println!("🧹 Cleaning target: {}", target);
     match target {
@@ -2452,21 +2565,35 @@ fn handle_ssh_management(matches: &ArgMatches) {
 
 fn handle_gpg_management(matches: &ArgMatches) {
     match matches.subcommand() {
-        Some(("help", _)) => {
-            println!("🔑 GPG Key Management");
-            println!("=====================");
-            println!();
-            println!("📋 Available commands:");
-            println!("  ghostctl gpg help    - Show this help message");
-            println!("  ghostctl gpg menu    - Launch interactive GPG management menu");
-            println!();
-            println!(
-                "� Use 'ghostctl gpg menu' to access the full interactive GPG management interface"
-            );
+        Some(("list", _)) => {
+            if let Err(e) = security::gpg::list_gpg_keys() {
+                eprintln!("Error: {}", e);
+            }
+        }
+        Some(("info", sub)) => {
+            let key_id = sub.get_one::<String>("KEY_ID").unwrap();
+            if let Err(e) = security::gpg::key_info(key_id) {
+                eprintln!("Error: {}", e);
+            }
+        }
+        Some(("export", sub)) => {
+            let key_id = sub.get_one::<String>("KEY_ID").unwrap();
+            if let Err(e) = security::gpg::export_public_key_by_id(key_id) {
+                eprintln!("Error: {}", e);
+            }
+        }
+        Some(("renew", sub)) => {
+            let key_id = sub.get_one::<String>("KEY_ID").unwrap();
+            let duration = sub
+                .get_one::<String>("duration")
+                .map(|s| s.as_str())
+                .unwrap_or("1y");
+            if let Err(e) = security::gpg::renew_key(key_id, duration) {
+                eprintln!("Error: {}", e);
+            }
         }
         Some(("menu", _)) => security::gpg::gpg_key_management(),
         _ => {
-            // No subcommand provided, launch the existing GPG menu directly
             security::gpg::gpg_key_management();
         }
     }

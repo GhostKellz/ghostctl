@@ -2,6 +2,33 @@
 
 All notable changes to GhostCTL will be documented in this file.
 
+## [0.11.0] - 2026-06-12
+
+### Added
+
+- **Monitoring (`ghostctl monitor`, alias `mon`)**: client for a Prometheus / Loki / Alertmanager / Grafana stack with `health`, `targets`, `alerts`, `logs`, `tail`, `query`, `reload`, and `datasources` subcommands; configured under `[monitor]` ([docs](docs/monitor/monitoring.md))
+- **Local AI (`ghostctl ai`)**: Ollama management with `status`, `models`, `pull`, `rm`, `show`, `ctx-check`, `run`, `ps`, and a `hermes` agent passthrough; configured under `[ai]` ([docs](docs/ai/ollama.md))
+  - `ai run` now accepts per-request tuning flags (`--ctx`, `--temp`, `--num-predict`, `--seed`) that map to the Ollama `options` object
+  - **`ai tune <show|recommend|apply>`**: inspects and applies the Ollama systemd override (`/etc/systemd/system/ollama.service.d/override.conf`); `recommend` is VRAM-aware via `nvidia-smi`, and `apply` *merges* recommended keys into the existing override (preserving unmanaged keys like `OLLAMA_MODELS`/`OLLAMA_HOST`) before a `daemon-reload` + `ollama` restart (sudo; honors `--dry-run`/`--yes`/`--plain`)
+- **OpenShell (`ghostctl openshell`)**: `doctor` readiness checks (binary, docker daemon, gateway reachability, gateway registration) plus thin passthroughs to the `openshell` CLI for `status`, `gateway`, `sandbox`, and `policy`; configured under `[openshell]` ([docs](docs/openshell/openshell.md))
+- **Config command (`ghostctl config`)**: exposes ghostctl's own settings file (`~/.config/ghostctl/config.toml`) with `show` (print all resolved sections), `edit` (open in `$EDITOR`), `path` (print the file location), and `reset` (regenerate defaults)
+- **CrowdSec (`ghostctl crowdsec`)**: threat-feed inspection, LAPI Prometheus metrics summary, `cscli` passthrough, and DNS resolver/DNSSEC checks; configured under `[crowdsec]` ([docs](docs/security/crowdsec.md))
+- **OBS / Wayland screencapture (`ghostctl obs`)**: detects session and compositor, installs and enables the correct `xdg-desktop-portal` backend, sets up the OBS virtual camera via `v4l2loopback` (with `--persist`), verifies NVIDIA NVENC, and tests the Wayland ScreenCast portal; configured under `[obs]` ([docs](docs/obs/wayland-screencapture.md))
+- **Package audit (`ghostctl audit`)**: cross-references installed packages against the Arch Security Tracker (with `vercmp` confirmation) via `cve`; heuristically scans AUR/foreign PKGBUILDs **and their `.install` hooks** for remote-payload patterns via `aur`/`pkgbuild`; adds `registry-install`/`registry-install-js` scan rules that flag pulling a *named* package from npm/bun/pip/cargo/go/gem during build (the `atomic-lockfile`/`js-digest` supply-chain vector); adds `ioc` to match an external compromise feed of package names against installed packages and the historical `pacman.log` (incl. `.gz`/`.xz`/`.zst`/`.bz2` rotations); plus a `summary` overview; configured under `[audit]` ([docs](docs/security/package-audit.md))
+
+### Changed
+
+- **Documentation**: added `docs/monitor/`, `docs/ai/`, `docs/obs/`, `docs/openshell/`, and grouped the new security docs under `docs/security/` (`package-audit.md`, `crowdsec.md`); updated `docs/README.md` topic index and regenerated `docs/reference/COMMANDS.md`
+- **Man page**: `man/ghostctl.1` documents the `monitor`, `ai`, `crowdsec`, `obs`, `audit`, and `openshell` commands
+- **Config surface**: `ghostctl config show` now reports Monitor, AI, CrowdSec, OBS, Audit, and OpenShell sections; `[audit]` gains `ioc_feed` (path or URL) and `pacman_log_glob` keys
+- **Packaging**: PKGBUILD, debian/changelog, and fedora spec bumped to 0.11.0 with optional dependencies for the new modules
+
+### Security
+
+- **Audit hardening (inspired by the June 2026 `atomic-lockfile`/`js-digest` AUR campaign)**: `audit aur`/`audit pkgbuild` now also scan a package's `.install` hook (which runs as root via pacman), not just the PKGBUILD
+- **Build-time registry-install detection**: new `registry-install-js` (HIGH) and `registry-install` (MED) scan rules flag pulling a *named* package from npm/bun/pnpm/yarn or pip/cargo/go/gem during build; a bare `npm install` (declared dependencies) is not flagged
+- **IOC feed matching**: new `audit ioc --feed <path|url>` cross-references an external list of suspect package names against currently-installed foreign packages and the historical `pacman.log` (including `.gz`/`.xz`/`.zst`/`.bz2` rotations), surfacing installed-then-removed packages; the feed is user-supplied so no campaign-specific data is baked into the binary
+
 ## [0.10.0] - 2026-05-15
 
 ### Added

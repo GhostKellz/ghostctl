@@ -1,4 +1,4 @@
-.TH GHOSTCTL 1 "April 2026" "ghostctl" "User Commands"
+.TH GHOSTCTL 1 "June 2026" "ghostctl" "User Commands"
 .SH NAME
 ghostctl \- Linux system, homelab, and virtualization management toolkit
 .SH SYNOPSIS
@@ -6,7 +6,7 @@ ghostctl \- Linux system, homelab, and virtualization management toolkit
 [\fIOPTIONS\fR] [\fICOMMAND\fR]
 .SH DESCRIPTION
 .B ghostctl
-is a modular command-line toolkit for Linux administration workflows including system maintenance, Docker, networking, storage, Proxmox, VFIO, UEFI, security, and development environments.
+is a modular command-line toolkit for Linux administration workflows including system maintenance, Docker, networking, storage, Proxmox, VFIO, UEFI, security, monitoring, local AI models, threat intelligence, package auditing, screencapture, and development environments.
 .SH OPTIONS
 .TP
 .B -H, --headless
@@ -57,6 +57,30 @@ List available commands.
 .TP
 .B version
 Show detailed version information.
+.TP
+.B config <show|edit|path|reset>
+Manage ghostctl's own configuration file (\fI~/.config/ghostctl/config.toml\fR): print all resolved sections (\fBshow\fR), open it in \fB$EDITOR\fR (\fBedit\fR), print its path (\fBpath\fR), or regenerate defaults (\fBreset\fR).
+.TP
+.B monitor <health|targets|alerts|logs|tail|query|reload|datasources>
+Query a Prometheus, Loki, Alertmanager, and Grafana observability stack. Aliased as \fBmon\fR.
+.TP
+.B ai <status|models|pull|rm|show|ctx-check|run|ps|tune|hermes>
+Manage a local Ollama instance and run prompts; integrates with the Hermes agent CLI. \fBrun\fR accepts per-request tuning flags (\fB--ctx\fR, \fB--temp\fR, \fB--num-predict\fR, \fB--seed\fR). \fBtune <show|recommend|apply>\fR inspects and applies the Ollama systemd override environment (server-level performance tuning); \fBapply\fR requires sudo and restarts the ollama service.
+.TP
+.B crowdsec <feed|metrics|cli|dns>
+Inspect CrowdSec threat intelligence, LAPI metrics, and DNS resolver health.
+.TP
+.B obs <doctor|portal|vcam|nvenc|screencast>
+Set up and diagnose Wayland screencapture (xdg-desktop-portal + PipeWire), the OBS virtual camera (v4l2loopback), and NVIDIA NVENC encoding.
+.TP
+.B audit <cve|aur|pkgbuild|ioc|summary>
+Audit Arch/AUR packages: cross-reference installed packages against the Arch Security Tracker, heuristically scan PKGBUILDs and .install hooks for malicious patterns, and match installed packages and pacman history against an indicator-of-compromise feed.
+.TP
+.B sign <file|verify|status|config|export-key|list-keys>
+Sign and verify files using Azure Key Vault (PE Authenticode, RPM, DEB, Arch packages, and detached OpenPGP). Experimental.
+.TP
+.B openshell <doctor|status|gateway|sandbox|policy>
+Run readiness checks for the OpenShell sandbox runtime (\fBdoctor\fR) and pass commands through to the \fBopenshell\fR CLI for managing gateways, isolated sandboxes, and policy.
 .SH COMPLETIONS
 .TP
 .B ghostctl completion bash

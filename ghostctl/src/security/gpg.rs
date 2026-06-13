@@ -114,6 +114,12 @@ pub fn gpg_key_management() {
         0 => list_gpg_keys(),
         1 => generate_gpg_key(),
         2 => export_public_key(),
+        3 => import_public_key(),
+        4 => change_passphrase(),
+        5 => delete_gpg_key(),
+        6 => show_gpg_config(),
+        7 => refresh_keys(),
+        8 => manage_trust(),
         9 => custom_gpg_generation(),
         _ => Ok(()),
     };
@@ -140,24 +146,316 @@ pub fn list_gpg_keys() -> Result<()> {
 }
 
 pub fn generate_gpg_key() -> Result<()> {
-    println!("🔑 Generate New GPG Key");
-    println!("======================");
+    println!("Generate New GPG Key");
+    println!("====================");
+
+    let name: String = Input::new()
+        .with_prompt("Real name")
+        .validate_with(|input: &String| -> Result<(), &str> {
+            if input.trim().is_empty() {
+                return Err("Name cannot be empty");
+            }
+            validate_gpg_text(input)
+        })
+        .interact_text()
+        .context("Failed to get name")?;
+
+    let email: String = Input::new()
+        .with_prompt("Email address")
+        .validate_with(|input: &String| -> Result<(), &str> {
+            if input.trim().is_empty() {
+                return Err("Email cannot be empty");
+            }
+            if !input.contains('@') {
+                return Err("Please enter a valid email address");
+            }
+            validate_gpg_text(input)
+        })
+        .interact_text()
+        .context("Failed to get email")?;
+
     let key_type = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Key type")
-        .items(&["RSA 2048", "RSA 4096"])
-        .default(1)
+        .items(&["RSA 4096 (recommended)", "RSA 2048"])
+        .default(0)
         .interact()
         .context("Failed to get key type selection")?;
-    match key_type {
-        0 => println!("Generating RSA 2048 key..."),
-        1 => println!("Generating RSA 4096 key..."),
-        _ => return Ok(()),
+
+    let algo = if key_type == 1 { "rsa2048" } else { "rsa4096" };
+    let uid = format!("{} <{}>", name.trim(), email.trim());
+
+    println!("Generating {} key for {}...", algo, uid);
+    let status = Command::new("gpg")
+        .args(["--batch", "--quick-gen-key", &uid, algo, "sign,cert", "1y"])
+        .status()
+        .context("Failed to execute gpg")?;
+
+    if status.success() {
+        println!("GPG key generated for {}", uid);
+    } else {
+        return Err(GpgError::CommandError("GPG key generation failed".to_string()).into());
     }
-    println!("✅ GPG key generation completed!");
-    println!("💡 Don't forget to:");
-    println!("   📤 Export and backup your key");
-    println!("   🌐 Upload to a keyserver if needed");
-    println!("   🔑 Set up key signing");
+
+    Ok(())
+}
+
+pub fn import_public_key() -> Result<()> {
+    println!("Import Public Key");
+    println!("=================");
+
+    let path: String = Input::new()
+        .with_prompt("Path to key file")
+        .validate_with(|input: &String| -> Result<(), &str> {
+            let p = std::path::Path::new(input.trim());
+            if !p.exists() {
+                return Err("File not found");
+            }
+            validate_gpg_text(input)
+        })
+        .interact_text()
+        .context("Failed to get file path")?;
+
+    let status = Command::new("gpg")
+        .args(["--import", path.trim()])
+        .status()
+        .context("Failed to execute gpg --import")?;
+
+    if status.success() {
+        println!("Key imported from {}", path.trim());
+    } else {
+        return Err(GpgError::CommandError("Import failed".to_string()).into());
+    }
+
+    Ok(())
+}
+
+pub fn change_passphrase() -> Result<()> {
+    println!("Change Key Passphrase");
+    println!("=====================");
+
+    println!("Secret keys:");
+    let _ = Command::new("gpg")
+        .args(["--list-secret-keys", "--keyid-format", "SHORT"])
+        .status();
+
+    let key_id: String = Input::new()
+        .with_prompt("Key ID to change passphrase")
+        .validate_with(|input: &String| -> Result<(), &str> { validate_key_id(input) })
+        .interact_text()
+        .context("Failed to get key ID")?;
+
+    let status = Command::new("gpg")
+        .args(["--passwd", key_id.trim()])
+        .status()
+        .context("Failed to execute gpg --passwd")?;
+
+    if status.success() {
+        println!("Passphrase changed for key {}", key_id.trim());
+    } else {
+        return Err(GpgError::CommandError("Passphrase change failed".to_string()).into());
+    }
+
+    Ok(())
+}
+
+pub fn delete_gpg_key() -> Result<()> {
+    println!("Delete GPG Key");
+    println!("==============");
+
+    println!("Available keys:");
+    let _ = Command::new("gpg")
+        .args(["--list-keys", "--keyid-format", "SHORT"])
+        .status();
+
+    let key_id: String = Input::new()
+        .with_prompt("Key ID to delete")
+        .validate_with(|input: &String| -> Result<(), &str> { validate_key_id(input) })
+        .interact_text()
+        .context("Failed to get key ID")?;
+
+    let confirm = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt(format!("Delete key {} (secret + public)?", key_id.trim()))
+        .items(&["No, cancel", "Yes, delete"])
+        .default(0)
+        .interact()
+        .context("Failed to get confirmation")?;
+
+    if confirm != 1 {
+        println!("Cancelled");
+        return Ok(());
+    }
+
+    // Delete secret key first, then public
+    let status = Command::new("gpg")
+        .args([
+            "--batch",
+            "--yes",
+            "--delete-secret-and-public-key",
+            key_id.trim(),
+        ])
+        .status()
+        .context("Failed to execute gpg --delete-secret-and-public-key")?;
+
+    if status.success() {
+        println!("Key {} deleted", key_id.trim());
+    } else {
+        return Err(GpgError::CommandError("Key deletion failed".to_string()).into());
+    }
+
+    Ok(())
+}
+
+pub fn show_gpg_config() -> Result<()> {
+    println!("GPG Configuration");
+    println!("=================");
+
+    let gpg_home = dirs::home_dir()
+        .map(|h| h.join(".gnupg"))
+        .unwrap_or_else(|| std::path::PathBuf::from("~/.gnupg"));
+
+    let conf_path = gpg_home.join("gpg.conf");
+    println!("Config file: {}", conf_path.display());
+    println!();
+
+    if conf_path.exists() {
+        let content = fs::read_to_string(&conf_path).context("Failed to read gpg.conf")?;
+        if content.trim().is_empty() {
+            println!("(empty)");
+        } else {
+            println!("{}", content);
+        }
+    } else {
+        println!("No gpg.conf found");
+    }
+
+    println!();
+    println!("GnuPG home: {}", gpg_home.display());
+    let _ = Command::new("gpg").args(["--version"]).status();
+
+    Ok(())
+}
+
+pub fn refresh_keys() -> Result<()> {
+    println!("Refresh Keys from Keyserver");
+    println!("===========================");
+
+    let keyserver: String = Input::new()
+        .with_prompt("Keyserver URL (press Enter for default)")
+        .default("hkps://keys.openpgp.org".to_string())
+        .validate_with(|input: &String| -> Result<(), &str> { validate_gpg_text(input) })
+        .interact_text()
+        .context("Failed to get keyserver")?;
+
+    println!("Refreshing keys from {}...", keyserver.trim());
+    let status = Command::new("gpg")
+        .args(["--keyserver", keyserver.trim(), "--refresh-keys"])
+        .status()
+        .context("Failed to execute gpg --refresh-keys")?;
+
+    if status.success() {
+        println!("Keys refreshed");
+    } else {
+        return Err(GpgError::CommandError(
+            "Key refresh failed (check network and keyserver)".to_string(),
+        )
+        .into());
+    }
+
+    Ok(())
+}
+
+pub fn manage_trust() -> Result<()> {
+    println!("Key Trust Management");
+    println!("====================");
+
+    println!("Available keys:");
+    let _ = Command::new("gpg")
+        .args(["--list-keys", "--keyid-format", "SHORT"])
+        .status();
+
+    let key_id: String = Input::new()
+        .with_prompt("Key ID to manage trust")
+        .validate_with(|input: &String| -> Result<(), &str> { validate_key_id(input) })
+        .interact_text()
+        .context("Failed to get key ID")?;
+
+    println!("Launching GPG trust editor for {}...", key_id.trim());
+    println!("(Type 'trust' at the gpg> prompt, select level, then 'quit')");
+    let status = Command::new("gpg")
+        .args(["--edit-key", key_id.trim(), "trust"])
+        .status()
+        .context("Failed to execute gpg --edit-key")?;
+
+    if !status.success() {
+        return Err(GpgError::CommandError("Trust management failed".to_string()).into());
+    }
+
+    Ok(())
+}
+
+/// Key info for non-interactive display
+pub fn key_info(key_id: &str) -> Result<()> {
+    validate_key_id(key_id).map_err(|e| GpgError::ValidationError(e.to_string()))?;
+
+    let output = Command::new("gpg")
+        .args(["--with-colons", "--fixed-list-mode", "--list-keys", key_id])
+        .output()
+        .context("Failed to execute gpg")?;
+
+    if !output.status.success() {
+        return Err(GpgError::KeyError(format!("Key '{}' not found", key_id)).into());
+    }
+
+    // Also show human-readable output
+    let _ = Command::new("gpg")
+        .args(["--list-keys", "--keyid-format", "long", key_id])
+        .status();
+
+    Ok(())
+}
+
+/// Extend key expiration non-interactively
+pub fn renew_key(key_id: &str, duration: &str) -> Result<()> {
+    validate_key_id(key_id).map_err(|e| GpgError::ValidationError(e.to_string()))?;
+
+    // Validate duration format
+    let valid_durations = ["1y", "2y", "3y", "5y", "10y"];
+    if !valid_durations.contains(&duration) {
+        anyhow::bail!(
+            "Invalid duration '{}'. Use one of: {}",
+            duration,
+            valid_durations.join(", ")
+        );
+    }
+
+    println!("Extending expiration of key {} by {}...", key_id, duration);
+    let status = Command::new("gpg")
+        .args(["--batch", "--quick-set-expire", key_id, duration])
+        .status()
+        .context("Failed to execute gpg --quick-set-expire")?;
+
+    if status.success() {
+        println!("Key {} expiration extended by {}", key_id, duration);
+    } else {
+        return Err(GpgError::CommandError("Failed to renew key expiration".to_string()).into());
+    }
+
+    Ok(())
+}
+
+/// Export a public key by ID (non-interactive, for CLI subcommand)
+pub fn export_public_key_by_id(key_id: &str) -> Result<()> {
+    validate_key_id(key_id).map_err(|e| GpgError::ValidationError(e.to_string()))?;
+
+    let status = Command::new("gpg")
+        .args(["--armor", "--export", key_id])
+        .status()
+        .context("Failed to execute gpg --export")?;
+
+    if !status.success() {
+        return Err(GpgError::KeyError(format!("Failed to export key '{}'", key_id)).into());
+    }
+
     Ok(())
 }
 
