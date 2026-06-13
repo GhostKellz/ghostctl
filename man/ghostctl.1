@@ -73,14 +73,20 @@ Inspect CrowdSec threat intelligence, LAPI metrics, and DNS resolver health.
 .B obs <doctor|portal|vcam|nvenc|screencast>
 Set up and diagnose Wayland screencapture (xdg-desktop-portal + PipeWire), the OBS virtual camera (v4l2loopback), and NVIDIA NVENC encoding.
 .TP
-.B audit <cve|aur|pkgbuild|ioc|summary>
-Audit Arch/AUR packages: cross-reference installed packages against the Arch Security Tracker, heuristically scan PKGBUILDs and .install hooks for malicious patterns, and match installed packages and pacman history against an indicator-of-compromise feed.
+.B audit <cve|aur|pkgbuild|ioc|cargo|node|deps|ci|summary>
+Audit Arch/AUR packages: cross-reference installed packages against the Arch Security Tracker, heuristically scan PKGBUILDs and .install hooks for malicious patterns, and match installed packages and pacman history against an indicator-of-compromise feed. The \fBcargo\fR, \fBnode\fR, and \fBdeps\fR subcommands scan project lockfiles (Cargo.lock; bun/pnpm/yarn/npm) against the OSV.dev vulnerability database; \fBci\fR audits GitHub Actions and GitLab CI workflow files for deprecated/outdated constructs. All accept an optional path and \fB--json\fR (exit non-zero on High/Critical).
 .TP
 .B sign <file|verify|status|config|export-key|list-keys>
 Sign and verify files using Azure Key Vault (PE Authenticode, RPM, DEB, Arch packages, and detached OpenPGP). Experimental.
 .TP
 .B openshell <doctor|status|gateway|sandbox|policy>
 Run readiness checks for the OpenShell sandbox runtime (\fBdoctor\fR) and pass commands through to the \fBopenshell\fR CLI for managing gateways, isolated sandboxes, and policy.
+.TP
+.B dev <rust|zig|go|python|js>
+Manage development environments. \fBdev js doctor [PATH]\fR reports installed JavaScript runtimes (Node, Bun, Deno) and package managers (npm, pnpm, yarn, bun) with versions, and detects a project's package manager from its lockfile.
+.TP
+.B gitlab <status|ci-lint|pipelines|pipeline|trace|runners|mrs|projects|run|retry|cancel>
+Client for self-hosted GitLab and gitlab.com. Read-only: verify connectivity and authentication (\fBstatus\fR), validate a CI file via the CI Lint API (\fBci-lint [FILE]\fR), list recent pipelines (\fBpipelines\fR), show one pipeline and its jobs (\fBpipeline <ID>\fR), print a job log (\fBtrace <JOB>\fR), list CI runners (\fBrunners\fR), open merge requests (\fBmrs\fR, alias \fBmr\fR), and member projects (\fBprojects\fR). Write actions honor \fB--dry-run\fR/\fB--yes\fR: trigger a pipeline (\fBrun [REF]\fR), retry (\fBretry <ID>\fR), or cancel (\fBcancel <ID>\fR) one. Most subcommands need \fB[gitlab].project\fR set. The token resolves from \fBGITLAB_TOKEN\fR, then \fBGHOSTCTL_GITLAB_TOKEN\fR, then \fB[gitlab].token\fR; configured under \fB[gitlab]\fR.
 .SH COMPLETIONS
 .TP
 .B ghostctl completion bash

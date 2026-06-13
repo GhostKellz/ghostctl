@@ -1,5 +1,5 @@
 Name:           ghostctl
-Version:        0.11.0
+Version:        0.12.0
 Release:        1%{?dist}
 Summary:        Universal system administration toolkit
 
@@ -87,6 +87,13 @@ cargo test --release --locked
 %endif
 
 %changelog
+* Sat Jun 13 2026 Christopher Kelley <ckelley@ghostctl.sh> - 0.12.0-1
+- Added audit cargo/node/deps for dependency vulnerability scanning via OSV.dev
+- Added audit ci for GitHub Actions and GitLab CI deprecation auditing
+- Added dev js doctor for Node/Bun/Deno toolchain readiness checks
+- Added gitlab command for self-hosted GitLab status, CI lint, and pipelines
+- Documentation, man page, and command reference updated
+
 * Fri Jun 12 2026 Christopher Kelley <ckelley@ghostctl.sh> - 0.11.0-1
 - Added monitor command for Prometheus/Loki/Alertmanager/Grafana stacks
 - Added ai command for local Ollama models and the Hermes agent

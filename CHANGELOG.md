@@ -2,6 +2,22 @@
 
 All notable changes to GhostCTL will be documented in this file.
 
+## [0.12.0] - 2026-06-13
+
+### Added
+
+- **Dependency audit (`ghostctl audit cargo|node|deps`)**: scans locked dependencies against the [OSV.dev](https://osv.dev) vulnerability database. Lockfiles are parsed natively (no package-manager binary invoked): `Cargo.lock` (crates.io), and `package-lock.json` / `yarn.lock` / `pnpm-lock.yaml` / `bun.lock` (npm). `audit cargo` and `audit node` target a single ecosystem; `audit deps` auto-detects both. Findings report severity (from CVSS where available), the fixed version, and the advisory URL; `--json` emits machine-readable output and exits non-zero on High/Critical. No new dependencies were added — `cargo audit` stays clean ([docs](docs/security/dependency-audit.md))
+- **CI/CD workflow audit (`ghostctl audit ci`)**: offline auditor for GitHub Actions (`.github/workflows/*.yml`) and GitLab CI (`.gitlab-ci.yml`). Flags outdated/end-of-life action major versions against a curated policy table, unpinned `@main`/`@master` action refs, deprecated runner commands (`::set-output`, `::save-state`, `::set-env`, `::add-path`), and GitLab `only`/`except`/`type` deprecations plus unpinned container images; `--json` supported ([docs](docs/security/ci-workflow-audit.md))
+- **JavaScript toolchain doctor (`ghostctl dev js doctor`)**: reports installed JS runtimes (Node, Bun, Deno) and package managers (npm, pnpm, yarn, bun) with versions, and detects the project's package manager from its lockfile, pointing at `audit node` for follow-up ([docs](docs/development/javascript.md))
+- **GitLab (`ghostctl gitlab`)**: client for self-hosted GitLab and gitlab.com. Read-only checks: `status` (connectivity + auth), `ci-lint` (validate a CI file via the CI Lint API), `pipelines` (recent pipeline status), `pipeline <id>` (one pipeline + its jobs grouped by stage), `trace <job>` (print a job's log), `runners` (CI runners, project-scoped when configured), `mrs`/`mr` (open merge requests), and `projects` (member projects, for discovering the `[gitlab].project` value). Pipeline write actions — `run [ref]` (trigger, defaulting to the project's default branch), `retry <id>`, and `cancel <id>` — honor the global `--dry-run` (print intent, no request) and `--yes` flags and otherwise prompt before acting. The access token resolves from `GITLAB_TOKEN`, then `GHOSTCTL_GITLAB_TOKEN`, then `[gitlab].token`; read-only calls work with `read_api`, writes need the `api` scope; configured under `[gitlab]` ([docs](docs/gitlab/gitlab.md))
+
+### Changed
+
+- **Documentation**: added `docs/security/dependency-audit.md`, `docs/security/ci-workflow-audit.md`, `docs/development/javascript.md`, and `docs/gitlab/`; updated `docs/README.md` topic index and regenerated `docs/reference/COMMANDS.md`
+- **Man page**: `man/ghostctl.1` documents the new `audit cargo|node|deps|ci`, `dev js`, and `gitlab` commands
+- **Config surface**: `GhostConfig` gains an optional `[gitlab]` section (`url`, `token`, `project`, `timeout_secs`)
+- **Packaging**: PKGBUILD, debian/changelog, and fedora spec bumped to 0.12.0
+
 ## [0.11.0] - 2026-06-12
 
 ### Added

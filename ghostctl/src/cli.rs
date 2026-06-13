@@ -1,9 +1,9 @@
 use crate::terminal::terminal_menu;
 use crate::utils::{set_dry_run_mode, set_headless_mode, set_plain_mode};
 use crate::{
-    ai, arch, audit, backup, bluetooth, btrfs, cloud, crowdsec, iommu, monitor, network, nvidia,
-    obs, openshell, proxmox, restore, security, shell, sign, sysctl, systemd, tools, uefi, vfio,
-    wifi,
+    ai, arch, audit, backup, bluetooth, btrfs, cloud, crowdsec, gitlab, iommu, monitor, network,
+    nvidia, obs, openshell, proxmox, restore, security, shell, sign, sysctl, systemd, tools, uefi,
+    vfio, wifi,
 };
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use clap_complete::{Shell, generate};
@@ -75,7 +75,20 @@ pub fn build_cli() -> Command {
                 .subcommand(Command::new("rust").about("Manage Rust toolchain"))
                 .subcommand(Command::new("zig").about("Manage Zig toolchain"))
                 .subcommand(Command::new("go").about("Manage Go toolchain"))
-                .subcommand(Command::new("python").about("Manage Python toolchain")),
+                .subcommand(Command::new("python").about("Manage Python toolchain"))
+                .subcommand(
+                    Command::new("js")
+                        .about("JavaScript/TypeScript toolchain (Node, Bun, Deno)")
+                        .subcommand(
+                            Command::new("doctor")
+                                .about("Check JS runtimes, package managers, and project lockfile")
+                                .arg(
+                                    Arg::new("path")
+                                        .help("Project directory to inspect (default: .)")
+                                        .default_value("."),
+                                ),
+                        ),
+                ),
         )
         .subcommand(
             Command::new("pve")
@@ -924,6 +937,7 @@ pub fn build_cli() -> Command {
         .subcommand(crowdsec::command())
         .subcommand(obs::command())
         .subcommand(openshell::command())
+        .subcommand(gitlab::command())
         .subcommand(audit::command())
 }
 
@@ -1040,6 +1054,12 @@ pub fn handle_cli_args(matches: &ArgMatches) {
         }
         Some(("openshell", matches)) => {
             if let Err(e) = openshell::handle(matches) {
+                eprintln!("Error: {e:#}");
+                std::process::exit(1);
+            }
+        }
+        Some(("gitlab", matches)) => {
+            if let Err(e) = gitlab::handle(matches) {
                 eprintln!("Error: {e:#}");
                 std::process::exit(1);
             }
@@ -1244,8 +1264,22 @@ fn handle_dev_commands(matches: &ArgMatches) {
         Some(("zig", _)) => crate::dev::zig::zig_development_menu(),
         Some(("go", _)) => crate::dev::go::go_development_menu(),
         Some(("python", _)) => crate::dev::python::python_development_menu(),
+        Some(("js", m)) => handle_dev_js_commands(m),
         None => crate::dev::development_menu(),
         _ => unreachable!(),
+    }
+}
+
+fn handle_dev_js_commands(matches: &ArgMatches) {
+    match matches.subcommand() {
+        Some(("doctor", m)) => {
+            let path = m.get_one::<String>("path").map_or(".", String::as_str);
+            if let Err(e) = crate::dev::js::doctor(std::path::Path::new(path)) {
+                eprintln!("Error: {e:#}");
+                std::process::exit(1);
+            }
+        }
+        _ => println!("Use `ghostctl dev js --help` to see available subcommands."),
     }
 }
 

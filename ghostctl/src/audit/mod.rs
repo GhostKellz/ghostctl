@@ -11,13 +11,18 @@
 //!     suspect package names against what is installed now and against the
 //!     historical pacman log (catching installed-then-removed packages).
 
+pub mod ci;
 pub mod config;
+pub mod deps;
 pub mod ioc;
+pub mod lockfile;
+pub mod osv;
 pub mod scan;
 pub mod tracker;
+pub mod vuln;
 
 use anyhow::{Context, Result, bail};
-use clap::{Arg, ArgMatches, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use config::AuditConfig;
 use reqwest::blocking::Client;
 use scan::{Finding, Severity};
@@ -56,7 +61,40 @@ pub fn command() -> Command {
                         .help("Package-name feed to use (overrides the [audit] ioc_feed setting)"),
                 ),
         )
+        .subcommand(deps_subcommand(
+            "cargo",
+            "Audit a Rust project's Cargo.lock against OSV (RustSec) advisories",
+        ))
+        .subcommand(deps_subcommand(
+            "node",
+            "Audit a Node project's lockfile (bun/pnpm/yarn/npm) against OSV advisories",
+        ))
+        .subcommand(deps_subcommand(
+            "deps",
+            "Auto-detect project lockfiles (cargo + node) and audit them together",
+        ))
+        .subcommand(deps_subcommand(
+            "ci",
+            "Audit CI/CD workflows (GitHub Actions, GitLab CI) for deprecated/outdated constructs",
+        ))
         .subcommand(Command::new("summary").about("Quick package-security overview"))
+}
+
+/// Build a dependency-audit subcommand with the shared `[path]` + `--json` args.
+fn deps_subcommand(name: &'static str, about: &'static str) -> Command {
+    Command::new(name)
+        .about(about)
+        .arg(
+            Arg::new("path")
+                .help("Project directory to audit (default: current directory)")
+                .default_value("."),
+        )
+        .arg(
+            Arg::new("json")
+                .long("json")
+                .action(ArgAction::SetTrue)
+                .help("Emit findings as JSON (exits non-zero on High/Critical)"),
+        )
 }
 
 pub fn handle(matches: &ArgMatches) -> Result<()> {
@@ -69,12 +107,23 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
             pkgbuild(&cfg, target)
         }
         Some(("ioc", m)) => ioc_check(&cfg, m.get_one::<String>("feed").map(String::as_str)),
+        Some(("cargo", m)) => deps::audit_cargo(&cfg, &deps_path(m), m.get_flag("json")),
+        Some(("node", m)) => deps::audit_node(&cfg, &deps_path(m), m.get_flag("json")),
+        Some(("deps", m)) => deps::audit_deps(&cfg, &deps_path(m), m.get_flag("json")),
+        Some(("ci", m)) => ci::audit_ci(&deps_path(m), m.get_flag("json")),
         Some(("summary", _)) => summary(&cfg),
         _ => {
             println!("Use `ghostctl audit --help` to see available subcommands.");
             Ok(())
         }
     }
+}
+
+/// Resolve the `[path]` argument of a dependency-audit subcommand.
+fn deps_path(m: &ArgMatches) -> PathBuf {
+    m.get_one::<String>("path")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."))
 }
 
 // ---- cve ----

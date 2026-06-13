@@ -32,6 +32,9 @@ pub struct GhostConfig {
 
     #[serde(default)]
     pub openshell: Option<crate::openshell::config::OpenshellConfig>,
+
+    #[serde(default)]
+    pub gitlab: Option<crate::gitlab::config::GitlabConfig>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -213,6 +216,7 @@ impl Default for GhostConfig {
             obs: None,         // Use OBS defaults when not specified
             audit: None,       // Use audit defaults when not specified
             openshell: None,   // Use OpenShell defaults when not specified
+            gitlab: None,      // Use GitLab defaults when not specified
         }
     }
 }

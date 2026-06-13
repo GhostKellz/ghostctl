@@ -40,6 +40,7 @@ Manage development tools and environments
 - `dev zig` -- Manage Zig toolchain
 - `dev go` -- Manage Go toolchain
 - `dev python` -- Manage Python toolchain
+- `dev js` -- JavaScript/TypeScript toolchain (Node, Bun, Deno)
 
 #### `dev menu`
 
@@ -60,6 +61,22 @@ Manage Go toolchain
 #### `dev python`
 
 Manage Python toolchain
+
+#### `dev js`
+
+JavaScript/TypeScript toolchain (Node, Bun, Deno)
+
+**Subcommands:**
+
+- `dev js doctor` -- Check JS runtimes, package managers, and project lockfile
+
+##### `dev js doctor`
+
+Check JS runtimes, package managers, and project lockfile
+
+**Options:**
+
+- `<path>` -- Project directory to inspect (default: .)
 
 ### `pve`
 
@@ -1989,6 +2006,92 @@ Manage sandbox policy (passthrough to `openshell policy`)
 
 - `<args>` -- Arguments forwarded to the `openshell` CLI
 
+### `gitlab`
+
+Self-hosted GitLab: connectivity, CI lint, pipelines, MRs, and runners
+
+**Subcommands:**
+
+- `gitlab status` -- Verify connectivity and authentication to the configured instance
+- `gitlab ci-lint` -- Validate a GitLab CI file via the CI Lint API
+- `gitlab pipelines` -- List recent pipelines for the configured project
+- `gitlab pipeline` -- Show one pipeline and its jobs, grouped by stage
+- `gitlab trace` -- Print a job's log (useful for debugging a failed CI job)
+- `gitlab runners` -- List CI runners available to the project (online/status)
+- `gitlab mrs` -- List open merge requests for the project
+- `gitlab projects` -- List projects you are a member of (with their ids and paths)
+- `gitlab run` -- Trigger a new pipeline (write; honors --dry-run/--yes)
+- `gitlab retry` -- Retry a pipeline (write; honors --dry-run/--yes)
+- `gitlab cancel` -- Cancel a pipeline (write; honors --dry-run/--yes)
+
+#### `gitlab status`
+
+Verify connectivity and authentication to the configured instance
+
+#### `gitlab ci-lint`
+
+Validate a GitLab CI file via the CI Lint API
+
+**Options:**
+
+- `<file>` -- CI file to validate (default: .gitlab-ci.yml)
+
+#### `gitlab pipelines`
+
+List recent pipelines for the configured project
+
+#### `gitlab pipeline`
+
+Show one pipeline and its jobs, grouped by stage
+
+**Options:**
+
+- `<id>` -- Pipeline id (see `gitlab pipelines`)
+
+#### `gitlab trace`
+
+Print a job's log (useful for debugging a failed CI job)
+
+**Options:**
+
+- `<job>` -- Job id
+
+#### `gitlab runners`
+
+List CI runners available to the project (online/status)
+
+#### `gitlab mrs`
+
+List open merge requests for the project
+
+#### `gitlab projects`
+
+List projects you are a member of (with their ids and paths)
+
+#### `gitlab run`
+
+Trigger a new pipeline (write; honors --dry-run/--yes)
+
+**Options:**
+
+- `<ref>` -- Branch or tag to run (default: the project's default branch)
+
+#### `gitlab retry`
+
+Retry a pipeline (write; honors --dry-run/--yes)
+
+**Options:**
+
+- `<id>` -- Pipeline id
+
+#### `gitlab cancel`
+
+Cancel a pipeline (write; honors --dry-run/--yes)
+
+**Options:**
+
+- `<id>` -- Pipeline id
+
 ### `audit`
 
 Audit Arch/AUR packages for CVEs and malicious PKGBUILDs
@@ -1999,6 +2102,10 @@ Audit Arch/AUR packages for CVEs and malicious PKGBUILDs
 - `audit aur` -- Scan installed AUR/foreign package PKGBUILDs for red flags
 - `audit pkgbuild` -- Scan a single PKGBUILD (local path or AUR package name)
 - `audit ioc` -- Check installed packages and pacman history against an IOC package feed
+- `audit cargo` -- Audit a Rust project's Cargo.lock against OSV (RustSec) advisories
+- `audit node` -- Audit a Node project's lockfile (bun/pnpm/yarn/npm) against OSV advisories
+- `audit deps` -- Auto-detect project lockfiles (cargo + node) and audit them together
+- `audit ci` -- Audit CI/CD workflows (GitHub Actions, GitLab CI) for deprecated/outdated constructs
 - `audit summary` -- Quick package-security overview
 
 #### `audit cve`
@@ -2024,6 +2131,42 @@ Check installed packages and pacman history against an IOC package feed
 **Options:**
 
 - `--feed` -- Package-name feed to use (overrides the [audit] ioc_feed setting)
+
+#### `audit cargo`
+
+Audit a Rust project's Cargo.lock against OSV (RustSec) advisories
+
+**Options:**
+
+- `<path>` -- Project directory to audit (default: current directory)
+- `--json` -- Emit findings as JSON (exits non-zero on High/Critical)
+
+#### `audit node`
+
+Audit a Node project's lockfile (bun/pnpm/yarn/npm) against OSV advisories
+
+**Options:**
+
+- `<path>` -- Project directory to audit (default: current directory)
+- `--json` -- Emit findings as JSON (exits non-zero on High/Critical)
+
+#### `audit deps`
+
+Auto-detect project lockfiles (cargo + node) and audit them together
+
+**Options:**
+
+- `<path>` -- Project directory to audit (default: current directory)
+- `--json` -- Emit findings as JSON (exits non-zero on High/Critical)
+
+#### `audit ci`
+
+Audit CI/CD workflows (GitHub Actions, GitLab CI) for deprecated/outdated constructs
+
+**Options:**
+
+- `<path>` -- Project directory to audit (default: current directory)
+- `--json` -- Emit findings as JSON (exits non-zero on High/Critical)
 
 #### `audit summary`
 

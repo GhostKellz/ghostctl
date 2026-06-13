@@ -24,6 +24,7 @@ mod crowdsec;
 mod dev;
 mod docker;
 mod gaming;
+mod gitlab;
 mod http_client;
 mod iommu;
 mod logging;

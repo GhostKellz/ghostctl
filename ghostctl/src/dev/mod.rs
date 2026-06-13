@@ -1,5 +1,6 @@
 pub mod go;
 pub mod gtools;
+pub mod js;
 pub mod python;
 pub mod rust;
 pub mod zig;

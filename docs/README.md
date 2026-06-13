@@ -22,6 +22,8 @@
 - [Networking](networking/README.md) - Firewalls, DNS, scanning
 - [Security](security/README.md) - SSH, GPG, credentials
 - [Package Audit](security/package-audit.md) - CVE checks and AUR PKGBUILD scanning
+- [Dependency Audit](security/dependency-audit.md) - Cargo/Node lockfile scanning via OSV.dev
+- [CI/CD Workflow Audit](security/ci-workflow-audit.md) - GitHub Actions / GitLab CI deprecations
 - [CrowdSec](security/crowdsec.md) - Threat feed, LAPI metrics, DNS checks
 - [Support](support/README.md) - Diagnostics, logs, issue bundles
 - [UEFI](uefi/README.md) - Secure Boot, key enrollment
@@ -35,6 +37,8 @@
 
 ### Development
 - [Development](development/README.md) - Rust, Zig, Go, Python environments
+- [JavaScript](development/javascript.md) - Node/Bun/Deno toolchain doctor
+- [GitLab](gitlab/gitlab.md) - Self-hosted GitLab status, CI lint, pipelines
 - [Gaming](gaming/README.md) - Proton, graphics optimization
 
 ### Desktop & Media
