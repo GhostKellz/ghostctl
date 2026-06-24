@@ -73,7 +73,7 @@ pub fn setup_starship() {
                 // Calculate hash for verification
                 let mut hasher = Sha256::new();
                 hasher.update(content.as_bytes());
-                let hash = format!("{:x}", hasher.finalize());
+                let hash = crate::utils::bytes_to_hex(hasher.finalize());
                 println!("Script SHA256: {}", hash);
 
                 // Show preview

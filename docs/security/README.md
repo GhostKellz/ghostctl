@@ -3,12 +3,33 @@
 GhostCTL provides tools for SSH, GPG, credential management, code signing,
 package auditing, and threat intelligence.
 
+## Security Command Surface
+
+```mermaid
+flowchart TD
+    security["ghostctl security"] --> ssh["SSH\nkeys, config, copy-id"]
+    security --> gpg["GPG\nkeys, export, renew"]
+    security --> sign["Code signing\nPE, RPM, DEB, Pacman"]
+    security --> audit["Audit\npackages, lockfiles, CI"]
+    security --> crowdsec["CrowdSec\nfeed, metrics, DNS"]
+
+    audit --> packages["installed packages\nArch Security Tracker"]
+    audit --> aur["AUR and PKGBUILD\nscript heuristics"]
+    audit --> deps["Cargo/Node lockfiles\nOSV.dev"]
+    audit --> ci["GitHub Actions / GitLab CI\noffline workflow scan"]
+
+    sign --> keyvault["Azure Key Vault"]
+    crowdsec --> lapi["CrowdSec LAPI"]
+```
+
 ## Documentation
 
 - [SSH](ssh.md) - SSH key generation and management
 - [GPG](gpg.md) - GPG key management and operations
 - [Code Signing](../signing/README.md) - Azure Key Vault-backed code signing
 - [Package Audit](package-audit.md) - CVE checks and AUR PKGBUILD scanning
+- [Dependency Audit](dependency-audit.md) - Cargo/Node lockfile scanning via OSV.dev
+- [CI/CD Workflow Audit](ci-workflow-audit.md) - GitHub Actions and GitLab CI scanning
 - [CrowdSec](crowdsec.md) - Threat feed, LAPI metrics, DNS checks
 
 ## Quick Commands

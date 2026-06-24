@@ -754,7 +754,7 @@ fn secure_script_install(url: &str, tool_name: &str) -> Result<(), String> {
     // Calculate SHA256 hash
     let mut hasher = Sha256::new();
     hasher.update(content.as_bytes());
-    let hash = format!("{:x}", hasher.finalize());
+    let hash = crate::utils::bytes_to_hex(hasher.finalize());
 
     println!("\n📝 Script SHA256: {}", hash);
     println!("\n📄 Script preview (first 500 chars):");

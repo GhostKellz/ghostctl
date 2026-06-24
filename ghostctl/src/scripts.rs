@@ -414,7 +414,7 @@ fn sha256_hash(content: &str) -> String {
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(content.as_bytes());
-    format!("{:x}", hasher.finalize())
+    crate::utils::bytes_to_hex(hasher.finalize())
 }
 
 pub fn list_script_categories() {

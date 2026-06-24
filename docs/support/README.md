@@ -24,6 +24,30 @@ If the system does not expose an XDG state directory, GhostCTL falls back to a l
 
 ## Bundle Contents
 
+```mermaid
+flowchart TD
+    command["ghostctl support bundle"] --> collect["collect diagnostics"]
+    collect --> version["GhostCTL version\nand timestamp"]
+    collect --> paths["state/support/log paths"]
+    collect --> os["OS and kernel facts"]
+    collect --> tools["external tool availability"]
+    collect --> logs["recent GhostCTL activity"]
+
+    version --> redact{"--redact-paths?"}
+    paths --> redact
+    os --> redact
+    tools --> redact
+    logs --> redact
+
+    redact -->|yes| scrub["mask home path, username,\nhostname, IP, MAC, PCI IDs"]
+    redact -->|no| format["format bundle"]
+    scrub --> format
+
+    format --> plain[".txt + .json sidecar"]
+    format --> gzip[".txt.gz + .json sidecar"]
+    format --> tarball[".tar.gz containing\ntext + JSON metadata"]
+```
+
 Current bundles include:
 
 - GhostCTL version and creation timestamp

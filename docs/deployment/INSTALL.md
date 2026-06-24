@@ -8,7 +8,7 @@ curl -sSL https://ghostctl.cktech.sh | bash
 
 ## Installation Options
 
-### 🔧 Installation Methods
+### Installation Methods
 
 The installer automatically detects your distribution and tries methods in this order:
 
@@ -16,7 +16,26 @@ The installer automatically detects your distribution and tries methods in this 
 2. **Binary Download** - Downloads pre-built binaries from GitHub releases
 3. **Source Build** - Compiles from source as fallback
 
-### 📦 Distribution-Specific Installation
+```mermaid
+flowchart TD
+    start["Run installer"] --> detect["detect distro, arch,\nand requested version"]
+    detect --> method{"forced method?"}
+    method -->|package| package["package manager path"]
+    method -->|binary| binary["download release archive"]
+    method -->|source| source["cargo build --release"]
+    method -->|none| preferred["try preferred distro path"]
+
+    preferred --> package
+    package --> package_ok{"package install succeeded?"}
+    package_ok -->|yes| verify["ghostctl version"]
+    package_ok -->|no| binary
+    binary --> binary_ok{"binary install succeeded?"}
+    binary_ok -->|yes| verify
+    binary_ok -->|no| source
+    source --> verify
+```
+
+### Distribution-Specific Installation
 
 #### Arch Linux
 ```bash
@@ -159,6 +178,23 @@ Build commands:
 ./packaging/build-packages.sh debian   # Build .deb package
 ./packaging/build-packages.sh fedora   # Build .rpm package
 ./packaging/build-packages.sh deps     # Install build dependencies
+```
+
+## Package Release Flow
+
+```mermaid
+flowchart LR
+    cargo["ghostctl/Cargo.toml\nversion"] --> lock["Cargo.lock"]
+    cargo --> arch["packaging/arch/PKGBUILD"]
+    cargo --> deb["packaging/debian/changelog"]
+    cargo --> rpm["packaging/fedora/ghostctl.spec"]
+    cargo --> changelog["CHANGELOG.md"]
+
+    arch --> build["packaging/build-packages.sh"]
+    deb --> build
+    rpm --> build
+    lock --> build
+    build --> artifacts["Arch package\nDeb package\nRPM package"]
 ```
 
 ## Supported Platforms

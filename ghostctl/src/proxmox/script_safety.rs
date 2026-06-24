@@ -174,7 +174,7 @@ impl SafeScriptExecutor {
     pub fn compute_sha256(content: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(content.as_bytes());
-        format!("{:x}", hasher.finalize())
+        crate::utils::bytes_to_hex(hasher.finalize())
     }
 
     /// Verify a script and return verification details

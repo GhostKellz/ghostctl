@@ -21,6 +21,29 @@ directory). The command errors if neither `.github/workflows/*.yml` nor
 
 ## GitHub Actions Checks
 
+```mermaid
+flowchart TD
+    start["ghostctl audit ci"] --> discover["discover workflow files"]
+    discover --> github[".github/workflows/*.yml"]
+    discover --> gitlab[".gitlab-ci.yml"]
+
+    github --> uses["scan uses: references"]
+    uses --> pin["branch pin check\nmain/master"]
+    uses --> policy["major version policy\ncurrent vs EOL"]
+    github --> commands["scan deprecated workflow commands"]
+
+    gitlab --> only["only/except"]
+    gitlab --> type["type/types"]
+    gitlab --> images["unpinned image/latest"]
+
+    pin --> findings["findings with severity,\nline, remediation"]
+    policy --> findings
+    commands --> findings
+    only --> findings
+    type --> findings
+    images --> findings
+```
+
 | Rule | Severity | Detects |
 |------|----------|---------|
 | `outdated-action` | High / Medium | An action pinned to a major version older than the curated current major. **High** if the major is at or below the action's end-of-life major, otherwise **Medium**. |
@@ -43,6 +66,18 @@ major.
 | `unpinned-image` | Medium | A container `image:` with no tag, or `:latest`. |
 
 ## Output and Exit Codes
+
+```mermaid
+flowchart LR
+    scan["offline line scan"] --> report{"findings?"}
+    report -->|no| clean["clean confirmation"]
+    report -->|yes| grouped["group by file\nseverity + line + hint"]
+    grouped --> mode{"--json?"}
+    mode -->|yes| json["JSON array"]
+    mode -->|no| text["terminal report"]
+    json --> gate["fail on High/Critical"]
+    text --> gate
+```
 
 The default output groups findings by file with severity, line number, message,
 and a remediation hint. A clean scan prints a confirmation. `--json` emits a JSON

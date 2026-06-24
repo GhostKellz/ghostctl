@@ -1,5 +1,5 @@
 Name:           ghostctl
-Version:        0.12.0
+Version:        0.12.1
 Release:        1%{?dist}
 Summary:        Universal system administration toolkit
 
@@ -87,6 +87,10 @@ cargo test --release --locked
 %endif
 
 %changelog
+* Wed Jun 24 2026 Christopher Kelley <ckelley@ghostctl.sh> - 0.12.1-1
+- Hotfix dependency refresh for Cargo crates and GitHub Actions
+- Restored SHA digest hex rendering with sha2 0.11
+
 * Sat Jun 13 2026 Christopher Kelley <ckelley@ghostctl.sh> - 0.12.0-1
 - Added audit cargo/node/deps for dependency vulnerability scanning via OSV.dev
 - Added audit ci for GitHub Actions and GitLab CI deprecation auditing

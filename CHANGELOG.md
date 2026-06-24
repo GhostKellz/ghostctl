@@ -2,6 +2,30 @@
 
 All notable changes to GhostCTL will be documented in this file.
 
+## [0.12.1] - 2026-06-24
+
+### Changed
+
+- **Hotfix dependency refresh**: updated the direct Cargo crates covered by the open Dependabot PRs: `crossterm`, `duct`, `gethostname`, `libloading`, `nix`, `sha1`, `sha2`, `sysinfo`, `toml`, and `which`; refreshed the lockfile with compatible transitive updates.
+- **RustSec audit pass**: refreshed the advisory database with `cargo audit` and verified the updated lockfile has no reported vulnerabilities.
+- **CI action pins**: updated the open GitHub Actions Dependabot group to newer SHA-pinned actions while keeping commit SHA pinning for supply-chain control. The workflow comments now document that Node 24-based actions require self-hosted runners at `2.327.1` or newer.
+- **Release metadata**: bumped Cargo, Arch PKGBUILD, Debian changelog, Fedora spec, and release notes to `0.12.1`.
+- **Documentation polish**: added `docs/advisories/` for hotfix notes, accepted risks, and resolved advisories; rebuilt `docs/README.md` into a complete documentation index; added production-oriented Mermaid diagrams for the documentation map, command architecture, installation/release path, dependency audit flow, CI workflow audit flow, security command surface, advisory flow, and support bundle lifecycle.
+
+### Fixed
+
+- **SHA digest rendering**: restored lowercase hex rendering for `sha2` 0.11 digest outputs used by script verification flows.
+- **Zsh setup failure handling**: replaced runtime panics during Zsh asset installation with clean error messages when `HOME` is unset or `git` cannot be executed.
+
+### Verified
+
+- `cargo fmt --check`
+- `cargo check`
+- `cargo test` (591 unit tests and 6 CLI regression tests)
+- `cargo clippy --release -- -D warnings`
+- `cargo build --release`
+- `cargo audit`
+
 ## [0.12.0] - 2026-06-13
 
 ### Added

@@ -41,7 +41,10 @@ pub fn install_zsh() {
         }
     }
     // Install Oh My Zsh securely
-    let home = std::env::var("HOME").unwrap();
+    let Ok(home) = std::env::var("HOME") else {
+        println!("HOME is not set; cannot install Oh My Zsh assets.");
+        return;
+    };
     let omz_dir = format!("{}/.oh-my-zsh", home);
     if !std::path::Path::new(&omz_dir).exists() {
         println!("📥 Downloading Oh My Zsh install script...");
@@ -55,7 +58,7 @@ pub fn install_zsh() {
                         // Calculate hash for verification
                         let mut hasher = Sha256::new();
                         hasher.update(content.as_bytes());
-                        let hash = format!("{:x}", hasher.finalize());
+                        let hash = crate::utils::bytes_to_hex(hasher.finalize());
                         println!("📝 Script SHA256: {}", hash);
 
                         // Show preview
@@ -110,12 +113,12 @@ pub fn install_zsh() {
                 "https://github.com/romkatv/powerlevel10k.git",
                 &p10k_dir,
             ])
-            .status()
-            .expect("failed to clone powerlevel10k");
-        if status.success() {
-            println!("Powerlevel10k theme installed.");
-        } else {
-            println!("Failed to install Powerlevel10k theme.");
+            .status();
+
+        match status {
+            Ok(status) if status.success() => println!("Powerlevel10k theme installed."),
+            Ok(_) => println!("Failed to install Powerlevel10k theme."),
+            Err(e) => println!("Failed to run git for Powerlevel10k: {}", e),
         }
     } else {
         println!("Powerlevel10k already installed.");
@@ -144,12 +147,12 @@ pub fn install_zsh() {
         if !std::path::Path::new(&plugin_dir).exists() {
             let status = std::process::Command::new("git")
                 .args(["clone", url, &plugin_dir])
-                .status()
-                .expect("failed to clone plugin");
-            if status.success() {
-                println!("{} installed.", name);
-            } else {
-                println!("Failed to install {}.", name);
+                .status();
+
+            match status {
+                Ok(status) if status.success() => println!("{} installed.", name),
+                Ok(_) => println!("Failed to install {}.", name),
+                Err(e) => println!("Failed to run git for {}: {}", name, e),
             }
         } else {
             println!("{} already installed.", name);

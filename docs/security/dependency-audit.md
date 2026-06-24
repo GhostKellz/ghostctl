@@ -37,6 +37,23 @@ several are present.
 
 ## How It Works
 
+```mermaid
+flowchart TD
+    start["ghostctl audit cargo|node|deps"] --> locate["locate supported lockfiles"]
+    locate --> parse["parse lockfile natively"]
+    parse --> normalize["normalize package records\necosystem, name, version"]
+    normalize --> dedupe["deduplicate packages"]
+    dedupe --> osv["POST OSV querybatch"]
+    osv --> details["fetch advisory details"]
+    details --> severity["derive severity and fixed version"]
+    severity --> sort["sort most severe first"]
+    sort --> output{"output mode"}
+    output -->|text| human["human report"]
+    output -->|--json| json["JSON findings"]
+    human --> exit["non-zero for High/Critical\nin CI/headless contexts"]
+    json --> exit
+```
+
 1. The lockfile is parsed into a flat set of `{ecosystem, name, version}`
    records (duplicates removed).
 2. ghostctl POSTs the batch to OSV's `querybatch` endpoint, then fetches the
@@ -46,6 +63,15 @@ several are present.
    URL, sorted most-severe first.
 
 ## Output and Exit Codes
+
+```mermaid
+flowchart LR
+    findings{"Findings?"} -->|none| clean["print clean result\nexit 0"]
+    findings -->|low/medium| warn["print findings\nexit 0 for interactive use"]
+    findings -->|high/critical| gate{"CI, headless,\nor --json?"}
+    gate -->|yes| fail["exit non-zero"]
+    gate -->|no| inform["print advisory report\nexit 0"]
+```
 
 The default output is a human-readable report. `--json` emits the findings as a
 JSON array for CI pipelines.

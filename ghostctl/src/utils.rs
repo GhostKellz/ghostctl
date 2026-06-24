@@ -41,6 +41,20 @@ pub fn is_plain_mode() -> bool {
         || std::env::var("NO_COLOR").is_ok()
 }
 
+/// Render bytes as lowercase hexadecimal.
+pub fn bytes_to_hex(bytes: impl AsRef<[u8]>) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let bytes = bytes.as_ref();
+    let mut out = String::with_capacity(bytes.len() * 2);
+
+    for &byte in bytes {
+        out.push(HEX[(byte >> 4) as usize] as char);
+        out.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+
+    out
+}
+
 // ============================================================================
 // Sudo Helper - Centralized Privilege Escalation
 // ============================================================================

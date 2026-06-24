@@ -8,7 +8,8 @@ on:
 permissions:
   contents: write
 
-# Security: Use SHA-pinned actions for supply-chain security
+# Security: Use SHA-pinned actions for supply-chain security.
+# Node 24-based actions require self-hosted runners >= 2.327.1.
 # Release workflows are high-value targets - always verify action SHAs
 
 env:
@@ -22,8 +23,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        # SHA pin: actions/checkout@v4.1.7
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        # SHA pin: actions/checkout@v6.0.3
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Install system dependencies
         run: |
@@ -39,7 +40,7 @@ jobs:
 
       - name: Cache Rust dependencies
         # SHA pin: Swatinem/rust-cache@v2.9.1
-        uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc
+        uses: Swatinem/rust-cache@c106961feec855ef5a58494c5a2a31c9d80429a9
         with:
           workspaces: ghostctl
           key: ghostctl-release-linux
@@ -85,8 +86,8 @@ jobs:
           cat "ghostctl-${VERSION}-${TARGET}.tar.gz.sha256"
 
       - name: Upload Linux Artifacts
-        # SHA pin: actions/upload-artifact@v4.3.4
-        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
+        # SHA pin: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: linux-release
           path: |
@@ -99,12 +100,12 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout
-        # SHA pin: actions/checkout@v4.1.7
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        # SHA pin: actions/checkout@v6.0.3
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Download All Artifacts
-        # SHA pin: actions/download-artifact@v4.1.8
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+        # SHA pin: actions/download-artifact@v8.0.1
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           path: release-artifacts
 
@@ -114,8 +115,8 @@ jobs:
           find release-artifacts -type f -ls
 
       - name: Create GitHub Release
-        # SHA pin: softprops/action-gh-release@v2.0.6
-        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191
+        # SHA pin: softprops/action-gh-release@v3.0.0
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
         with:
           files: |
             release-artifacts/linux-release/*
