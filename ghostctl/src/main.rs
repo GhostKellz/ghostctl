@@ -57,6 +57,7 @@ mod terminal;
 mod tools;
 pub mod tui;
 mod uefi;
+mod unifi;
 mod utils;
 mod vfio;
 mod wifi;

@@ -2,6 +2,48 @@
 
 All notable changes to GhostCTL will be documented in this file.
 
+## [0.12.2] - 2026-07-11
+
+### Added
+
+- **UniFi OS Server support (`ghostctl unifi`)**: new status, device inventory, remote adoption, and doctor workflows for self-hosted UniFi OS Server controllers.
+- **Remote UniFi adoption**: discovers factory-default devices with `nmap` and sends `set-inform` over SSH, with key auth preferred and password auth kept out of argv via `sshpass -e`.
+- **UniFi diagnostics**: adds adoption-state, STP-blocked port, uplink, port-error, and firmware-skew checks, with Fortinet + UniFi troubleshooting hints.
+- **CrowdSec UniFi exemption generator**: `ghostctl crowdsec unifi-exempt generate` emits a whitelist parser for controller, inform, management, and Tailscale traffic.
+- **Code signing hardening**: added stable OpenPGP package-signing identity via `[signing].pgp_key_created_at`, safer Azure Key Vault endpoint validation, and fail-closed explicit PE timestamping.
+- **UEFI readiness check**: `ghostctl uefi status` now checks for `swtpm` alongside OVMF firmware and `virt-fw-vars` so the CLI matches the Windows 11 VM setup docs.
+- **UniFi documentation**: added setup, adoption, doctor, and CrowdSec docs under `docs/unifi/`, and linked them from the main docs indexes.
+- **Signing documentation**: documented stable OpenPGP fingerprints, Azure Key Vault URL requirements, explicit timestamp behavior, and pacman key setup guidance.
+
+### Changed
+
+- Updated the direct Cargo dependency ranges covered by open Dependabot PRs: `base64`, `clap_complete`, `dialoguer`, `dirs`, `env_logger`, `getrandom`, `indicatif`, `mlua`, `nix`, `socket2`, and `thiserror`.
+- Refreshed `Cargo.lock` with compatible transitive updates and removed stale duplicate dependency versions where the resolver allowed it.
+- Updated SHA-pinned GitHub Actions dependencies from the open Dependabot group: `actions/checkout` to `v7.0.0` and `softprops/action-gh-release` to `v3.0.1`.
+
+### Security
+
+- Hardened UniFi adoption input handling by validating inform hosts and quoting the remote `set-inform` URL before it is passed through SSH.
+- Hardened CrowdSec whitelist generation by validating configured IP/CIDR entries and rendering YAML through `serde_yaml` instead of string concatenation.
+- Replaced ad hoc UniFi controller host parsing with typed URL parsing, including IPv6 literal support.
+- Hardened Azure Key Vault signing requests by requiring HTTPS Azure vault endpoints, rejecting embedded URL credentials, and building REST paths with URL encoding instead of string replacement.
+- Rejected unsupported EC algorithms early for RSA-only PE and native package-signing flows.
+- Updated audited dependencies, including `anyhow` to 1.0.103 and `crossbeam-epoch` to 0.9.20.
+
+### Fixed
+
+- Fixed `getrandom` 0.4 API usage for credential salt generation.
+- Fixed `mlua` 0.11 string conversion in plugin output handling.
+- Fixed package-signing OpenPGP key drift by deriving export and native package signatures from a stable configured key creation timestamp instead of the current wall clock.
+
+### Verified
+
+- `cargo fmt --check`
+- `cargo check`
+- `cargo test` (617 unit tests and 6 CLI regression tests)
+- `cargo clippy --release -- -D warnings`
+- `cargo audit`
+
 ## [0.12.1] - 2026-06-24
 
 ### Changed

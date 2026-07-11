@@ -3,7 +3,7 @@ use crate::utils::{set_dry_run_mode, set_headless_mode, set_plain_mode};
 use crate::{
     ai, arch, audit, backup, bluetooth, btrfs, cloud, crowdsec, gitlab, iommu, monitor, network,
     nvidia, obs, openshell, proxmox, restore, security, shell, sign, sysctl, systemd, tools, uefi,
-    vfio, wifi,
+    unifi, vfio, wifi,
 };
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use clap_complete::{Shell, generate};
@@ -939,6 +939,7 @@ pub fn build_cli() -> Command {
         .subcommand(openshell::command())
         .subcommand(gitlab::command())
         .subcommand(audit::command())
+        .subcommand(unifi::command())
 }
 
 pub fn handle_cli_args(matches: &ArgMatches) {
@@ -1066,6 +1067,12 @@ pub fn handle_cli_args(matches: &ArgMatches) {
         }
         Some(("audit", matches)) => {
             if let Err(e) = audit::handle(matches) {
+                eprintln!("Error: {e:#}");
+                std::process::exit(1);
+            }
+        }
+        Some(("unifi", matches)) => {
+            if let Err(e) = unifi::handle(matches) {
                 eprintln!("Error: {e:#}");
                 std::process::exit(1);
             }

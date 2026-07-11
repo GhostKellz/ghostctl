@@ -17,6 +17,12 @@ ghostctl sign export-key --format pem --output cert.pem
 ghostctl sign export-key --format der --output cert.der
 ```
 
+## OpenPGP Fingerprint Stability
+
+OpenPGP v4 fingerprints include the public-key creation timestamp. GhostCTL uses the `[signing].pgp_key_created_at` value for OpenPGP exports and native package signatures so a key imported into pacman, rpm, or gpg keeps the same fingerprint across later signing runs.
+
+Set `pgp_key_created_at` once before distributing a production OpenPGP key. Existing configs default to `0`, which is stable but less descriptive than a real issuance timestamp.
+
 ## Import into Package Managers
 
 ### RPM

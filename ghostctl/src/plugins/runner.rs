@@ -258,7 +258,10 @@ fn run_lua_plugin_safe(path: &Path, name: &str) -> Result<(), PluginError> {
                     mlua::Value::Boolean(b) => b.to_string(),
                     mlua::Value::Integer(i) => i.to_string(),
                     mlua::Value::Number(n) => n.to_string(),
-                    mlua::Value::String(s) => s.to_str().unwrap_or("").to_string(),
+                    mlua::Value::String(s) => s
+                        .to_str()
+                        .map(|value| value.to_string())
+                        .unwrap_or_default(),
                     _ => format!("{:?}", v),
                 })
                 .collect();

@@ -8,6 +8,7 @@ Sign files using Azure Key Vault-backed keys. The private key never leaves Key V
 
 - Azure subscription with an Azure Key Vault (Premium tier recommended for HSM-backed keys)
 - A signing certificate/key uploaded to the Key Vault
+- A Key Vault URL using `https` and an Azure vault endpoint such as `https://my-vault.vault.azure.net`
 - One of:
   - **Azure CLI** installed and authenticated (`az login`)
   - **Service Principal** with Key Vault access (for CI/CD)
@@ -78,7 +79,9 @@ ghostctl sign file artifact.tar.gz --auth sp
 - **No secrets in config**: `AZURE_CLIENT_SECRET` read from environment only
 - **Token lifecycle**: In-memory only, auto-refreshed before expiry
 - **TLS enforcement**: All API calls use HTTPS with cert verification
-- **Input validation**: Key Vault names validated before API calls
+- **Endpoint validation**: Key Vault URLs must use recognized Azure vault hosts
+- **Input validation**: Key Vault names validated and path-encoded before API calls
+- **Stable OpenPGP identity**: Package-signing public keys use a stable creation timestamp so imported pacman/rpm keys keep the same fingerprint
 
 ## Further Reading
 
@@ -100,4 +103,7 @@ cert_name = "code-signing-cert"
 algorithm = "RS256"
 auth_method = "cli"
 tsa_url = "http://timestamp.digicert.com"
+# Optional: set once before distributing OpenPGP keys for pacman/rpm/deb trust stores.
+# Defaults to 0 for stable fingerprints in existing configs.
+pgp_key_created_at = 0
 ```

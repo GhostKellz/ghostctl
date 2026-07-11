@@ -1545,7 +1545,7 @@ UEFI Secure Boot management for VMs
 
 - `uefi enroll` -- Create OVMF VARS with Secure Boot keys for Windows 11
 - `uefi verify` -- Check if VARS file has Secure Boot keys enrolled
-- `uefi status` -- Check OVMF firmware and tools
+- `uefi status` -- Check OVMF firmware, key enrollment tools, and swtpm
 
 #### `uefi enroll`
 
@@ -1568,7 +1568,7 @@ Check if VARS file has Secure Boot keys enrolled
 
 #### `uefi status`
 
-Check OVMF firmware and tools
+Check OVMF firmware, key enrollment tools, and swtpm
 
 ### `sign`
 
@@ -1597,7 +1597,7 @@ Sign a file using Azure Key Vault
 - `-o`, `--output` -- Output path for signature file
 - `--auth` -- Authentication method override
 - `--dry-run` -- Show what would be signed without calling Key Vault
-- `--timestamp` -- Request RFC 3161 timestamp (default for PE if TSA URL configured)
+- `--timestamp` -- Request RFC 3161 timestamp and fail if timestamping fails
 - `--no-timestamp` -- Disable timestamping
 - `--native` -- Use native package signing (RPM: embed in header, DEB: dpkg-sig format)
 - `-v`, `--verbose` -- Verbose output
@@ -2171,4 +2171,3 @@ Audit CI/CD workflows (GitHub Actions, GitLab CI) for deprecated/outdated constr
 #### `audit summary`
 
 Quick package-security overview
-

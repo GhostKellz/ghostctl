@@ -35,6 +35,9 @@ pub struct GhostConfig {
 
     #[serde(default)]
     pub gitlab: Option<crate::gitlab::config::GitlabConfig>,
+
+    #[serde(default)]
+    pub unifi: Option<crate::unifi::config::UnifiConfig>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -217,6 +220,7 @@ impl Default for GhostConfig {
             audit: None,       // Use audit defaults when not specified
             openshell: None,   // Use OpenShell defaults when not specified
             gitlab: None,      // Use GitLab defaults when not specified
+            unifi: None,       // Use UniFi defaults when not specified
         }
     }
 }

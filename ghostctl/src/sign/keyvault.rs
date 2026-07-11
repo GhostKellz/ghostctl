@@ -1,6 +1,7 @@
 use anyhow::{Context, Result, bail};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use std::thread;
 use std::time::Duration;
@@ -124,8 +125,7 @@ impl KeyVaultClient {
             .build()
             .context("Failed to create HTTP client")?;
 
-        // Normalize vault URL (strip trailing slash)
-        let vault_url = vault_url.trim_end_matches('/').to_string();
+        let vault_url = normalize_vault_url(vault_url)?;
 
         Ok(Self {
             http,
@@ -157,45 +157,32 @@ impl KeyVaultClient {
     ) -> Result<SignResponse> {
         self.ensure_token()?;
 
-        let version_path = match key_version {
-            Some(v) if !v.is_empty() => format!("/{}", v),
-            _ => String::new(),
-        };
-
-        let url = format!(
-            "{}/keys/{}{}/sign?api-version={}",
-            self.vault_url, key_name, version_path, API_VERSION
-        );
+        let mut segments = vec!["keys", key_name];
+        if let Some(version) = key_version.filter(|v| !v.is_empty()) {
+            segments.push(version);
+        }
+        segments.push("sign");
+        let url = self.api_url(&segments)?;
 
         let body = SignRequest {
             alg: algorithm.to_string(),
             value: URL_SAFE_NO_PAD.encode(digest),
         };
 
-        self.post_with_retry(&url, &body)
+        self.post_with_retry(url, &body)
     }
 
     /// Get the X.509 certificate (DER-encoded) for a cert name
     pub fn get_certificate(&mut self, cert_name: &str, version: Option<&str>) -> Result<Vec<u8>> {
         self.ensure_token()?;
 
-        let version_path = match version {
-            Some(v) if !v.is_empty() => format!("/{}", v),
-            _ => String::new(),
-        };
+        let mut segments = vec!["certificates", cert_name];
+        if let Some(version) = version.filter(|v| !v.is_empty()) {
+            segments.push(version);
+        }
+        let url = self.api_url(&segments)?;
 
-        let url = format!(
-            "{}/certificates/{}{}/{}?api-version={}",
-            self.vault_url, cert_name, version_path, "", API_VERSION
-        );
-
-        // Clean up the double slash if version_path is empty
-        let url = url
-            .replace("//", "/")
-            .replace("http:/", "http://")
-            .replace("https:/", "https://");
-
-        let response: CertificateBundle = self.get_with_retry(&url)?;
+        let response: CertificateBundle = self.get_with_retry(url)?;
         let cert_der = URL_SAFE_NO_PAD
             .decode(&response.cer)
             .or_else(|_| {
@@ -211,12 +198,9 @@ impl KeyVaultClient {
     pub fn check_key(&mut self, key_name: &str) -> Result<KeyInfo> {
         self.ensure_token()?;
 
-        let url = format!(
-            "{}/keys/{}?api-version={}",
-            self.vault_url, key_name, API_VERSION
-        );
+        let url = self.api_url(&["keys", key_name])?;
 
-        let bundle: KeyBundle = self.get_with_retry(&url)?;
+        let bundle: KeyBundle = self.get_with_retry(url)?;
 
         Ok(KeyInfo {
             kid: bundle.key.kid,
@@ -228,7 +212,7 @@ impl KeyVaultClient {
     /// POST request with retry and re-auth on 401
     fn post_with_retry<T: for<'de> Deserialize<'de>, B: Serialize>(
         &mut self,
-        url: &str,
+        url: Url,
         body: &B,
     ) -> Result<T> {
         let mut last_error: Option<anyhow::Error> = None;
@@ -241,7 +225,7 @@ impl KeyVaultClient {
 
             let response = self
                 .http
-                .post(url)
+                .post(url.clone())
                 .bearer_auth(&self.token.access_token)
                 .json(body)
                 .send();
@@ -310,7 +294,7 @@ impl KeyVaultClient {
     }
 
     /// GET request with retry and re-auth on 401
-    fn get_with_retry<T: for<'de> Deserialize<'de>>(&mut self, url: &str) -> Result<T> {
+    fn get_with_retry<T: for<'de> Deserialize<'de>>(&mut self, url: Url) -> Result<T> {
         let mut last_error: Option<anyhow::Error> = None;
 
         for attempt in 0..MAX_RETRIES {
@@ -321,7 +305,7 @@ impl KeyVaultClient {
 
             let response = self
                 .http
-                .get(url)
+                .get(url.clone())
                 .bearer_auth(&self.token.access_token)
                 .send();
 
@@ -387,12 +371,9 @@ impl KeyVaultClient {
     pub fn list_certificates(&mut self) -> Result<Vec<CertificateItem>> {
         self.ensure_token()?;
 
-        let url = format!(
-            "{}/certificates?api-version={}",
-            self.vault_url, API_VERSION
-        );
+        let url = self.api_url(&["certificates"])?;
 
-        let response: CertificateListResponse = self.get_with_retry(&url)?;
+        let response: CertificateListResponse = self.get_with_retry(url)?;
 
         let items = response
             .value
@@ -421,6 +402,23 @@ impl KeyVaultClient {
         &self.vault_url
     }
 
+    fn api_url(&self, segments: &[&str]) -> Result<Url> {
+        let mut url = Url::parse(&self.vault_url).context("Invalid Key Vault URL")?;
+        {
+            let mut path = url
+                .path_segments_mut()
+                .map_err(|_| anyhow::anyhow!("Key Vault URL cannot be used as a base URL"))?;
+            path.clear();
+            for segment in segments {
+                path.push(segment);
+            }
+        }
+        url.query_pairs_mut()
+            .clear()
+            .append_pair("api-version", API_VERSION);
+        Ok(url)
+    }
+
     /// Get the key ID from the last sign response
     pub fn decode_signature(response: &SignResponse) -> Result<Vec<u8>> {
         URL_SAFE_NO_PAD
@@ -431,5 +429,60 @@ impl KeyVaultClient {
     /// Get the key ID from a sign response
     pub fn key_id(response: &SignResponse) -> &str {
         &response.kid
+    }
+}
+
+fn normalize_vault_url(vault_url: &str) -> Result<String> {
+    let mut url = Url::parse(vault_url.trim()).context("Invalid Azure Key Vault URL")?;
+
+    if url.scheme() != "https" {
+        bail!("Azure Key Vault URL must use https");
+    }
+
+    if url.username() != "" || url.password().is_some() {
+        bail!("Azure Key Vault URL must not include credentials");
+    }
+
+    let host = url
+        .host_str()
+        .ok_or_else(|| anyhow::anyhow!("Azure Key Vault URL must include a host"))?;
+
+    let allowed_suffixes = [
+        ".vault.azure.net",
+        ".vault.azure.cn",
+        ".vault.usgovcloudapi.net",
+        ".managedhsm.azure.net",
+        ".managedhsm.azure.cn",
+        ".managedhsm.usgovcloudapi.net",
+    ];
+
+    if !allowed_suffixes.iter().any(|suffix| host.ends_with(suffix)) {
+        bail!("Azure Key Vault URL host is not a recognized Azure vault endpoint");
+    }
+
+    url.set_path("");
+    url.set_query(None);
+    url.set_fragment(None);
+    Ok(url.as_str().trim_end_matches('/').to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_vault_url;
+
+    #[test]
+    fn normalizes_azure_vault_url() {
+        let url = normalize_vault_url("https://example.vault.azure.net/path?x=1#frag").unwrap();
+        assert_eq!(url, "https://example.vault.azure.net");
+    }
+
+    #[test]
+    fn rejects_non_https_vault_url() {
+        assert!(normalize_vault_url("http://example.vault.azure.net").is_err());
+    }
+
+    #[test]
+    fn rejects_non_azure_vault_url() {
+        assert!(normalize_vault_url("https://example.com").is_err());
     }
 }

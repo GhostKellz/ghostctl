@@ -33,6 +33,8 @@ Output: `package-1.0-1-x86_64.pkg.tar.zst.sig` (raw OpenPGP v4 binary signature 
 
 ## Setting Up pacman-key
 
+Before distributing the OpenPGP key, set `[signing].pgp_key_created_at` in the GhostCTL config if you want a real issuance timestamp. Keep it unchanged after users import the key; changing it changes the OpenPGP fingerprint.
+
 ```bash
 # Export the signing public key
 ghostctl sign export-key --format pgp --output signing-key.asc

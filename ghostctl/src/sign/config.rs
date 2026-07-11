@@ -29,6 +29,13 @@ pub struct SigningConfig {
     #[serde(default = "default_tsa_url")]
     pub tsa_url: String,
 
+    /// Stable OpenPGP public-key creation timestamp used for exported package-signing keys.
+    ///
+    /// OpenPGP v4 fingerprints include public-key creation time, so this must remain stable
+    /// after users import the key into pacman, rpm, or gpg trust stores.
+    #[serde(default)]
+    pub pgp_key_created_at: Option<u32>,
+
     /// Authentication method: "cli" or "service_principal"
     #[serde(default = "default_auth_method")]
     pub auth_method: String,
@@ -56,6 +63,7 @@ impl Default for SigningConfig {
             client_id: None,
             algorithm: default_algorithm(),
             tsa_url: default_tsa_url(),
+            pgp_key_created_at: None,
             auth_method: default_auth_method(),
         }
     }
@@ -67,6 +75,14 @@ pub fn validate_name(name: &str) -> bool {
     !name.is_empty()
         && name.len() <= 127
         && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+}
+
+/// Return the stable OpenPGP public-key creation timestamp.
+///
+/// Defaulting to 0 is intentional: it keeps generated OpenPGP fingerprints stable for
+/// existing configs that do not yet have an explicit timestamp.
+pub fn pgp_key_created_at(config: &SigningConfig) -> u32 {
+    config.pgp_key_created_at.unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -103,6 +119,7 @@ mod tests {
             client_id: Some("client-456".to_string()),
             algorithm: "RS384".to_string(),
             tsa_url: "http://timestamp.example.com".to_string(),
+            pgp_key_created_at: Some(1700000000),
             auth_method: "service_principal".to_string(),
         };
 
@@ -113,6 +130,13 @@ mod tests {
         assert_eq!(parsed.cert_name, cfg.cert_name);
         assert_eq!(parsed.tenant_id, cfg.tenant_id);
         assert_eq!(parsed.algorithm, cfg.algorithm);
+        assert_eq!(parsed.pgp_key_created_at, cfg.pgp_key_created_at);
         assert_eq!(parsed.auth_method, cfg.auth_method);
+    }
+
+    #[test]
+    fn test_pgp_key_created_at_default_is_stable() {
+        let cfg = SigningConfig::default();
+        assert_eq!(pgp_key_created_at(&cfg), 0);
     }
 }

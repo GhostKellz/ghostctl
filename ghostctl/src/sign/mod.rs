@@ -25,7 +25,7 @@ use std::io::Write;
 use std::path::Path;
 
 use auth::AuthMethod;
-use config::{SigningConfig, validate_name};
+use config::{SigningConfig, pgp_key_created_at, validate_name};
 use hash::FileFormat;
 use keyvault::KeyVaultClient;
 
@@ -280,9 +280,10 @@ fn handle_sign_file(matches: &ArgMatches) -> Result<()> {
     }
 
     // Determine timestamp behavior
+    let explicit_timestamp = matches.get_flag("timestamp");
     let use_timestamp = if matches.get_flag("no-timestamp") {
         false
-    } else if matches.get_flag("timestamp") {
+    } else if explicit_timestamp {
         true
     } else {
         // Default: timestamp PE files if TSA URL is configured
@@ -292,6 +293,8 @@ fn handle_sign_file(matches: &ArgMatches) -> Result<()> {
     let output = matches
         .get_one::<String>("output")
         .map(|s| Path::new(s.as_str()));
+
+    validate_algorithm_for_format(format, &cfg)?;
 
     // Dry run: show format-specific info
     if dry_run {
@@ -312,7 +315,15 @@ fn handle_sign_file(matches: &ArgMatches) -> Result<()> {
         .context("Failed to connect to Azure Key Vault")?;
 
     match format {
-        FileFormat::Pe => pe::sign_pe(path, &mut kv, &cfg, output, verbose, use_timestamp),
+        FileFormat::Pe => pe::sign_pe(
+            path,
+            &mut kv,
+            &cfg,
+            output,
+            verbose,
+            use_timestamp,
+            explicit_timestamp,
+        ),
         FileFormat::Rpm if native => rpm::sign_rpm_native(path, &mut kv, &cfg, output, verbose),
         FileFormat::Deb if native => deb::sign_deb_native(path, &mut kv, &cfg, output, verbose),
         FileFormat::Rpm => rpm::sign_rpm(path, &mut kv, &cfg, output, verbose),
@@ -320,6 +331,18 @@ fn handle_sign_file(matches: &ArgMatches) -> Result<()> {
         FileFormat::Pacman => pacman::sign_pacman(path, &mut kv, &cfg, output, verbose),
         FileFormat::Generic => generic::sign_generic(path, &mut kv, &cfg, output, verbose),
     }
+}
+
+fn validate_algorithm_for_format(format: FileFormat, cfg: &SigningConfig) -> Result<()> {
+    let is_ec = matches!(cfg.algorithm.as_str(), "ES256" | "ES384" | "ES512");
+    if is_ec && format != FileFormat::Generic {
+        anyhow::bail!(
+            "{} signing currently requires an RSA Key Vault key. Use RS256, RS384, or RS512.",
+            format.name()
+        );
+    }
+
+    Ok(())
 }
 
 fn handle_config(matches: &ArgMatches) -> Result<()> {
@@ -438,6 +461,7 @@ fn config_init() -> Result<()> {
         client_id,
         algorithm,
         tsa_url: "http://timestamp.digicert.com".to_string(),
+        pgp_key_created_at: Some(0),
         auth_method,
     };
 
@@ -619,10 +643,7 @@ fn handle_export_key(matches: &ArgMatches) -> Result<()> {
             let key = pgp::extract_rsa_pubkey(&cert_der).ok_or_else(|| {
                 anyhow::anyhow!("Failed to extract RSA public key from certificate")
             })?;
-            let creation_time = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs() as u32;
+            let creation_time = pgp_key_created_at(&cfg);
             let identity = pgp::compute_key_identity(&key, creation_time);
 
             // Print metadata to stderr so piped output stays clean

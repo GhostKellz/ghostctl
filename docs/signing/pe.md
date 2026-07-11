@@ -30,6 +30,8 @@ ghostctl sign file app.exe --dry-run
 
 RFC 3161 timestamps are embedded as unauthenticated attributes in the CMS SignerInfo. By default, PE signing requests a timestamp when a TSA URL is configured. Use `--no-timestamp` to disable.
 
+When `--timestamp` is passed explicitly, timestamp failure aborts signing. Default timestamp attempts still warn and continue so an unavailable TSA does not block local test signing.
+
 Default TSA: `http://timestamp.digicert.com`
 
 ## Verification

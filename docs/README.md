@@ -42,6 +42,7 @@ flowchart TD
     infra --> proxmox["proxmox/*"]
     infra --> gitlab["gitlab/gitlab.md"]
     infra --> openshell["openshell/openshell.md"]
+    infra --> unifi["unifi/overview.md"]
 
     security --> secindex["security/README.md"]
     security --> signing["signing/*"]
@@ -132,6 +133,10 @@ flowchart LR
 | [proxmox/templates.md](proxmox/templates.md) | Template workflows |
 | [gitlab/gitlab.md](gitlab/gitlab.md) | GitLab status, CI lint, pipelines, MRs, runners |
 | [openshell/openshell.md](openshell/openshell.md) | OpenShell readiness and passthrough |
+| [unifi/overview.md](unifi/overview.md) | UniFi OS Server status, inventory, adoption, diagnostics |
+| [unifi/adoption.md](unifi/adoption.md) | Remote adoption and controller discovery |
+| [unifi/doctor.md](unifi/doctor.md) | STP, adoption, and firmware diagnostics (Fortinet+UniFi) |
+| [unifi/crowdsec.md](unifi/crowdsec.md) | CrowdSec whitelist for exposed UniFi frontends |
 
 ### Networking, Storage, and Virtualization
 

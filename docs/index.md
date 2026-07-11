@@ -22,6 +22,7 @@
 | [Docker](docker/README.md) | Containers, compose, homelab stacks |
 | [Virtualization](virtualization/README.md) | VFIO, IOMMU, GPU passthrough |
 | [Storage](storage/README.md) | S3, MinIO, local and network storage |
+| [UniFi](unifi/overview.md) | UniFi OS Server status, adoption, diagnostics, CrowdSec |
 
 ## Networking & Security
 

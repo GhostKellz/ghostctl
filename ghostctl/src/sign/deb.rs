@@ -11,7 +11,7 @@ use std::fs;
 use std::io::Read;
 use std::path::Path;
 
-use super::config::SigningConfig;
+use super::config::{SigningConfig, pgp_key_created_at};
 use super::hash::{DigestAlgorithm, file_digest, hex_digest};
 use super::keyvault::KeyVaultClient;
 use super::pgp;
@@ -556,11 +556,7 @@ pub fn sign_deb_native(
 
     let signer = pgp::extract_subject_cn(&cert_der).unwrap_or_else(|| "Unknown Signer".to_string());
 
-    let creation_time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as u32;
-
+    let creation_time = pgp_key_created_at(config);
     let identity = pgp::compute_key_identity(&rsa_key, creation_time);
 
     if verbose {

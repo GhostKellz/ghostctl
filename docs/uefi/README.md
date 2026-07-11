@@ -22,6 +22,8 @@ sudo pacman -S edk2-ovmf virt-firmware swtpm
 ghostctl uefi status
 ```
 
+Checks for OVMF firmware, `virt-fw-vars`, and `swtpm`. TPM2 is still configured in the VM XML; the status command verifies that the emulator binary is installed.
+
 ### Enroll Keys
 
 ```bash

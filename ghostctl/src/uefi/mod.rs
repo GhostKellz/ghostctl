@@ -105,6 +105,10 @@ fn show_status() -> anyhow::Result<()> {
     let status = if has_virt_fw { "+" } else { "-" };
     println!("{} virt-fw-vars", status);
 
+    let has_swtpm = which::which("swtpm").is_ok();
+    let status = if has_swtpm { "+" } else { "-" };
+    println!("{} swtpm (TPM 2.0 emulator)", status);
+
     println!();
     if !Path::new(ovmf_code).exists() || !Path::new(ovmf_vars).exists() {
         println!("Install: sudo pacman -S edk2-ovmf");
@@ -112,8 +116,11 @@ fn show_status() -> anyhow::Result<()> {
     if !has_virt_fw {
         println!("Install: sudo pacman -S virt-firmware");
     }
+    if !has_swtpm {
+        println!("Install: sudo pacman -S swtpm");
+    }
 
-    if Path::new(ovmf_code).exists() && Path::new(ovmf_vars).exists() && has_virt_fw {
+    if Path::new(ovmf_code).exists() && Path::new(ovmf_vars).exists() && has_virt_fw && has_swtpm {
         println!("Ready");
     }
 

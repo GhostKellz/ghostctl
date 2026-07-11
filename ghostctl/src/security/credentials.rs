@@ -77,7 +77,7 @@ impl SecureCredentialManager {
     pub fn unlock(&mut self, master_password: &str) -> Result<()> {
         // Generate salt from system entropy
         let mut salt_bytes = [0u8; 16];
-        getrandom::getrandom(&mut salt_bytes)
+        getrandom::fill(&mut salt_bytes)
             .map_err(|e| CredentialError::KeyDerivationError(format!("RNG failed: {}", e)))?;
         let salt = SaltString::encode_b64(&salt_bytes).map_err(|e| {
             CredentialError::KeyDerivationError(format!("Salt encoding failed: {}", e))

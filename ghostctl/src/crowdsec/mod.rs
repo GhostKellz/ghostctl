@@ -9,7 +9,11 @@ pub mod config;
 use anyhow::{Context, Result, bail};
 use clap::{Arg, ArgMatches, Command};
 use config::CrowdsecConfig;
+use ipnet::IpNet;
 use reqwest::blocking::Client;
+use serde::Serialize;
+use std::collections::BTreeSet;
+use std::net::IpAddr;
 use std::process::Command as ProcCommand;
 use std::time::Duration;
 
@@ -53,6 +57,23 @@ pub fn command() -> Command {
                     Command::new("check").about("Test lookups against the configured resolvers"),
                 ),
         )
+        .subcommand(
+            Command::new("unifi-exempt")
+                .about("Generate a CrowdSec whitelist for UniFi mgmt/inform + Tailscale")
+                .subcommand(
+                    Command::new("generate")
+                        .about("Print (or --apply) the UniFi whitelist parser YAML")
+                        .arg(
+                            Arg::new("apply")
+                                .long("apply")
+                                .num_args(0..=1)
+                                .default_missing_value(
+                                    "/etc/crowdsec/parsers/s02-enrich/unifi-whitelist.yaml",
+                                )
+                                .help("Write the whitelist to a file (default path if no value)"),
+                        ),
+                ),
+        )
 }
 
 pub fn handle(matches: &ArgMatches) -> Result<()> {
@@ -82,6 +103,15 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
             Some(("check", _)) => dns_check(&cfg),
             _ => {
                 println!("Use `ghostctl crowdsec dns check`.");
+                Ok(())
+            }
+        },
+        Some(("unifi-exempt", m)) => match m.subcommand() {
+            Some(("generate", gm)) => {
+                unifi_exempt_generate(gm.get_one::<String>("apply").map(String::as_str))
+            }
+            _ => {
+                println!("Use `ghostctl crowdsec unifi-exempt generate`.");
                 Ok(())
             }
         },
@@ -332,9 +362,158 @@ fn dig_dnssec_ok(server: &str, domain: &str) -> bool {
         .unwrap_or(false)
 }
 
+/// Build and print (or write) a CrowdSec whitelist parser for UniFi.
+///
+/// Whitelists the configured exempt CIDRs (Tailscale CGNAT + mgmt subnets) and
+/// the controller/inform host so legitimate device check-ins and admin access
+/// are never banned by the bouncer sitting in front of the exposed frontend.
+fn unifi_exempt_generate(apply: Option<&str>) -> Result<()> {
+    let ucfg = crate::unifi::config::UnifiConfig::load();
+    let (cidrs, ips) = collect_unifi_exempt_lists(&ucfg)?;
+    let yaml = render_unifi_whitelist(&cidrs, &ips)?;
+
+    match apply {
+        Some(path) => {
+            if crate::utils::is_dry_run() {
+                println!("DRY-RUN: would write UniFi whitelist to {path}:\n\n{yaml}");
+                return Ok(());
+            }
+            std::fs::write(path, &yaml)
+                .with_context(|| format!("failed to write {path} (try running with sudo)"))?;
+            println!("Wrote UniFi whitelist to {path}");
+            println!("Reload CrowdSec to apply: sudo systemctl reload crowdsec");
+        }
+        None => print!("{yaml}"),
+    }
+    Ok(())
+}
+
+fn collect_unifi_exempt_lists(
+    ucfg: &crate::unifi::config::UnifiConfig,
+) -> Result<(Vec<String>, Vec<String>)> {
+    let mut cidrs: BTreeSet<String> = BTreeSet::new();
+    let mut ips: BTreeSet<String> = BTreeSet::new();
+    for entry in &ucfg.exempt_cidrs {
+        let e = entry.trim();
+        if e.is_empty() {
+            continue;
+        }
+        if e.contains('/') {
+            let net: IpNet = e
+                .parse()
+                .with_context(|| format!("invalid [unifi].exempt_cidrs entry '{e}'"))?;
+            cidrs.insert(net.to_string());
+        } else {
+            let ip: IpAddr = e
+                .parse()
+                .with_context(|| format!("invalid [unifi].exempt_cidrs entry '{e}'"))?;
+            ips.insert(ip.to_string());
+        }
+    }
+
+    // Add the controller/inform host when it is a literal IP (hostnames can't go
+    // in a CrowdSec ip whitelist — those must be resolved first).
+    for host in [
+        ucfg.controller_host().map_err(anyhow::Error::msg)?,
+        ucfg.effective_inform_host().map_err(anyhow::Error::msg)?,
+    ] {
+        if let Ok(ip) = host.parse::<IpAddr>() {
+            ips.insert(ip.to_string());
+        }
+    }
+
+    let cidrs: Vec<String> = cidrs.into_iter().collect();
+    let ips: Vec<String> = ips.into_iter().collect();
+    Ok((cidrs, ips))
+}
+
+#[derive(Debug, Serialize)]
+struct CrowdsecWhitelistParser {
+    name: &'static str,
+    description: &'static str,
+    whitelist: CrowdsecWhitelist,
+}
+
+#[derive(Debug, Serialize)]
+struct CrowdsecWhitelist {
+    reason: &'static str,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    ip: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    cidr: Vec<String>,
+}
+
+/// Render a CrowdSec whitelist parser (s02-enrich stage) as YAML.
+fn render_unifi_whitelist(cidrs: &[String], ips: &[String]) -> Result<String> {
+    let doc = CrowdsecWhitelistParser {
+        name: "ghostctl/unifi-whitelist",
+        description: "Whitelist UniFi mgmt/inform + Tailscale so legit traffic is never banned",
+        whitelist: CrowdsecWhitelist {
+            reason: "UniFi controller management, inform sources, and Tailscale",
+            ip: ips.to_vec(),
+            cidr: cidrs.to_vec(),
+        },
+    };
+    serde_yaml::to_string(&doc).context("failed to render CrowdSec whitelist YAML")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_render_unifi_whitelist_has_cidr_and_ip() {
+        let yaml = render_unifi_whitelist(
+            &["100.64.0.0/10".to_string(), "10.0.0.0/24".to_string()],
+            &["69.169.98.98".to_string()],
+        )
+        .unwrap();
+        assert!(yaml.contains("name: ghostctl/unifi-whitelist"));
+        assert!(yaml.contains("cidr:"));
+        assert!(yaml.contains("- 100.64.0.0/10"));
+        assert!(yaml.contains("ip:"));
+        assert!(yaml.contains("- 69.169.98.98"));
+    }
+
+    #[test]
+    fn test_render_unifi_whitelist_omits_empty_sections() {
+        let yaml = render_unifi_whitelist(&["100.64.0.0/10".to_string()], &[]).unwrap();
+        assert!(yaml.contains("cidr:"));
+        assert!(!yaml.contains("\n  ip:\n"));
+    }
+
+    #[test]
+    fn test_render_unifi_whitelist_escapes_strings_as_yaml_data() {
+        let yaml = render_unifi_whitelist(&["10.0.0.0/24\"\n  ip:\n  - 1.2.3.4".to_string()], &[])
+            .unwrap();
+        let parsed: serde_yaml::Value = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(
+            parsed["whitelist"]["cidr"][0].as_str(),
+            Some("10.0.0.0/24\"\n  ip:\n  - 1.2.3.4")
+        );
+    }
+
+    #[test]
+    fn test_collect_unifi_exempt_lists_rejects_invalid_entries() {
+        let cfg = crate::unifi::config::UnifiConfig {
+            exempt_cidrs: vec!["10.0.0.0/24\n  ip:\n  - 1.2.3.4".to_string()],
+            ..Default::default()
+        };
+        assert!(collect_unifi_exempt_lists(&cfg).is_err());
+    }
+
+    #[test]
+    fn test_collect_unifi_exempt_lists_adds_literal_controller_ips() {
+        let cfg = crate::unifi::config::UnifiConfig {
+            controller_url: "https://10.0.0.10:11443".to_string(),
+            inform_host: Some("10.0.0.11".to_string()),
+            exempt_cidrs: vec!["100.64.0.0/10".to_string()],
+            ..Default::default()
+        };
+        let (cidrs, ips) = collect_unifi_exempt_lists(&cfg).unwrap();
+        assert_eq!(cidrs, vec!["100.64.0.0/10"]);
+        assert_eq!(ips, vec!["10.0.0.10", "10.0.0.11"]);
+    }
 
     #[test]
     fn test_count_feed_entries() {

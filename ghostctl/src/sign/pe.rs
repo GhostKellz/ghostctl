@@ -423,6 +423,7 @@ pub fn sign_pe(
     output: Option<&Path>,
     verbose: bool,
     timestamp: bool,
+    require_timestamp: bool,
 ) -> Result<()> {
     let pe_bytes =
         fs::read(path).with_context(|| format!("Cannot read PE file: {}", path.display()))?;
@@ -508,6 +509,9 @@ pub fn sign_pe(
                 Some(token)
             }
             Err(e) => {
+                if require_timestamp {
+                    return Err(e).context("Timestamping was explicitly requested");
+                }
                 eprintln!(
                     "Warning: Timestamping failed: {}. Signing without timestamp.",
                     e
