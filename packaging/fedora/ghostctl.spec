@@ -1,5 +1,5 @@
 Name:           ghostctl
-Version:        0.12.1
+Version:        0.12.2
 Release:        1%{?dist}
 Summary:        Universal system administration toolkit
 
@@ -87,6 +87,12 @@ cargo test --release --locked
 %endif
 
 %changelog
+* Sat Jul 11 2026 Christopher Kelley <ckelley@ghostctl.sh> - 0.12.2-1
+- Added UniFi OS Server workflows, remote adoption, diagnostics, and docs
+- Hardened Azure Key Vault, PE timestamp, and package signing behavior
+- Updated direct Cargo dependencies and GitHub Actions from open Dependabot PRs
+- Retargeted the final mlua dependency update to 0.12.0
+
 * Wed Jun 24 2026 Christopher Kelley <ckelley@ghostctl.sh> - 0.12.1-1
 - Hotfix dependency refresh for Cargo crates and GitHub Actions
 - Restored SHA digest hex rendering with sha2 0.11

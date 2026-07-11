@@ -1,3 +1,12 @@
+ghostctl (0.12.2-1) unstable; urgency=medium
+
+  * Added UniFi OS Server workflows, remote adoption, diagnostics, and docs.
+  * Hardened Azure Key Vault, PE timestamp, and package signing behavior.
+  * Updated direct Cargo dependencies and GitHub Actions from open Dependabot PRs.
+  * Retargeted the final mlua dependency update to 0.12.0.
+
+ -- Christopher Kelley <ckelley@ghostctl.sh>  Sat, 11 Jul 2026 12:00:00 +0000
+
 ghostctl (0.12.1-1) unstable; urgency=medium
 
   * Hotfix dependency refresh for Cargo crates and GitHub Actions.

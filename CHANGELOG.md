@@ -4,6 +4,11 @@ All notable changes to GhostCTL will be documented in this file.
 
 ## [0.12.2] - 2026-07-11
 
+### Release Correction
+
+- Retargeted the final Dependabot `mlua` update to `0.12.0` and moved the `v0.12.2` release tag to the corrected release commit.
+- Synced Arch, Debian, and Fedora package metadata to `0.12.2`.
+
 ### Added
 
 - **UniFi OS Server support (`ghostctl unifi`)**: new status, device inventory, remote adoption, and doctor workflows for self-hosted UniFi OS Server controllers.
@@ -17,7 +22,7 @@ All notable changes to GhostCTL will be documented in this file.
 
 ### Changed
 
-- Updated the direct Cargo dependency ranges covered by open Dependabot PRs: `base64`, `clap_complete`, `dialoguer`, `dirs`, `env_logger`, `getrandom`, `indicatif`, `mlua`, `nix`, `socket2`, and `thiserror`.
+- Updated the direct Cargo dependency ranges covered by open Dependabot PRs: `base64`, `clap_complete`, `dialoguer`, `dirs`, `env_logger`, `getrandom`, `indicatif`, `mlua` to `0.12.0`, `nix`, `socket2`, and `thiserror`.
 - Refreshed `Cargo.lock` with compatible transitive updates and removed stale duplicate dependency versions where the resolver allowed it.
 - Updated SHA-pinned GitHub Actions dependencies from the open Dependabot group: `actions/checkout` to `v7.0.0` and `softprops/action-gh-release` to `v3.0.1`.
 
