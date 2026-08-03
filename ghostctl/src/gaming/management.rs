@@ -2168,7 +2168,7 @@ fn clean_prefix_temp_files(prefix_path: &str) -> u64 {
             // Clean temp files
             let clean_cmd = format!(
                 "find {} -name 'tmp*' -o -name '*.tmp' -o -name '*.temp' | head -100 | xargs rm -f 2>/dev/null || true",
-                &parent_dir
+                parent_dir
             );
             Command::new("sh").arg("-c").arg(&clean_cmd).status().ok();
 

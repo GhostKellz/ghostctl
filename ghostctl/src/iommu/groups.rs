@@ -516,10 +516,7 @@ fn parse_lspci_line(line: &str) -> Result<(String, String, String, String)> {
     // Extract description - everything between class code and vendor:device
     let description = if let Some(class_match) = class_re.find(line) {
         let start = class_match.end();
-        let end = line
-            .rfind('[')
-            .and_then(|i| if i > start { Some(i) } else { None })
-            .unwrap_or(line.len());
+        let end = line.rfind('[').filter(|&i| i > start).unwrap_or(line.len());
         line[start..end].trim().to_string()
     } else {
         line.to_string()

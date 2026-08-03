@@ -2,6 +2,26 @@
 
 All notable changes to GhostCTL will be documented in this file.
 
+## [0.12.3] - 2026-08-03
+
+Maintenance release: Rust 1.97 compatibility, dependency refresh, and supply-chain pin hygiene. No functional changes.
+
+### Fixed
+
+- Fixed two clippy regressions that broke CI once the toolchain moved to Rust 1.97: a redundant `&` in a `format!` argument (`useless_borrows_in_formatting`) in `gaming::management`, and a hand-rolled `Option::filter` (`manual_filter`) in `iommu::groups`.
+- Repinned `Swatinem/rust-cache` in the release workflow, which pointed at an unreleased intermediate commit instead of the `v2.9.1` tag already used by the CI and nightly workflows.
+
+### Changed
+
+- Refreshed `Cargo.lock` with compatible updates across 83 crates, including `clap` 4.6.5, `anyhow` 1.0.104, `tokio` 1.53.1, `regex` 1.13.1, `libc` 0.2.189, `futures` 0.3.33, `rustls` 0.23.43, and `serde` 1.0.229.
+- Updated SHA-pinned GitHub Actions: `actions/checkout` to `v7.0.1` and `softprops/action-gh-release` to `v3.0.2`.
+- Synced Arch, Debian, and Fedora package metadata to `0.12.3`.
+
+### Security
+
+- Verified every workflow action pin resolves to its claimed upstream release tag, and corrected the `# SHA pin:` comments that Dependabot leaves stale on bump.
+- `cargo audit` reports no advisories across the 456 resolved dependencies.
+
 ## [0.12.2] - 2026-07-11
 
 ### Release Correction

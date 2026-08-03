@@ -1,5 +1,5 @@
 Name:           ghostctl
-Version:        0.12.2
+Version:        0.12.3
 Release:        1%{?dist}
 Summary:        Universal system administration toolkit
 
@@ -87,6 +87,13 @@ cargo test --release --locked
 %endif
 
 %changelog
+* Mon Aug 03 2026 Christopher Kelley <ckelley@ghostctl.sh> - 0.12.3-1
+- Fixed Rust 1.97 clippy regressions that broke the CI build
+- Refreshed Cargo.lock with compatible dependency updates
+- Updated SHA-pinned GitHub Actions to actions/checkout v7.0.1 and
+  softprops/action-gh-release v3.0.2
+- Repinned Swatinem/rust-cache in the release workflow to the v2.9.1 tag
+
 * Sat Jul 11 2026 Christopher Kelley <ckelley@ghostctl.sh> - 0.12.2-1
 - Added UniFi OS Server workflows, remote adoption, diagnostics, and docs
 - Hardened Azure Key Vault, PE timestamp, and package signing behavior
